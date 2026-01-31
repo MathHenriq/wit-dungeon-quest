@@ -1,0 +1,88 @@
+import { ShopItem } from "@/types/game";
+
+export const shopItems: ShopItem[] = [
+  // Weapons
+  {
+    id: "w1",
+    name: "Espada de Madeira",
+    description: "Uma espada de treinamento para iniciantes",
+    cost: 30,
+    minLevel: 1,
+    type: "weapon",
+    icon: "⚔️",
+  },
+  {
+    id: "w2",
+    name: "Arco do Estudante",
+    description: "Dispara flechas de conhecimento",
+    cost: 50,
+    minLevel: 2,
+    type: "weapon",
+    icon: "🏹",
+  },
+  {
+    id: "w3",
+    name: "Cajado Mágico",
+    description: "Canaliza o poder da sabedoria",
+    cost: 80,
+    minLevel: 3,
+    type: "weapon",
+    icon: "🪄",
+  },
+  // Armors
+  {
+    id: "a1",
+    name: "Escudo do Aprendiz",
+    description: "Proteção básica contra erros",
+    cost: 25,
+    minLevel: 1,
+    type: "armor",
+    icon: "🛡️",
+  },
+  {
+    id: "a2",
+    name: "Manto da Concentração",
+    description: "Aumenta o foco durante as aulas",
+    cost: 60,
+    minLevel: 2,
+    type: "armor",
+    icon: "🧥",
+  },
+  {
+    id: "a3",
+    name: "Elmo do Sábio",
+    description: "Protege a mente de distrações",
+    cost: 100,
+    minLevel: 4,
+    type: "armor",
+    icon: "⛑️",
+  },
+  // Abilities
+  {
+    id: "h1",
+    name: "Leitura Veloz",
+    description: "Habilidade de ler mais rápido",
+    cost: 40,
+    minLevel: 1,
+    type: "ability",
+    icon: "📖",
+  },
+  {
+    id: "h2",
+    name: "Memória de Elefante",
+    description: "Nunca esquece o que aprende",
+    cost: 70,
+    minLevel: 3,
+    type: "ability",
+    icon: "🧠",
+  },
+  {
+    id: "h3",
+    name: "Criatividade Infinita",
+    description: "Ideias brilhantes surgem facilmente",
+    cost: 90,
+    minLevel: 4,
+    type: "ability",
+    icon: "✨",
+  },
+];
