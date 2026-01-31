@@ -14,16 +14,256 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      challenges: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          reward: number
+          teacher_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          reward?: number
+          teacher_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          reward?: number
+          teacher_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          teacher_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          teacher_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_items: {
+        Row: {
+          cost: number
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          item_type: string
+          min_level: number
+          name: string
+          teacher_id: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          item_type?: string
+          min_level?: number
+          name: string
+          teacher_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          item_type?: string
+          min_level?: number
+          name?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_items_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_requests: {
+        Row: {
+          challenge_id: string | null
+          created_at: string
+          id: string
+          item_id: string | null
+          request_type: Database["public"]["Enums"]["request_type"]
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          student_id: string
+        }
+        Insert: {
+          challenge_id?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          request_type: Database["public"]["Enums"]["request_type"]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          student_id: string
+        }
+        Update: {
+          challenge_id?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          request_type?: Database["public"]["Enums"]["request_type"]
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_requests_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_requests_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          character_name: string | null
+          class_id: string
+          coins: number
+          created_at: string
+          id: string
+          level: number
+          name: string
+        }
+        Insert: {
+          character_name?: string | null
+          class_id: string
+          coins?: number
+          created_at?: string
+          id?: string
+          level?: number
+          name: string
+        }
+        Update: {
+          character_name?: string | null
+          class_id?: string
+          coins?: number
+          created_at?: string
+          id?: string
+          level?: number
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teachers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_teacher_id: { Args: never; Returns: string }
+      is_teacher_of_class: { Args: { class_id: string }; Returns: boolean }
+      is_teacher_of_student: { Args: { student_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      request_status: "pending" | "approved" | "rejected"
+      request_type: "challenge" | "item"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +390,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      request_status: ["pending", "approved", "rejected"],
+      request_type: ["challenge", "item"],
+    },
   },
 } as const
