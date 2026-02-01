@@ -15,7 +15,9 @@ import {
   TrendingUp,
   Trash2,
   Shield,
-  Sword
+  Sword,
+  Image,
+  Link as LinkIcon
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +53,7 @@ interface ShopItem {
   item_type: string;
   icon: string;
   is_active: boolean;
+  image_url: string | null;
 }
 
 interface StudentRequest {
@@ -91,6 +94,7 @@ export default function TeacherDashboard() {
   const [newItemLevel, setNewItemLevel] = useState(1);
   const [newItemType, setNewItemType] = useState("weapon");
   const [newItemIcon, setNewItemIcon] = useState("⚔️");
+  const [newItemImage, setNewItemImage] = useState("");
 
   useEffect(() => {
     if (!authLoading && !teacher) {
@@ -255,6 +259,7 @@ export default function TeacherDashboard() {
       min_level: newItemLevel,
       item_type: newItemType,
       icon: newItemIcon,
+      image_url: newItemImage.trim() || null,
     });
 
     if (error) {
@@ -265,6 +270,7 @@ export default function TeacherDashboard() {
       setNewItemDesc("");
       setNewItemCost(10);
       setNewItemLevel(1);
+      setNewItemImage("");
       loadData();
     }
   };
@@ -743,40 +749,91 @@ export default function TeacherDashboard() {
                   />
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <input
                   type="text"
                   value={newItemIcon}
                   onChange={e => setNewItemIcon(e.target.value)}
-                  placeholder="Ícone (emoji)"
-                  className="w-20 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none text-center text-2xl"
+                  placeholder="Ícone"
+                  className="w-16 px-2 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none text-center text-2xl"
                 />
                 <input
                   type="text"
                   value={newItemDesc}
                   onChange={e => setNewItemDesc(e.target.value)}
                   placeholder="Descrição (opcional)"
-                  className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
+                  className="flex-1 min-w-[200px] px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
                 />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <LinkIcon size={16} />
+                  </div>
+                  <input
+                    type="url"
+                    value={newItemImage}
+                    onChange={e => setNewItemImage(e.target.value)}
+                    placeholder="URL da imagem (opcional)"
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
+                  />
+                </div>
                 <button type="submit" className="btn-fantasy flex items-center gap-2">
                   <Plus size={18} />
-                  Criar
+                  Criar Item
                 </button>
               </div>
+              {newItemImage && (
+                <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+                  <Image size={16} className="text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Preview:</span>
+                  <img 
+                    src={newItemImage} 
+                    alt="Preview" 
+                    className="h-12 w-12 object-cover rounded"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
             </form>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {shopItems.map(item => (
-                <div key={item.id} className="card-fantasy">
-                  <div className="flex items-start justify-between mb-2">
-                    <span className="text-3xl">{item.icon}</span>
+                <div key={item.id} className="card-fantasy overflow-hidden">
+                  {item.image_url ? (
+                    <div className="relative -mx-5 -mt-5 mb-3 aspect-video bg-dungeon-dark/10">
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          if (target.nextElementSibling) {
+                            target.nextElementSibling.classList.remove('hidden');
+                          }
+                        }}
+                      />
+                      <div className="hidden w-full h-full absolute inset-0 flex items-center justify-center">
+                        <span className="text-5xl">{item.icon}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-4xl">{item.icon}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">{item.name}</h3>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                       {item.item_type === "weapon" ? "Arma" : item.item_type === "armor" ? "Armadura" : "Habilidade"}
                     </span>
                   </div>
-                  <h3 className="font-semibold">{item.name}</h3>
                   {item.description && (
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
                   )}
                   <div className="flex items-center justify-between mt-3 text-sm">
                     <span className="flex items-center gap-1 text-gold-dark font-semibold">
