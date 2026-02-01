@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useStudentDB } from "@/hooks/useStudentDB";
 import { CoinDisplay } from "@/components/CoinDisplay";
 import { LevelBadge } from "@/components/LevelBadge";
+import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { 
   Sword, 
   Shield, 
@@ -14,7 +15,8 @@ import {
   Coins,
   CheckCircle,
   Clock,
-  Lock
+  Lock,
+  UserCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,12 +33,13 @@ export default function StudentPortal() {
     hasChallengeRequest,
     hasItemRequest,
     logout,
+    refreshStudent,
   } = useStudentDB();
 
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
   const [characterName, setCharacterName] = useState("");
-  const [activeTab, setActiveTab] = useState<"challenges" | "shop">("challenges");
+  const [activeTab, setActiveTab] = useState<"challenges" | "shop" | "character">("challenges");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -271,10 +274,10 @@ export default function StudentPortal() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           <button
             onClick={() => setActiveTab("challenges")}
-            className={`flex-1 md:flex-none px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
               activeTab === "challenges"
                 ? "bg-primary text-primary-foreground shadow-lg"
                 : "bg-card text-muted-foreground hover:bg-secondary"
@@ -285,7 +288,7 @@ export default function StudentPortal() {
           </button>
           <button
             onClick={() => setActiveTab("shop")}
-            className={`flex-1 md:flex-none px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
               activeTab === "shop"
                 ? "bg-primary text-primary-foreground shadow-lg"
                 : "bg-card text-muted-foreground hover:bg-secondary"
@@ -293,6 +296,17 @@ export default function StudentPortal() {
           >
             <ShoppingBag size={20} />
             <span>Loja</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("character")}
+            className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+              activeTab === "character"
+                ? "bg-primary text-primary-foreground shadow-lg"
+                : "bg-card text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            <UserCircle size={20} />
+            <span>Meu Personagem</span>
           </button>
         </div>
 
@@ -402,13 +416,35 @@ export default function StudentPortal() {
                   };
 
                   return (
-                    <div key={item.id} className="card-fantasy flex flex-col h-full">
-                      <div className="flex items-start justify-between mb-3">
-                        <span className="text-4xl">{item.icon}</span>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${typeColors[item.item_type] || typeColors.weapon}`}>
-                          {typeLabels[item.item_type] || "Item"}
-                        </span>
-                      </div>
+                    <div key={item.id} className="card-fantasy flex flex-col h-full overflow-hidden">
+                      {/* Item Image */}
+                      {item.image_url ? (
+                        <div className="relative -mx-5 -mt-5 mb-4 aspect-video bg-dungeon-dark/20">
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                          <div className="hidden w-full h-full absolute inset-0 flex items-center justify-center bg-dungeon-dark/10">
+                            <span className="text-6xl">{item.icon}</span>
+                          </div>
+                          <span className={`absolute top-3 right-3 text-xs font-semibold px-2 py-1 rounded-full ${typeColors[item.item_type] || typeColors.weapon}`}>
+                            {typeLabels[item.item_type] || "Item"}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-start justify-between mb-3">
+                          <span className="text-5xl">{item.icon}</span>
+                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${typeColors[item.item_type] || typeColors.weapon}`}>
+                            {typeLabels[item.item_type] || "Item"}
+                          </span>
+                        </div>
+                      )}
 
                       <h3 className="font-display font-bold text-lg mb-1">{item.name}</h3>
                       {item.description && (
@@ -467,6 +503,11 @@ export default function StudentPortal() {
               </div>
             )}
           </section>
+        )}
+
+        {/* Character Tab */}
+        {activeTab === "character" && (
+          <CharacterCustomization student={student} onUpdate={refreshStudent} />
         )}
 
         {/* Footer Note */}

@@ -8,6 +8,12 @@ interface Student {
   coins: number;
   level: number;
   class_id: string;
+  race: string | null;
+  character_class: string | null;
+  motivation: string | null;
+  lore: string | null;
+  appearance: string | null;
+  personality: string | null;
 }
 
 interface ClassData {
@@ -30,6 +36,7 @@ interface ShopItem {
   min_level: number;
   item_type: string;
   icon: string;
+  image_url: string | null;
 }
 
 interface StudentRequest {
@@ -117,7 +124,7 @@ export function useStudentDB() {
   const loadShopItems = async () => {
     const { data } = await supabase
       .from("shop_items")
-      .select("id, name, description, cost, min_level, item_type, icon")
+      .select("id, name, description, cost, min_level, item_type, icon, image_url")
       .eq("is_active", true)
       .order("cost");
     setShopItems(data || []);
@@ -237,6 +244,17 @@ export function useStudentDB() {
     setRequests([]);
   };
 
+  const refreshStudent = async () => {
+    if (student) {
+      const { data } = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", student.id)
+        .maybeSingle();
+      if (data) setStudent(data);
+    }
+  };
+
   return {
     student,
     classes,
@@ -249,5 +267,6 @@ export function useStudentDB() {
     hasChallengeRequest,
     hasItemRequest,
     logout,
+    refreshStudent,
   };
 }

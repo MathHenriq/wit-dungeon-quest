@@ -88,6 +88,7 @@ export type Database = {
           description: string | null
           icon: string
           id: string
+          image_url: string | null
           is_active: boolean
           item_type: string
           min_level: number
@@ -100,6 +101,7 @@ export type Database = {
           description?: string | null
           icon?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           item_type?: string
           min_level?: number
@@ -112,6 +114,7 @@ export type Database = {
           description?: string | null
           icon?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           item_type?: string
           min_level?: number
@@ -195,31 +198,49 @@ export type Database = {
       }
       students: {
         Row: {
+          appearance: string | null
+          character_class: string | null
           character_name: string | null
           class_id: string
           coins: number
           created_at: string
           id: string
           level: number
+          lore: string | null
+          motivation: string | null
           name: string
+          personality: string | null
+          race: string | null
         }
         Insert: {
+          appearance?: string | null
+          character_class?: string | null
           character_name?: string | null
           class_id: string
           coins?: number
           created_at?: string
           id?: string
           level?: number
+          lore?: string | null
+          motivation?: string | null
           name: string
+          personality?: string | null
+          race?: string | null
         }
         Update: {
+          appearance?: string | null
+          character_class?: string | null
           character_name?: string | null
           class_id?: string
           coins?: number
           created_at?: string
           id?: string
           level?: number
+          lore?: string | null
+          motivation?: string | null
           name?: string
+          personality?: string | null
+          race?: string | null
         }
         Relationships: [
           {
