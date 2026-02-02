@@ -7,7 +7,6 @@ import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { 
   Sword, 
   Shield, 
-  Sparkles, 
   User, 
   LogOut, 
   ShoppingBag, 
@@ -16,7 +15,8 @@ import {
   CheckCircle,
   Clock,
   Lock,
-  UserCircle
+  UserCircle,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,7 +38,6 @@ export default function StudentPortal() {
 
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
-  const [characterName, setCharacterName] = useState("");
   const [activeTab, setActiveTab] = useState<"challenges" | "shop" | "character">("challenges");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,13 +46,17 @@ export default function StudentPortal() {
     if (!name.trim() || !classId) return;
 
     setIsSubmitting(true);
-    const result = await loginStudent(name.trim(), classId, characterName.trim() || undefined);
+    const result = await loginStudent(name.trim(), classId);
     setIsSubmitting(false);
 
     if (!result.success) {
       toast.error("Erro", { description: result.error });
     } else {
       toast.success("Bem-vindo à Dungeon!", { icon: "⚔️" });
+      // If character not configured yet, redirect to character tab
+      if (result.needsCharacter) {
+        setActiveTab("character");
+      }
     }
   };
 
@@ -150,23 +153,6 @@ export default function StudentPortal() {
                     Nenhuma turma disponível. Aguarde o professor criar.
                   </p>
                 )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Nome do Personagem
-                  <span className="text-muted-foreground font-normal ml-1">(opcional)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={characterName}
-                    onChange={(e) => setCharacterName(e.target.value)}
-                    placeholder="Escolha um nome épico!"
-                    className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all pr-10"
-                  />
-                  <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 text-gold" size={20} />
-                </div>
               </div>
 
               <button
