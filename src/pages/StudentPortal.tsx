@@ -403,9 +403,9 @@ export default function StudentPortal() {
 
                   return (
                     <div key={item.id} className="card-fantasy flex flex-col h-full overflow-hidden">
-                      {/* Item Image */}
-                      {item.image_url ? (
-                        <div className="relative -mx-5 -mt-5 mb-4 aspect-video bg-dungeon-dark/20">
+                      {/* Item Image/Icon Header */}
+                      <div className="relative -mx-5 -mt-5 mb-4 aspect-video bg-gradient-to-b from-dungeon-dark/30 to-dungeon-dark/10 flex items-center justify-center">
+                        {item.image_url ? (
                           <img
                             src={item.image_url}
                             alt={item.name}
@@ -413,24 +413,18 @@ export default function StudentPortal() {
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
-                              target.nextElementSibling?.classList.remove('hidden');
+                              const fallback = target.parentElement?.querySelector('.item-icon-fallback');
+                              if (fallback) fallback.classList.remove('hidden');
                             }}
                           />
-                          <div className="hidden w-full h-full absolute inset-0 flex items-center justify-center bg-dungeon-dark/10">
-                            <span className="text-6xl">{item.icon}</span>
-                          </div>
-                          <span className={`absolute top-3 right-3 text-xs font-semibold px-2 py-1 rounded-full ${typeColors[item.item_type] || typeColors.weapon}`}>
-                            {typeLabels[item.item_type] || "Item"}
-                          </span>
+                        ) : null}
+                        <div className={`item-icon-fallback absolute inset-0 flex items-center justify-center ${item.image_url ? 'hidden' : ''}`}>
+                          <span className="text-7xl drop-shadow-lg">{item.icon}</span>
                         </div>
-                      ) : (
-                        <div className="flex items-start justify-between mb-3">
-                          <span className="text-5xl">{item.icon}</span>
-                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${typeColors[item.item_type] || typeColors.weapon}`}>
-                            {typeLabels[item.item_type] || "Item"}
-                          </span>
-                        </div>
-                      )}
+                        <span className={`absolute top-3 right-3 text-xs font-semibold px-2 py-1 rounded-full ${typeColors[item.item_type] || typeColors.weapon}`}>
+                          {typeLabels[item.item_type] || "Item"}
+                        </span>
+                      </div>
 
                       <h3 className="font-display font-bold text-lg mb-1">{item.name}</h3>
                       {item.description && (
