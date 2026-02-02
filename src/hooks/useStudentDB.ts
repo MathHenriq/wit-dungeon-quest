@@ -165,9 +165,9 @@ export function useStudentDB() {
     };
   }, [student?.id]);
 
-  const loginStudent = async (name: string, classId: string, characterName?: string) => {
-    // Try to find existing student
-    let { data: existingStudent } = await supabase
+  const loginStudent = async (name: string, classId: string) => {
+    // Try to find existing student by name + class
+    const { data: existingStudent } = await supabase
       .from("students")
       .select("*")
       .eq("class_id", classId)
@@ -175,16 +175,8 @@ export function useStudentDB() {
       .maybeSingle();
 
     if (existingStudent) {
-      // Update character name if provided and different
-      if (characterName && characterName !== existingStudent.character_name) {
-        await supabase
-          .from("students")
-          .update({ character_name: characterName })
-          .eq("id", existingStudent.id);
-        existingStudent.character_name = characterName;
-      }
       await loadStudent(existingStudent.id);
-      return { success: true };
+      return { success: true, needsCharacter: !existingStudent.character_name };
     }
 
     // Student not found - they need to be added by teacher first
