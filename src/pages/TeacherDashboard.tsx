@@ -803,8 +803,9 @@ export default function TeacherDashboard() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {shopItems.map(item => (
                 <div key={item.id} className="card-fantasy overflow-hidden">
-                  {item.image_url ? (
-                    <div className="relative -mx-5 -mt-5 mb-3 aspect-video bg-dungeon-dark/10">
+                  {/* Item Image/Icon Header */}
+                  <div className="relative -mx-5 -mt-5 mb-3 aspect-video bg-gradient-to-b from-dungeon-dark/20 to-dungeon-dark/5 flex items-center justify-center">
+                    {item.image_url ? (
                       <img
                         src={item.image_url}
                         alt={item.name}
@@ -812,20 +813,15 @@ export default function TeacherDashboard() {
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
-                          if (target.nextElementSibling) {
-                            target.nextElementSibling.classList.remove('hidden');
-                          }
+                          const fallback = target.parentElement?.querySelector('.item-icon-fallback');
+                          if (fallback) fallback.classList.remove('hidden');
                         }}
                       />
-                      <div className="hidden w-full h-full absolute inset-0 flex items-center justify-center">
-                        <span className="text-5xl">{item.icon}</span>
-                      </div>
+                    ) : null}
+                    <div className={`item-icon-fallback absolute inset-0 flex items-center justify-center ${item.image_url ? 'hidden' : ''}`}>
+                      <span className="text-5xl drop-shadow-md">{item.icon}</span>
                     </div>
-                  ) : (
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="text-4xl">{item.icon}</span>
-                    </div>
-                  )}
+                  </div>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold">{item.name}</h3>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
