@@ -331,18 +331,15 @@ export default function TeacherDashboard() {
       });
       return;
     }
-    if (!isValidHttpUrl(imageUrl)) {
-      toast.error("URL inválida", {
-        description: "Use uma URL completa começando com http:// ou https://",
-      });
-      return;
-    }
 
     setIsCreatingItem(true);
 
     try {
       // Resolve teacher_id from backend to avoid mismatches
       const { data: teacherIdFromDb, error: teacherIdError } = await supabase.rpc("get_teacher_id");
+      if (teacherIdError) {
+        console.error("get_teacher_id error:", teacherIdError);
+      }
       const teacherId = (!teacherIdError && teacherIdFromDb) ? String(teacherIdFromDb) : teacher.id;
 
       const { error } = await supabase.from("shop_items").insert({
@@ -368,7 +365,8 @@ export default function TeacherDashboard() {
       setNewItemLevel(1);
       setNewItemImage("");
       loadData();
-    } catch {
+    } catch (err) {
+      console.error("addShopItem unexpected error:", err);
       toast.error("Erro inesperado", { description: "Não foi possível criar o item. Tente novamente." });
     } finally {
       setIsCreatingItem(false);
