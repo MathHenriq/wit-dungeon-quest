@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { 
-  User, 
   Sparkles, 
   Scroll, 
   Heart, 
@@ -24,6 +24,7 @@ interface Student {
   lore: string | null;
   appearance: string | null;
   personality: string | null;
+  profile_photo_url?: string | null;
 }
 
 interface CharacterCustomizationProps {
@@ -131,13 +132,17 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
 
   return (
     <div className="space-y-6">
-      {/* Character Header */}
+      {/* Character Header with Profile Photo */}
       <div className="card-fantasy bg-gradient-to-r from-dungeon-dark to-primary text-primary-foreground overflow-hidden relative">
         <div className="absolute right-0 top-0 w-32 h-32 bg-gold/10 rounded-full -mr-16 -mt-16" />
         <div className="relative z-10 flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gold/20 flex items-center justify-center">
-            <User size={32} className="text-gold" />
-          </div>
+          <ProfilePhoto
+            studentId={student.id}
+            currentPhotoUrl={student.profile_photo_url || null}
+            onUpdate={onUpdate}
+            size="lg"
+            editable={true}
+          />
           <div>
             <h2 className="font-display text-2xl font-bold text-gold">
               {characterName || student.name}

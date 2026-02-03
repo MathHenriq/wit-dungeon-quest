@@ -131,6 +131,52 @@ export type Database = {
           },
         ]
       }
+      student_inventory: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          id: string
+          item_id: string
+          student_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          item_id: string
+          student_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          id?: string
+          item_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_inventory_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_inventory_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_inventory_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_requests: {
         Row: {
           challenge_id: string | null
@@ -211,6 +257,7 @@ export type Database = {
           name: string
           personality: string | null
           presencas_consecutivas: number
+          profile_photo_url: string | null
           race: string | null
         }
         Insert: {
@@ -227,6 +274,7 @@ export type Database = {
           name: string
           personality?: string | null
           presencas_consecutivas?: number
+          profile_photo_url?: string | null
           race?: string | null
         }
         Update: {
@@ -243,6 +291,7 @@ export type Database = {
           name?: string
           personality?: string | null
           presencas_consecutivas?: number
+          profile_photo_url?: string | null
           race?: string | null
         }
         Relationships: [

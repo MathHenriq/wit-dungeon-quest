@@ -4,10 +4,12 @@ import { useStudentDB } from "@/hooks/useStudentDB";
 import { CoinDisplay } from "@/components/CoinDisplay";
 import { LevelBadge } from "@/components/LevelBadge";
 import { CharacterCustomization } from "@/components/CharacterCustomization";
+import { StudentInventory } from "@/components/StudentInventory";
+import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { 
   Sword, 
   Shield, 
-  User, 
+  User,
   LogOut, 
   ShoppingBag, 
   Scroll,
@@ -17,7 +19,8 @@ import {
   Lock,
   UserCircle,
   Sparkles,
-  CalendarCheck
+  CalendarCheck,
+  Package
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +30,7 @@ export default function StudentPortal() {
     classes,
     challenges,
     shopItems,
+    inventory,
     isLoading,
     loginStudent,
     requestChallenge,
@@ -41,7 +45,7 @@ export default function StudentPortal() {
 
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
-  const [activeTab, setActiveTab] = useState<"challenges" | "shop" | "character">("challenges");
+  const [activeTab, setActiveTab] = useState<"challenges" | "shop" | "character" | "inventory">("challenges");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -219,9 +223,13 @@ export default function StudentPortal() {
             </div>
             
             <div className="flex items-center gap-3 bg-primary/20 rounded-lg px-4 py-2">
-              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                <User className="text-secondary-foreground" size={20} />
-              </div>
+              <ProfilePhoto
+                studentId={student.id}
+                currentPhotoUrl={student.profile_photo_url}
+                onUpdate={refreshStudent}
+                size="sm"
+                editable={false}
+              />
               <div>
                 <p className="font-semibold text-primary-foreground">
                   {displayName}
@@ -340,6 +348,22 @@ export default function StudentPortal() {
           >
             <ShoppingBag size={20} />
             <span>Loja</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("inventory")}
+            className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+              activeTab === "inventory"
+                ? "bg-primary text-primary-foreground shadow-lg"
+                : "bg-card text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            <Package size={20} />
+            <span>Inventário</span>
+            {inventory.length > 0 && (
+              <span className="bg-gold text-dungeon-dark text-xs font-bold px-1.5 py-0.5 rounded-full">
+                {inventory.length}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab("character")}
@@ -541,6 +565,11 @@ export default function StudentPortal() {
               </div>
             )}
           </section>
+        )}
+
+        {/* Inventory Tab */}
+        {activeTab === "inventory" && (
+          <StudentInventory inventory={inventory} />
         )}
 
         {/* Character Tab */}

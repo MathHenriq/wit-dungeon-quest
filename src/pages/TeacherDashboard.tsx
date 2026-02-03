@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { 
   Users, 
   BookOpen, 
@@ -19,7 +20,9 @@ import {
   Image,
   Link as LinkIcon,
   CalendarCheck,
-  RotateCcw
+  RotateCcw,
+  Package,
+  Minus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +40,7 @@ interface Student {
   level: number;
   class_id: string;
   presencas_consecutivas: number;
+  profile_photo_url: string | null;
 }
 
 interface Challenge {
@@ -72,17 +76,26 @@ interface StudentRequest {
   shop_item?: ShopItem;
 }
 
+interface InventoryRecord {
+  id: string;
+  student_id: string;
+  item_id: string;
+  item?: ShopItem;
+}
+
 export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop" | "attendance">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop" | "attendance" | "inventory">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [requests, setRequests] = useState<StudentRequest[]>([]);
+  const [inventoryRecords, setInventoryRecords] = useState<InventoryRecord[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [selectedStudentForInventory, setSelectedStudentForInventory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -169,6 +182,19 @@ export default function TeacherDashboard() {
         return { ...req, student, challenge, shop_item } as StudentRequest;
       });
       setRequests(enrichedRequests);
+
+      // Load inventory records
+      const { data: inventoryData } = await supabase
+        .from("student_inventory")
+        .select("*")
+        .order("added_at", { ascending: false });
+      
+      // Enrich inventory with item data
+      const enrichedInventory = (inventoryData || []).map(inv => {
+        const item = itemsData?.find(i => i.id === inv.item_id);
+        return { ...inv, item } as InventoryRecord;
+      });
+      setInventoryRecords(enrichedInventory);
 
     } catch (error) {
       console.error("Error loading data:", error);
@@ -370,12 +396,19 @@ export default function TeacherDashboard() {
         .eq("id", request.student_id);
     }
 
-    // Or deduct coins if it's an item purchase
+    // Or deduct coins and add item to inventory if it's an item purchase
     if (request.request_type === "item" && request.shop_item && request.student) {
       await supabase
         .from("students")
         .update({ coins: request.student.coins - request.shop_item.cost })
         .eq("id", request.student_id);
+      
+      // Add item to student's inventory
+      await supabase.from("student_inventory").insert({
+        student_id: request.student_id,
+        item_id: request.shop_item.id,
+        added_by: teacher.id,
+      });
     }
 
     toast.success("Solicitação aprovada!");
@@ -458,6 +491,49 @@ export default function TeacherDashboard() {
     }
   };
 
+  const addItemToInventory = async (studentId: string, itemId: string) => {
+    if (!teacher) return;
+
+    const { error } = await supabase.from("student_inventory").insert({
+      student_id: studentId,
+      item_id: itemId,
+      added_by: teacher.id,
+    });
+
+    if (error) {
+      if (error.code === "23505") {
+        toast.error("Item já está no inventário do aluno");
+      } else {
+        toast.error("Erro ao adicionar item", { description: error.message });
+      }
+    } else {
+      toast.success("Item adicionado ao inventário!");
+      loadData();
+    }
+  };
+
+  const removeItemFromInventory = async (inventoryId: string) => {
+    const { error } = await supabase
+      .from("student_inventory")
+      .delete()
+      .eq("id", inventoryId);
+
+    if (error) {
+      toast.error("Erro ao remover item", { description: error.message });
+    } else {
+      toast.success("Item removido do inventário");
+      loadData();
+    }
+  };
+
+  const getStudentInventory = (studentId: string) => {
+    return inventoryRecords.filter(inv => inv.student_id === studentId);
+  };
+
+  const studentHasItem = (studentId: string, itemId: string) => {
+    return inventoryRecords.some(inv => inv.student_id === studentId && inv.item_id === itemId);
+  };
+
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -538,6 +614,7 @@ export default function TeacherDashboard() {
           {[
             { id: "requests", label: "Solicitações", icon: Clock },
             { id: "attendance", label: "Presença", icon: CalendarCheck },
+            { id: "inventory", label: "Inventário", icon: Package },
             { id: "classes", label: "Turmas", icon: BookOpen },
             { id: "students", label: "Alunos", icon: Users },
             { id: "challenges", label: "Desafios", icon: Sword },
@@ -698,18 +775,27 @@ export default function TeacherDashboard() {
               {filteredStudents.map(student => (
                 <div key={student.id} className="card-fantasy">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold">
-                        {student.character_name || student.name}
-                        {student.character_name && (
-                          <span className="text-sm text-muted-foreground ml-2">
-                            ({student.name})
-                          </span>
-                        )}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {classes.find(c => c.id === student.class_id)?.name}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <ProfilePhoto
+                        studentId={student.id}
+                        currentPhotoUrl={student.profile_photo_url}
+                        onUpdate={() => loadData()}
+                        size="sm"
+                        editable={false}
+                      />
+                      <div>
+                        <h3 className="font-semibold">
+                          {student.character_name || student.name}
+                          {student.character_name && (
+                            <span className="text-sm text-muted-foreground ml-2">
+                              ({student.name})
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {classes.find(c => c.id === student.class_id)?.name}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -979,23 +1065,32 @@ export default function TeacherDashboard() {
                 {filteredStudents.map(student => (
                   <div key={student.id} className="card-fantasy">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <h3 className="font-semibold">
-                          {student.character_name || student.name}
-                          {student.character_name && (
-                            <span className="text-sm text-muted-foreground ml-2">
-                              ({student.name})
+                      <div className="flex items-center gap-3 flex-1">
+                        <ProfilePhoto
+                          studentId={student.id}
+                          currentPhotoUrl={student.profile_photo_url}
+                          onUpdate={() => loadData()}
+                          size="sm"
+                          editable={false}
+                        />
+                        <div>
+                          <h3 className="font-semibold">
+                            {student.character_name || student.name}
+                            {student.character_name && (
+                              <span className="text-sm text-muted-foreground ml-2">
+                                ({student.name})
+                              </span>
+                            )}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {classes.find(c => c.id === student.class_id)?.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <CalendarCheck className="text-success" size={16} />
+                            <span className="font-semibold text-success">
+                              {student.presencas_consecutivas} {student.presencas_consecutivas === 1 ? 'aula consecutiva' : 'aulas consecutivas'}
                             </span>
-                          )}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {classes.find(c => c.id === student.class_id)?.name}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <CalendarCheck className="text-success" size={16} />
-                          <span className="font-semibold text-success">
-                            {student.presencas_consecutivas} {student.presencas_consecutivas === 1 ? 'aula consecutiva' : 'aulas consecutivas'}
-                          </span>
+                          </div>
                         </div>
                       </div>
 
@@ -1020,6 +1115,181 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Inventory Tab */}
+        {activeTab === "inventory" && (
+          <section>
+            <h2 className="section-title">
+              <Package className="text-gold" />
+              Gerenciar Inventário dos Alunos
+            </h2>
+
+            <div className="card-fantasy mb-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  value={selectedClass || ""}
+                  onChange={e => {
+                    setSelectedClass(e.target.value || null);
+                    setSelectedStudentForInventory(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
+                >
+                  <option value="">Todas as turmas</option>
+                  {classes.map(cls => (
+                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedStudentForInventory || ""}
+                  onChange={e => setSelectedStudentForInventory(e.target.value || null)}
+                  className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
+                >
+                  <option value="">Selecione um aluno...</option>
+                  {filteredStudents.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.character_name || s.name}
+                      {s.character_name ? ` (${s.name})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {selectedStudentForInventory ? (
+              <div className="space-y-6">
+                {/* Selected student info */}
+                {(() => {
+                  const selectedStudent = students.find(s => s.id === selectedStudentForInventory);
+                  const studentInv = getStudentInventory(selectedStudentForInventory);
+                  
+                  if (!selectedStudent) return null;
+
+                  return (
+                    <>
+                      <div className="card-fantasy bg-gradient-to-r from-dungeon-dark/10 to-primary/10">
+                        <div className="flex items-center gap-4">
+                          <ProfilePhoto
+                            studentId={selectedStudent.id}
+                            currentPhotoUrl={selectedStudent.profile_photo_url}
+                            onUpdate={() => loadData()}
+                            size="lg"
+                            editable={false}
+                          />
+                          <div>
+                            <h3 className="font-display text-xl font-bold">
+                              {selectedStudent.character_name || selectedStudent.name}
+                            </h3>
+                            <p className="text-muted-foreground">
+                              {classes.find(c => c.id === selectedStudent.class_id)?.name}
+                            </p>
+                            <p className="text-sm text-gold font-semibold mt-1">
+                              {studentInv.length} {studentInv.length === 1 ? 'item' : 'itens'} no inventário
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Current Inventory */}
+                      <div>
+                        <h4 className="font-semibold mb-3">Inventário atual:</h4>
+                        {studentInv.length === 0 ? (
+                          <p className="text-muted-foreground text-sm">Nenhum item no inventário</p>
+                        ) : (
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {studentInv.map(inv => (
+                              <div key={inv.id} className="card-fantasy flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                  {inv.item?.image_url ? (
+                                    <img
+                                      src={inv.item.image_url}
+                                      alt={inv.item.name}
+                                      className="w-12 h-12 rounded-lg object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <span className="text-3xl">{inv.item?.icon || "📦"}</span>
+                                  )}
+                                  <div>
+                                    <p className="font-semibold">{inv.item?.name || "Item"}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {inv.item?.item_type === "weapon" ? "Arma" : 
+                                       inv.item?.item_type === "armor" ? "Armadura" : "Habilidade"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => removeItemFromInventory(inv.id)}
+                                  className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                                  title="Remover do inventário"
+                                >
+                                  <Minus size={18} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Add Items */}
+                      <div>
+                        <h4 className="font-semibold mb-3">Adicionar item ao inventário:</h4>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {shopItems.filter(item => !studentHasItem(selectedStudentForInventory, item.id)).map(item => (
+                            <div key={item.id} className="card-fantasy flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                {item.image_url ? (
+                                  <img
+                                    src={item.image_url}
+                                    alt={item.name}
+                                    className="w-12 h-12 rounded-lg object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-3xl">{item.icon}</span>
+                                )}
+                                <div>
+                                  <p className="font-semibold">{item.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.item_type === "weapon" ? "Arma" : 
+                                     item.item_type === "armor" ? "Armadura" : "Habilidade"}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => addItemToInventory(selectedStudentForInventory, item.id)}
+                                className="p-2 rounded-lg bg-success/10 text-success hover:bg-success/20 transition-colors"
+                                title="Adicionar ao inventário"
+                              >
+                                <Plus size={18} />
+                              </button>
+                            </div>
+                          ))}
+                          {shopItems.filter(item => !studentHasItem(selectedStudentForInventory, item.id)).length === 0 && (
+                            <p className="text-muted-foreground text-sm col-span-full">
+                              O aluno já possui todos os itens disponíveis na loja
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="card-fantasy text-center py-8 text-muted-foreground">
+                <Package size={48} className="mx-auto mb-4 opacity-50" />
+                <p>Selecione um aluno para gerenciar o inventário</p>
               </div>
             )}
           </section>
