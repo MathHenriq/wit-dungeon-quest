@@ -95,6 +95,16 @@ export default function TeacherDashboard() {
   const [newItemType, setNewItemType] = useState("weapon");
   const [newItemIcon, setNewItemIcon] = useState("⚔️");
   const [newItemImage, setNewItemImage] = useState("");
+  const [isCreatingItem, setIsCreatingItem] = useState(false);
+
+  const isValidHttpUrl = (value: string) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !teacher) {
@@ -249,29 +259,85 @@ export default function TeacherDashboard() {
 
   const addShopItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teacher || !newItemName.trim()) return;
 
-    const { error } = await supabase.from("shop_items").insert({
-      teacher_id: teacher.id,
-      name: newItemName.trim(),
-      description: newItemDesc.trim() || null,
-      cost: newItemCost,
-      min_level: newItemLevel,
-      item_type: newItemType,
-      icon: newItemIcon,
-      image_url: newItemImage.trim() || null,
-    });
+    if (!teacher) {
+      toast.error("Sessão do professor não carregada", {
+        description: "Recarregue a página e tente novamente.",
+      });
+      return;
+    }
 
-    if (error) {
-      toast.error("Erro ao criar item", { description: error.message });
-    } else {
-      toast.success("Item criado!");
+    const name = newItemName.trim();
+    const description = newItemDesc.trim();
+    const imageUrl = newItemImage.trim();
+    const icon = newItemIcon.trim() || "⚔️";
+
+    // Required-field validation (no silent fails)
+    if (!name) {
+      toast.error("Preencha os campos obrigatórios", { description: "Informe o nome do item." });
+      return;
+    }
+    if (!description) {
+      toast.error("Preencha os campos obrigatórios", { description: "Informe a descrição do item." });
+      return;
+    }
+    if (!newItemType) {
+      toast.error("Preencha os campos obrigatórios", { description: "Selecione o tipo do item." });
+      return;
+    }
+    if (!Number.isFinite(newItemCost) || newItemCost < 1) {
+      toast.error("Preencha os campos obrigatórios", { description: "Informe um custo válido (mínimo 1)." });
+      return;
+    }
+    if (!Number.isFinite(newItemLevel) || newItemLevel < 1) {
+      toast.error("Preencha os campos obrigatórios", { description: "Informe um nível mínimo válido (mínimo 1)." });
+      return;
+    }
+    if (!imageUrl) {
+      toast.error("Preencha os campos obrigatórios", { description: "Informe a URL da imagem do item." });
+      return;
+    }
+    if (!isValidHttpUrl(imageUrl)) {
+      toast.error("URL inválida", {
+        description: "Use uma URL completa começando com http:// ou https://",
+      });
+      return;
+    }
+
+    setIsCreatingItem(true);
+
+    try {
+      // Resolve teacher_id from backend to avoid mismatches
+      const { data: teacherIdFromDb, error: teacherIdError } = await supabase.rpc("get_teacher_id");
+      const teacherId = (!teacherIdError && teacherIdFromDb) ? String(teacherIdFromDb) : teacher.id;
+
+      const { error } = await supabase.from("shop_items").insert({
+        teacher_id: teacherId,
+        name,
+        description,
+        cost: newItemCost,
+        min_level: newItemLevel,
+        item_type: newItemType,
+        icon,
+        image_url: imageUrl,
+      });
+
+      if (error) {
+        toast.error("Erro ao criar item", { description: error.message });
+        return;
+      }
+
+      toast.success("Item criado com sucesso!");
       setNewItemName("");
       setNewItemDesc("");
       setNewItemCost(10);
       setNewItemLevel(1);
       setNewItemImage("");
       loadData();
+    } catch {
+      toast.error("Erro inesperado", { description: "Não foi possível criar o item. Tente novamente." });
+    } finally {
+      setIsCreatingItem(false);
     }
   };
 
@@ -771,14 +837,18 @@ export default function TeacherDashboard() {
                     <LinkIcon size={16} />
                   </div>
                   <input
-                    type="url"
+                    type="text"
                     value={newItemImage}
                     onChange={e => setNewItemImage(e.target.value)}
                     placeholder="URL da imagem (opcional)"
                     className="w-full pl-10 pr-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
                   />
                 </div>
-                <button type="submit" className="btn-fantasy flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={isCreatingItem}
+                  className="btn-fantasy flex items-center gap-2"
+                >
                   <Plus size={18} />
                   Criar Item
                 </button>
