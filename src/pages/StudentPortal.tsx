@@ -16,7 +16,8 @@ import {
   Clock,
   Lock,
   UserCircle,
-  Sparkles
+  Sparkles,
+  CalendarCheck
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,8 +31,10 @@ export default function StudentPortal() {
     loginStudent,
     requestChallenge,
     requestItem,
+    requestAttendance,
     hasChallengeRequest,
     hasItemRequest,
+    hasAttendanceRequest,
     logout,
     refreshStudent,
   } = useStudentDB();
@@ -80,6 +83,24 @@ export default function StudentPortal() {
       toast.success("Item solicitado!", {
         description: "Aguarde a aprovação do professor.",
         icon: "🛡️",
+      });
+    }
+  };
+
+  const handleAttendanceRequest = async () => {
+    const alreadyRequested = hasAttendanceRequest();
+    if (alreadyRequested) {
+      toast.info("Já solicitado", { description: "Aguarde a confirmação do professor." });
+      return;
+    }
+
+    const result = await requestAttendance();
+    if (result?.error) {
+      toast.error("Erro ao solicitar presença", { description: result.error.message });
+    } else {
+      toast.success("Presença solicitada!", {
+        description: "Aguarde a confirmação do professor.",
+        icon: "📋",
       });
     }
   };
@@ -257,6 +278,43 @@ export default function StudentPortal() {
         <div className="md:hidden card-fantasy mb-4 flex items-center justify-center gap-3">
           <span className="text-muted-foreground">Seu Nível:</span>
           <LevelBadge level={student.level} />
+        </div>
+
+        {/* Attendance Banner */}
+        <div className="card-fantasy mb-6 bg-gradient-to-r from-success/20 to-success/10 border-2 border-success/30">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
+                <CalendarCheck className="text-success" size={24} />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-foreground">
+                  🔥 {student.presencas_consecutivas} {student.presencas_consecutivas === 1 ? 'aula consecutiva' : 'aulas consecutivas'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Continue assim para manter sua sequência!
+                </p>
+              </div>
+            </div>
+            
+            {hasAttendanceRequest() ? (
+              <button
+                disabled
+                className="btn-fantasy opacity-60 cursor-not-allowed flex items-center gap-2"
+              >
+                <Clock size={18} />
+                Aguardando confirmação
+              </button>
+            ) : (
+              <button
+                onClick={handleAttendanceRequest}
+                className="btn-fantasy bg-success hover:bg-success/90 flex items-center gap-2"
+              >
+                <CalendarCheck size={18} />
+                Marcar presença
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}

@@ -14,6 +14,7 @@ interface Student {
   lore: string | null;
   appearance: string | null;
   personality: string | null;
+  presencas_consecutivas: number;
 }
 
 interface ClassData {
@@ -41,7 +42,7 @@ interface ShopItem {
 
 interface StudentRequest {
   id: string;
-  request_type: "challenge" | "item";
+  request_type: "challenge" | "item" | "attendance";
   challenge_id: string | null;
   item_id: string | null;
   status: "pending" | "approved" | "rejected";
@@ -235,6 +236,27 @@ export function useStudentDB() {
     );
   };
 
+  const hasAttendanceRequest = () => {
+    return requests.some(
+      r => r.request_type === "attendance" && r.status === "pending"
+    );
+  };
+
+  const requestAttendance = async () => {
+    if (!student) return;
+
+    const { error } = await supabase.from("student_requests").insert({
+      student_id: student.id,
+      request_type: "attendance",
+    });
+
+    if (!error) {
+      await loadRequests(student.id);
+    }
+
+    return { error };
+  };
+
   const logout = () => {
     localStorage.removeItem(STORAGE_KEY);
     setStudent(null);
@@ -261,8 +283,10 @@ export function useStudentDB() {
     loginStudent,
     requestChallenge,
     requestItem,
+    requestAttendance,
     hasChallengeRequest,
     hasItemRequest,
+    hasAttendanceRequest,
     logout,
     refreshStudent,
   };
