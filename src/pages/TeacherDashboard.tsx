@@ -120,10 +120,16 @@ export default function TeacherDashboard() {
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; name: string; warning?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isValidHttpUrl = (value: string) => {
+  const isValidHttpUrl = (value: string): boolean => {
+    if (!value || typeof value !== "string") return false;
+    const trimmed = value.trim();
+    // Accept URLs that start with http:// or https://
+    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+      return false;
+    }
     try {
-      const url = new URL(value);
-      return url.protocol === "http:" || url.protocol === "https:";
+      new URL(trimmed);
+      return true;
     } catch {
       return false;
     }
@@ -341,8 +347,18 @@ export default function TeacherDashboard() {
       toast.error("Preencha os campos obrigatórios", { description: "Informe um custo válido (mínimo 1)." });
       return;
     }
-    // Image URL is OPTIONAL — never block creation, just ignore invalid URLs
-    const finalImageUrl = imageUrl && isValidHttpUrl(imageUrl) ? imageUrl : null;
+    // Image URL is OPTIONAL — warn if invalid but still create item
+    let finalImageUrl: string | null = null;
+    let imageWarning = false;
+    if (imageUrl) {
+      if (isValidHttpUrl(imageUrl)) {
+        finalImageUrl = imageUrl;
+      } else {
+        // URL provided but invalid — we'll warn user after creation
+        imageWarning = true;
+        console.warn("[addShopItem] Invalid image URL ignored:", imageUrl);
+      }
+    }
 
     setIsCreatingItem(true);
 
@@ -381,7 +397,13 @@ export default function TeacherDashboard() {
         return;
       }
 
-      toast.success("Item criado com sucesso!");
+      if (imageWarning) {
+        toast.warning("Item criado, mas a URL da imagem é inválida", {
+          description: "A URL deve começar com http:// ou https://. Edite o item para corrigir.",
+        });
+      } else {
+        toast.success("Item criado com sucesso!");
+      }
 
       // Update list immediately (avoid depending solely on loadData)
       setShopItems((prev) => [created as ShopItem, ...prev]);
