@@ -167,12 +167,17 @@ export function useStudentDB() {
 
   const loginStudent = async (name: string, classId: string) => {
     // Try to find existing student by name + class
-    const { data: existingStudent } = await supabase
+    const { data: existingStudent, error: findError } = await supabase
       .from("students")
       .select("*")
       .eq("class_id", classId)
-      .eq("name", name)
+      .ilike("name", name.trim())
       .maybeSingle();
+
+    if (findError) {
+      console.error("Error finding student:", findError);
+      return { success: false, error: "Erro ao buscar aluno. Tente novamente." };
+    }
 
     if (existingStudent) {
       await loadStudent(existingStudent.id);
