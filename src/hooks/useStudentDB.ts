@@ -15,6 +15,7 @@ interface Student {
   appearance: string | null;
   personality: string | null;
   presencas_consecutivas: number;
+  profile_photo_url: string | null;
 }
 
 interface ClassData {
@@ -48,6 +49,18 @@ interface StudentRequest {
   status: "pending" | "approved" | "rejected";
 }
 
+interface InventoryItem {
+  id: string;
+  item: {
+    id: string;
+    name: string;
+    description: string | null;
+    icon: string;
+    image_url: string | null;
+    item_type: string;
+  };
+}
+
 const STORAGE_KEY = "wit_dungeon_student_session";
 
 export function useStudentDB() {
@@ -56,6 +69,7 @@ export function useStudentDB() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [requests, setRequests] = useState<StudentRequest[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load saved session
@@ -103,14 +117,36 @@ export function useStudentDB() {
     setStudent(studentData);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ studentId }));
 
-    // Load challenges and shop items
+    // Load challenges, shop items, requests, and inventory
     await Promise.all([
       loadChallenges(),
       loadShopItems(),
       loadRequests(studentId),
+      loadInventory(studentId),
     ]);
 
     setIsLoading(false);
+  };
+
+  const loadInventory = async (studentId: string) => {
+    const { data } = await supabase
+      .from("student_inventory")
+      .select(`
+        id,
+        item:shop_items (
+          id,
+          name,
+          description,
+          icon,
+          image_url,
+          item_type
+        )
+      `)
+      .eq("student_id", studentId);
+    
+    // Filter out entries where item is null (if shop item was deleted)
+    const validItems = (data || []).filter(inv => inv.item !== null) as InventoryItem[];
+    setInventory(validItems);
   };
 
   const loadChallenges = async () => {
@@ -157,6 +193,12 @@ export function useStudentDB() {
         { event: "*", schema: "public", table: "student_requests", filter: `student_id=eq.${student.id}` },
         () => {
           loadRequests(student.id);
+        }
+      )
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "student_inventory", filter: `student_id=eq.${student.id}` },
+        () => {
+          loadInventory(student.id);
         }
       )
       .subscribe();
@@ -261,6 +303,7 @@ export function useStudentDB() {
     localStorage.removeItem(STORAGE_KEY);
     setStudent(null);
     setRequests([]);
+    setInventory([]);
   };
 
   const refreshStudent = async () => {
@@ -279,6 +322,7 @@ export function useStudentDB() {
     classes,
     challenges,
     shopItems,
+    inventory,
     isLoading,
     loginStudent,
     requestChallenge,
