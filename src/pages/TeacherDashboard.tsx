@@ -17,7 +17,9 @@ import {
   Shield,
   Sword,
   Image,
-  Link as LinkIcon
+  Link as LinkIcon,
+  CalendarCheck,
+  RotateCcw
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +36,7 @@ interface Student {
   coins: number;
   level: number;
   class_id: string;
+  presencas_consecutivas: number;
 }
 
 interface Challenge {
@@ -59,7 +62,7 @@ interface ShopItem {
 interface StudentRequest {
   id: string;
   student_id: string;
-  request_type: "challenge" | "item";
+  request_type: "challenge" | "item" | "attendance";
   challenge_id: string | null;
   item_id: string | null;
   status: "pending" | "approved" | "rejected";
@@ -73,7 +76,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop" | "attendance">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -427,6 +430,34 @@ export default function TeacherDashboard() {
     }
   };
 
+  const confirmAttendance = async (studentId: string, currentCount: number) => {
+    const { error } = await supabase
+      .from("students")
+      .update({ presencas_consecutivas: currentCount + 1 })
+      .eq("id", studentId);
+
+    if (error) {
+      toast.error("Erro ao confirmar presença");
+    } else {
+      toast.success("Presença confirmada!");
+      loadData();
+    }
+  };
+
+  const resetAttendance = async (studentId: string) => {
+    const { error } = await supabase
+      .from("students")
+      .update({ presencas_consecutivas: 0 })
+      .eq("id", studentId);
+
+    if (error) {
+      toast.error("Erro ao marcar falta");
+    } else {
+      toast.success("Presença zerada (falta marcada)");
+      loadData();
+    }
+  };
+
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -506,6 +537,7 @@ export default function TeacherDashboard() {
         <div className="flex flex-wrap gap-2 mb-6">
           {[
             { id: "requests", label: "Solicitações", icon: Clock },
+            { id: "attendance", label: "Presença", icon: CalendarCheck },
             { id: "classes", label: "Turmas", icon: BookOpen },
             { id: "students", label: "Alunos", icon: Users },
             { id: "challenges", label: "Desafios", icon: Sword },
@@ -911,6 +943,85 @@ export default function TeacherDashboard() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Attendance Tab */}
+        {activeTab === "attendance" && (
+          <section>
+            <h2 className="section-title">
+              <CalendarCheck className="text-gold" />
+              Controle de Presença
+            </h2>
+
+            <div className="card-fantasy mb-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  value={selectedClass || ""}
+                  onChange={e => setSelectedClass(e.target.value || null)}
+                  className="px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
+                >
+                  <option value="">Todas as turmas</option>
+                  {classes.map(cls => (
+                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {filteredStudents.length === 0 ? (
+              <div className="card-fantasy text-center py-8 text-muted-foreground">
+                <Users size={48} className="mx-auto mb-4 opacity-50" />
+                <p>Nenhum aluno encontrado</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredStudents.map(student => (
+                  <div key={student.id} className="card-fantasy">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">
+                          {student.character_name || student.name}
+                          {student.character_name && (
+                            <span className="text-sm text-muted-foreground ml-2">
+                              ({student.name})
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {classes.find(c => c.id === student.class_id)?.name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <CalendarCheck className="text-success" size={16} />
+                          <span className="font-semibold text-success">
+                            {student.presencas_consecutivas} {student.presencas_consecutivas === 1 ? 'aula consecutiva' : 'aulas consecutivas'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => confirmAttendance(student.id, student.presencas_consecutivas)}
+                          className="px-4 py-2 rounded-lg bg-success/10 text-success hover:bg-success/20 transition-colors flex items-center gap-2 font-semibold"
+                          title="Confirmar presença (+1)"
+                        >
+                          <Check size={18} />
+                          Confirmar
+                        </button>
+                        <button
+                          onClick={() => resetAttendance(student.id)}
+                          className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center gap-2 font-semibold"
+                          title="Marcar falta (zerar)"
+                        >
+                          <RotateCcw size={18} />
+                          Falta
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
       </main>

@@ -210,6 +210,7 @@ export type Database = {
           motivation: string | null
           name: string
           personality: string | null
+          presencas_consecutivas: number
           race: string | null
         }
         Insert: {
@@ -225,6 +226,7 @@ export type Database = {
           motivation?: string | null
           name: string
           personality?: string | null
+          presencas_consecutivas?: number
           race?: string | null
         }
         Update: {
@@ -240,6 +242,7 @@ export type Database = {
           motivation?: string | null
           name?: string
           personality?: string | null
+          presencas_consecutivas?: number
           race?: string | null
         }
         Relationships: [
@@ -284,7 +287,7 @@ export type Database = {
     }
     Enums: {
       request_status: "pending" | "approved" | "rejected"
-      request_type: "challenge" | "item"
+      request_type: "challenge" | "item" | "attendance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -413,7 +416,7 @@ export const Constants = {
   public: {
     Enums: {
       request_status: ["pending", "approved", "rejected"],
-      request_type: ["challenge", "item"],
+      request_type: ["challenge", "item", "attendance"],
     },
   },
 } as const
