@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { Sword, Shield, Mail, Lock, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -160,13 +161,14 @@ export default function TeacherLogin() {
           </form>
         </div>
 
-        <div className="text-center mt-6">
+        <div className="text-center mt-6 space-y-3">
           <Link
             to="/"
             className="text-sm text-muted-foreground hover:text-primary transition-colors"
           >
             ← Voltar para portal do aluno
           </Link>
+          <DeveloperSignature />
         </div>
       </div>
     </div>

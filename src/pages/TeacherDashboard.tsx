@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { 
   Users, 
   BookOpen, 
@@ -112,6 +114,11 @@ export default function TeacherDashboard() {
   const [newItemIcon, setNewItemIcon] = useState("⚔️");
   const [newItemImage, setNewItemImage] = useState("");
   const [isCreatingItem, setIsCreatingItem] = useState(false);
+
+  // Delete confirmation states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; name: string; warning?: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isValidHttpUrl = (value: string) => {
     try {
@@ -534,6 +541,90 @@ export default function TeacherDashboard() {
     return inventoryRecords.some(inv => inv.student_id === studentId && inv.item_id === itemId);
   };
 
+  // Delete functions
+  const openDeleteDialog = (type: string, id: string, name: string, warning?: string) => {
+    setDeleteTarget({ type, id, name, warning });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    
+    setIsDeleting(true);
+    let error = null;
+
+    try {
+      switch (deleteTarget.type) {
+        case "class":
+          const { error: classError } = await supabase
+            .from("classes")
+            .delete()
+            .eq("id", deleteTarget.id);
+          error = classError;
+          break;
+        
+        case "student":
+          const { error: studentError } = await supabase
+            .from("students")
+            .delete()
+            .eq("id", deleteTarget.id);
+          error = studentError;
+          break;
+        
+        case "challenge":
+          // Soft delete - just deactivate
+          const { error: challengeError } = await supabase
+            .from("challenges")
+            .update({ is_active: false })
+            .eq("id", deleteTarget.id);
+          error = challengeError;
+          break;
+        
+        case "item":
+          // Soft delete - just deactivate (preserves items in inventories)
+          const { error: itemError } = await supabase
+            .from("shop_items")
+            .update({ is_active: false })
+            .eq("id", deleteTarget.id);
+          error = itemError;
+          break;
+      }
+
+      if (error) {
+        toast.error("Erro ao excluir", { description: error.message });
+      } else {
+        toast.success(`${deleteTarget.name} excluído com sucesso!`);
+        loadData();
+      }
+    } catch (e) {
+      toast.error("Erro inesperado ao excluir");
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const getDeleteDialogTitle = () => {
+    if (!deleteTarget) return "";
+    const typeLabels: Record<string, string> = {
+      class: "turma",
+      student: "aluno",
+      challenge: "desafio",
+      item: "item",
+    };
+    return `Excluir ${typeLabels[deleteTarget.type] || "item"}?`;
+  };
+
+  const getDeleteDialogDescription = () => {
+    if (!deleteTarget) return "";
+    return `Você está prestes a excluir "${deleteTarget.name}". Esta ação não pode ser desfeita.`;
+  };
+
+  const getStudentCountForClass = (classId: string) => {
+    return students.filter(s => s.class_id === classId).length;
+  };
+
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -721,14 +812,33 @@ export default function TeacherDashboard() {
             </form>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {classes.map(cls => (
-                <div key={cls.id} className="card-fantasy">
-                  <h3 className="font-display font-bold text-lg">{cls.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {students.filter(s => s.class_id === cls.id).length} alunos
-                  </p>
-                </div>
-              ))}
+              {classes.map(cls => {
+                const studentCount = getStudentCountForClass(cls.id);
+                return (
+                  <div key={cls.id} className="card-fantasy">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-display font-bold text-lg">{cls.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {studentCount} {studentCount === 1 ? 'aluno' : 'alunos'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => openDeleteDialog(
+                          "class",
+                          cls.id,
+                          cls.name,
+                          studentCount > 0 ? `Esta turma possui ${studentCount} aluno(s) vinculado(s). Eles também serão removidos.` : undefined
+                        )}
+                        className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                        title="Excluir turma"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
@@ -818,6 +928,13 @@ export default function TeacherDashboard() {
                           min={1}
                         />
                       </div>
+                      <button
+                        onClick={() => openDeleteDialog("student", student.id, student.character_name || student.name)}
+                        className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                        title="Excluir aluno"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -877,9 +994,18 @@ export default function TeacherDashboard() {
                       <p className="text-sm text-muted-foreground">{challenge.description}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-gold-dark font-semibold">
-                    <Coins size={18} />
-                    +{challenge.reward}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 text-gold-dark font-semibold">
+                      <Coins size={18} />
+                      +{challenge.reward}
+                    </div>
+                    <button
+                      onClick={() => openDeleteDialog("challenge", challenge.id, challenge.title, "O desafio será removido da lista de desafios disponíveis.")}
+                      className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                      title="Excluir desafio"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -1024,7 +1150,16 @@ export default function TeacherDashboard() {
                       <Coins size={14} />
                       {item.cost}
                     </span>
-                    <span className="text-muted-foreground">Nível {item.min_level}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Nível {item.min_level}</span>
+                      <button
+                        onClick={() => openDeleteDialog("item", item.id, item.name, "O item será removido da loja. Itens já adquiridos permanecerão nos inventários.")}
+                        className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                        title="Excluir item"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1294,7 +1429,23 @@ export default function TeacherDashboard() {
             )}
           </section>
         )}
+
+        {/* Footer */}
+        <footer className="mt-8 pt-4 border-t border-border text-center">
+          <DeveloperSignature />
+        </footer>
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title={getDeleteDialogTitle()}
+        description={getDeleteDialogDescription()}
+        warning={deleteTarget?.warning}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
