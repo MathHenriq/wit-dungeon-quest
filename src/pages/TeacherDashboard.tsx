@@ -129,6 +129,26 @@ export default function TeacherDashboard() {
     }
   };
 
+  const mapItemTypeToDb = (value: string) => {
+    // Normalize UI values/labels to what the backend expects.
+    // Must never block creation.
+    const normalized = value?.toString().trim().toLowerCase();
+    switch (normalized) {
+      case "weapon":
+      case "arma":
+        return "weapon";
+      case "armor":
+      case "armadura":
+        return "armor";
+      case "consumable":
+      case "consumível":
+      case "consumivel":
+        return "consumable";
+      default:
+        return "item";
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && !teacher) {
       navigate("/professor/login");
@@ -307,22 +327,16 @@ export default function TeacherDashboard() {
     const description = newItemDesc.trim();
     const imageUrl = newItemImage.trim();
     const icon = newItemIcon.trim() || "⚔️";
+    const dbItemType = mapItemTypeToDb(newItemType);
+    const minLevel = Number.isFinite(newItemLevel) && newItemLevel >= 1 ? newItemLevel : 1;
 
-    // Required-field validation (no silent fails)
+    // Required-field validation (only what must block creation)
     if (!name) {
       toast.error("Preencha os campos obrigatórios", { description: "Informe o nome do item." });
       return;
     }
-    if (!newItemType) {
-      toast.error("Preencha os campos obrigatórios", { description: "Selecione o tipo do item." });
-      return;
-    }
     if (!Number.isFinite(newItemCost) || newItemCost < 1) {
       toast.error("Preencha os campos obrigatórios", { description: "Informe um custo válido (mínimo 1)." });
-      return;
-    }
-    if (!Number.isFinite(newItemLevel) || newItemLevel < 1) {
-      toast.error("Preencha os campos obrigatórios", { description: "Informe um nível mínimo válido (mínimo 1)." });
       return;
     }
     if (imageUrl && !isValidHttpUrl(imageUrl)) {
@@ -347,8 +361,8 @@ export default function TeacherDashboard() {
         name,
         description: description || null,
         cost: newItemCost,
-        min_level: newItemLevel,
-        item_type: newItemType,
+        min_level: minLevel,
+        item_type: dbItemType,
         icon,
         image_url: imageUrl || null,
       });
@@ -1032,7 +1046,7 @@ export default function TeacherDashboard() {
                 >
                   <option value="weapon">Arma</option>
                   <option value="armor">Armadura</option>
-                  <option value="ability">Habilidade</option>
+                  <option value="consumable">Consumível</option>
                 </select>
                 <div className="flex items-center gap-2">
                   <Coins className="text-gold flex-shrink-0" size={18} />
