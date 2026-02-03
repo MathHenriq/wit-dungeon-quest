@@ -6,6 +6,7 @@ import { LevelBadge } from "@/components/LevelBadge";
 import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { StudentInventory } from "@/components/StudentInventory";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
+import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { 
   Sword, 
   Shield, 
@@ -201,6 +202,7 @@ export default function StudentPortal() {
             >
               Acesso do Professor →
             </Link>
+            <DeveloperSignature className="mt-4" />
           </div>
         </div>
       </div>
@@ -581,6 +583,7 @@ export default function StudentPortal() {
         <div className="mt-8 text-center text-sm text-muted-foreground">
           <p>⚠️ Todas as solicitações são validadas pelo professor</p>
           <p>As moedas não são alteradas automaticamente</p>
+          <DeveloperSignature className="mt-4" />
         </div>
       </main>
     </div>
