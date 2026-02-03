@@ -316,6 +316,12 @@ export default function TeacherDashboard() {
   const addShopItem = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log("[addShopItem] submit", {
+      name: newItemName,
+      cost: newItemCost,
+      type: newItemType,
+    });
+
     if (!teacher) {
       toast.error("Sessão do professor não carregada", {
         description: "Recarregue a página e tente novamente.",
@@ -356,7 +362,9 @@ export default function TeacherDashboard() {
       }
       const teacherId = (!teacherIdError && teacherIdFromDb) ? String(teacherIdFromDb) : teacher.id;
 
-      const { error } = await supabase.from("shop_items").insert({
+      const { data: created, error } = await supabase
+        .from("shop_items")
+        .insert({
         teacher_id: teacherId,
         name,
         description: description || null,
@@ -365,19 +373,33 @@ export default function TeacherDashboard() {
         item_type: dbItemType,
         icon,
         image_url: imageUrl || null,
-      });
+        })
+        .select("*")
+        .single();
 
       if (error) {
+        console.error("[addShopItem] insert error:", error);
         toast.error("Erro ao criar item", { description: error.message });
         return;
       }
 
+      if (!created) {
+        console.error("[addShopItem] insert returned no row (unexpected)");
+        toast.error("Erro ao criar item", { description: "Não foi possível confirmar a criação do item." });
+        return;
+      }
+
       toast.success("Item criado com sucesso!");
+
+      // Update list immediately (avoid depending solely on loadData)
+      setShopItems((prev) => [created as ShopItem, ...prev]);
+
       setNewItemName("");
       setNewItemDesc("");
       setNewItemCost(10);
       setNewItemLevel(1);
       setNewItemImage("");
+      // Keep data in sync in the background
       loadData();
     } catch (err) {
       console.error("addShopItem unexpected error:", err);
