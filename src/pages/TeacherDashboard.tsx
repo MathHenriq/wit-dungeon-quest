@@ -316,11 +316,14 @@ export default function TeacherDashboard() {
   const addShopItem = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("[addShopItem] submit", {
-      name: newItemName,
-      cost: newItemCost,
-      type: newItemType,
-    });
+    const name = newItemName.trim();
+    const description = newItemDesc.trim();
+    const imageUrl = newItemImage.trim();
+    const icon = newItemIcon.trim() || "⚔️";
+    const dbItemType = mapItemTypeToDb(newItemType);
+    const minLevel = Number.isFinite(newItemLevel) && newItemLevel >= 1 ? newItemLevel : 1;
+
+    console.log("[addShopItem] submit", { name, cost: newItemCost, type: newItemType, imageUrl });
 
     if (!teacher) {
       toast.error("Sessão do professor não carregada", {
@@ -329,14 +332,7 @@ export default function TeacherDashboard() {
       return;
     }
 
-    const name = newItemName.trim();
-    const description = newItemDesc.trim();
-    const imageUrl = newItemImage.trim();
-    const icon = newItemIcon.trim() || "⚔️";
-    const dbItemType = mapItemTypeToDb(newItemType);
-    const minLevel = Number.isFinite(newItemLevel) && newItemLevel >= 1 ? newItemLevel : 1;
-
-    // Required-field validation (only what must block creation)
+    // Required-field validation (only name and cost block creation)
     if (!name) {
       toast.error("Preencha os campos obrigatórios", { description: "Informe o nome do item." });
       return;
@@ -345,12 +341,8 @@ export default function TeacherDashboard() {
       toast.error("Preencha os campos obrigatórios", { description: "Informe um custo válido (mínimo 1)." });
       return;
     }
-    if (imageUrl && !isValidHttpUrl(imageUrl)) {
-      toast.error("URL inválida", {
-        description: "Use uma URL completa começando com http:// ou https://",
-      });
-      return;
-    }
+    // Image URL is OPTIONAL — never block creation, just ignore invalid URLs
+    const finalImageUrl = imageUrl && isValidHttpUrl(imageUrl) ? imageUrl : null;
 
     setIsCreatingItem(true);
 
@@ -372,7 +364,7 @@ export default function TeacherDashboard() {
         min_level: minLevel,
         item_type: dbItemType,
         icon,
-        image_url: imageUrl || null,
+        image_url: finalImageUrl,
         })
         .select("*")
         .single();
