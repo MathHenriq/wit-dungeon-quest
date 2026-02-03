@@ -313,10 +313,6 @@ export default function TeacherDashboard() {
       toast.error("Preencha os campos obrigatórios", { description: "Informe o nome do item." });
       return;
     }
-    if (!description) {
-      toast.error("Preencha os campos obrigatórios", { description: "Informe a descrição do item." });
-      return;
-    }
     if (!newItemType) {
       toast.error("Preencha os campos obrigatórios", { description: "Selecione o tipo do item." });
       return;
@@ -329,8 +325,10 @@ export default function TeacherDashboard() {
       toast.error("Preencha os campos obrigatórios", { description: "Informe um nível mínimo válido (mínimo 1)." });
       return;
     }
-    if (!imageUrl) {
-      toast.error("Preencha os campos obrigatórios", { description: "Informe a URL da imagem do item." });
+    if (imageUrl && !isValidHttpUrl(imageUrl)) {
+      toast.error("URL inválida", {
+        description: "Use uma URL completa começando com http:// ou https://",
+      });
       return;
     }
     if (!isValidHttpUrl(imageUrl)) {
@@ -350,12 +348,12 @@ export default function TeacherDashboard() {
       const { error } = await supabase.from("shop_items").insert({
         teacher_id: teacherId,
         name,
-        description,
+        description: description || null,
         cost: newItemCost,
         min_level: newItemLevel,
         item_type: newItemType,
         icon,
-        image_url: imageUrl,
+        image_url: imageUrl || null,
       });
 
       if (error) {
