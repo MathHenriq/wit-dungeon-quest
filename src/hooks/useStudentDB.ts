@@ -61,6 +61,26 @@ interface InventoryItem {
   };
 }
 
+interface Mission {
+  id: string;
+  title: string;
+  description: string | null;
+  reward: number;
+  is_return_mission: boolean;
+}
+
+interface MissionCompletion {
+  id: string;
+  mission_id: string;
+  status: "pending" | "approved" | "rejected";
+}
+
+interface StudentTitle {
+  id: string;
+  title_type: "helper_of_week" | "presence_guardian" | "attitude_example";
+  expires_at: string;
+}
+
 const STORAGE_KEY = "wit_dungeon_student_session";
 
 export function useStudentDB() {
@@ -70,6 +90,9 @@ export function useStudentDB() {
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [requests, setRequests] = useState<StudentRequest[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
+  const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load saved session
@@ -117,12 +140,15 @@ export function useStudentDB() {
     setStudent(studentData);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ studentId }));
 
-    // Load challenges, shop items, requests, and inventory
+    // Load challenges, shop items, requests, inventory, missions, and titles
     await Promise.all([
       loadChallenges(),
       loadShopItems(),
       loadRequests(studentId),
       loadInventory(studentId),
+      loadMissions(),
+      loadMissionCompletions(studentId),
+      loadStudentTitles(studentId),
     ]);
 
     setIsLoading(false);
@@ -173,6 +199,32 @@ export function useStudentDB() {
       .select("id, request_type, challenge_id, item_id, status")
       .eq("student_id", studentId);
     setRequests((data || []) as StudentRequest[]);
+  };
+
+  const loadMissions = async () => {
+    const { data } = await supabase
+      .from("student_missions")
+      .select("id, title, description, reward, is_return_mission")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+    setMissions((data || []) as Mission[]);
+  };
+
+  const loadMissionCompletions = async (studentId: string) => {
+    const { data } = await supabase
+      .from("mission_completions")
+      .select("id, mission_id, status")
+      .eq("student_id", studentId);
+    setMissionCompletions((data || []) as MissionCompletion[]);
+  };
+
+  const loadStudentTitles = async (studentId: string) => {
+    const { data } = await supabase
+      .from("student_titles")
+      .select("id, title_type, expires_at")
+      .eq("student_id", studentId)
+      .gt("expires_at", new Date().toISOString());
+    setStudentTitles((data || []) as StudentTitle[]);
   };
 
   // Subscribe to realtime updates
@@ -304,6 +356,9 @@ export function useStudentDB() {
     setStudent(null);
     setRequests([]);
     setInventory([]);
+    setMissions([]);
+    setMissionCompletions([]);
+    setStudentTitles([]);
   };
 
   const refreshStudent = async () => {
@@ -317,12 +372,24 @@ export function useStudentDB() {
     }
   };
 
+  const refreshMissions = async () => {
+    if (student) {
+      await Promise.all([
+        loadMissions(),
+        loadMissionCompletions(student.id),
+      ]);
+    }
+  };
+
   return {
     student,
     classes,
     challenges,
     shopItems,
     inventory,
+    missions,
+    missionCompletions,
+    studentTitles,
     isLoading,
     loginStudent,
     requestChallenge,
@@ -333,5 +400,6 @@ export function useStudentDB() {
     hasAttendanceRequest,
     logout,
     refreshStudent,
+    refreshMissions,
   };
 }

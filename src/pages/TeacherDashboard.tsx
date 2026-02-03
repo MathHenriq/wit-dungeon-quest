@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
+import { TeacherMissionsPanel } from "@/components/TeacherMissionsPanel";
+import { TeacherTitlesPanel } from "@/components/TeacherTitlesPanel";
+import { TitleType } from "@/components/StudentTitleBadge";
 import { 
   Users, 
   BookOpen, 
@@ -24,7 +27,9 @@ import {
   CalendarCheck,
   RotateCcw,
   Package,
-  Minus
+  Minus,
+  Sparkles,
+  Award
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -85,17 +90,44 @@ interface InventoryRecord {
   item?: ShopItem;
 }
 
+interface StudentMission {
+  id: string;
+  title: string;
+  description: string | null;
+  reward: number;
+  is_active: boolean;
+  is_return_mission: boolean;
+}
+
+interface MissionCompletion {
+  id: string;
+  mission_id: string;
+  student_id: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+}
+
+interface StudentTitle {
+  id: string;
+  student_id: string;
+  title_type: TitleType;
+  expires_at: string;
+}
+
 export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop" | "attendance" | "inventory">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop" | "attendance" | "inventory" | "missions" | "titles">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [requests, setRequests] = useState<StudentRequest[]>([]);
   const [inventoryRecords, setInventoryRecords] = useState<InventoryRecord[]>([]);
+  const [missions, setMissions] = useState<StudentMission[]>([]);
+  const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
+  const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedStudentForInventory, setSelectedStudentForInventory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -228,6 +260,27 @@ export default function TeacherDashboard() {
         return { ...inv, item } as InventoryRecord;
       });
       setInventoryRecords(enrichedInventory);
+
+      // Load missions
+      const { data: missionsData } = await supabase
+        .from("student_missions")
+        .select("*")
+        .order("created_at", { ascending: false });
+      setMissions((missionsData || []) as StudentMission[]);
+
+      // Load mission completions (pending)
+      const { data: completionsData } = await supabase
+        .from("mission_completions")
+        .select("*")
+        .order("created_at", { ascending: false });
+      setMissionCompletions((completionsData || []) as MissionCompletion[]);
+
+      // Load student titles
+      const { data: titlesData } = await supabase
+        .from("student_titles")
+        .select("*")
+        .order("assigned_at", { ascending: false });
+      setStudentTitles((titlesData || []) as StudentTitle[]);
 
     } catch (error) {
       console.error("Error loading data:", error);
@@ -750,6 +803,8 @@ export default function TeacherDashboard() {
         <div className="flex flex-wrap gap-2 mb-6">
           {[
             { id: "requests", label: "Solicitações", icon: Clock },
+            { id: "missions", label: "Missões", icon: Sparkles },
+            { id: "titles", label: "Títulos", icon: Award },
             { id: "attendance", label: "Presença", icon: CalendarCheck },
             { id: "inventory", label: "Inventário", icon: Package },
             { id: "classes", label: "Turmas", icon: BookOpen },
@@ -1473,6 +1528,42 @@ export default function TeacherDashboard() {
                 <p>Selecione um aluno para gerenciar o inventário</p>
               </div>
             )}
+          </section>
+        )}
+
+        {activeTab === "missions" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Sparkles className="text-gold" />
+              Missões do Bom Aluno
+            </h2>
+            <div className="card-fantasy">
+              <TeacherMissionsPanel
+                teacherId={teacher.id}
+                missions={missions}
+                completions={missionCompletions}
+                students={students}
+                onDataChanged={loadData}
+              />
+            </div>
+          </section>
+        )}
+
+        {activeTab === "titles" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Award className="text-gold" />
+              Títulos de Reconhecimento
+            </h2>
+            <div className="card-fantasy">
+              <TeacherTitlesPanel
+                teacherId={teacher.id}
+                students={students}
+                classes={classes}
+                titles={studentTitles}
+                onDataChanged={loadData}
+              />
+            </div>
           </section>
         )}
 

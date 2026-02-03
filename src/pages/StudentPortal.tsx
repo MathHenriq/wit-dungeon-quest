@@ -7,6 +7,8 @@ import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { StudentInventory } from "@/components/StudentInventory";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
+import { MissionBoard } from "@/components/MissionBoard";
+import { StudentTitleBadge, AttendanceCrown } from "@/components/StudentTitleBadge";
 import { 
   Sword, 
   Shield, 
@@ -32,6 +34,9 @@ export default function StudentPortal() {
     challenges,
     shopItems,
     inventory,
+    missions,
+    missionCompletions,
+    studentTitles,
     isLoading,
     loginStudent,
     requestChallenge,
@@ -42,11 +47,12 @@ export default function StudentPortal() {
     hasAttendanceRequest,
     logout,
     refreshStudent,
+    refreshMissions,
   } = useStudentDB();
 
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
-  const [activeTab, setActiveTab] = useState<"challenges" | "shop" | "character" | "inventory">("challenges");
+  const [activeTab, setActiveTab] = useState<"challenges" | "shop" | "character" | "inventory" | "missions">("challenges");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -225,13 +231,19 @@ export default function StudentPortal() {
             </div>
             
             <div className="flex items-center gap-3 bg-primary/20 rounded-lg px-4 py-2">
-              <ProfilePhoto
-                studentId={student.id}
-                currentPhotoUrl={student.profile_photo_url}
-                onUpdate={refreshStudent}
-                size="sm"
-                editable={false}
-              />
+              <div className="relative">
+                <ProfilePhoto
+                  studentId={student.id}
+                  currentPhotoUrl={student.profile_photo_url}
+                  onUpdate={refreshStudent}
+                  size="sm"
+                  editable={false}
+                />
+                {/* Attendance Crown */}
+                <div className="absolute -top-2 -right-2">
+                  <AttendanceCrown consecutiveAttendance={student.presencas_consecutivas} />
+                </div>
+              </div>
               <div>
                 <p className="font-semibold text-primary-foreground">
                   {displayName}
@@ -239,6 +251,8 @@ export default function StudentPortal() {
                 <p className="text-sm text-primary-foreground/70">
                   {classes.find(c => c.id === student.class_id)?.name}
                 </p>
+                {/* Titles */}
+                <StudentTitleBadge titles={studentTitles} />
               </div>
             </div>
           </div>
@@ -368,6 +382,17 @@ export default function StudentPortal() {
             )}
           </button>
           <button
+            onClick={() => setActiveTab("missions")}
+            className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+              activeTab === "missions"
+                ? "bg-primary text-primary-foreground shadow-lg"
+                : "bg-card text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            <Sparkles size={20} />
+            <span>Missões</span>
+          </button>
+          <button
             onClick={() => setActiveTab("character")}
             className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
               activeTab === "character"
@@ -379,6 +404,19 @@ export default function StudentPortal() {
             <span>Meu Personagem</span>
           </button>
         </div>
+
+        {/* Missions Tab */}
+        {activeTab === "missions" && (
+          <section className="card-fantasy">
+            <MissionBoard
+              studentId={student.id}
+              missions={missions}
+              completions={missionCompletions}
+              needsReturnMission={false}
+              onCompletionRequested={refreshMissions}
+            />
+          </section>
+        )}
 
         {/* Challenges Tab */}
         {activeTab === "challenges" && (

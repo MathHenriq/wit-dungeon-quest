@@ -81,6 +81,58 @@ export type Database = {
           },
         ]
       }
+      mission_completions: {
+        Row: {
+          created_at: string
+          id: string
+          mission_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mission_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mission_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_completions_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "student_missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_completions_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_completions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_items: {
         Row: {
           cost: number
@@ -177,6 +229,47 @@ export type Database = {
           },
         ]
       }
+      student_missions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_return_mission: boolean
+          reward: number
+          teacher_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_return_mission?: boolean
+          reward?: number
+          teacher_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_return_mission?: boolean
+          reward?: number
+          teacher_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_missions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_requests: {
         Row: {
           challenge_id: string | null
@@ -242,6 +335,48 @@ export type Database = {
           },
         ]
       }
+      student_titles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          expires_at: string
+          id: string
+          student_id: string
+          title_type: Database["public"]["Enums"]["student_title_type"]
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          expires_at: string
+          id?: string
+          student_id: string
+          title_type: Database["public"]["Enums"]["student_title_type"]
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          expires_at?: string
+          id?: string
+          student_id?: string
+          title_type?: Database["public"]["Enums"]["student_title_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_titles_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_titles_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           appearance: string | null
@@ -255,6 +390,7 @@ export type Database = {
           lore: string | null
           motivation: string | null
           name: string
+          needs_return_mission: boolean
           personality: string | null
           presencas_consecutivas: number
           profile_photo_url: string | null
@@ -272,6 +408,7 @@ export type Database = {
           lore?: string | null
           motivation?: string | null
           name: string
+          needs_return_mission?: boolean
           personality?: string | null
           presencas_consecutivas?: number
           profile_photo_url?: string | null
@@ -289,6 +426,7 @@ export type Database = {
           lore?: string | null
           motivation?: string | null
           name?: string
+          needs_return_mission?: boolean
           personality?: string | null
           presencas_consecutivas?: number
           profile_photo_url?: string | null
@@ -337,6 +475,10 @@ export type Database = {
     Enums: {
       request_status: "pending" | "approved" | "rejected"
       request_type: "challenge" | "item" | "attendance"
+      student_title_type:
+        | "helper_of_week"
+        | "presence_guardian"
+        | "attitude_example"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -466,6 +608,11 @@ export const Constants = {
     Enums: {
       request_status: ["pending", "approved", "rejected"],
       request_type: ["challenge", "item", "attendance"],
+      student_title_type: [
+        "helper_of_week",
+        "presence_guardian",
+        "attitude_example",
+      ],
     },
   },
 } as const
