@@ -22,6 +22,12 @@ interface Student {
 interface ClassData {
   id: string;
   name: string;
+  teacher_id: string;
+}
+
+interface TeacherData {
+  id: string;
+  name: string;
 }
 
 interface Challenge {
@@ -86,6 +92,7 @@ const STORAGE_KEY = "wit_dungeon_student_session";
 
 export function useStudentDB() {
   const [student, setStudent] = useState<Student | null>(null);
+  const [teachers, setTeachers] = useState<TeacherData[]>([]);
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
@@ -110,14 +117,23 @@ export function useStudentDB() {
       setIsLoading(false);
     }
 
-    // Load available classes
+    // Load available teachers and classes
+    loadTeachers();
     loadClasses();
   }, []);
+
+  const loadTeachers = async () => {
+    const { data } = await supabase
+      .from("teachers")
+      .select("id, name")
+      .order("name");
+    setTeachers(data || []);
+  };
 
   const loadClasses = async (teacherId?: string) => {
     let query = supabase
       .from("classes")
-      .select("id, name")
+      .select("id, name, teacher_id")
       .order("name");
     
     // If teacher_id provided, filter by it (for student context)
@@ -126,6 +142,15 @@ export function useStudentDB() {
     }
     
     const { data } = await query;
+    setClasses(data || []);
+  };
+
+  const loadClassesByTeacher = async (teacherId: string) => {
+    const { data } = await supabase
+      .from("classes")
+      .select("id, name, teacher_id")
+      .eq("teacher_id", teacherId)
+      .order("name");
     setClasses(data || []);
   };
 
@@ -396,6 +421,7 @@ export function useStudentDB() {
 
   return {
     student,
+    teachers,
     classes,
     challenges,
     shopItems,
@@ -414,5 +440,6 @@ export function useStudentDB() {
     logout,
     refreshStudent,
     refreshMissions,
+    loadClassesByTeacher,
   };
 }

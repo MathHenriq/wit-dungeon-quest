@@ -30,6 +30,7 @@ import { toast } from "sonner";
 export default function StudentPortal() {
   const {
     student,
+    teachers,
     classes,
     challenges,
     shopItems,
@@ -48,16 +49,32 @@ export default function StudentPortal() {
     logout,
     refreshStudent,
     refreshMissions,
+    loadClassesByTeacher,
   } = useStudentDB();
 
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
   const [activeTab, setActiveTab] = useState<"challenges" | "shop" | "character" | "inventory" | "missions">("challenges");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Filter classes by selected teacher
+  const filteredClasses = selectedTeacherId 
+    ? classes.filter(c => c.teacher_id === selectedTeacherId)
+    : [];
+
+  // When teacher changes, reload classes and reset class selection
+  const handleTeacherChange = async (teacherId: string) => {
+    setSelectedTeacherId(teacherId);
+    setClassId("");
+    if (teacherId) {
+      await loadClassesByTeacher(teacherId);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !classId) return;
+    if (!name.trim() || !classId || !selectedTeacherId) return;
 
     setIsSubmitting(true);
     const result = await loginStudent(name.trim(), classId);
@@ -149,47 +166,78 @@ export default function StudentPortal() {
 
           <div className="card-fantasy">
             <form onSubmit={handleLogin} className="space-y-5">
+              {/* Teacher Selection */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
-                  Seu Nome *
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Digite seu nome"
-                  required
-                  className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Turma *
+                  Professor *
                 </label>
                 <select
-                  value={classId}
-                  onChange={(e) => setClassId(e.target.value)}
+                  value={selectedTeacherId}
+                  onChange={(e) => handleTeacherChange(e.target.value)}
                   required
                   className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
                 >
-                  <option value="">Selecione sua turma</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}
+                  <option value="">Selecione seu professor</option>
+                  {teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.name}
                     </option>
                   ))}
                 </select>
-                {classes.length === 0 && (
+                {teachers.length === 0 && (
                   <p className="text-sm text-muted-foreground mt-2">
-                    Nenhuma turma disponível. Aguarde o professor criar.
+                    Nenhum professor disponível. Aguarde.
                   </p>
                 )}
               </div>
 
+              {/* Class Selection - only shows after teacher is selected */}
+              {selectedTeacherId && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Turma *
+                  </label>
+                  <select
+                    value={classId}
+                    onChange={(e) => setClassId(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
+                  >
+                    <option value="">Selecione sua turma</option>
+                    {filteredClasses.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </option>
+                    ))}
+                  </select>
+                  {filteredClasses.length === 0 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Nenhuma turma disponível para este professor.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Name Input - only shows after class is selected */}
+              {selectedTeacherId && classId && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-2">
+                    Seu Nome *
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Digite seu nome"
+                    required
+                    className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
+                  />
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting || classes.length === 0}
+                disabled={isSubmitting || !selectedTeacherId || !classId || !name.trim()}
                 className="btn-fantasy w-full py-3 text-lg flex items-center justify-center gap-2"
               >
                 <Sword size={20} />
