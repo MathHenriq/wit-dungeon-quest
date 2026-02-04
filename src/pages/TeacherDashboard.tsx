@@ -152,18 +152,23 @@ export default function TeacherDashboard() {
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; name: string; warning?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isValidHttpUrl = (value: string): boolean => {
-    if (!value || typeof value !== "string") return false;
-    const trimmed = value.trim();
-    // Accept URLs that start with http:// or https://
-    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-      return false;
-    }
+  const normalizeHttpUrl = (value: string): string | null => {
+    if (!value || typeof value !== "string") return null;
+    let trimmed = value.trim();
+
+    // Common copy/paste cases
+    if (trimmed.startsWith("//")) trimmed = `https:${trimmed}`;
+    if (/^www\./i.test(trimmed)) trimmed = `https://${trimmed}`;
+
+    // Replace spaces (URL() rejects them). This keeps the UX forgiving.
+    const candidate = trimmed.replace(/\s+/g, "%20");
+
     try {
-      new URL(trimmed);
-      return true;
+      const url = new URL(candidate);
+      if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+      return url.toString();
     } catch {
-      return false;
+      return null;
     }
   };
 
@@ -218,12 +223,13 @@ export default function TeacherDashboard() {
         .order("created_at", { ascending: false });
       setChallenges(challengesData || []);
 
-      // Load shop items
+      // Load shop items (keep ALL for enrichment, but only show active in shop list)
       const { data: itemsData } = await supabase
         .from("shop_items")
         .select("*")
         .order("created_at", { ascending: false });
-      setShopItems(itemsData || []);
+      const allItems = (itemsData || []) as ShopItem[];
+      setShopItems(allItems.filter((i) => i.is_active));
 
       // Load students
       const { data: studentsData } = await supabase
@@ -240,10 +246,10 @@ export default function TeacherDashboard() {
         .order("created_at", { ascending: false });
       
       // Enrich requests with student, challenge, and item data
-      const enrichedRequests = (requestsData || []).map(req => {
+       const enrichedRequests = (requestsData || []).map(req => {
         const student = studentsData?.find(s => s.id === req.student_id);
         const challenge = challengesData?.find(c => c.id === req.challenge_id);
-        const shop_item = itemsData?.find(i => i.id === req.item_id);
+         const shop_item = allItems?.find(i => i.id === req.item_id);
         return { ...req, student, challenge, shop_item } as StudentRequest;
       });
       setRequests(enrichedRequests);
@@ -256,7 +262,7 @@ export default function TeacherDashboard() {
       
       // Enrich inventory with item data
       const enrichedInventory = (inventoryData || []).map(inv => {
-        const item = itemsData?.find(i => i.id === inv.item_id);
+        const item = allItems?.find(i => i.id === inv.item_id);
         return { ...inv, item } as InventoryRecord;
       });
       setInventoryRecords(enrichedInventory);
@@ -400,12 +406,13 @@ export default function TeacherDashboard() {
       toast.error("Preencha os campos obrigatórios", { description: "Informe um custo válido (mínimo 1)." });
       return;
     }
-    // Image URL is OPTIONAL — warn if invalid but still create item
+    // Image URL is OPTIONAL — normalize and validate; warn if invalid but still create item
     let finalImageUrl: string | null = null;
     let imageWarning = false;
     if (imageUrl) {
-      if (isValidHttpUrl(imageUrl)) {
-        finalImageUrl = imageUrl;
+      const normalized = normalizeHttpUrl(imageUrl);
+      if (normalized) {
+        finalImageUrl = normalized;
       } else {
         // URL provided but invalid — we'll warn user after creation
         imageWarning = true;
@@ -693,6 +700,10 @@ export default function TeacherDashboard() {
         toast.error("Erro ao excluir", { description: error.message });
       } else {
         toast.success(`${deleteTarget.name} excluído com sucesso!`);
+        if (deleteTarget.type === "item") {
+          // Remove immediately from the teacher list to avoid UI pollution
+          setShopItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
+        }
         loadData();
       }
     } catch (e) {
