@@ -395,6 +395,7 @@ export type Database = {
           presencas_consecutivas: number
           profile_photo_url: string | null
           race: string | null
+          teacher_id: string
         }
         Insert: {
           appearance?: string | null
@@ -413,6 +414,7 @@ export type Database = {
           presencas_consecutivas?: number
           profile_photo_url?: string | null
           race?: string | null
+          teacher_id: string
         }
         Update: {
           appearance?: string | null
@@ -431,6 +433,7 @@ export type Database = {
           presencas_consecutivas?: number
           profile_photo_url?: string | null
           race?: string | null
+          teacher_id?: string
         }
         Relationships: [
           {
@@ -438,6 +441,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
             referencedColumns: ["id"]
           },
         ]
@@ -468,9 +478,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_student_teacher_id: {
+        Args: { p_student_id: string }
+        Returns: string
+      }
       get_teacher_id: { Args: never; Returns: string }
       is_teacher_of_class: { Args: { class_id: string }; Returns: boolean }
       is_teacher_of_student: { Args: { student_id: string }; Returns: boolean }
+      student_belongs_to_teacher: {
+        Args: { p_student_id: string; p_teacher_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       request_status: "pending" | "approved" | "rejected"

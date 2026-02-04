@@ -8,6 +8,7 @@ interface Student {
   coins: number;
   level: number;
   class_id: string;
+  teacher_id: string;
   race: string | null;
   character_class: string | null;
   motivation: string | null;
@@ -113,11 +114,18 @@ export function useStudentDB() {
     loadClasses();
   }, []);
 
-  const loadClasses = async () => {
-    const { data } = await supabase
+  const loadClasses = async (teacherId?: string) => {
+    let query = supabase
       .from("classes")
       .select("id, name")
       .order("name");
+    
+    // If teacher_id provided, filter by it (for student context)
+    if (teacherId) {
+      query = query.eq("teacher_id", teacherId);
+    }
+    
+    const { data } = await query;
     setClasses(data || []);
   };
 
@@ -141,12 +149,14 @@ export function useStudentDB() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ studentId }));
 
     // Load challenges, shop items, requests, inventory, missions, and titles
+    // FILTER BY TEACHER_ID for ecosystem isolation
+    const teacherId = studentData.teacher_id;
     await Promise.all([
-      loadChallenges(),
-      loadShopItems(),
+      loadChallenges(teacherId),
+      loadShopItems(teacherId),
       loadRequests(studentId),
       loadInventory(studentId),
-      loadMissions(),
+      loadMissions(teacherId),
       loadMissionCompletions(studentId),
       loadStudentTitles(studentId),
     ]);
@@ -175,20 +185,22 @@ export function useStudentDB() {
     setInventory(validItems);
   };
 
-  const loadChallenges = async () => {
+  const loadChallenges = async (teacherId: string) => {
     const { data } = await supabase
       .from("challenges")
       .select("id, title, description, reward")
       .eq("is_active", true)
+      .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
     setChallenges(data || []);
   };
 
-  const loadShopItems = async () => {
+  const loadShopItems = async (teacherId: string) => {
     const { data } = await supabase
       .from("shop_items")
       .select("id, name, description, cost, min_level, item_type, icon, image_url")
       .eq("is_active", true)
+      .eq("teacher_id", teacherId)
       .order("cost");
     setShopItems(data || []);
   };
@@ -201,11 +213,12 @@ export function useStudentDB() {
     setRequests((data || []) as StudentRequest[]);
   };
 
-  const loadMissions = async () => {
+  const loadMissions = async (teacherId: string) => {
     const { data } = await supabase
       .from("student_missions")
       .select("id, title, description, reward, is_return_mission")
       .eq("is_active", true)
+      .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
     setMissions((data || []) as Mission[]);
   };
@@ -375,7 +388,7 @@ export function useStudentDB() {
   const refreshMissions = async () => {
     if (student) {
       await Promise.all([
-        loadMissions(),
+        loadMissions(student.teacher_id),
         loadMissionCompletions(student.id),
       ]);
     }
