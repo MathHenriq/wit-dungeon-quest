@@ -46,6 +46,7 @@ interface Student {
   coins: number;
   level: number;
   class_id: string;
+  teacher_id: string;
   presencas_consecutivas: number;
   profile_photo_url: string | null;
 }
@@ -355,10 +356,11 @@ export default function TeacherDashboard() {
 
   const addStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClass || !newStudentName.trim()) return;
+    if (!teacher || !selectedClass || !newStudentName.trim()) return;
 
     const { error } = await supabase.from("students").insert({
       class_id: selectedClass,
+      teacher_id: teacher.id,
       name: newStudentName.trim(),
     });
 

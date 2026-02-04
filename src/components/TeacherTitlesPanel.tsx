@@ -8,6 +8,7 @@ interface Student {
   id: string;
   name: string;
   class_id: string;
+  teacher_id: string;
   presencas_consecutivas: number;
 }
 
