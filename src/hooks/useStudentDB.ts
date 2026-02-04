@@ -88,6 +88,22 @@ interface StudentTitle {
   expires_at: string;
 }
 
+interface RewardConfig {
+  id: string;
+  teacher_id: string;
+  name: string;
+  icon: string;
+  unit_label_singular: string;
+  unit_label_plural: string;
+}
+
+const DEFAULT_REWARD: Omit<RewardConfig, "id" | "teacher_id"> = {
+  name: "Moedas",
+  icon: "🪙",
+  unit_label_singular: "moeda",
+  unit_label_plural: "moedas",
+};
+
 const STORAGE_KEY = "wit_dungeon_student_session";
 
 export function useStudentDB() {
@@ -101,6 +117,7 @@ export function useStudentDB() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
+  const [rewardConfig, setRewardConfig] = useState<RewardConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load saved session
@@ -173,7 +190,7 @@ export function useStudentDB() {
     setStudent(studentData);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ studentId }));
 
-    // Load challenges, shop items, requests, inventory, missions, and titles
+    // Load challenges, shop items, requests, inventory, missions, titles, and reward config
     // FILTER BY TEACHER_ID for ecosystem isolation
     const teacherId = studentData.teacher_id;
     await Promise.all([
@@ -184,6 +201,7 @@ export function useStudentDB() {
       loadMissions(teacherId),
       loadMissionCompletions(studentId),
       loadStudentTitles(studentId),
+      loadRewardConfig(teacherId),
     ]);
 
     setIsLoading(false);
@@ -263,6 +281,32 @@ export function useStudentDB() {
       .eq("student_id", studentId)
       .gt("expires_at", new Date().toISOString());
     setStudentTitles((data || []) as StudentTitle[]);
+  };
+
+  const loadRewardConfig = async (teacherId: string) => {
+    const { data } = await supabase
+      .from("teacher_rewards")
+      .select("*")
+      .eq("teacher_id", teacherId)
+      .maybeSingle();
+    
+    if (data) {
+      setRewardConfig(data as RewardConfig);
+    } else {
+      // Use default config
+      setRewardConfig({
+        id: "",
+        teacher_id: teacherId,
+        ...DEFAULT_REWARD,
+      });
+    }
+  };
+
+  const getRewardIcon = () => rewardConfig?.icon || DEFAULT_REWARD.icon;
+  const getRewardName = () => rewardConfig?.name || DEFAULT_REWARD.name;
+  const getRewardLabel = (amount: number) => {
+    const config = rewardConfig || { ...DEFAULT_REWARD, id: "", teacher_id: "" };
+    return amount === 1 ? config.unit_label_singular : config.unit_label_plural;
   };
 
   // Subscribe to realtime updates
@@ -429,6 +473,7 @@ export function useStudentDB() {
     missions,
     missionCompletions,
     studentTitles,
+    rewardConfig,
     isLoading,
     loginStudent,
     requestChallenge,
@@ -441,5 +486,8 @@ export function useStudentDB() {
     refreshStudent,
     refreshMissions,
     loadClassesByTeacher,
+    getRewardIcon,
+    getRewardName,
+    getRewardLabel,
   };
 }

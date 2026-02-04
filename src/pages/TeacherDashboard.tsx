@@ -7,6 +7,7 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { TeacherMissionsPanel } from "@/components/TeacherMissionsPanel";
 import { TeacherTitlesPanel } from "@/components/TeacherTitlesPanel";
+import { TeacherRewardSettings } from "@/components/TeacherRewardSettings";
 import { TitleType } from "@/components/StudentTitleBadge";
 import { 
   Users, 
@@ -119,7 +120,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop" | "attendance" | "inventory" | "missions" | "titles">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop" | "attendance" | "inventory" | "missions" | "titles" | "reward">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -888,6 +889,7 @@ export default function TeacherDashboard() {
             { id: "students", label: "Alunos", icon: Users },
             { id: "challenges", label: "Desafios", icon: Sword },
             { id: "shop", label: "Loja", icon: ShoppingBag },
+            { id: "reward", label: "Recompensa", icon: Coins },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1640,6 +1642,18 @@ export default function TeacherDashboard() {
                 titles={studentTitles}
                 onDataChanged={loadData}
               />
+            </div>
+          </section>
+        )}
+
+        {activeTab === "reward" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Coins className="text-gold" />
+              Configuração de Recompensa
+            </h2>
+            <div className="card-fantasy max-w-2xl">
+              <TeacherRewardSettings teacherId={teacher.id} />
             </div>
           </section>
         )}
