@@ -172,6 +172,21 @@ export default function TeacherDashboard() {
     }
   };
 
+  const withTimeout = async <T,>(promiseLike: PromiseLike<T>, ms: number, label: string): Promise<T> => {
+    let timeoutId: number | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = window.setTimeout(() => reject(new Error(`timeout:${label}`)), ms);
+    });
+    try {
+      // supabase-js returns thenables (Postgrest builders), not real Promises.
+      // Promise.resolve() safely converts thenables into proper Promises.
+      const promise = Promise.resolve(promiseLike as any) as Promise<T>;
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    }
+  };
+
   const mapItemTypeToDb = (value: string) => {
     // Normalize UI values/labels to what the backend expects.
     // Must never block creation.
@@ -424,31 +439,80 @@ export default function TeacherDashboard() {
 
     try {
       // Resolve teacher_id from backend to avoid mismatches
-      const { data: teacherIdFromDb, error: teacherIdError } = await supabase.rpc("get_teacher_id");
+      const { data: teacherIdFromDb, error: teacherIdError } = await withTimeout<{ data: unknown; error: any }>(
+        supabase.rpc("get_teacher_id") as any,
+        10000,
+        "get_teacher_id"
+      );
       if (teacherIdError) {
         console.error("get_teacher_id error:", teacherIdError);
       }
       const teacherId = (!teacherIdError && teacherIdFromDb) ? String(teacherIdFromDb) : teacher.id;
 
-      const { data: created, error } = await supabase
-        .from("shop_items")
-        .insert({
-        teacher_id: teacherId,
-        name,
-        description: description || null,
-        cost: newItemCost,
-        min_level: minLevel,
-        item_type: dbItemType,
-        icon,
-        image_url: finalImageUrl,
-        })
-        .select("*")
-        .single();
+      // 1) Try creating with image_url (when valid)
+      // 2) If ANY error happens and an image was provided, retry WITHOUT image_url
+      // This guarantees the item is created even if only the image field caused the failure.
+
+      type InsertResult = { data: ShopItem | null; error: any };
+      const insertAttempt = async (image_url: string | null): Promise<InsertResult> =>
+        withTimeout<InsertResult>(
+          supabase
+            .from("shop_items")
+            .insert({
+              teacher_id: teacherId,
+              name,
+              description: description || null,
+              cost: newItemCost,
+              min_level: minLevel,
+              item_type: dbItemType,
+              icon,
+              image_url,
+            })
+            .select("*")
+            .single() as any,
+          15000,
+          "insert_shop_item"
+        );
+
+      let created: ShopItem | null = null;
+      let error: any = null;
+
+      try {
+        const res = await insertAttempt(finalImageUrl);
+        created = res.data ?? null;
+        error = res.error;
+      } catch (err) {
+        error = err;
+      }
+
+      const shouldRetryWithoutImage = Boolean(imageUrl) && Boolean(finalImageUrl);
 
       if (error) {
         console.error("[addShopItem] insert error:", error);
-        toast.error("Erro ao criar item", { description: error.message });
-        return;
+
+        if (shouldRetryWithoutImage) {
+          try {
+            // Mark as warning because the image was dropped
+            imageWarning = true;
+            finalImageUrl = null;
+            const res2 = await insertAttempt(null);
+            created = res2.data ?? null;
+            error = res2.error;
+          } catch (err2) {
+            error = err2;
+          }
+        }
+
+        if (error) {
+          const msg = typeof error?.message === "string" ? error.message : "Falha ao criar item.";
+          toast.error("Erro ao criar item", {
+            description:
+              msg.includes("timeout")
+                ? "A criação demorou demais e foi cancelada. Tente novamente."
+                : msg,
+          });
+          return;
+        }
       }
 
       if (!created) {
