@@ -452,6 +452,47 @@ export type Database = {
           },
         ]
       }
+      teacher_rewards: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          teacher_id: string
+          unit_label_plural: string
+          unit_label_singular: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          teacher_id: string
+          unit_label_plural?: string
+          unit_label_singular?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          teacher_id?: string
+          unit_label_plural?: string
+          unit_label_singular?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_rewards_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: true
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teachers: {
         Row: {
           created_at: string

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useStudentDB } from "@/hooks/useStudentDB";
-import { CoinDisplay } from "@/components/CoinDisplay";
+import { RewardDisplay } from "@/components/RewardDisplay";
 import { LevelBadge } from "@/components/LevelBadge";
 import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { StudentInventory } from "@/components/StudentInventory";
@@ -12,7 +12,6 @@ import { StudentTitleBadge, AttendanceCrown } from "@/components/StudentTitleBad
 import { 
   Sword, 
   Shield, 
-  User,
   LogOut, 
   ShoppingBag, 
   Scroll,
@@ -38,6 +37,7 @@ export default function StudentPortal() {
     missions,
     missionCompletions,
     studentTitles,
+    rewardConfig,
     isLoading,
     loginStudent,
     requestChallenge,
@@ -50,6 +50,9 @@ export default function StudentPortal() {
     refreshStudent,
     refreshMissions,
     loadClassesByTeacher,
+    getRewardIcon,
+    getRewardName,
+    getRewardLabel,
   } = useStudentDB();
 
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
@@ -307,7 +310,7 @@ export default function StudentPortal() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <CoinDisplay amount={student.coins} size="md" />
+              <RewardDisplay amount={student.coins} icon={getRewardIcon()} size="md" />
               <div className="hidden md:flex items-center gap-2">
                 <span className="text-sm text-primary-foreground/70">Nível</span>
                 <LevelBadge level={student.level} />
@@ -510,7 +513,7 @@ export default function StudentPortal() {
                           
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-1.5 text-gold-dark font-semibold">
-                              <Coins size={16} />
+                              <span className="text-lg">{getRewardIcon()}</span>
                               <span>+{challenge.reward}</span>
                             </div>
                             
@@ -604,7 +607,7 @@ export default function StudentPortal() {
                       <div className="space-y-3 mt-auto">
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-1.5 text-gold-dark font-semibold">
-                            <Coins size={16} />
+                            <span className="text-lg">{getRewardIcon()}</span>
                             <span>{item.cost}</span>
                           </div>
                           <div className={`flex items-center gap-1 ${meetsLevel ? "text-muted-foreground" : "text-destructive"}`}>
