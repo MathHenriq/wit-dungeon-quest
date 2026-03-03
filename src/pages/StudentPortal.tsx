@@ -4,7 +4,6 @@ import { useStudentDB } from "@/hooks/useStudentDB";
 import { RewardDisplay } from "@/components/RewardDisplay";
 import { LevelBadge } from "@/components/LevelBadge";
 import { CharacterCustomization } from "@/components/CharacterCustomization";
-import { StudentInventory } from "@/components/StudentInventory";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { MissionBoard } from "@/components/MissionBoard";
@@ -13,16 +12,12 @@ import {
   Sword, 
   Shield, 
   LogOut, 
-  ShoppingBag, 
   Scroll,
-  Coins,
   CheckCircle,
   Clock,
-  Lock,
   UserCircle,
   Sparkles,
   CalendarCheck,
-  Package
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,33 +27,26 @@ export default function StudentPortal() {
     teachers,
     classes,
     challenges,
-    shopItems,
-    inventory,
     missions,
     missionCompletions,
     studentTitles,
-    rewardConfig,
     isLoading,
     loginStudent,
     requestChallenge,
-    requestItem,
     requestAttendance,
     hasChallengeRequest,
-    hasItemRequest,
     hasAttendanceRequest,
     logout,
     refreshStudent,
     refreshMissions,
     loadClassesByTeacher,
     getRewardIcon,
-    getRewardName,
-    getRewardLabel,
   } = useStudentDB();
 
   const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
-  const [activeTab, setActiveTab] = useState<"challenges" | "shop" | "character" | "inventory" | "missions">("challenges");
+  const [activeTab, setActiveTab] = useState<"challenges" | "missions" | "character">("challenges");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filter classes by selected teacher
@@ -66,7 +54,6 @@ export default function StudentPortal() {
     ? classes.filter(c => c.teacher_id === selectedTeacherId)
     : [];
 
-  // When teacher changes, reload classes and reset class selection
   const handleTeacherChange = async (teacherId: string) => {
     setSelectedTeacherId(teacherId);
     setClassId("");
@@ -87,7 +74,6 @@ export default function StudentPortal() {
       toast.error("Erro", { description: result.error });
     } else {
       toast.success("Bem-vindo à Dungeon!", { icon: "⚔️" });
-      // If character not configured yet, redirect to character tab
       if (result.needsCharacter) {
         setActiveTab("character");
       }
@@ -102,18 +88,6 @@ export default function StudentPortal() {
       toast.success("Desafio solicitado!", {
         description: "Aguarde a validação do professor.",
         icon: "⚔️",
-      });
-    }
-  };
-
-  const handleItemRequest = async (itemId: string, name: string) => {
-    const result = await requestItem(itemId);
-    if (result?.error) {
-      toast.error("Erro ao solicitar", { description: result.error.message });
-    } else {
-      toast.success("Item solicitado!", {
-        description: "Aguarde a aprovação do professor.",
-        icon: "🛡️",
       });
     }
   };
@@ -194,7 +168,7 @@ export default function StudentPortal() {
                 )}
               </div>
 
-              {/* Class Selection - only shows after teacher is selected */}
+              {/* Class Selection */}
               {selectedTeacherId && (
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-2">
@@ -221,7 +195,7 @@ export default function StudentPortal() {
                 </div>
               )}
 
-              {/* Name Input - only shows after class is selected */}
+              {/* Name Input */}
               {selectedTeacherId && classId && (
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-2">
@@ -290,7 +264,6 @@ export default function StudentPortal() {
                   size="sm"
                   editable={false}
                 />
-                {/* Attendance Crown */}
                 <div className="absolute -top-2 -right-2">
                   <AttendanceCrown consecutiveAttendance={student.presencas_consecutivas} />
                 </div>
@@ -302,7 +275,6 @@ export default function StudentPortal() {
                 <p className="text-sm text-primary-foreground/70">
                   {classes.find(c => c.id === student.class_id)?.name}
                 </p>
-                {/* Titles */}
                 <StudentTitleBadge titles={studentTitles} />
               </div>
             </div>
@@ -404,33 +376,6 @@ export default function StudentPortal() {
           >
             <Sword size={20} />
             <span>Desafios</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("shop")}
-            className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              activeTab === "shop"
-                ? "bg-primary text-primary-foreground shadow-lg"
-                : "bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            <ShoppingBag size={20} />
-            <span>Loja</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("inventory")}
-            className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              activeTab === "inventory"
-                ? "bg-primary text-primary-foreground shadow-lg"
-                : "bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            <Package size={20} />
-            <span>Inventário</span>
-            {inventory.length > 0 && (
-              <span className="bg-gold text-dungeon-dark text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {inventory.length}
-              </span>
-            )}
           </button>
           <button
             onClick={() => setActiveTab("missions")}
@@ -544,125 +489,6 @@ export default function StudentPortal() {
           </section>
         )}
 
-        {/* Shop Tab */}
-        {activeTab === "shop" && (
-          <section>
-            <div className="section-title">
-              <ShoppingBag className="text-gold" />
-              <span>Loja de Recompensas</span>
-            </div>
-            {shopItems.length === 0 ? (
-              <div className="card-fantasy text-center py-8 text-muted-foreground">
-                <ShoppingBag size={48} className="mx-auto mb-4 opacity-50" />
-                <p>Nenhum item disponível no momento</p>
-              </div>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {shopItems.map((item) => {
-                  const isRequested = hasItemRequest(item.id);
-                  const canAfford = student.coins >= item.cost;
-                  const meetsLevel = student.level >= item.min_level;
-                  
-                  const typeColors: Record<string, string> = {
-                    weapon: "bg-destructive/10 text-destructive",
-                    armor: "bg-primary/10 text-primary",
-                    ability: "bg-success/10 text-success",
-                  };
-                  const typeLabels: Record<string, string> = {
-                    weapon: "Arma",
-                    armor: "Armadura",
-                    ability: "Habilidade",
-                  };
-
-                  return (
-                    <div key={item.id} className="card-fantasy flex flex-col h-full overflow-hidden">
-                      {/* Item Image/Icon Header */}
-                      <div className="relative -mx-5 -mt-5 mb-4 aspect-video bg-gradient-to-b from-dungeon-dark/30 to-dungeon-dark/10 flex items-center justify-center">
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const fallback = target.parentElement?.querySelector('.item-icon-fallback');
-                              if (fallback) fallback.classList.remove('hidden');
-                            }}
-                          />
-                        ) : null}
-                        <div className={`item-icon-fallback absolute inset-0 flex items-center justify-center ${item.image_url ? 'hidden' : ''}`}>
-                          <span className="text-7xl drop-shadow-lg">{item.icon}</span>
-                        </div>
-                        <span className={`absolute top-3 right-3 text-xs font-semibold px-2 py-1 rounded-full ${typeColors[item.item_type] || typeColors.weapon}`}>
-                          {typeLabels[item.item_type] || "Item"}
-                        </span>
-                      </div>
-
-                      <h3 className="font-display font-bold text-lg mb-1">{item.name}</h3>
-                      {item.description && (
-                        <p className="text-muted-foreground text-sm mb-4 flex-1">{item.description}</p>
-                      )}
-
-                      <div className="space-y-3 mt-auto">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-1.5 text-gold-dark font-semibold">
-                            <span className="text-lg">{getRewardIcon()}</span>
-                            <span>{item.cost}</span>
-                          </div>
-                          <div className={`flex items-center gap-1 ${meetsLevel ? "text-muted-foreground" : "text-destructive"}`}>
-                            {!meetsLevel && <Lock size={14} />}
-                            <span>Nível {item.min_level}</span>
-                          </div>
-                        </div>
-
-                        {isRequested ? (
-                          <button
-                            disabled
-                            className="btn-fantasy w-full opacity-60 cursor-not-allowed flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle size={16} />
-                            Solicitado
-                          </button>
-                        ) : !meetsLevel ? (
-                          <button
-                            disabled
-                            className="btn-fantasy w-full opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
-                          >
-                            <Lock size={16} />
-                            Nível insuficiente
-                          </button>
-                        ) : !canAfford ? (
-                          <button
-                            disabled
-                            className="btn-fantasy w-full opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
-                          >
-                            <Coins size={16} />
-                            Moedas insuficientes
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleItemRequest(item.id, item.name)}
-                            className="btn-fantasy w-full flex items-center justify-center gap-2"
-                          >
-                            <ShoppingBag size={16} />
-                            Solicitar item
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Inventory Tab */}
-        {activeTab === "inventory" && (
-          <StudentInventory inventory={inventory} />
-        )}
-
         {/* Character Tab */}
         {activeTab === "character" && (
           <CharacterCustomization student={student} onUpdate={refreshStudent} />
@@ -671,7 +497,6 @@ export default function StudentPortal() {
         {/* Footer Note */}
         <div className="mt-8 text-center text-sm text-muted-foreground">
           <p>⚠️ Todas as solicitações são validadas pelo professor</p>
-          <p>As moedas não são alteradas automaticamente</p>
           <DeveloperSignature className="mt-4" />
         </div>
       </main>

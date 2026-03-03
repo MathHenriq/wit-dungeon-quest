@@ -37,35 +37,12 @@ interface Challenge {
   reward: number;
 }
 
-interface ShopItem {
-  id: string;
-  name: string;
-  description: string | null;
-  cost: number;
-  min_level: number;
-  item_type: string;
-  icon: string;
-  image_url: string | null;
-}
-
 interface StudentRequest {
   id: string;
   request_type: "challenge" | "item" | "attendance";
   challenge_id: string | null;
   item_id: string | null;
   status: "pending" | "approved" | "rejected";
-}
-
-interface InventoryItem {
-  id: string;
-  item: {
-    id: string;
-    name: string;
-    description: string | null;
-    icon: string;
-    image_url: string | null;
-    item_type: string;
-  };
 }
 
 interface Mission {
@@ -111,9 +88,7 @@ export function useStudentDB() {
   const [teachers, setTeachers] = useState<TeacherData[]>([]);
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [requests, setRequests] = useState<StudentRequest[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
@@ -134,7 +109,6 @@ export function useStudentDB() {
       setIsLoading(false);
     }
 
-    // Load available teachers and classes
     loadTeachers();
     loadClasses();
   }, []);
@@ -152,12 +126,9 @@ export function useStudentDB() {
       .from("classes")
       .select("id, name, teacher_id")
       .order("name");
-    
-    // If teacher_id provided, filter by it (for student context)
     if (teacherId) {
       query = query.eq("teacher_id", teacherId);
     }
-    
     const { data } = await query;
     setClasses(data || []);
   };
@@ -190,14 +161,11 @@ export function useStudentDB() {
     setStudent(studentData);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ studentId }));
 
-    // Load challenges, shop items, requests, inventory, missions, titles, and reward config
-    // FILTER BY TEACHER_ID for ecosystem isolation
+    // Load all data FILTERED BY TEACHER_ID for strict isolation
     const teacherId = studentData.teacher_id;
     await Promise.all([
       loadChallenges(teacherId),
-      loadShopItems(teacherId),
       loadRequests(studentId),
-      loadInventory(studentId),
       loadMissions(teacherId),
       loadMissionCompletions(studentId),
       loadStudentTitles(studentId),
@@ -205,27 +173,6 @@ export function useStudentDB() {
     ]);
 
     setIsLoading(false);
-  };
-
-  const loadInventory = async (studentId: string) => {
-    const { data } = await supabase
-      .from("student_inventory")
-      .select(`
-        id,
-        item:shop_items (
-          id,
-          name,
-          description,
-          icon,
-          image_url,
-          item_type
-        )
-      `)
-      .eq("student_id", studentId);
-    
-    // Filter out entries where item is null (if shop item was deleted)
-    const validItems = (data || []).filter(inv => inv.item !== null) as InventoryItem[];
-    setInventory(validItems);
   };
 
   const loadChallenges = async (teacherId: string) => {
@@ -236,16 +183,6 @@ export function useStudentDB() {
       .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
     setChallenges(data || []);
-  };
-
-  const loadShopItems = async (teacherId: string) => {
-    const { data } = await supabase
-      .from("shop_items")
-      .select("id, name, description, cost, min_level, item_type, icon, image_url")
-      .eq("is_active", true)
-      .eq("teacher_id", teacherId)
-      .order("cost");
-    setShopItems(data || []);
   };
 
   const loadRequests = async (studentId: string) => {
@@ -293,7 +230,6 @@ export function useStudentDB() {
     if (data) {
       setRewardConfig(data as RewardConfig);
     } else {
-      // Use default config
       setRewardConfig({
         id: "",
         teacher_id: teacherId,
@@ -329,12 +265,6 @@ export function useStudentDB() {
           loadRequests(student.id);
         }
       )
-      .on("postgres_changes",
-        { event: "*", schema: "public", table: "student_inventory", filter: `student_id=eq.${student.id}` },
-        () => {
-          loadInventory(student.id);
-        }
-      )
       .subscribe();
 
     return () => {
@@ -343,7 +273,6 @@ export function useStudentDB() {
   }, [student?.id]);
 
   const loginStudent = async (name: string, classId: string) => {
-    // Try to find existing student by name + class
     const { data: existingStudent, error: findError } = await supabase
       .from("students")
       .select("*")
@@ -361,7 +290,6 @@ export function useStudentDB() {
       return { success: true, needsCharacter: !existingStudent.character_name };
     }
 
-    // Student not found - they need to be added by teacher first
     return { 
       success: false, 
       error: "Aluno não encontrado. Peça ao professor para adicionar você à turma." 
@@ -384,31 +312,9 @@ export function useStudentDB() {
     return { error };
   };
 
-  const requestItem = async (itemId: string) => {
-    if (!student) return;
-
-    const { error } = await supabase.from("student_requests").insert({
-      student_id: student.id,
-      request_type: "item",
-      item_id: itemId,
-    });
-
-    if (!error) {
-      await loadRequests(student.id);
-    }
-
-    return { error };
-  };
-
   const hasChallengeRequest = (challengeId: string) => {
     return requests.some(
       r => r.challenge_id === challengeId && (r.status === "pending" || r.status === "approved")
-    );
-  };
-
-  const hasItemRequest = (itemId: string) => {
-    return requests.some(
-      r => r.item_id === itemId && r.status === "pending"
     );
   };
 
@@ -437,7 +343,6 @@ export function useStudentDB() {
     localStorage.removeItem(STORAGE_KEY);
     setStudent(null);
     setRequests([]);
-    setInventory([]);
     setMissions([]);
     setMissionCompletions([]);
     setStudentTitles([]);
@@ -468,8 +373,6 @@ export function useStudentDB() {
     teachers,
     classes,
     challenges,
-    shopItems,
-    inventory,
     missions,
     missionCompletions,
     studentTitles,
@@ -477,10 +380,8 @@ export function useStudentDB() {
     isLoading,
     loginStudent,
     requestChallenge,
-    requestItem,
     requestAttendance,
     hasChallengeRequest,
-    hasItemRequest,
     hasAttendanceRequest,
     logout,
     refreshStudent,

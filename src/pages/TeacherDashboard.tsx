@@ -12,7 +12,6 @@ import { TitleType } from "@/components/StudentTitleBadge";
 import { 
   Users, 
   BookOpen, 
-  ShoppingBag, 
   Clock, 
   LogOut, 
   Plus,
@@ -23,12 +22,8 @@ import {
   Trash2,
   Shield,
   Sword,
-  Image,
-  Link as LinkIcon,
   CalendarCheck,
   RotateCcw,
-  Package,
-  Minus,
   Sparkles,
   Award
 } from "lucide-react";
@@ -60,18 +55,6 @@ interface Challenge {
   is_active: boolean;
 }
 
-interface ShopItem {
-  id: string;
-  name: string;
-  description: string | null;
-  cost: number;
-  min_level: number;
-  item_type: string;
-  icon: string;
-  is_active: boolean;
-  image_url: string | null;
-}
-
 interface StudentRequest {
   id: string;
   student_id: string;
@@ -82,14 +65,6 @@ interface StudentRequest {
   created_at: string;
   student?: Student;
   challenge?: Challenge;
-  shop_item?: ShopItem;
-}
-
-interface InventoryRecord {
-  id: string;
-  student_id: string;
-  item_id: string;
-  item?: ShopItem;
 }
 
 interface StudentMission {
@@ -120,18 +95,15 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "shop" | "attendance" | "inventory" | "missions" | "titles" | "reward">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [requests, setRequests] = useState<StudentRequest[]>([]);
-  const [inventoryRecords, setInventoryRecords] = useState<InventoryRecord[]>([]);
   const [missions, setMissions] = useState<StudentMission[]>([]);
   const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  const [selectedStudentForInventory, setSelectedStudentForInventory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Form states
@@ -140,74 +112,11 @@ export default function TeacherDashboard() {
   const [newChallengeTitle, setNewChallengeTitle] = useState("");
   const [newChallengeDesc, setNewChallengeDesc] = useState("");
   const [newChallengeReward, setNewChallengeReward] = useState(10);
-  const [newItemName, setNewItemName] = useState("");
-  const [newItemDesc, setNewItemDesc] = useState("");
-  const [newItemCost, setNewItemCost] = useState(10);
-  const [newItemLevel, setNewItemLevel] = useState(1);
-  const [newItemType, setNewItemType] = useState("weapon");
-  const [newItemIcon, setNewItemIcon] = useState("⚔️");
-  const [newItemImage, setNewItemImage] = useState("");
-  const [isCreatingItem, setIsCreatingItem] = useState(false);
 
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; name: string; warning?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const normalizeHttpUrl = (value: string): string | null => {
-    if (!value || typeof value !== "string") return null;
-    let trimmed = value.trim();
-
-    // Common copy/paste cases
-    if (trimmed.startsWith("//")) trimmed = `https:${trimmed}`;
-    if (/^www\./i.test(trimmed)) trimmed = `https://${trimmed}`;
-
-    // Replace spaces (URL() rejects them). This keeps the UX forgiving.
-    const candidate = trimmed.replace(/\s+/g, "%20");
-
-    try {
-      const url = new URL(candidate);
-      if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-      return url.toString();
-    } catch {
-      return null;
-    }
-  };
-
-  const withTimeout = async <T,>(promiseLike: PromiseLike<T>, ms: number, label: string): Promise<T> => {
-    let timeoutId: number | undefined;
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = window.setTimeout(() => reject(new Error(`timeout:${label}`)), ms);
-    });
-    try {
-      // supabase-js returns thenables (Postgrest builders), not real Promises.
-      // Promise.resolve() safely converts thenables into proper Promises.
-      const promise = Promise.resolve(promiseLike as any) as Promise<T>;
-      return await Promise.race([promise, timeoutPromise]);
-    } finally {
-      if (timeoutId) window.clearTimeout(timeoutId);
-    }
-  };
-
-  const mapItemTypeToDb = (value: string) => {
-    // Normalize UI values/labels to what the backend expects.
-    // Must never block creation.
-    const normalized = value?.toString().trim().toLowerCase();
-    switch (normalized) {
-      case "weapon":
-      case "arma":
-        return "weapon";
-      case "armor":
-      case "armadura":
-        return "armor";
-      case "consumable":
-      case "consumível":
-      case "consumivel":
-        return "consumable";
-      default:
-        return "item";
-    }
-  };
 
   useEffect(() => {
     if (!authLoading && !teacher) {
@@ -226,84 +135,55 @@ export default function TeacherDashboard() {
     setIsLoading(true);
 
     try {
-      // Load classes
-      const { data: classesData } = await supabase
-        .from("classes")
-        .select("*")
-        .order("name");
+      // ALL queries explicitly filter by teacher.id for strict isolation
+      const [
+        { data: classesData },
+        { data: challengesData },
+        { data: studentsData },
+        { data: missionsData },
+        { data: completionsData },
+        { data: titlesData },
+      ] = await Promise.all([
+        supabase.from("classes").select("*").eq("teacher_id", teacher.id).order("name"),
+        supabase.from("challenges").select("*").eq("teacher_id", teacher.id).order("created_at", { ascending: false }),
+        supabase.from("students").select("*").eq("teacher_id", teacher.id).order("name"),
+        supabase.from("student_missions").select("*").eq("teacher_id", teacher.id).order("created_at", { ascending: false }),
+        supabase.from("mission_completions").select("*").order("created_at", { ascending: false }),
+        supabase.from("student_titles").select("*").order("assigned_at", { ascending: false }),
+      ]);
+
       setClasses(classesData || []);
-
-      // Load challenges
-      const { data: challengesData } = await supabase
-        .from("challenges")
-        .select("*")
-        .order("created_at", { ascending: false });
       setChallenges(challengesData || []);
-
-      // Load shop items (keep ALL for enrichment, but only show active in shop list)
-      const { data: itemsData } = await supabase
-        .from("shop_items")
-        .select("*")
-        .order("created_at", { ascending: false });
-      const allItems = (itemsData || []) as ShopItem[];
-      setShopItems(allItems.filter((i) => i.is_active));
-
-      // Load students
-      const { data: studentsData } = await supabase
-        .from("students")
-        .select("*")
-        .order("name");
       setStudents(studentsData || []);
+      setMissions((missionsData || []) as StudentMission[]);
 
-      // Load pending requests with related data
+      // Filter completions to only students belonging to this teacher
+      const studentIds = new Set((studentsData || []).map(s => s.id));
+      setMissionCompletions(
+        ((completionsData || []) as MissionCompletion[]).filter(c => studentIds.has(c.student_id))
+      );
+      setStudentTitles(
+        ((titlesData || []) as StudentTitle[]).filter(t => studentIds.has(t.student_id))
+      );
+
+      // Load pending requests filtered to this teacher's students
       const { data: requestsData } = await supabase
         .from("student_requests")
         .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
-      
-      // Enrich requests with student, challenge, and item data
-       const enrichedRequests = (requestsData || []).map(req => {
-        const student = studentsData?.find(s => s.id === req.student_id);
-        const challenge = challengesData?.find(c => c.id === req.challenge_id);
-         const shop_item = allItems?.find(i => i.id === req.item_id);
-        return { ...req, student, challenge, shop_item } as StudentRequest;
-      });
+
+      // Enrich with student + challenge data, filter to teacher's students
+      const enrichedRequests = (requestsData || [])
+        .filter(req => studentIds.has(req.student_id))
+        .map(req => {
+          const student = (studentsData || []).find(s => s.id === req.student_id);
+          const challenge = (challengesData || []).find(c => c.id === req.challenge_id);
+          return { ...req, student, challenge } as StudentRequest;
+        })
+        // Only show challenge and attendance requests (shop removed)
+        .filter(req => req.request_type === "challenge" || req.request_type === "attendance");
       setRequests(enrichedRequests);
-
-      // Load inventory records
-      const { data: inventoryData } = await supabase
-        .from("student_inventory")
-        .select("*")
-        .order("added_at", { ascending: false });
-      
-      // Enrich inventory with item data
-      const enrichedInventory = (inventoryData || []).map(inv => {
-        const item = allItems?.find(i => i.id === inv.item_id);
-        return { ...inv, item } as InventoryRecord;
-      });
-      setInventoryRecords(enrichedInventory);
-
-      // Load missions
-      const { data: missionsData } = await supabase
-        .from("student_missions")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setMissions((missionsData || []) as StudentMission[]);
-
-      // Load mission completions (pending)
-      const { data: completionsData } = await supabase
-        .from("mission_completions")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setMissionCompletions((completionsData || []) as MissionCompletion[]);
-
-      // Load student titles
-      const { data: titlesData } = await supabase
-        .from("student_titles")
-        .select("*")
-        .order("assigned_at", { ascending: false });
-      setStudentTitles((titlesData || []) as StudentTitle[]);
 
     } catch (error) {
       console.error("Error loading data:", error);
@@ -378,182 +258,31 @@ export default function TeacherDashboard() {
     e.preventDefault();
     if (!teacher || !newChallengeTitle.trim()) return;
 
-    const { error } = await supabase.from("challenges").insert({
+    const { data, error } = await supabase.from("challenges").insert({
       teacher_id: teacher.id,
       title: newChallengeTitle.trim(),
       description: newChallengeDesc.trim() || null,
       reward: newChallengeReward,
-    });
+    }).select().single();
 
     if (error) {
       toast.error("Erro ao criar desafio", { description: error.message });
     } else {
-      toast.success("Desafio criado!");
+      toast.success("Desafio criado com sucesso!");
       setNewChallengeTitle("");
       setNewChallengeDesc("");
       setNewChallengeReward(10);
+      // Optimistic update + full reload
+      if (data) {
+        setChallenges(prev => [data as Challenge, ...prev]);
+      }
       loadData();
-    }
-  };
-
-  const addShopItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const name = newItemName.trim();
-    const description = newItemDesc.trim();
-    const imageUrl = newItemImage.trim();
-    const icon = newItemIcon.trim() || "⚔️";
-    const dbItemType = mapItemTypeToDb(newItemType);
-    const minLevel = Number.isFinite(newItemLevel) && newItemLevel >= 1 ? newItemLevel : 1;
-
-    console.log("[addShopItem] submit", { name, cost: newItemCost, type: newItemType, imageUrl });
-
-    if (!teacher) {
-      toast.error("Sessão do professor não carregada", {
-        description: "Recarregue a página e tente novamente.",
-      });
-      return;
-    }
-
-    // Required-field validation (only name and cost block creation)
-    if (!name) {
-      toast.error("Preencha os campos obrigatórios", { description: "Informe o nome do item." });
-      return;
-    }
-    if (!Number.isFinite(newItemCost) || newItemCost < 1) {
-      toast.error("Preencha os campos obrigatórios", { description: "Informe um custo válido (mínimo 1)." });
-      return;
-    }
-    // Image URL is OPTIONAL — normalize and validate; warn if invalid but still create item
-    let finalImageUrl: string | null = null;
-    let imageWarning = false;
-    if (imageUrl) {
-      const normalized = normalizeHttpUrl(imageUrl);
-      if (normalized) {
-        finalImageUrl = normalized;
-      } else {
-        // URL provided but invalid — we'll warn user after creation
-        imageWarning = true;
-        console.warn("[addShopItem] Invalid image URL ignored:", imageUrl);
-      }
-    }
-
-    setIsCreatingItem(true);
-
-    try {
-      // Resolve teacher_id from backend to avoid mismatches
-      const { data: teacherIdFromDb, error: teacherIdError } = await withTimeout<{ data: unknown; error: any }>(
-        supabase.rpc("get_teacher_id") as any,
-        10000,
-        "get_teacher_id"
-      );
-      if (teacherIdError) {
-        console.error("get_teacher_id error:", teacherIdError);
-      }
-      const teacherId = (!teacherIdError && teacherIdFromDb) ? String(teacherIdFromDb) : teacher.id;
-
-      // 1) Try creating with image_url (when valid)
-      // 2) If ANY error happens and an image was provided, retry WITHOUT image_url
-      // This guarantees the item is created even if only the image field caused the failure.
-
-      type InsertResult = { data: ShopItem | null; error: any };
-      const insertAttempt = async (image_url: string | null): Promise<InsertResult> =>
-        withTimeout<InsertResult>(
-          supabase
-            .from("shop_items")
-            .insert({
-              teacher_id: teacherId,
-              name,
-              description: description || null,
-              cost: newItemCost,
-              min_level: minLevel,
-              item_type: dbItemType,
-              icon,
-              image_url,
-            })
-            .select("*")
-            .single() as any,
-          15000,
-          "insert_shop_item"
-        );
-
-      let created: ShopItem | null = null;
-      let error: any = null;
-
-      try {
-        const res = await insertAttempt(finalImageUrl);
-        created = res.data ?? null;
-        error = res.error;
-      } catch (err) {
-        error = err;
-      }
-
-      const shouldRetryWithoutImage = Boolean(imageUrl) && Boolean(finalImageUrl);
-
-      if (error) {
-        console.error("[addShopItem] insert error:", error);
-
-        if (shouldRetryWithoutImage) {
-          try {
-            // Mark as warning because the image was dropped
-            imageWarning = true;
-            finalImageUrl = null;
-            const res2 = await insertAttempt(null);
-            created = res2.data ?? null;
-            error = res2.error;
-          } catch (err2) {
-            error = err2;
-          }
-        }
-
-        if (error) {
-          const msg = typeof error?.message === "string" ? error.message : "Falha ao criar item.";
-          toast.error("Erro ao criar item", {
-            description:
-              msg.includes("timeout")
-                ? "A criação demorou demais e foi cancelada. Tente novamente."
-                : msg,
-          });
-          return;
-        }
-      }
-
-      if (!created) {
-        console.error("[addShopItem] insert returned no row (unexpected)");
-        toast.error("Erro ao criar item", { description: "Não foi possível confirmar a criação do item." });
-        return;
-      }
-
-      if (imageWarning) {
-        toast.warning("Item criado, mas a URL da imagem é inválida", {
-          description: "A URL deve começar com http:// ou https://. Edite o item para corrigir.",
-        });
-      } else {
-        toast.success("Item criado com sucesso!");
-      }
-
-      // Update list immediately (avoid depending solely on loadData)
-      setShopItems((prev) => [created as ShopItem, ...prev]);
-
-      setNewItemName("");
-      setNewItemDesc("");
-      setNewItemCost(10);
-      setNewItemLevel(1);
-      setNewItemImage("");
-      // Keep data in sync in the background
-      loadData();
-    } catch (err) {
-      console.error("addShopItem unexpected error:", err);
-      toast.error("Erro inesperado", { description: "Não foi possível criar o item. Tente novamente." });
-    } finally {
-      setIsCreatingItem(false);
     }
   };
 
   const approveRequest = async (request: StudentRequest) => {
     if (!teacher) return;
 
-    // First approve the request
     const { error: updateError } = await supabase
       .from("student_requests")
       .update({
@@ -568,27 +297,30 @@ export default function TeacherDashboard() {
       return;
     }
 
-    // Then update student coins if it's a challenge
+    // Update student coins if it's a challenge
     if (request.request_type === "challenge" && request.challenge && request.student) {
-      await supabase
+      const { error: coinError } = await supabase
         .from("students")
         .update({ coins: request.student.coins + request.challenge.reward })
         .eq("id", request.student_id);
+      
+      if (coinError) {
+        toast.error("Solicitação aprovada, mas erro ao atualizar recompensa");
+        loadData();
+        return;
+      }
     }
 
-    // Or deduct coins and add item to inventory if it's an item purchase
-    if (request.request_type === "item" && request.shop_item && request.student) {
-      await supabase
+    // Handle attendance approval
+    if (request.request_type === "attendance" && request.student) {
+      const { error: attendanceError } = await supabase
         .from("students")
-        .update({ coins: request.student.coins - request.shop_item.cost })
+        .update({ presencas_consecutivas: request.student.presencas_consecutivas + 1 })
         .eq("id", request.student_id);
       
-      // Add item to student's inventory
-      await supabase.from("student_inventory").insert({
-        student_id: request.student_id,
-        item_id: request.shop_item.id,
-        added_by: teacher.id,
-      });
+      if (attendanceError) {
+        toast.error("Solicitação aprovada, mas erro ao atualizar presença");
+      }
     }
 
     toast.success("Solicitação aprovada!");
@@ -622,9 +354,9 @@ export default function TeacherDashboard() {
       .eq("id", studentId);
 
     if (error) {
-      toast.error("Erro ao atualizar moedas");
+      toast.error("Erro ao atualizar recompensas");
     } else {
-      toast.success("Moedas atualizadas!");
+      toast.success("Recompensas atualizadas!");
       loadData();
     }
   };
@@ -671,49 +403,6 @@ export default function TeacherDashboard() {
     }
   };
 
-  const addItemToInventory = async (studentId: string, itemId: string) => {
-    if (!teacher) return;
-
-    const { error } = await supabase.from("student_inventory").insert({
-      student_id: studentId,
-      item_id: itemId,
-      added_by: teacher.id,
-    });
-
-    if (error) {
-      if (error.code === "23505") {
-        toast.error("Item já está no inventário do aluno");
-      } else {
-        toast.error("Erro ao adicionar item", { description: error.message });
-      }
-    } else {
-      toast.success("Item adicionado ao inventário!");
-      loadData();
-    }
-  };
-
-  const removeItemFromInventory = async (inventoryId: string) => {
-    const { error } = await supabase
-      .from("student_inventory")
-      .delete()
-      .eq("id", inventoryId);
-
-    if (error) {
-      toast.error("Erro ao remover item", { description: error.message });
-    } else {
-      toast.success("Item removido do inventário");
-      loadData();
-    }
-  };
-
-  const getStudentInventory = (studentId: string) => {
-    return inventoryRecords.filter(inv => inv.student_id === studentId);
-  };
-
-  const studentHasItem = (studentId: string, itemId: string) => {
-    return inventoryRecords.some(inv => inv.student_id === studentId && inv.item_id === itemId);
-  };
-
   // Delete functions
   const openDeleteDialog = (type: string, id: string, name: string, warning?: string) => {
     setDeleteTarget({ type, id, name, warning });
@@ -728,52 +417,30 @@ export default function TeacherDashboard() {
 
     try {
       switch (deleteTarget.type) {
-        case "class":
-          const { error: classError } = await supabase
-            .from("classes")
-            .delete()
-            .eq("id", deleteTarget.id);
-          error = classError;
+        case "class": {
+          const { error: e } = await supabase.from("classes").delete().eq("id", deleteTarget.id);
+          error = e;
           break;
-        
-        case "student":
-          const { error: studentError } = await supabase
-            .from("students")
-            .delete()
-            .eq("id", deleteTarget.id);
-          error = studentError;
+        }
+        case "student": {
+          const { error: e } = await supabase.from("students").delete().eq("id", deleteTarget.id);
+          error = e;
           break;
-        
-        case "challenge":
-          // Soft delete - just deactivate
-          const { error: challengeError } = await supabase
-            .from("challenges")
-            .update({ is_active: false })
-            .eq("id", deleteTarget.id);
-          error = challengeError;
+        }
+        case "challenge": {
+          const { error: e } = await supabase.from("challenges").update({ is_active: false }).eq("id", deleteTarget.id);
+          error = e;
           break;
-        
-        case "item":
-          // Soft delete - just deactivate (preserves items in inventories)
-          const { error: itemError } = await supabase
-            .from("shop_items")
-            .update({ is_active: false })
-            .eq("id", deleteTarget.id);
-          error = itemError;
-          break;
+        }
       }
 
       if (error) {
         toast.error("Erro ao excluir", { description: error.message });
       } else {
         toast.success(`${deleteTarget.name} excluído com sucesso!`);
-        if (deleteTarget.type === "item") {
-          // Remove immediately from the teacher list to avoid UI pollution
-          setShopItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
-        }
         loadData();
       }
-    } catch (e) {
+    } catch {
       toast.error("Erro inesperado ao excluir");
     } finally {
       setIsDeleting(false);
@@ -788,7 +455,6 @@ export default function TeacherDashboard() {
       class: "turma",
       student: "aluno",
       challenge: "desafio",
-      item: "item",
     };
     return `Excluir ${typeLabels[deleteTarget.type] || "item"}?`;
   };
@@ -884,11 +550,9 @@ export default function TeacherDashboard() {
             { id: "missions", label: "Missões", icon: Sparkles },
             { id: "titles", label: "Títulos", icon: Award },
             { id: "attendance", label: "Presença", icon: CalendarCheck },
-            { id: "inventory", label: "Inventário", icon: Package },
             { id: "classes", label: "Turmas", icon: BookOpen },
             { id: "students", label: "Alunos", icon: Users },
             { id: "challenges", label: "Desafios", icon: Sword },
-            { id: "shop", label: "Loja", icon: ShoppingBag },
             { id: "reward", label: "Recompensa", icon: Coins },
           ].map(({ id, label, icon: Icon }) => (
             <button
@@ -929,7 +593,7 @@ export default function TeacherDashboard() {
                             ? "bg-success/10 text-success" 
                             : "bg-primary/10 text-primary"
                         }`}>
-                          {request.request_type === "challenge" ? "Desafio" : "Item"}
+                          {request.request_type === "challenge" ? "Desafio" : "Presença"}
                         </span>
                         <span className="font-semibold">
                           {request.student?.character_name || request.student?.name || "Aluno"}
@@ -938,14 +602,14 @@ export default function TeacherDashboard() {
                       <p className="text-sm text-muted-foreground">
                         {request.request_type === "challenge" 
                           ? request.challenge?.title 
-                          : request.shop_item?.name}
+                          : "Solicitação de presença"}
                       </p>
-                      <div className="flex items-center gap-1 mt-1 text-sm text-gold-dark">
-                        <Coins size={14} />
-                        {request.request_type === "challenge" 
-                          ? `+${request.challenge?.reward}` 
-                          : `-${request.shop_item?.cost}`}
-                      </div>
+                      {request.request_type === "challenge" && request.challenge && (
+                        <div className="flex items-center gap-1 mt-1 text-sm text-gold-dark">
+                          <Coins size={14} />
+                          +{request.challenge.reward}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -996,7 +660,7 @@ export default function TeacherDashboard() {
                 const studentCount = getStudentCountForClass(cls.id);
                 return (
                   <div key={cls.id} className="card-fantasy">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-display font-bold text-lg">{cls.name}</h3>
                         <p className="text-sm text-muted-foreground">
@@ -1166,7 +830,7 @@ export default function TeacherDashboard() {
             </form>
 
             <div className="space-y-3">
-              {challenges.map(challenge => (
+              {challenges.filter(c => c.is_active).map(challenge => (
                 <div key={challenge.id} className="card-fantasy flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold">{challenge.title}</h3>
@@ -1186,160 +850,6 @@ export default function TeacherDashboard() {
                     >
                       <Trash2 size={16} />
                     </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {activeTab === "shop" && (
-          <section>
-            <h2 className="section-title">
-              <ShoppingBag className="text-gold" />
-              Gerenciar Loja
-            </h2>
-
-            <form onSubmit={addShopItem} className="card-fantasy mb-4 space-y-3">
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <input
-                  type="text"
-                  value={newItemName}
-                  onChange={e => setNewItemName(e.target.value)}
-                  placeholder="Nome do item"
-                  className="px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-                />
-                <select
-                  value={newItemType}
-                  onChange={e => setNewItemType(e.target.value)}
-                  className="px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-                >
-                  <option value="weapon">Arma</option>
-                  <option value="armor">Armadura</option>
-                  <option value="consumable">Consumível</option>
-                </select>
-                <div className="flex items-center gap-2">
-                  <Coins className="text-gold flex-shrink-0" size={18} />
-                  <input
-                    type="number"
-                    value={newItemCost}
-                    onChange={e => setNewItemCost(parseInt(e.target.value) || 10)}
-                    className="w-full px-2 py-2 rounded-lg border-2 border-border bg-background text-center"
-                    min={1}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Nível</span>
-                  <input
-                    type="number"
-                    value={newItemLevel}
-                    onChange={e => setNewItemLevel(parseInt(e.target.value) || 1)}
-                    className="w-full px-2 py-2 rounded-lg border-2 border-border bg-background text-center"
-                    min={1}
-                  />
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <input
-                  type="text"
-                  value={newItemIcon}
-                  onChange={e => setNewItemIcon(e.target.value)}
-                  placeholder="Ícone"
-                  className="w-16 px-2 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none text-center text-2xl"
-                />
-                <input
-                  type="text"
-                  value={newItemDesc}
-                  onChange={e => setNewItemDesc(e.target.value)}
-                  placeholder="Descrição (opcional)"
-                  className="flex-1 min-w-[200px] px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-                />
-              </div>
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    <LinkIcon size={16} />
-                  </div>
-                  <input
-                    type="text"
-                    value={newItemImage}
-                    onChange={e => setNewItemImage(e.target.value)}
-                    placeholder="URL da imagem (opcional)"
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isCreatingItem}
-                  className="btn-fantasy flex items-center gap-2"
-                >
-                  <Plus size={18} />
-                  Criar Item
-                </button>
-              </div>
-              {newItemImage && (
-                <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
-                  <Image size={16} className="text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Preview:</span>
-                  <img 
-                    src={newItemImage} 
-                    alt="Preview" 
-                    className="h-12 w-12 object-cover rounded"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-            </form>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {shopItems.map(item => (
-                <div key={item.id} className="card-fantasy overflow-hidden">
-                  {/* Item Image/Icon Header */}
-                  <div className="relative -mx-5 -mt-5 mb-3 aspect-video bg-gradient-to-b from-dungeon-dark/20 to-dungeon-dark/5 flex items-center justify-center">
-                    {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const fallback = target.parentElement?.querySelector('.item-icon-fallback');
-                          if (fallback) fallback.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`item-icon-fallback absolute inset-0 flex items-center justify-center ${item.image_url ? 'hidden' : ''}`}>
-                      <span className="text-5xl drop-shadow-md">{item.icon}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">{item.name}</h3>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                      {item.item_type === "weapon" ? "Arma" : item.item_type === "armor" ? "Armadura" : "Habilidade"}
-                    </span>
-                  </div>
-                  {item.description && (
-                    <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
-                  )}
-                  <div className="flex items-center justify-between mt-3 text-sm">
-                    <span className="flex items-center gap-1 text-gold-dark font-semibold">
-                      <Coins size={14} />
-                      {item.cost}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Nível {item.min_level}</span>
-                      <button
-                        onClick={() => openDeleteDialog("item", item.id, item.name, "O item será removido da loja. Itens já adquiridos permanecerão nos inventários.")}
-                        className="p-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                        title="Excluir item"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
                   </div>
                 </div>
               ))}
@@ -1430,181 +940,6 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
                 ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Inventory Tab */}
-        {activeTab === "inventory" && (
-          <section>
-            <h2 className="section-title">
-              <Package className="text-gold" />
-              Gerenciar Inventário dos Alunos
-            </h2>
-
-            <div className="card-fantasy mb-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <select
-                  value={selectedClass || ""}
-                  onChange={e => {
-                    setSelectedClass(e.target.value || null);
-                    setSelectedStudentForInventory(null);
-                  }}
-                  className="px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-                >
-                  <option value="">Todas as turmas</option>
-                  {classes.map(cls => (
-                    <option key={cls.id} value={cls.id}>{cls.name}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={selectedStudentForInventory || ""}
-                  onChange={e => setSelectedStudentForInventory(e.target.value || null)}
-                  className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-                >
-                  <option value="">Selecione um aluno...</option>
-                  {filteredStudents.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.character_name || s.name}
-                      {s.character_name ? ` (${s.name})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {selectedStudentForInventory ? (
-              <div className="space-y-6">
-                {/* Selected student info */}
-                {(() => {
-                  const selectedStudent = students.find(s => s.id === selectedStudentForInventory);
-                  const studentInv = getStudentInventory(selectedStudentForInventory);
-                  
-                  if (!selectedStudent) return null;
-
-                  return (
-                    <>
-                      <div className="card-fantasy bg-gradient-to-r from-dungeon-dark/10 to-primary/10">
-                        <div className="flex items-center gap-4">
-                          <ProfilePhoto
-                            studentId={selectedStudent.id}
-                            currentPhotoUrl={selectedStudent.profile_photo_url}
-                            onUpdate={() => loadData()}
-                            size="lg"
-                            editable={false}
-                          />
-                          <div>
-                            <h3 className="font-display text-xl font-bold">
-                              {selectedStudent.character_name || selectedStudent.name}
-                            </h3>
-                            <p className="text-muted-foreground">
-                              {classes.find(c => c.id === selectedStudent.class_id)?.name}
-                            </p>
-                            <p className="text-sm text-gold font-semibold mt-1">
-                              {studentInv.length} {studentInv.length === 1 ? 'item' : 'itens'} no inventário
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Current Inventory */}
-                      <div>
-                        <h4 className="font-semibold mb-3">Inventário atual:</h4>
-                        {studentInv.length === 0 ? (
-                          <p className="text-muted-foreground text-sm">Nenhum item no inventário</p>
-                        ) : (
-                          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {studentInv.map(inv => (
-                              <div key={inv.id} className="card-fantasy flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                  {inv.item?.image_url ? (
-                                    <img
-                                      src={inv.item.image_url}
-                                      alt={inv.item.name}
-                                      className="w-12 h-12 rounded-lg object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                      }}
-                                    />
-                                  ) : (
-                                    <span className="text-3xl">{inv.item?.icon || "📦"}</span>
-                                  )}
-                                  <div>
-                                    <p className="font-semibold">{inv.item?.name || "Item"}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {inv.item?.item_type === "weapon" ? "Arma" : 
-                                       inv.item?.item_type === "armor" ? "Armadura" : "Habilidade"}
-                                    </p>
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() => removeItemFromInventory(inv.id)}
-                                  className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                                  title="Remover do inventário"
-                                >
-                                  <Minus size={18} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Add Items */}
-                      <div>
-                        <h4 className="font-semibold mb-3">Adicionar item ao inventário:</h4>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {shopItems.filter(item => !studentHasItem(selectedStudentForInventory, item.id)).map(item => (
-                            <div key={item.id} className="card-fantasy flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                {item.image_url ? (
-                                  <img
-                                    src={item.image_url}
-                                    alt={item.name}
-                                    className="w-12 h-12 rounded-lg object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                    }}
-                                  />
-                                ) : (
-                                  <span className="text-3xl">{item.icon}</span>
-                                )}
-                                <div>
-                                  <p className="font-semibold">{item.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {item.item_type === "weapon" ? "Arma" : 
-                                     item.item_type === "armor" ? "Armadura" : "Habilidade"}
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => addItemToInventory(selectedStudentForInventory, item.id)}
-                                className="p-2 rounded-lg bg-success/10 text-success hover:bg-success/20 transition-colors"
-                                title="Adicionar ao inventário"
-                              >
-                                <Plus size={18} />
-                              </button>
-                            </div>
-                          ))}
-                          {shopItems.filter(item => !studentHasItem(selectedStudentForInventory, item.id)).length === 0 && (
-                            <p className="text-muted-foreground text-sm col-span-full">
-                              O aluno já possui todos os itens disponíveis na loja
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            ) : (
-              <div className="card-fantasy text-center py-8 text-muted-foreground">
-                <Package size={48} className="mx-auto mb-4 opacity-50" />
-                <p>Selecione um aluno para gerenciar o inventário</p>
               </div>
             )}
           </section>
