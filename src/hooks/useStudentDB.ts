@@ -386,12 +386,23 @@ export function useStudentDB() {
     missionCompletions,
     studentTitles,
     rewardConfig,
+    requests,
     isLoading,
     loginStudent,
     requestChallenge,
     requestAttendance,
     hasChallengeRequest,
     hasAttendanceRequest,
+    isChallengeCompleted: (challengeId: string) => {
+      const challenge = challenges.find(c => c.id === challengeId);
+      if (challenge?.challenge_type === "unica") {
+        return requests.some(r => r.challenge_id === challengeId && r.status === "approved");
+      }
+      return false;
+    },
+    isChallengePending: (challengeId: string) => {
+      return requests.some(r => r.challenge_id === challengeId && r.status === "pending");
+    },
     logout,
     refreshStudent,
     refreshMissions,
