@@ -36,6 +36,8 @@ export default function StudentPortal() {
     requestAttendance,
     hasChallengeRequest,
     hasAttendanceRequest,
+    isChallengeCompleted,
+    isChallengePending,
     logout,
     refreshStudent,
     refreshMissions,
