@@ -53,6 +53,7 @@ interface Challenge {
   description: string | null;
   reward: number;
   is_active: boolean;
+  challenge_type: "simples" | "unica";
 }
 
 interface StudentRequest {
@@ -112,6 +113,7 @@ export default function TeacherDashboard() {
   const [newChallengeTitle, setNewChallengeTitle] = useState("");
   const [newChallengeDesc, setNewChallengeDesc] = useState("");
   const [newChallengeReward, setNewChallengeReward] = useState(10);
+  const [newChallengeType, setNewChallengeType] = useState<"simples" | "unica">("simples");
 
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -263,6 +265,7 @@ export default function TeacherDashboard() {
       title: newChallengeTitle.trim(),
       description: newChallengeDesc.trim() || null,
       reward: newChallengeReward,
+      challenge_type: newChallengeType,
     }).select().single();
 
     if (error) {
@@ -272,6 +275,7 @@ export default function TeacherDashboard() {
       setNewChallengeTitle("");
       setNewChallengeDesc("");
       setNewChallengeReward(10);
+      setNewChallengeType("simples");
       // Optimistic update + full reload
       if (data) {
         setChallenges(prev => [data as Challenge, ...prev]);
@@ -814,7 +818,7 @@ export default function TeacherDashboard() {
                   />
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   value={newChallengeDesc}
@@ -822,6 +826,14 @@ export default function TeacherDashboard() {
                   placeholder="Descrição (opcional)"
                   className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
                 />
+                <select
+                  value={newChallengeType}
+                  onChange={e => setNewChallengeType(e.target.value as "simples" | "unica")}
+                  className="px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
+                >
+                  <option value="simples">Repetível</option>
+                  <option value="unica">Única</option>
+                </select>
                 <button type="submit" className="btn-fantasy flex items-center gap-2">
                   <Plus size={18} />
                   Criar
@@ -833,7 +845,16 @@ export default function TeacherDashboard() {
               {challenges.filter(c => c.is_active).map(challenge => (
                 <div key={challenge.id} className="card-fantasy flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold">{challenge.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{challenge.title}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        challenge.challenge_type === "unica" 
+                          ? "bg-amber-500/20 text-amber-400" 
+                          : "bg-primary/20 text-primary"
+                      }`}>
+                        {challenge.challenge_type === "unica" ? "Única" : "Repetível"}
+                      </span>
+                    </div>
                     {challenge.description && (
                       <p className="text-sm text-muted-foreground">{challenge.description}</p>
                     )}
