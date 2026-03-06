@@ -431,14 +431,9 @@ export default function StudentPortal() {
             ) : (
               <div className="grid gap-4">
                 {challenges.map((challenge) => {
-                  const isRequested = hasChallengeRequest(challenge.id);
                   const isCompletedUnique = challenge.challenge_type === "unica" && 
-                    isRequested && requests.some(
-                      r => r.challenge_id === challenge.id && r.status === "approved"
-                    );
-                  const isPending = requests.some(
-                    r => r.challenge_id === challenge.id && r.status === "pending"
-                  );
+                    isChallengeCompleted(challenge.id);
+                  const isPending = isChallengePending(challenge.id);
                   return (
                     <div key={challenge.id} className="card-fantasy relative overflow-hidden">
                       {(isPending || isCompletedUnique) && (
