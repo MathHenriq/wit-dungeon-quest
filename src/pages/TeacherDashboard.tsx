@@ -155,7 +155,7 @@ export default function TeacherDashboard() {
       ]);
 
       setClasses(classesData || []);
-      setChallenges(challengesData || []);
+      setChallenges((challengesData || []) as Challenge[]);
       setStudents(studentsData || []);
       setMissions((missionsData || []) as StudentMission[]);
 
