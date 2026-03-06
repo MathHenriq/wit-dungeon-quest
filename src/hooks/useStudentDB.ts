@@ -35,6 +35,7 @@ interface Challenge {
   title: string;
   description: string | null;
   reward: number;
+  challenge_type: "simples" | "unica";
 }
 
 interface StudentRequest {
@@ -178,11 +179,11 @@ export function useStudentDB() {
   const loadChallenges = async (teacherId: string) => {
     const { data } = await supabase
       .from("challenges")
-      .select("id, title, description, reward")
+      .select("id, title, description, reward, challenge_type")
       .eq("is_active", true)
       .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
-    setChallenges(data || []);
+    setChallenges((data || []) as Challenge[]);
   };
 
   const loadRequests = async (studentId: string) => {
@@ -313,8 +314,16 @@ export function useStudentDB() {
   };
 
   const hasChallengeRequest = (challengeId: string) => {
+    const challenge = challenges.find(c => c.id === challengeId);
+    if (challenge?.challenge_type === "unica") {
+      // For unique challenges: block if any pending or approved request exists
+      return requests.some(
+        r => r.challenge_id === challengeId && (r.status === "pending" || r.status === "approved")
+      );
+    }
+    // For simple/repeatable: only block if there's a pending request
     return requests.some(
-      r => r.challenge_id === challengeId && (r.status === "pending" || r.status === "approved")
+      r => r.challenge_id === challengeId && r.status === "pending"
     );
   };
 
@@ -377,12 +386,23 @@ export function useStudentDB() {
     missionCompletions,
     studentTitles,
     rewardConfig,
+    requests,
     isLoading,
     loginStudent,
     requestChallenge,
     requestAttendance,
     hasChallengeRequest,
     hasAttendanceRequest,
+    isChallengeCompleted: (challengeId: string) => {
+      const challenge = challenges.find(c => c.id === challengeId);
+      if (challenge?.challenge_type === "unica") {
+        return requests.some(r => r.challenge_id === challengeId && r.status === "approved");
+      }
+      return false;
+    },
+    isChallengePending: (challengeId: string) => {
+      return requests.some(r => r.challenge_id === challengeId && r.status === "pending");
+    },
     logout,
     refreshStudent,
     refreshMissions,

@@ -36,6 +36,8 @@ export default function StudentPortal() {
     requestAttendance,
     hasChallengeRequest,
     hasAttendanceRequest,
+    isChallengeCompleted,
+    isChallengePending,
     logout,
     refreshStudent,
     refreshMissions,
@@ -429,14 +431,23 @@ export default function StudentPortal() {
             ) : (
               <div className="grid gap-4">
                 {challenges.map((challenge) => {
-                  const isRequested = hasChallengeRequest(challenge.id);
+                  const isCompletedUnique = challenge.challenge_type === "unica" && 
+                    isChallengeCompleted(challenge.id);
+                  const isPending = isChallengePending(challenge.id);
                   return (
                     <div key={challenge.id} className="card-fantasy relative overflow-hidden">
-                      {isRequested && (
+                      {(isPending || isCompletedUnique) && (
                         <div className="absolute top-3 right-3">
-                          <div className="flex items-center gap-1 text-success text-sm font-semibold bg-success/10 px-2 py-1 rounded-full">
-                            <Clock size={14} />
-                            <span>Aguardando</span>
+                          <div className={`flex items-center gap-1 text-sm font-semibold px-2 py-1 rounded-full ${
+                            isCompletedUnique 
+                              ? "text-primary bg-primary/10" 
+                              : "text-success bg-success/10"
+                          }`}>
+                            {isCompletedUnique ? (
+                              <><CheckCircle size={14} /><span>Concluído</span></>
+                            ) : (
+                              <><Clock size={14} /><span>Aguardando</span></>
+                            )}
                           </div>
                         </div>
                       )}
@@ -447,9 +458,18 @@ export default function StudentPortal() {
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-display font-bold text-lg text-foreground mb-1">
-                            {challenge.title}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-display font-bold text-lg text-foreground">
+                              {challenge.title}
+                            </h3>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              challenge.challenge_type === "unica" 
+                                ? "bg-amber-500/20 text-amber-400" 
+                                : "bg-primary/20 text-primary"
+                            }`}>
+                              {challenge.challenge_type === "unica" ? "Única" : "Repetível"}
+                            </span>
+                          </div>
                           {challenge.description && (
                             <p className="text-muted-foreground text-sm mb-3">
                               {challenge.description}
@@ -462,13 +482,21 @@ export default function StudentPortal() {
                               <span>+{challenge.reward}</span>
                             </div>
                             
-                            {isRequested ? (
+                            {isCompletedUnique ? (
                               <button
                                 disabled
                                 className="btn-fantasy opacity-60 cursor-not-allowed flex items-center gap-2"
                               >
                                 <CheckCircle size={16} />
-                                Solicitado
+                                Concluído
+                              </button>
+                            ) : isPending ? (
+                              <button
+                                disabled
+                                className="btn-fantasy opacity-60 cursor-not-allowed flex items-center gap-2"
+                              >
+                                <Clock size={16} />
+                                Aguardando
                               </button>
                             ) : (
                               <button

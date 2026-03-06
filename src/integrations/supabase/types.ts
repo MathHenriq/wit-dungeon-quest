@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       challenges: {
         Row: {
+          challenge_type: string
           created_at: string
           description: string | null
           id: string
@@ -25,6 +26,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          challenge_type?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -34,6 +36,7 @@ export type Database = {
           title: string
         }
         Update: {
+          challenge_type?: string
           created_at?: string
           description?: string | null
           id?: string
