@@ -242,27 +242,39 @@ export default function TeacherDashboard() {
     e.preventDefault();
     if (!teacher || !newClassName.trim() || isAddingClass) return;
 
+    const className = newClassName.trim();
     setIsAddingClass(true);
+
+    const timeout = setTimeout(() => {
+      setIsAddingClass(false);
+      toast.error("A operação demorou demais. Verifique sua conexão e tente novamente.");
+    }, 10000);
+
     try {
       const { data, error } = await supabase.from("classes").insert({
         teacher_id: teacher.id,
-        name: newClassName.trim(),
+        name: className,
       }).select().single();
 
+      clearTimeout(timeout);
+
       if (error) {
+        console.error("Erro ao criar turma:", error);
         toast.error("Erro ao criar turma", { description: error.message });
       } else {
         toast.success("Turma criada!");
-        // Optimistic update so class appears immediately for student creation
         if (data) {
           setClasses(prev => [...prev, data as Class].sort((a, b) => a.name.localeCompare(b.name)));
         }
         setNewClassName("");
         loadData();
       }
-    } catch {
+    } catch (err) {
+      clearTimeout(timeout);
+      console.error("Erro inesperado ao criar turma:", err);
       toast.error("Erro inesperado ao criar turma. Tente novamente.");
     } finally {
+      clearTimeout(timeout);
       setIsAddingClass(false);
     }
   };
