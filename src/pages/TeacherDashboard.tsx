@@ -140,15 +140,19 @@ export default function TeacherDashboard() {
 
   const loadData = async () => {
     if (!teacher) return;
-    setIsLoading(true);
+    
+    // Only show full-page spinner on first load
+    if (!hasLoadedOnce) {
+      setIsLoading(true);
+    }
 
     try {
       // ALL queries explicitly filter by teacher.id for strict isolation
       const [
-        { data: classesData },
-        { data: challengesData },
-        { data: studentsData },
-        { data: missionsData },
+        { data: classesData, error: classesError },
+        { data: challengesData, error: challengesError },
+        { data: studentsData, error: studentsError },
+        { data: missionsData, error: missionsError },
         { data: completionsData },
         { data: titlesData },
       ] = await Promise.all([
@@ -160,13 +164,14 @@ export default function TeacherDashboard() {
         supabase.from("student_titles").select("*").order("assigned_at", { ascending: false }),
       ]);
 
-      setClasses(classesData || []);
-      setChallenges((challengesData || []) as Challenge[]);
-      setStudents(studentsData || []);
-      setMissions((missionsData || []) as StudentMission[]);
+      // Only update state if queries succeeded - never clear data on error
+      if (!classesError && classesData) setClasses(classesData);
+      if (!challengesError) setChallenges((challengesData || []) as Challenge[]);
+      if (!studentsError && studentsData) setStudents(studentsData);
+      if (!missionsError) setMissions((missionsData || []) as StudentMission[]);
 
       // Filter completions to only students belonging to this teacher
-      const studentIds = new Set((studentsData || []).map(s => s.id));
+      const studentIds = new Set((studentsData || students).map(s => s.id));
       setMissionCompletions(
         ((completionsData || []) as MissionCompletion[]).filter(c => studentIds.has(c.student_id))
       );
@@ -182,20 +187,28 @@ export default function TeacherDashboard() {
         .order("created_at", { ascending: false });
 
       // Enrich with student + challenge data, filter to teacher's students
+      const currentStudents = studentsData || students;
+      const currentChallenges = (challengesData || challenges) as Challenge[];
       const enrichedRequests = (requestsData || [])
         .filter(req => studentIds.has(req.student_id))
         .map(req => {
-          const student = (studentsData || []).find(s => s.id === req.student_id);
-          const challenge = (challengesData || []).find(c => c.id === req.challenge_id);
+          const student = currentStudents.find(s => s.id === req.student_id);
+          const challenge = currentChallenges.find(c => c.id === req.challenge_id);
           return { ...req, student, challenge } as StudentRequest;
         })
-        // Only show challenge and attendance requests (shop removed)
         .filter(req => req.request_type === "challenge" || req.request_type === "attendance");
       setRequests(enrichedRequests);
 
+      setHasLoadedOnce(true);
+
     } catch (error) {
       console.error("Error loading data:", error);
-      toast.error("Erro ao carregar dados");
+      // Only show error toast, NEVER clear existing data
+      if (hasLoadedOnce) {
+        toast.error("Erro ao atualizar dados. Os dados exibidos podem estar desatualizados.");
+      } else {
+        toast.error("Erro ao carregar dados. Tente recarregar a página.");
+      }
     } finally {
       setIsLoading(false);
     }
