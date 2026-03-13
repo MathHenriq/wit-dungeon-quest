@@ -330,6 +330,12 @@ export default function TeacherDashboard() {
     if (!teacher || !newChallengeTitle.trim() || isAddingChallenge) return;
 
     setIsAddingChallenge(true);
+
+    const timeout = setTimeout(() => {
+      setIsAddingChallenge(false);
+      toast.error("A operação demorou demais. Verifique sua conexão e tente novamente.");
+    }, 10000);
+
     try {
       const { data, error } = await supabase.from("challenges").insert({
         teacher_id: teacher.id,
@@ -339,7 +345,10 @@ export default function TeacherDashboard() {
         challenge_type: newChallengeType,
       }).select().single();
 
+      clearTimeout(timeout);
+
       if (error) {
+        console.error("Erro ao criar desafio:", error);
         toast.error("Erro ao criar desafio", { description: error.message });
       } else {
         toast.success("Desafio criado com sucesso!");
@@ -352,9 +361,12 @@ export default function TeacherDashboard() {
         }
         loadData();
       }
-    } catch {
+    } catch (err) {
+      clearTimeout(timeout);
+      console.error("Erro inesperado ao criar desafio:", err);
       toast.error("Erro inesperado ao criar desafio. Tente novamente.");
     } finally {
+      clearTimeout(timeout);
       setIsAddingChallenge(false);
     }
   };
