@@ -518,7 +518,7 @@ export default function TeacherDashboard() {
     return students.filter(s => s.class_id === classId).length;
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading || (isLoading && !hasLoadedOnce)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
