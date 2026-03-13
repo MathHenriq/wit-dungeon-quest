@@ -240,64 +240,95 @@ export default function TeacherDashboard() {
 
   const addClass = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teacher || !newClassName.trim()) return;
+    if (!teacher || !newClassName.trim() || isAddingClass) return;
 
-    const { error } = await supabase.from("classes").insert({
-      teacher_id: teacher.id,
-      name: newClassName.trim(),
-    });
+    setIsAddingClass(true);
+    try {
+      const { data, error } = await supabase.from("classes").insert({
+        teacher_id: teacher.id,
+        name: newClassName.trim(),
+      }).select().single();
 
-    if (error) {
-      toast.error("Erro ao criar turma", { description: error.message });
-    } else {
-      toast.success("Turma criada!");
-      setNewClassName("");
-      loadData();
+      if (error) {
+        toast.error("Erro ao criar turma", { description: error.message });
+      } else {
+        toast.success("Turma criada!");
+        // Optimistic update so class appears immediately for student creation
+        if (data) {
+          setClasses(prev => [...prev, data as Class].sort((a, b) => a.name.localeCompare(b.name)));
+        }
+        setNewClassName("");
+        loadData();
+      }
+    } catch {
+      toast.error("Erro inesperado ao criar turma. Tente novamente.");
+    } finally {
+      setIsAddingClass(false);
     }
   };
 
   const addStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teacher || !selectedClass || !newStudentName.trim()) return;
+    if (!teacher || !selectedClass || !newStudentName.trim() || isAddingStudent) return;
 
-    const { error } = await supabase.from("students").insert({
-      class_id: selectedClass,
-      teacher_id: teacher.id,
-      name: newStudentName.trim(),
-    });
+    setIsAddingStudent(true);
+    try {
+      const { data, error } = await supabase.from("students").insert({
+        class_id: selectedClass,
+        teacher_id: teacher.id,
+        name: newStudentName.trim(),
+      }).select().single();
 
-    if (error) {
-      toast.error("Erro ao adicionar aluno", { description: error.message });
-    } else {
-      toast.success("Aluno adicionado!");
-      setNewStudentName("");
-      loadData();
+      if (error) {
+        toast.error("Erro ao adicionar aluno", { description: error.message });
+      } else {
+        toast.success("Aluno adicionado!");
+        // Optimistic update
+        if (data) {
+          setStudents(prev => [...prev, data as Student].sort((a, b) => a.name.localeCompare(b.name)));
+        }
+        setNewStudentName("");
+        loadData();
+      }
+    } catch {
+      toast.error("Erro inesperado ao adicionar aluno. Tente novamente.");
+    } finally {
+      setIsAddingStudent(false);
     }
   };
 
   const addChallenge = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teacher || !newChallengeTitle.trim()) return;
+    if (!teacher || !newChallengeTitle.trim() || isAddingChallenge) return;
 
-    const { data, error } = await supabase.from("challenges").insert({
-      teacher_id: teacher.id,
-      title: newChallengeTitle.trim(),
-      description: newChallengeDesc.trim() || null,
-      reward: newChallengeReward,
-      challenge_type: newChallengeType,
-    }).select().single();
+    setIsAddingChallenge(true);
+    try {
+      const { data, error } = await supabase.from("challenges").insert({
+        teacher_id: teacher.id,
+        title: newChallengeTitle.trim(),
+        description: newChallengeDesc.trim() || null,
+        reward: newChallengeReward,
+        challenge_type: newChallengeType,
+      }).select().single();
 
-    if (error) {
-      toast.error("Erro ao criar desafio", { description: error.message });
-    } else {
-      toast.success("Desafio criado com sucesso!");
-      setNewChallengeTitle("");
-      setNewChallengeDesc("");
-      setNewChallengeReward(10);
-      setNewChallengeType("simples");
-      // Optimistic update + full reload
-      if (data) {
-        setChallenges(prev => [data as Challenge, ...prev]);
+      if (error) {
+        toast.error("Erro ao criar desafio", { description: error.message });
+      } else {
+        toast.success("Desafio criado com sucesso!");
+        setNewChallengeTitle("");
+        setNewChallengeDesc("");
+        setNewChallengeReward(10);
+        setNewChallengeType("simples");
+        if (data) {
+          setChallenges(prev => [data as Challenge, ...prev]);
+        }
+        loadData();
+      }
+    } catch {
+      toast.error("Erro inesperado ao criar desafio. Tente novamente.");
+    } finally {
+      setIsAddingChallenge(false);
+    }
       }
       loadData();
     }
