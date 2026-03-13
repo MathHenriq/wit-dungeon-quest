@@ -881,9 +881,9 @@ export default function TeacherDashboard() {
                   <option value="simples">Repetível</option>
                   <option value="unica">Única</option>
                 </select>
-                <button type="submit" className="btn-fantasy flex items-center gap-2">
+                <button type="submit" disabled={isAddingChallenge} className="btn-fantasy flex items-center gap-2 disabled:opacity-50">
                   <Plus size={18} />
-                  Criar
+                  {isAddingChallenge ? "Criando..." : "Criar"}
                 </button>
               </div>
             </form>
