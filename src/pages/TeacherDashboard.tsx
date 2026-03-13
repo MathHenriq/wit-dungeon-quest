@@ -106,6 +106,12 @@ export default function TeacherDashboard() {
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  // Per-action loading states to prevent double-submits
+  const [isAddingClass, setIsAddingClass] = useState(false);
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
+  const [isAddingChallenge, setIsAddingChallenge] = useState(false);
 
   // Form states
   const [newClassName, setNewClassName] = useState("");
