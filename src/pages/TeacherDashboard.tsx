@@ -242,27 +242,39 @@ export default function TeacherDashboard() {
     e.preventDefault();
     if (!teacher || !newClassName.trim() || isAddingClass) return;
 
+    const className = newClassName.trim();
     setIsAddingClass(true);
+
+    const timeout = setTimeout(() => {
+      setIsAddingClass(false);
+      toast.error("A operação demorou demais. Verifique sua conexão e tente novamente.");
+    }, 10000);
+
     try {
       const { data, error } = await supabase.from("classes").insert({
         teacher_id: teacher.id,
-        name: newClassName.trim(),
+        name: className,
       }).select().single();
 
+      clearTimeout(timeout);
+
       if (error) {
+        console.error("Erro ao criar turma:", error);
         toast.error("Erro ao criar turma", { description: error.message });
       } else {
         toast.success("Turma criada!");
-        // Optimistic update so class appears immediately for student creation
         if (data) {
           setClasses(prev => [...prev, data as Class].sort((a, b) => a.name.localeCompare(b.name)));
         }
         setNewClassName("");
         loadData();
       }
-    } catch {
+    } catch (err) {
+      clearTimeout(timeout);
+      console.error("Erro inesperado ao criar turma:", err);
       toast.error("Erro inesperado ao criar turma. Tente novamente.");
     } finally {
+      clearTimeout(timeout);
       setIsAddingClass(false);
     }
   };
@@ -271,28 +283,44 @@ export default function TeacherDashboard() {
     e.preventDefault();
     if (!teacher || !selectedClass || !newStudentName.trim() || isAddingStudent) return;
 
+    const studentName = newStudentName.trim();
+    const classId = selectedClass;
+
     setIsAddingStudent(true);
+
+    // Safety timeout: never stay loading more than 10 seconds
+    const timeout = setTimeout(() => {
+      setIsAddingStudent(false);
+      toast.error("A operação demorou demais. Verifique sua conexão e tente novamente.");
+    }, 10000);
+
     try {
       const { data, error } = await supabase.from("students").insert({
-        class_id: selectedClass,
+        class_id: classId,
         teacher_id: teacher.id,
-        name: newStudentName.trim(),
+        name: studentName,
       }).select().single();
 
+      clearTimeout(timeout);
+
       if (error) {
+        console.error("Erro ao criar aluno:", error);
         toast.error("Erro ao adicionar aluno", { description: error.message });
       } else {
         toast.success("Aluno adicionado!");
-        // Optimistic update
         if (data) {
           setStudents(prev => [...prev, data as Student].sort((a, b) => a.name.localeCompare(b.name)));
         }
         setNewStudentName("");
+        // Background refresh - don't await to avoid blocking
         loadData();
       }
-    } catch {
+    } catch (err) {
+      clearTimeout(timeout);
+      console.error("Erro inesperado ao criar aluno:", err);
       toast.error("Erro inesperado ao adicionar aluno. Tente novamente.");
     } finally {
+      clearTimeout(timeout);
       setIsAddingStudent(false);
     }
   };
@@ -302,6 +330,12 @@ export default function TeacherDashboard() {
     if (!teacher || !newChallengeTitle.trim() || isAddingChallenge) return;
 
     setIsAddingChallenge(true);
+
+    const timeout = setTimeout(() => {
+      setIsAddingChallenge(false);
+      toast.error("A operação demorou demais. Verifique sua conexão e tente novamente.");
+    }, 10000);
+
     try {
       const { data, error } = await supabase.from("challenges").insert({
         teacher_id: teacher.id,
@@ -311,7 +345,10 @@ export default function TeacherDashboard() {
         challenge_type: newChallengeType,
       }).select().single();
 
+      clearTimeout(timeout);
+
       if (error) {
+        console.error("Erro ao criar desafio:", error);
         toast.error("Erro ao criar desafio", { description: error.message });
       } else {
         toast.success("Desafio criado com sucesso!");
@@ -324,9 +361,12 @@ export default function TeacherDashboard() {
         }
         loadData();
       }
-    } catch {
+    } catch (err) {
+      clearTimeout(timeout);
+      console.error("Erro inesperado ao criar desafio:", err);
       toast.error("Erro inesperado ao criar desafio. Tente novamente.");
     } finally {
+      clearTimeout(timeout);
       setIsAddingChallenge(false);
     }
   };
