@@ -271,28 +271,44 @@ export default function TeacherDashboard() {
     e.preventDefault();
     if (!teacher || !selectedClass || !newStudentName.trim() || isAddingStudent) return;
 
+    const studentName = newStudentName.trim();
+    const classId = selectedClass;
+
     setIsAddingStudent(true);
+
+    // Safety timeout: never stay loading more than 10 seconds
+    const timeout = setTimeout(() => {
+      setIsAddingStudent(false);
+      toast.error("A operação demorou demais. Verifique sua conexão e tente novamente.");
+    }, 10000);
+
     try {
       const { data, error } = await supabase.from("students").insert({
-        class_id: selectedClass,
+        class_id: classId,
         teacher_id: teacher.id,
-        name: newStudentName.trim(),
+        name: studentName,
       }).select().single();
 
+      clearTimeout(timeout);
+
       if (error) {
+        console.error("Erro ao criar aluno:", error);
         toast.error("Erro ao adicionar aluno", { description: error.message });
       } else {
         toast.success("Aluno adicionado!");
-        // Optimistic update
         if (data) {
           setStudents(prev => [...prev, data as Student].sort((a, b) => a.name.localeCompare(b.name)));
         }
         setNewStudentName("");
+        // Background refresh - don't await to avoid blocking
         loadData();
       }
-    } catch {
+    } catch (err) {
+      clearTimeout(timeout);
+      console.error("Erro inesperado ao criar aluno:", err);
       toast.error("Erro inesperado ao adicionar aluno. Tente novamente.");
     } finally {
+      clearTimeout(timeout);
       setIsAddingStudent(false);
     }
   };
