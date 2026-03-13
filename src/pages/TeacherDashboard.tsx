@@ -106,6 +106,12 @@ export default function TeacherDashboard() {
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  // Per-action loading states to prevent double-submits
+  const [isAddingClass, setIsAddingClass] = useState(false);
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
+  const [isAddingChallenge, setIsAddingChallenge] = useState(false);
 
   // Form states
   const [newClassName, setNewClassName] = useState("");
@@ -134,15 +140,19 @@ export default function TeacherDashboard() {
 
   const loadData = async () => {
     if (!teacher) return;
-    setIsLoading(true);
+    
+    // Only show full-page spinner on first load
+    if (!hasLoadedOnce) {
+      setIsLoading(true);
+    }
 
     try {
       // ALL queries explicitly filter by teacher.id for strict isolation
       const [
-        { data: classesData },
-        { data: challengesData },
-        { data: studentsData },
-        { data: missionsData },
+        { data: classesData, error: classesError },
+        { data: challengesData, error: challengesError },
+        { data: studentsData, error: studentsError },
+        { data: missionsData, error: missionsError },
         { data: completionsData },
         { data: titlesData },
       ] = await Promise.all([
@@ -154,13 +164,14 @@ export default function TeacherDashboard() {
         supabase.from("student_titles").select("*").order("assigned_at", { ascending: false }),
       ]);
 
-      setClasses(classesData || []);
-      setChallenges((challengesData || []) as Challenge[]);
-      setStudents(studentsData || []);
-      setMissions((missionsData || []) as StudentMission[]);
+      // Only update state if queries succeeded - never clear data on error
+      if (!classesError && classesData) setClasses(classesData);
+      if (!challengesError) setChallenges((challengesData || []) as Challenge[]);
+      if (!studentsError && studentsData) setStudents(studentsData);
+      if (!missionsError) setMissions((missionsData || []) as StudentMission[]);
 
       // Filter completions to only students belonging to this teacher
-      const studentIds = new Set((studentsData || []).map(s => s.id));
+      const studentIds = new Set((studentsData || students).map(s => s.id));
       setMissionCompletions(
         ((completionsData || []) as MissionCompletion[]).filter(c => studentIds.has(c.student_id))
       );
@@ -176,20 +187,28 @@ export default function TeacherDashboard() {
         .order("created_at", { ascending: false });
 
       // Enrich with student + challenge data, filter to teacher's students
+      const currentStudents = studentsData || students;
+      const currentChallenges = (challengesData || challenges) as Challenge[];
       const enrichedRequests = (requestsData || [])
         .filter(req => studentIds.has(req.student_id))
         .map(req => {
-          const student = (studentsData || []).find(s => s.id === req.student_id);
-          const challenge = (challengesData || []).find(c => c.id === req.challenge_id);
+          const student = currentStudents.find(s => s.id === req.student_id);
+          const challenge = currentChallenges.find(c => c.id === req.challenge_id);
           return { ...req, student, challenge } as StudentRequest;
         })
-        // Only show challenge and attendance requests (shop removed)
         .filter(req => req.request_type === "challenge" || req.request_type === "attendance");
       setRequests(enrichedRequests);
 
+      setHasLoadedOnce(true);
+
     } catch (error) {
       console.error("Error loading data:", error);
-      toast.error("Erro ao carregar dados");
+      // Only show error toast, NEVER clear existing data
+      if (hasLoadedOnce) {
+        toast.error("Erro ao atualizar dados. Os dados exibidos podem estar desatualizados.");
+      } else {
+        toast.error("Erro ao carregar dados. Tente recarregar a página.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -221,66 +240,94 @@ export default function TeacherDashboard() {
 
   const addClass = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teacher || !newClassName.trim()) return;
+    if (!teacher || !newClassName.trim() || isAddingClass) return;
 
-    const { error } = await supabase.from("classes").insert({
-      teacher_id: teacher.id,
-      name: newClassName.trim(),
-    });
+    setIsAddingClass(true);
+    try {
+      const { data, error } = await supabase.from("classes").insert({
+        teacher_id: teacher.id,
+        name: newClassName.trim(),
+      }).select().single();
 
-    if (error) {
-      toast.error("Erro ao criar turma", { description: error.message });
-    } else {
-      toast.success("Turma criada!");
-      setNewClassName("");
-      loadData();
+      if (error) {
+        toast.error("Erro ao criar turma", { description: error.message });
+      } else {
+        toast.success("Turma criada!");
+        // Optimistic update so class appears immediately for student creation
+        if (data) {
+          setClasses(prev => [...prev, data as Class].sort((a, b) => a.name.localeCompare(b.name)));
+        }
+        setNewClassName("");
+        loadData();
+      }
+    } catch {
+      toast.error("Erro inesperado ao criar turma. Tente novamente.");
+    } finally {
+      setIsAddingClass(false);
     }
   };
 
   const addStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teacher || !selectedClass || !newStudentName.trim()) return;
+    if (!teacher || !selectedClass || !newStudentName.trim() || isAddingStudent) return;
 
-    const { error } = await supabase.from("students").insert({
-      class_id: selectedClass,
-      teacher_id: teacher.id,
-      name: newStudentName.trim(),
-    });
+    setIsAddingStudent(true);
+    try {
+      const { data, error } = await supabase.from("students").insert({
+        class_id: selectedClass,
+        teacher_id: teacher.id,
+        name: newStudentName.trim(),
+      }).select().single();
 
-    if (error) {
-      toast.error("Erro ao adicionar aluno", { description: error.message });
-    } else {
-      toast.success("Aluno adicionado!");
-      setNewStudentName("");
-      loadData();
+      if (error) {
+        toast.error("Erro ao adicionar aluno", { description: error.message });
+      } else {
+        toast.success("Aluno adicionado!");
+        // Optimistic update
+        if (data) {
+          setStudents(prev => [...prev, data as Student].sort((a, b) => a.name.localeCompare(b.name)));
+        }
+        setNewStudentName("");
+        loadData();
+      }
+    } catch {
+      toast.error("Erro inesperado ao adicionar aluno. Tente novamente.");
+    } finally {
+      setIsAddingStudent(false);
     }
   };
 
   const addChallenge = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teacher || !newChallengeTitle.trim()) return;
+    if (!teacher || !newChallengeTitle.trim() || isAddingChallenge) return;
 
-    const { data, error } = await supabase.from("challenges").insert({
-      teacher_id: teacher.id,
-      title: newChallengeTitle.trim(),
-      description: newChallengeDesc.trim() || null,
-      reward: newChallengeReward,
-      challenge_type: newChallengeType,
-    }).select().single();
+    setIsAddingChallenge(true);
+    try {
+      const { data, error } = await supabase.from("challenges").insert({
+        teacher_id: teacher.id,
+        title: newChallengeTitle.trim(),
+        description: newChallengeDesc.trim() || null,
+        reward: newChallengeReward,
+        challenge_type: newChallengeType,
+      }).select().single();
 
-    if (error) {
-      toast.error("Erro ao criar desafio", { description: error.message });
-    } else {
-      toast.success("Desafio criado com sucesso!");
-      setNewChallengeTitle("");
-      setNewChallengeDesc("");
-      setNewChallengeReward(10);
-      setNewChallengeType("simples");
-      // Optimistic update + full reload
-      if (data) {
-        setChallenges(prev => [data as Challenge, ...prev]);
+      if (error) {
+        toast.error("Erro ao criar desafio", { description: error.message });
+      } else {
+        toast.success("Desafio criado com sucesso!");
+        setNewChallengeTitle("");
+        setNewChallengeDesc("");
+        setNewChallengeReward(10);
+        setNewChallengeType("simples");
+        if (data) {
+          setChallenges(prev => [data as Challenge, ...prev]);
+        }
+        loadData();
       }
-      loadData();
+    } catch {
+      toast.error("Erro inesperado ao criar desafio. Tente novamente.");
+    } finally {
+      setIsAddingChallenge(false);
     }
   };
 
@@ -472,7 +519,7 @@ export default function TeacherDashboard() {
     return students.filter(s => s.class_id === classId).length;
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading || (isLoading && !hasLoadedOnce)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -653,9 +700,9 @@ export default function TeacherDashboard() {
                 placeholder="Nome da turma (ex: 7A)"
                 className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
               />
-              <button type="submit" className="btn-fantasy flex items-center gap-2">
+              <button type="submit" disabled={isAddingClass} className="btn-fantasy flex items-center gap-2 disabled:opacity-50">
                 <Plus size={18} />
-                Criar
+                {isAddingClass ? "Criando..." : "Criar"}
               </button>
             </form>
 
@@ -720,9 +767,9 @@ export default function TeacherDashboard() {
                       placeholder="Nome do aluno"
                       className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
                     />
-                    <button type="submit" className="btn-fantasy flex items-center gap-2">
+                    <button type="submit" disabled={isAddingStudent} className="btn-fantasy flex items-center gap-2 disabled:opacity-50">
                       <Plus size={18} />
-                      Adicionar
+                      {isAddingStudent ? "Adicionando..." : "Adicionar"}
                     </button>
                   </form>
                 )}
@@ -834,9 +881,9 @@ export default function TeacherDashboard() {
                   <option value="simples">Repetível</option>
                   <option value="unica">Única</option>
                 </select>
-                <button type="submit" className="btn-fantasy flex items-center gap-2">
+                <button type="submit" disabled={isAddingChallenge} className="btn-fantasy flex items-center gap-2 disabled:opacity-50">
                   <Plus size={18} />
-                  Criar
+                  {isAddingChallenge ? "Criando..." : "Criar"}
                 </button>
               </div>
             </form>
