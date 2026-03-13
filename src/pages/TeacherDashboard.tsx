@@ -700,9 +700,9 @@ export default function TeacherDashboard() {
                 placeholder="Nome da turma (ex: 7A)"
                 className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
               />
-              <button type="submit" className="btn-fantasy flex items-center gap-2">
+              <button type="submit" disabled={isAddingClass} className="btn-fantasy flex items-center gap-2 disabled:opacity-50">
                 <Plus size={18} />
-                Criar
+                {isAddingClass ? "Criando..." : "Criar"}
               </button>
             </form>
 
