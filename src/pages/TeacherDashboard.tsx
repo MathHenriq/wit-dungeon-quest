@@ -328,6 +328,7 @@ export default function TeacherDashboard() {
       toast.error("Erro inesperado ao criar desafio. Tente novamente.");
     } finally {
       setIsAddingChallenge(false);
+    }
   };
 
   const approveRequest = async (request: StudentRequest) => {
