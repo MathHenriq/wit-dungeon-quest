@@ -4,7 +4,7 @@ import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { supabaseAnon } from "@/integrations/supabase/anonClient";
 import { useTeacherReward } from "@/hooks/useTeacherReward";
 import { supabaseRetry } from "@/lib/supabaseRetry";
-import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle } from "@/types";
+import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem, InventoryItem } from "@/types";
 
 // Auth state machine:
 //   loading           → determining if there's an active session
@@ -31,6 +31,8 @@ export function useStudentDB() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
+  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const { rewardConfig, getRewardIcon, getRewardName, getRewardLabel } =
@@ -74,6 +76,8 @@ export function useStudentDB() {
       loadMissions(teacherId),
       loadMissionCompletions(studentId),
       loadStudentTitles(studentId),
+      loadShopItems(teacherId),
+      loadInventory(studentId),
     ]);
   };
 
@@ -127,6 +131,27 @@ export function useStudentDB() {
       return;
     }
     setMissionCompletions((data || []) as MissionCompletion[]);
+  };
+
+  const loadShopItems = async (teacherId: string) => {
+    const { data, error } = await supabaseAnon
+      .from("shop_items")
+      .select("*")
+      .eq("is_active", true)
+      .eq("teacher_id", teacherId)
+      .order("created_at", { ascending: false });
+    if (error) { console.error("[useStudentDB] loadShopItems:", error); return; }
+    setShopItems((data || []) as unknown as ShopItem[]);
+  };
+
+  const loadInventory = async (studentId: string) => {
+    const { data, error } = await supabaseAnon
+      .from("student_inventory")
+      .select("*, item:shop_items(*)")
+      .eq("student_id", studentId)
+      .order("added_at", { ascending: false });
+    if (error) { console.error("[useStudentDB] loadInventory:", error); return; }
+    setInventory((data || []) as unknown as InventoryItem[]);
   };
 
   const loadStudentTitles = async (studentId: string) => {
@@ -298,6 +323,27 @@ export function useStudentDB() {
 
   // ── Student actions ─────────────────────────────────────────────────────────
 
+  const purchaseItem = async (itemId: string) => {
+    if (!student) return { success: false, error: "Sem sessão" };
+
+    const { data, error } = await supabaseAnon.rpc("purchase_item", {
+      p_student_id: student.id,
+      p_item_id: itemId,
+    });
+
+    if (error) {
+      console.error("[useStudentDB] purchaseItem:", error);
+      return { success: false, error: error.message };
+    }
+
+    const result = data as { success: boolean; error?: string };
+    if (!result.success) return { success: false, error: result.error ?? "Erro desconhecido" };
+
+    // Refresh coins (student row) and inventory
+    await Promise.all([refreshStudent(), loadInventory(student.id)]);
+    return { success: true };
+  };
+
   const requestChallenge = async (challengeId: string) => {
     if (!student) return;
     const { error } = await supabaseAnon.from("student_requests").insert({
@@ -362,6 +408,8 @@ export function useStudentDB() {
     missions,
     missionCompletions,
     studentTitles,
+    shopItems,
+    inventory,
     rewardConfig,
     requests,
     isLoading,
@@ -369,6 +417,7 @@ export function useStudentDB() {
     clearError,
     loginWithGoogle,
     registerStudent,
+    purchaseItem,
     requestChallenge,
     requestAttendance,
     hasChallengeRequest,

@@ -2,6 +2,28 @@
 
 export type TitleType = "helper_of_week" | "presence_guardian" | "attitude_example";
 
+export type ItemCategory = "armamento" | "armadura" | "utilizavel" | "colecao" | "habilidade" | "token";
+
+export const CATEGORY_META: Record<ItemCategory, { label: string; icon: string; color: string }> = {
+  armamento:  { label: "Armamento",  icon: "⚔️",  color: "bg-orange-500/20 text-orange-400" },
+  armadura:   { label: "Armadura",   icon: "🛡️",  color: "bg-blue-500/20 text-blue-400" },
+  utilizavel: { label: "Utilizável", icon: "🧪",  color: "bg-green-500/20 text-green-400" },
+  colecao:    { label: "Coleção",    icon: "⭐",  color: "bg-yellow-500/20 text-yellow-400" },
+  habilidade: { label: "Habilidade", icon: "✨",  color: "bg-purple-500/20 text-purple-400" },
+  token:      { label: "Token",      icon: "🎫",  color: "bg-amber-500/20 text-amber-400" },
+};
+
+export const ATTRIBUTES = [
+  { key: "attr_forca",        label: "Força",         icon: "💪" },
+  { key: "attr_destreza",     label: "Destreza",      icon: "🏹" },
+  { key: "attr_inteligencia", label: "Inteligência",  icon: "📚" },
+  { key: "attr_carisma",      label: "Carisma",       icon: "💬" },
+  { key: "attr_agilidade",    label: "Agilidade",     icon: "⚡" },
+  { key: "attr_resistencia",  label: "Resistência",   icon: "🔥" },
+] as const;
+
+export type AttrKey = typeof ATTRIBUTES[number]["key"];
+
 export interface Student {
   id: string;
   name: string;
@@ -22,6 +44,41 @@ export interface Student {
   user_id?: string | null;
   /** 'pending' = awaiting teacher approval, 'active' = full access. */
   status?: "pending" | "active" | "rejected";
+  // Character attributes (accumulated from equipped items)
+  attr_forca?: number;
+  attr_destreza?: number;
+  attr_inteligencia?: number;
+  attr_carisma?: number;
+  attr_agilidade?: number;
+  attr_resistencia?: number;
+}
+
+export interface ShopItem {
+  id: string;
+  teacher_id: string;
+  name: string;
+  description: string | null;
+  category: ItemCategory;
+  cost: number;
+  min_level: number;
+  icon: string;
+  image_url: string | null;
+  is_active: boolean;
+  created_at?: string;
+  attr_forca: number;
+  attr_destreza: number;
+  attr_inteligencia: number;
+  attr_carisma: number;
+  attr_agilidade: number;
+  attr_resistencia: number;
+}
+
+export interface InventoryItem {
+  id: string;
+  student_id: string;
+  item_id: string;
+  added_at: string;
+  item?: ShopItem;
 }
 
 export interface Challenge {

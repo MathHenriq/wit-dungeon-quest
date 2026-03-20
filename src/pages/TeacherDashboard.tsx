@@ -12,7 +12,8 @@ import { TeacherStudentsPanel } from "@/components/TeacherStudentsPanel";
 import { TeacherChallengesPanel } from "@/components/TeacherChallengesPanel";
 import { TeacherAttendancePanel } from "@/components/TeacherAttendancePanel";
 import { TeacherPendingStudentsPanel } from "@/components/TeacherPendingStudentsPanel";
-import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle } from "@/types";
+import { TeacherShopPanel } from "@/components/TeacherShopPanel";
+import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users,
   BookOpen,
@@ -25,6 +26,7 @@ import {
   Sparkles,
   Award,
   UserPlus,
+  ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +34,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -40,6 +42,7 @@ export default function TeacherDashboard() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
+  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
@@ -76,6 +79,7 @@ export default function TeacherDashboard() {
         { data: missionsData, error: missionsError },
         { data: completionsData },
         { data: titlesData },
+        { data: shopData },
       ] = await Promise.all([
         supabase.from("classes").select("*").eq("teacher_id", teacher.id).order("name"),
         supabase.from("challenges").select("*").eq("teacher_id", teacher.id).order("created_at", { ascending: false }),
@@ -83,6 +87,7 @@ export default function TeacherDashboard() {
         supabase.from("student_missions").select("*").eq("teacher_id", teacher.id).order("created_at", { ascending: false }),
         supabase.from("mission_completions").select("*").order("created_at", { ascending: false }),
         supabase.from("student_titles").select("*").order("assigned_at", { ascending: false }),
+        supabase.from("shop_items").select("*").eq("teacher_id", teacher.id).order("created_at", { ascending: false }),
       ]);
 
       // Only update state if queries succeeded - never clear data on error
@@ -90,6 +95,7 @@ export default function TeacherDashboard() {
       if (!challengesError) setChallenges((challengesData || []) as Challenge[]);
       if (!studentsError && studentsData) setStudents(studentsData);
       if (!missionsError) setMissions((missionsData || []) as Mission[]);
+      if (shopData) setShopItems(shopData as unknown as ShopItem[]);
 
       // Filter completions to only students belonging to this teacher
       const studentIds = new Set((studentsData || students).map(s => s.id));
@@ -176,6 +182,7 @@ export default function TeacherDashboard() {
   const TABS = [
     { id: "requests",   label: "Solicitações", icon: Clock },
     { id: "pending",    label: "Pendentes",    icon: UserPlus, badge: pendingStudents.length },
+    { id: "shop",       label: "Loja",          icon: ShoppingBag },
     { id: "missions",   label: "Missões",       icon: Sparkles },
     { id: "titles",     label: "Títulos",       icon: Award },
     { id: "attendance", label: "Presença",      icon: CalendarCheck },
@@ -347,6 +354,22 @@ export default function TeacherDashboard() {
               classes={classes}
               onDataChanged={loadData}
             />
+          </section>
+        )}
+
+        {activeTab === "shop" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <ShoppingBag className="text-gold" />
+              Loja de Itens
+            </h2>
+            <div className="card-fantasy">
+              <TeacherShopPanel
+                teacherId={teacher.id}
+                items={shopItems}
+                onDataChanged={loadData}
+              />
+            </div>
           </section>
         )}
 

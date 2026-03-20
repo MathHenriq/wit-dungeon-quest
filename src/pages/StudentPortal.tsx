@@ -19,8 +19,199 @@ import {
   Sparkles,
   CalendarCheck,
   Loader2,
+  ShoppingBag,
+  Package,
 } from "lucide-react";
+import { CATEGORY_META, ATTRIBUTES } from "@/types";
+import type { ShopItem, InventoryItem } from "@/types";
 import { toast } from "sonner";
+
+// ─────────────────────────────────────────────
+// Shop & Inventory helpers
+// ─────────────────────────────────────────────
+
+function ItemCard({ item }: { item: ShopItem }) {
+  const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
+  return (
+    <div className="w-full h-full rounded-lg bg-secondary flex items-center justify-center overflow-hidden">
+      {item.image_url ? (
+        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+      ) : (
+        <span className="text-4xl">{item.icon || meta.icon}</span>
+      )}
+    </div>
+  );
+}
+
+function AttrList({ item }: { item: ShopItem }) {
+  const active = ATTRIBUTES.filter(a => (item[a.key] ?? 0) > 0);
+  if (!active.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {active.map(a => (
+        <span key={a.key} className="text-xs px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">
+          {a.icon} +{item[a.key]}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ShopSection({
+  items,
+  inventory,
+  studentCoins,
+  studentLevel,
+  onPurchase,
+}: {
+  items: ShopItem[];
+  inventory: InventoryItem[];
+  studentCoins: number;
+  studentLevel: number;
+  onPurchase: (item: ShopItem) => Promise<void>;
+}) {
+  const [buying, setBuying] = useState<string | null>(null);
+
+  // For non-token items, treat as already owned if exists in inventory
+  const ownedItemIds = new Set(inventory.map(i => i.item_id));
+
+  if (items.length === 0) {
+    return (
+      <div className="card-fantasy text-center py-10 text-muted-foreground">
+        <ShoppingBag size={48} className="mx-auto mb-4 opacity-40" />
+        <p>Nenhum item disponível na loja ainda</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="section-title mb-4">
+        <ShoppingBag className="text-gold" />
+        <span>Loja de Itens</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map(item => {
+          const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
+          const isToken = item.category === "token";
+          const alreadyOwned = !isToken && ownedItemIds.has(item.id);
+          const cantAfford = studentCoins < item.cost;
+          const belowLevel = studentLevel < item.min_level;
+          const isBuying = buying === item.id;
+
+          return (
+            <div key={item.id} className="card-fantasy flex flex-col gap-3">
+              {/* Image */}
+              <div className="h-36 rounded-lg overflow-hidden">
+                <ItemCard item={item} />
+              </div>
+
+              {/* Info */}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-display font-bold text-foreground">{item.name}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
+                    {meta.icon} {meta.label}
+                  </span>
+                  {item.min_level > 1 && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      Nv. {item.min_level}+
+                    </span>
+                  )}
+                </div>
+                {item.description && (
+                  <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                )}
+                <AttrList item={item} />
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
+                <span className="font-bold text-gold-dark flex items-center gap-1">
+                  🪙 {item.cost}
+                </span>
+                {alreadyOwned ? (
+                  <span className="text-sm px-3 py-1 rounded-lg bg-primary/10 text-primary font-medium">
+                    ✓ Equipado
+                  </span>
+                ) : belowLevel ? (
+                  <span className="text-xs text-muted-foreground">Nível insuficiente</span>
+                ) : (
+                  <button
+                    disabled={cantAfford || isBuying}
+                    onClick={async () => {
+                      setBuying(item.id);
+                      await onPurchase(item);
+                      setBuying(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1 transition-all ${
+                      cantAfford
+                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    }`}
+                  >
+                    {isBuying ? <Loader2 size={14} className="animate-spin" /> : <ShoppingBag size={14} />}
+                    {cantAfford ? "Sem moedas" : "Comprar"}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function InventorySection({ inventory }: { inventory: InventoryItem[] }) {
+  if (inventory.length === 0) {
+    return (
+      <div className="card-fantasy text-center py-10 text-muted-foreground">
+        <Package size={48} className="mx-auto mb-4 opacity-40" />
+        <p>Seu inventário está vazio</p>
+        <p className="text-sm mt-1">Compre itens na Loja para equipá-los aqui.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="section-title mb-4">
+        <Package className="text-gold" />
+        <span>Meu Inventário ({inventory.length})</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {inventory.map(entry => {
+          const item = entry.item;
+          if (!item) return null;
+          const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
+          return (
+            <div key={entry.id} className="card-fantasy flex flex-col gap-3">
+              <div className="h-32 rounded-lg overflow-hidden">
+                <ItemCard item={item} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-display font-bold">{item.name}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
+                    {meta.icon} {meta.label}
+                  </span>
+                </div>
+                {item.description && (
+                  <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                )}
+                <AttrList item={item} />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Adquirido em {new Date(entry.added_at).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────
 // Sub-screens shown before an active session
@@ -277,9 +468,12 @@ export default function StudentPortal() {
     refreshMissions,
     loadClassesByTeacher,
     getRewardIcon,
+    shopItems,
+    inventory,
+    purchaseItem,
   } = useStudentDB();
 
-  const [activeTab, setActiveTab] = useState<"challenges" | "missions" | "character">("challenges");
+  const [activeTab, setActiveTab] = useState<"challenges" | "missions" | "shop" | "inventory" | "character">("challenges");
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   useEffect(() => {
@@ -488,24 +682,26 @@ export default function StudentPortal() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {(["challenges", "missions", "character"] as const).map(tab => {
-            const labels = { challenges: "Desafios", missions: "Missões", character: "Meu Personagem" };
-            const icons = { challenges: <Scroll size={20} />, missions: <Sparkles size={20} />, character: <UserCircle size={20} /> };
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-shrink-0 px-4 md:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-                  activeTab === tab
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : "bg-card text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {icons[tab]}
-                <span>{labels[tab]}</span>
-              </button>
-            );
-          })}
+          {([
+            { id: "challenges", label: "Desafios",    icon: <Scroll size={20} /> },
+            { id: "missions",   label: "Missões",     icon: <Sparkles size={20} /> },
+            { id: "shop",       label: "Loja",        icon: <ShoppingBag size={20} /> },
+            { id: "inventory",  label: "Inventário",  icon: <Package size={20} /> },
+            { id: "character",  label: "Personagem",  icon: <UserCircle size={20} /> },
+          ] as const).map(({ id, label, icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex-shrink-0 px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+                activeTab === id
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "bg-card text-muted-foreground hover:bg-secondary"
+              }`}
+            >
+              {icon}
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Missions Tab */}
@@ -611,6 +807,30 @@ export default function StudentPortal() {
               </div>
             )}
           </section>
+        )}
+
+        {/* Shop Tab */}
+        {activeTab === "shop" && (
+          <ShopSection
+            items={shopItems}
+            inventory={inventory}
+            studentCoins={student.coins}
+            studentLevel={student.level}
+            onPurchase={async (item) => {
+              const result = await purchaseItem(item.id);
+              if (!result) return;
+              if (!result.success) {
+                toast.error("Compra não realizada", { description: result.error });
+              } else {
+                toast.success(`${item.name} adquirido!`, { icon: CATEGORY_META[item.category]?.icon ?? "🎁" });
+              }
+            }}
+          />
+        )}
+
+        {/* Inventory Tab */}
+        {activeTab === "inventory" && (
+          <InventorySection inventory={inventory} />
         )}
 
         {/* Character Tab */}
