@@ -35,11 +35,26 @@ export function ProfilePhoto({
   };
 
   const handleSave = async () => {
+    const trimmed = photoUrl.trim();
+
+    if (trimmed) {
+      try {
+        const parsed = new URL(trimmed);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+          toast.error("URL inválida", { description: "Use uma URL que comece com https://" });
+          return;
+        }
+      } catch {
+        toast.error("URL inválida", { description: "Insira uma URL de imagem válida." });
+        return;
+      }
+    }
+
     setIsSaving(true);
-    
+
     const { error } = await supabase
       .from("students")
-      .update({ profile_photo_url: photoUrl.trim() || null })
+      .update({ profile_photo_url: trimmed || null })
       .eq("id", studentId);
 
     setIsSaving(false);

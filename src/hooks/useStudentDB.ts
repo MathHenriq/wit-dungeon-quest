@@ -1,100 +1,29 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Student {
-  id: string;
-  name: string;
-  character_name: string | null;
-  coins: number;
-  level: number;
-  class_id: string;
-  teacher_id: string;
-  race: string | null;
-  character_class: string | null;
-  motivation: string | null;
-  lore: string | null;
-  appearance: string | null;
-  personality: string | null;
-  presencas_consecutivas: number;
-  profile_photo_url: string | null;
-}
-
-interface ClassData {
-  id: string;
-  name: string;
-  teacher_id: string;
-}
-
-interface TeacherData {
-  id: string;
-  name: string;
-}
-
-interface Challenge {
-  id: string;
-  title: string;
-  description: string | null;
-  reward: number;
-  challenge_type: "simples" | "unica";
-}
-
-interface StudentRequest {
-  id: string;
-  request_type: "challenge" | "item" | "attendance";
-  challenge_id: string | null;
-  item_id: string | null;
-  status: "pending" | "approved" | "rejected";
-}
-
-interface Mission {
-  id: string;
-  title: string;
-  description: string | null;
-  reward: number;
-  is_return_mission: boolean;
-}
-
-interface MissionCompletion {
-  id: string;
-  mission_id: string;
-  status: "pending" | "approved" | "rejected";
-}
-
-interface StudentTitle {
-  id: string;
-  title_type: "helper_of_week" | "presence_guardian" | "attitude_example";
-  expires_at: string;
-}
-
-interface RewardConfig {
-  id: string;
-  teacher_id: string;
-  name: string;
-  icon: string;
-  unit_label_singular: string;
-  unit_label_plural: string;
-}
-
-const DEFAULT_REWARD: Omit<RewardConfig, "id" | "teacher_id"> = {
-  name: "Moedas",
-  icon: "🪙",
-  unit_label_singular: "moeda",
-  unit_label_plural: "moedas",
-};
+import { useState, useEffect, useCallback } from "react";
+import { supabaseAnon } from "@/integrations/supabase/anonClient";
+import { useTeacherReward } from "@/hooks/useTeacherReward";
+import { supabaseRetry } from "@/lib/supabaseRetry";
+import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle } from "@/types";
 
 const STORAGE_KEY = "wit_dungeon_student_session";
 
 export function useStudentDB() {
   const [student, setStudent] = useState<Student | null>(null);
-  const [teachers, setTeachers] = useState<TeacherData[]>([]);
-  const [classes, setClasses] = useState<ClassData[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [requests, setRequests] = useState<StudentRequest[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
-  const [rewardConfig, setRewardConfig] = useState<RewardConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const {
+    rewardConfig,
+    getRewardIcon,
+    getRewardName,
+    getRewardLabel,
+  } = useTeacherReward(student?.teacher_id ?? null, supabaseAnon);
 
   // Load saved session
   useEffect(() => {
@@ -111,48 +40,70 @@ export function useStudentDB() {
     }
 
     loadTeachers();
-    loadClasses();
   }, []);
 
   const loadTeachers = async () => {
-    const { data } = await supabase
-      .from("teachers")
-      .select("id, name")
-      .order("name");
+    const { data, error } = await supabaseRetry(() =>
+      supabaseAnon.from("teachers").select("id, name").order("name")
+    );
+    if (error) {
+      console.error("[useStudentDB] loadTeachers falhou:", error);
+      setError("Não foi possível carregar a lista de professores.");
+      return;
+    }
     setTeachers(data || []);
   };
 
   const loadClasses = async (teacherId?: string) => {
-    let query = supabase
+    let query = supabaseAnon
       .from("classes")
       .select("id, name, teacher_id")
       .order("name");
     if (teacherId) {
       query = query.eq("teacher_id", teacherId);
     }
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) {
+      console.error("[useStudentDB] loadClasses falhou:", error);
+      setError("Não foi possível carregar as turmas.");
+      return;
+    }
     setClasses(data || []);
   };
 
   const loadClassesByTeacher = async (teacherId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabaseAnon
       .from("classes")
       .select("id, name, teacher_id")
       .eq("teacher_id", teacherId)
       .order("name");
+    if (error) {
+      console.error("[useStudentDB] loadClassesByTeacher falhou:", error);
+      setError("Não foi possível carregar as turmas do professor.");
+      return;
+    }
     setClasses(data || []);
   };
 
   const loadStudent = async (studentId: string) => {
     setIsLoading(true);
 
-    const { data: studentData, error } = await supabase
+    const { data: studentData, error } = await supabaseAnon
       .from("students")
       .select("*")
       .eq("id", studentId)
       .maybeSingle();
 
-    if (error || !studentData) {
+    if (error) {
+      console.error("[useStudentDB] loadStudent falhou:", error);
+      setError("Não foi possível carregar os dados do aluno.");
+      localStorage.removeItem(STORAGE_KEY);
+      setStudent(null);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!studentData) {
       localStorage.removeItem(STORAGE_KEY);
       setStudent(null);
       setIsLoading(false);
@@ -170,90 +121,90 @@ export function useStudentDB() {
       loadMissions(teacherId),
       loadMissionCompletions(studentId),
       loadStudentTitles(studentId),
-      loadRewardConfig(teacherId),
     ]);
 
     setIsLoading(false);
   };
 
   const loadChallenges = async (teacherId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabaseAnon
       .from("challenges")
       .select("id, title, description, reward, challenge_type")
       .eq("is_active", true)
       .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[useStudentDB] loadChallenges falhou:", error);
+      setError("Não foi possível carregar os desafios.");
+      return;
+    }
     setChallenges((data || []) as Challenge[]);
   };
 
   const loadRequests = async (studentId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabaseAnon
       .from("student_requests")
       .select("id, request_type, challenge_id, item_id, status")
       .eq("student_id", studentId);
+    if (error) {
+      console.error("[useStudentDB] loadRequests falhou:", error);
+      setError("Não foi possível carregar as solicitações do aluno.");
+      return;
+    }
     setRequests((data || []) as StudentRequest[]);
   };
 
   const loadMissions = async (teacherId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabaseAnon
       .from("student_missions")
       .select("id, title, description, reward, is_return_mission")
       .eq("is_active", true)
       .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[useStudentDB] loadMissions falhou:", error);
+      setError("Não foi possível carregar as missões.");
+      return;
+    }
     setMissions((data || []) as Mission[]);
   };
 
   const loadMissionCompletions = async (studentId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabaseAnon
       .from("mission_completions")
       .select("id, mission_id, status")
       .eq("student_id", studentId);
+    if (error) {
+      console.error("[useStudentDB] loadMissionCompletions falhou:", error);
+      setError("Não foi possível carregar o histórico de missões.");
+      return;
+    }
     setMissionCompletions((data || []) as MissionCompletion[]);
   };
 
   const loadStudentTitles = async (studentId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabaseAnon
       .from("student_titles")
       .select("id, title_type, expires_at")
       .eq("student_id", studentId)
       .gt("expires_at", new Date().toISOString());
-    setStudentTitles((data || []) as StudentTitle[]);
-  };
-
-  const loadRewardConfig = async (teacherId: string) => {
-    const { data } = await supabase
-      .from("teacher_rewards")
-      .select("*")
-      .eq("teacher_id", teacherId)
-      .maybeSingle();
-    
-    if (data) {
-      setRewardConfig(data as RewardConfig);
-    } else {
-      setRewardConfig({
-        id: "",
-        teacher_id: teacherId,
-        ...DEFAULT_REWARD,
-      });
+    if (error) {
+      console.error("[useStudentDB] loadStudentTitles falhou:", error);
+      setError("Não foi possível carregar os títulos do aluno.");
+      return;
     }
-  };
-
-  const getRewardIcon = () => rewardConfig?.icon || DEFAULT_REWARD.icon;
-  const getRewardName = () => rewardConfig?.name || DEFAULT_REWARD.name;
-  const getRewardLabel = (amount: number) => {
-    const config = rewardConfig || { ...DEFAULT_REWARD, id: "", teacher_id: "" };
-    return amount === 1 ? config.unit_label_singular : config.unit_label_plural;
+    setStudentTitles((data || []) as StudentTitle[]);
   };
 
   // Subscribe to realtime updates
   useEffect(() => {
     if (!student) return;
 
-    const channel = supabase
-      .channel("student-updates")
-      .on("postgres_changes", 
-        { event: "*", schema: "public", table: "students", filter: `id=eq.${student.id}` }, 
+    const channelName = `student-updates-${student.id}`;
+    const channel = supabaseAnon
+      .channel(channelName)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "students", filter: `id=eq.${student.id}` },
         (payload) => {
           if (payload.new) {
             setStudent(payload.new as Student);
@@ -269,12 +220,12 @@ export function useStudentDB() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabaseAnon.removeChannel(channel);
     };
   }, [student?.id]);
 
   const loginStudent = async (name: string, classId: string) => {
-    const { data: existingStudent, error: findError } = await supabase
+    const { data: existingStudent, error: findError } = await supabaseAnon
       .from("students")
       .select("*")
       .eq("class_id", classId)
@@ -282,7 +233,8 @@ export function useStudentDB() {
       .maybeSingle();
 
     if (findError) {
-      console.error("Error finding student:", findError);
+      console.error("[useStudentDB] loginStudent falhou:", findError);
+      setError("Erro ao buscar aluno. Tente novamente.");
       return { success: false, error: "Erro ao buscar aluno. Tente novamente." };
     }
 
@@ -300,7 +252,7 @@ export function useStudentDB() {
   const requestChallenge = async (challengeId: string) => {
     if (!student) return;
 
-    const { error } = await supabase.from("student_requests").insert({
+    const { error } = await supabaseAnon.from("student_requests").insert({
       student_id: student.id,
       request_type: "challenge",
       challenge_id: challengeId,
@@ -336,7 +288,7 @@ export function useStudentDB() {
   const requestAttendance = async () => {
     if (!student) return;
 
-    const { error } = await supabase.from("student_requests").insert({
+    const { error } = await supabaseAnon.from("student_requests").insert({
       student_id: student.id,
       request_type: "attendance",
     });
@@ -359,11 +311,16 @@ export function useStudentDB() {
 
   const refreshStudent = async () => {
     if (student) {
-      const { data } = await supabase
+      const { data, error } = await supabaseAnon
         .from("students")
         .select("*")
         .eq("id", student.id)
         .maybeSingle();
+      if (error) {
+        console.error("[useStudentDB] refreshStudent falhou:", error);
+        setError("Não foi possível atualizar os dados do aluno.");
+        return;
+      }
       if (data) setStudent(data);
     }
   };
@@ -377,6 +334,8 @@ export function useStudentDB() {
     }
   };
 
+  const clearError = useCallback(() => setError(null), []);
+
   return {
     student,
     teachers,
@@ -388,6 +347,8 @@ export function useStudentDB() {
     rewardConfig,
     requests,
     isLoading,
+    error,
+    clearError,
     loginStudent,
     requestChallenge,
     requestAttendance,

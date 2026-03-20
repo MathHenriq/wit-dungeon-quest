@@ -1,12 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Teacher {
-  id: string;
-  name: string;
-  user_id: string;
-}
+import type { Teacher } from "@/types";
 
 interface AuthContextType {
   user: User | null;
@@ -27,20 +22,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // onAuthStateChange fires with INITIAL_SESSION on mount — no need for getSession()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Fetch teacher profile
           const { data: teacherData } = await supabase
             .from("teachers")
             .select("*")
             .eq("user_id", session.user.id)
             .maybeSingle();
-          
+
           setTeacher(teacherData);
         } else {
           setTeacher(null);
@@ -49,26 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        supabase
-          .from("teachers")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .maybeSingle()
-          .then(({ data }) => {
-            setTeacher(data);
-            setIsLoading(false);
-          });
-      } else {
-        setIsLoading(false);
-      }
-    });
 
     return () => subscription.unsubscribe();
   }, []);

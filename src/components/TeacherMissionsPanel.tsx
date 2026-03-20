@@ -1,33 +1,9 @@
 import { useState } from "react";
-import { Plus, Trash2, Sparkles, RefreshCw, Check, X, Clock } from "lucide-react";
+import { Plus, Trash2, Sparkles, RefreshCw, Check, X, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
-
-interface Mission {
-  id: string;
-  title: string;
-  description: string | null;
-  reward: number;
-  is_active: boolean;
-  is_return_mission: boolean;
-}
-
-interface MissionCompletion {
-  id: string;
-  mission_id: string;
-  student_id: string;
-  status: "pending" | "approved" | "rejected";
-  created_at: string;
-  student?: { id: string; name: string };
-  mission?: Mission;
-}
-
-interface Student {
-  id: string;
-  name: string;
-  coins: number;
-}
+import type { Mission, MissionCompletion, Student } from "@/types";
 
 interface TeacherMissionsPanelProps {
   teacherId: string;
@@ -122,46 +98,20 @@ export function TeacherMissionsPanel({
 
   const handleApproveCompletion = async (completion: MissionCompletion) => {
     const mission = missions.find((m) => m.id === completion.mission_id);
-    if (!mission) return;
+    const student = students.find((s) => s.id === completion.student_id!);
 
-    const student = students.find((s) => s.id === completion.student_id);
-    if (!student) return;
+    const { error } = await supabase.rpc("approve_mission_completion", {
+      p_completion_id: completion.id,
+    });
 
-    // Update completion status
-    const { error: completionError } = await supabase
-      .from("mission_completions")
-      .update({
-        status: "approved",
-        resolved_at: new Date().toISOString(),
-        resolved_by: teacherId,
-      })
-      .eq("id", completion.id);
-
-    if (completionError) {
-      toast.error("Erro ao aprovar", { description: completionError.message });
+    if (error) {
+      console.error("[TeacherMissionsPanel] approve_mission_completion falhou:", error);
+      toast.error("Erro ao aprovar missão", { description: error.message });
       return;
     }
 
-    // Award coins
-    const { error: coinsError } = await supabase
-      .from("students")
-      .update({ coins: student.coins + mission.reward })
-      .eq("id", student.id);
-
-    if (coinsError) {
-      toast.error("Erro ao dar moedas", { description: coinsError.message });
-    } else {
-      // If it was a return mission, clear the flag
-      if (mission.is_return_mission) {
-        await supabase
-          .from("students")
-          .update({ needs_return_mission: false })
-          .eq("id", student.id);
-      }
-
-      toast.success(`Missão aprovada! +${mission.reward} moedas para ${student.name}`);
-      onDataChanged();
-    }
+    toast.success(`Missão aprovada!${mission && student ? ` +${mission.reward} moedas para ${student.name}` : ""}`);
+    onDataChanged();
   };
 
   const handleRejectCompletion = async (completion: MissionCompletion) => {
@@ -209,7 +159,7 @@ export function TeacherMissionsPanel({
                 className="flex items-center justify-between bg-background/50 rounded-lg p-3"
               >
                 <div>
-                  <span className="font-medium">{getStudentName(completion.student_id)}</span>
+                  <span className="font-medium">{getStudentName(completion.student_id!)}</span>
                   <span className="text-muted-foreground mx-2">realizou</span>
                   <span className="text-primary">{getMissionTitle(completion.mission_id)}</span>
                 </div>
@@ -289,7 +239,9 @@ export function TeacherMissionsPanel({
           disabled={isCreating}
           className="w-full py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50"
         >
-          {isCreating ? "Criando..." : "Criar Missão"}
+          {isCreating ? (
+            <><Loader2 className="w-4 h-4 animate-spin" />Criando...</>
+          ) : "Criar Missão"}
         </button>
       </form>
 

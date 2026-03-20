@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useStudentDB } from "@/hooks/useStudentDB";
 import { RewardDisplay } from "@/components/RewardDisplay";
@@ -31,6 +31,8 @@ export default function StudentPortal() {
     missionCompletions,
     studentTitles,
     isLoading,
+    error,
+    clearError,
     loginStudent,
     requestChallenge,
     requestAttendance,
@@ -50,6 +52,25 @@ export default function StudentPortal() {
   const [classId, setClassId] = useState("");
   const [activeTab, setActiveTab] = useState<"challenges" | "missions" | "character">("challenges");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+
+  // Loading timeout: after 10s show a message instead of infinite spinner
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setLoadingTimedOut(true), 10000);
+    return () => clearTimeout(t);
+  }, [isLoading]);
+
+  // Show errors from useStudentDB as toasts
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   // Filter classes by selected teacher
   const filteredClasses = selectedTeacherId 
@@ -84,7 +105,8 @@ export default function StudentPortal() {
 
   const handleChallengeRequest = async (challengeId: string, title: string) => {
     const result = await requestChallenge(challengeId);
-    if (result?.error) {
+    if (!result) return;
+    if (result.error) {
       toast.error("Erro ao solicitar", { description: result.error.message });
     } else {
       toast.success("Desafio solicitado!", {
@@ -102,7 +124,8 @@ export default function StudentPortal() {
     }
 
     const result = await requestAttendance();
-    if (result?.error) {
+    if (!result) return;
+    if (result.error) {
       toast.error("Erro ao solicitar presença", { description: result.error.message });
     } else {
       toast.success("Presença solicitada!", {
@@ -116,8 +139,23 @@ export default function StudentPortal() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground font-display">Carregando...</p>
+          {loadingTimedOut ? (
+            <>
+              <p className="text-destructive font-semibold mb-2">Não foi possível conectar.</p>
+              <p className="text-muted-foreground text-sm">Verifique sua conexão e recarregue a página.</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="btn-fantasy mt-4 px-6 py-2"
+              >
+                Recarregar
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground font-display">Carregando...</p>
+            </>
+          )}
         </div>
       </div>
     );

@@ -1,12 +1,7 @@
 import { Award, Star, Heart, Crown } from "lucide-react";
+import type { TitleType, StudentTitle } from "@/types";
 
-export type TitleType = "helper_of_week" | "presence_guardian" | "attitude_example";
-
-interface StudentTitle {
-  id: string;
-  title_type: TitleType;
-  expires_at: string;
-}
+export type { TitleType };
 
 interface StudentTitleBadgeProps {
   titles: StudentTitle[];

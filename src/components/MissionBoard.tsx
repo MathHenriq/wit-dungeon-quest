@@ -1,21 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Scroll, CheckCircle, Clock, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Mission {
-  id: string;
-  title: string;
-  description: string | null;
-  reward: number;
-  is_return_mission: boolean;
-}
-
-interface MissionCompletion {
-  id: string;
-  mission_id: string;
-  status: "pending" | "approved" | "rejected";
-}
+import type { Mission, MissionCompletion } from "@/types";
 
 interface MissionBoardProps {
   studentId: string;
@@ -33,6 +20,8 @@ export function MissionBoard({
   onCompletionRequested,
 }: MissionBoardProps) {
   const [requesting, setRequesting] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const getMissionStatus = (missionId: string) => {
     const completion = completions.find((c) => c.mission_id === missionId);
@@ -67,7 +56,7 @@ export function MissionBoard({
       console.error("Unexpected error:", err);
       toast.error("Erro inesperado");
     } finally {
-      setRequesting(null);
+      if (mountedRef.current) setRequesting(null);
     }
   };
 

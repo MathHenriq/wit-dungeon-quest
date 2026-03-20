@@ -1,31 +1,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
-import { 
-  Sparkles, 
-  Scroll, 
-  Heart, 
-  Eye, 
+import {
+  Sparkles,
+  Scroll,
+  Heart,
+  Eye,
   Brain,
   Save
 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Student {
-  id: string;
-  name: string;
-  character_name: string | null;
-  coins: number;
-  level: number;
-  class_id: string;
-  race: string | null;
-  character_class: string | null;
-  motivation: string | null;
-  lore: string | null;
-  appearance: string | null;
-  personality: string | null;
-  profile_photo_url?: string | null;
-}
+import type { Student } from "@/types";
 
 interface CharacterCustomizationProps {
   student: Student;
@@ -94,6 +79,8 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
   const [personality, setPersonality] = useState(student.personality || "");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Only reset form fields when a different student is loaded, not on every field update
+  // (avoids losing unsaved edits when realtime updates coins/level)
   useEffect(() => {
     setCharacterName(student.character_name || "");
     setRace(student.race || "");
@@ -102,7 +89,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
     setLore(student.lore || "");
     setAppearance(student.appearance || "");
     setPersonality(student.personality || "");
-  }, [student]);
+  }, [student.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -173,6 +160,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
               value={characterName}
               onChange={(e) => setCharacterName(e.target.value)}
               placeholder="Escolha um nome épico..."
+              maxLength={60}
               className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
             />
           </div>
@@ -240,6 +228,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
           value={motivation}
           onChange={(e) => setMotivation(e.target.value)}
           placeholder="Ex: Busca vingança pelo seu mestre caído, quer se tornar o maior mago do reino, deseja proteger os inocentes..."
+          maxLength={500}
           className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all resize-none"
           rows={3}
         />
@@ -258,6 +247,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
           value={lore}
           onChange={(e) => setLore(e.target.value)}
           placeholder="Ex: Nascido nas montanhas geladas do norte, foi criado por uma tribo de guerreiros nômades..."
+          maxLength={1000}
           className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all resize-none"
           rows={4}
         />
@@ -276,6 +266,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
           value={appearance}
           onChange={(e) => setAppearance(e.target.value)}
           placeholder="Ex: Alto e magro, cabelos prateados caindo até os ombros, olhos violeta brilhantes, cicatriz no rosto..."
+          maxLength={500}
           className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all resize-none"
           rows={3}
         />

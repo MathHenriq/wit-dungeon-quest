@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 export interface RewardConfig {
   id: string;
@@ -17,51 +19,60 @@ const DEFAULT_REWARD: Omit<RewardConfig, "id" | "teacher_id"> = {
   unit_label_plural: "moedas",
 };
 
-export function useTeacherReward(teacherId: string | null) {
+export function useTeacherReward(
+  teacherId: string | null,
+  client: SupabaseClient<Database> = supabase,
+) {
   const [rewardConfig, setRewardConfig] = useState<RewardConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (teacherId) {
-      loadRewardConfig(teacherId);
-    } else {
+    if (!teacherId) {
       setRewardConfig(null);
+      return;
     }
+
+    let cancelled = false;
+
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await client
+          .from("teacher_rewards")
+          .select("*")
+          .eq("teacher_id", teacherId)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error("Error loading reward config:", error);
+        }
+
+        if (data) {
+          setRewardConfig(data as RewardConfig);
+        } else {
+          setRewardConfig({
+            id: "",
+            teacher_id: teacherId,
+            ...DEFAULT_REWARD,
+          });
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    load();
+
+    return () => { cancelled = true; };
   }, [teacherId]);
-
-  const loadRewardConfig = async (tid: string) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("teacher_rewards")
-        .select("*")
-        .eq("teacher_id", tid)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error loading reward config:", error);
-      }
-
-      if (data) {
-        setRewardConfig(data as RewardConfig);
-      } else {
-        // Return default config (not saved yet)
-        setRewardConfig({
-          id: "",
-          teacher_id: tid,
-          ...DEFAULT_REWARD,
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const saveRewardConfig = async (config: Omit<RewardConfig, "id" | "teacher_id">) => {
     if (!teacherId) return { error: new Error("No teacher ID") };
 
     // Check if config exists
-    const { data: existing } = await supabase
+    const { data: existing } = await client
       .from("teacher_rewards")
       .select("id")
       .eq("teacher_id", teacherId)
@@ -70,7 +81,7 @@ export function useTeacherReward(teacherId: string | null) {
     let result;
     if (existing) {
       // Update
-      result = await supabase
+      result = await client
         .from("teacher_rewards")
         .update({
           name: config.name,
@@ -83,7 +94,7 @@ export function useTeacherReward(teacherId: string | null) {
         .single();
     } else {
       // Insert
-      result = await supabase
+      result = await client
         .from("teacher_rewards")
         .insert({
           teacher_id: teacherId,
