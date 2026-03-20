@@ -13,8 +13,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    // Teachers use email/password — no OAuth redirect needed.
-    // Prevents picking up the student's Google OAuth callback tokens.
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
+    // Separate storage key from the student client (wit_dungeon_student_auth)
+    // so PKCE verifiers and sessions never clash between teacher and student OAuth flows.
+    storageKey: 'wit_dungeon_teacher_auth',
   }
 });

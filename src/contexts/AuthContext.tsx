@@ -10,6 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  loginWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -29,11 +30,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          const { data: teacherData } = await supabase
+          let { data: teacherData } = await supabase
             .from("teachers")
             .select("*")
             .eq("user_id", session.user.id)
             .maybeSingle();
+
+          // First Google login: auto-create teacher record from Google profile
+          if (!teacherData) {
+            const googleName =
+              session.user.user_metadata?.full_name ||
+              session.user.user_metadata?.name ||
+              session.user.email?.split("@")[0] ||
+              "Professor";
+
+            const { data: created } = await supabase
+              .from("teachers")
+              .insert({ name: googleName, user_id: session.user.id })
+              .select()
+              .single();
+
+            teacherData = created;
+          }
 
           setTeacher(teacherData);
         } else {
@@ -72,6 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
+  const loginWithGoogle = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/professor`,
+      },
+    });
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -88,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         signUp,
         signIn,
+        loginWithGoogle,
         signOut,
       }}
     >
