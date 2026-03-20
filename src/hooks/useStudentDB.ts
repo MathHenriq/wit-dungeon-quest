@@ -1,13 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
+import type { User } from "@supabase/supabase-js";
+import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { supabaseAnon } from "@/integrations/supabase/anonClient";
 import { useTeacherReward } from "@/hooks/useTeacherReward";
 import { supabaseRetry } from "@/lib/supabaseRetry";
 import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle } from "@/types";
 
-const STORAGE_KEY = "wit_dungeon_student_session";
+// Auth state machine:
+//   loading           → determining if there's an active session
+//   unauthenticated   → no Google session; show sign-in button
+//   needs_registration → Google auth ok but no student record yet; show class-selection form
+//   pending           → student record exists but teacher hasn't approved yet
+//   active            → full access
+export type StudentAuthState =
+  | "loading"
+  | "unauthenticated"
+  | "needs_registration"
+  | "pending"
+  | "active";
 
 export function useStudentDB() {
+  const [authState, setAuthState] = useState<StudentAuthState>("loading");
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
+
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -15,60 +31,25 @@ export function useStudentDB() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [missionCompletions, setMissionCompletions] = useState<MissionCompletion[]>([]);
   const [studentTitles, setStudentTitles] = useState<StudentTitle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const {
-    rewardConfig,
-    getRewardIcon,
-    getRewardName,
-    getRewardLabel,
-  } = useTeacherReward(student?.teacher_id ?? null, supabaseAnon);
+  const { rewardConfig, getRewardIcon, getRewardName, getRewardLabel } =
+    useTeacherReward(student?.teacher_id ?? null, supabaseAnon);
 
-  // Load saved session
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        loadStudent(parsed.studentId);
-      } catch {
-        setIsLoading(false);
-      }
-    } else {
-      setIsLoading(false);
-    }
+  // Derived: still loading
+  const isLoading = authState === "loading";
 
-    loadTeachers();
-  }, []);
-
+  // Load public data needed for the registration form (teachers/classes)
   const loadTeachers = async () => {
     const { data, error } = await supabaseRetry(() =>
       supabaseAnon.from("teachers").select("id, name").order("name")
     );
     if (error) {
-      console.error("[useStudentDB] loadTeachers falhou:", error);
+      console.error("[useStudentDB] loadTeachers:", error);
       setError("Não foi possível carregar a lista de professores.");
       return;
     }
     setTeachers(data || []);
-  };
-
-  const loadClasses = async (teacherId?: string) => {
-    let query = supabaseAnon
-      .from("classes")
-      .select("id, name, teacher_id")
-      .order("name");
-    if (teacherId) {
-      query = query.eq("teacher_id", teacherId);
-    }
-    const { data, error } = await query;
-    if (error) {
-      console.error("[useStudentDB] loadClasses falhou:", error);
-      setError("Não foi possível carregar as turmas.");
-      return;
-    }
-    setClasses(data || []);
   };
 
   const loadClassesByTeacher = async (teacherId: string) => {
@@ -78,43 +59,15 @@ export function useStudentDB() {
       .eq("teacher_id", teacherId)
       .order("name");
     if (error) {
-      console.error("[useStudentDB] loadClassesByTeacher falhou:", error);
-      setError("Não foi possível carregar as turmas do professor.");
+      console.error("[useStudentDB] loadClassesByTeacher:", error);
+      setError("Não foi possível carregar as turmas.");
       return;
     }
     setClasses(data || []);
   };
 
-  const loadStudent = async (studentId: string) => {
-    setIsLoading(true);
-
-    const { data: studentData, error } = await supabaseAnon
-      .from("students")
-      .select("*")
-      .eq("id", studentId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("[useStudentDB] loadStudent falhou:", error);
-      setError("Não foi possível carregar os dados do aluno.");
-      localStorage.removeItem(STORAGE_KEY);
-      setStudent(null);
-      setIsLoading(false);
-      return;
-    }
-
-    if (!studentData) {
-      localStorage.removeItem(STORAGE_KEY);
-      setStudent(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setStudent(studentData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ studentId }));
-
-    // Load all data FILTERED BY TEACHER_ID for strict isolation
-    const teacherId = studentData.teacher_id;
+  // Load all student-specific data after auth confirms an active student
+  const loadAllStudentData = async (studentId: string, teacherId: string) => {
     await Promise.all([
       loadChallenges(teacherId),
       loadRequests(studentId),
@@ -122,8 +75,6 @@ export function useStudentDB() {
       loadMissionCompletions(studentId),
       loadStudentTitles(studentId),
     ]);
-
-    setIsLoading(false);
   };
 
   const loadChallenges = async (teacherId: string) => {
@@ -134,8 +85,7 @@ export function useStudentDB() {
       .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
     if (error) {
-      console.error("[useStudentDB] loadChallenges falhou:", error);
-      setError("Não foi possível carregar os desafios.");
+      console.error("[useStudentDB] loadChallenges:", error);
       return;
     }
     setChallenges((data || []) as Challenge[]);
@@ -147,8 +97,7 @@ export function useStudentDB() {
       .select("id, request_type, challenge_id, item_id, status")
       .eq("student_id", studentId);
     if (error) {
-      console.error("[useStudentDB] loadRequests falhou:", error);
-      setError("Não foi possível carregar as solicitações do aluno.");
+      console.error("[useStudentDB] loadRequests:", error);
       return;
     }
     setRequests((data || []) as StudentRequest[]);
@@ -162,8 +111,7 @@ export function useStudentDB() {
       .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
     if (error) {
-      console.error("[useStudentDB] loadMissions falhou:", error);
-      setError("Não foi possível carregar as missões.");
+      console.error("[useStudentDB] loadMissions:", error);
       return;
     }
     setMissions((data || []) as Mission[]);
@@ -175,8 +123,7 @@ export function useStudentDB() {
       .select("id, mission_id, status")
       .eq("student_id", studentId);
     if (error) {
-      console.error("[useStudentDB] loadMissionCompletions falhou:", error);
-      setError("Não foi possível carregar o histórico de missões.");
+      console.error("[useStudentDB] loadMissionCompletions:", error);
       return;
     }
     setMissionCompletions((data || []) as MissionCompletion[]);
@@ -189,154 +136,225 @@ export function useStudentDB() {
       .eq("student_id", studentId)
       .gt("expires_at", new Date().toISOString());
     if (error) {
-      console.error("[useStudentDB] loadStudentTitles falhou:", error);
-      setError("Não foi possível carregar os títulos do aluno.");
+      console.error("[useStudentDB] loadStudentTitles:", error);
       return;
     }
     setStudentTitles((data || []) as StudentTitle[]);
   };
 
-  // Subscribe to realtime updates
-  useEffect(() => {
-    if (!student) return;
+  // Resolve auth state from a Supabase session (called on auth change and mount)
+  const resolveSession = useCallback(async (user: User | null) => {
+    if (!user) {
+      setAuthUser(null);
+      setStudent(null);
+      setAuthState("unauthenticated");
+      return;
+    }
 
-    const channelName = `student-updates-${student.id}`;
+    setAuthUser(user);
+
+    // Look up student record by the Google auth user id
+    const { data: studentData, error } = await supabaseStudent
+      .from("students")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[useStudentDB] resolveSession lookup:", error);
+      setAuthState("needs_registration");
+      return;
+    }
+
+    if (!studentData) {
+      setAuthState("needs_registration");
+      return;
+    }
+
+    const typedStudent = studentData as unknown as Student;
+
+    if (typedStudent.status === "pending") {
+      setStudent(typedStudent);
+      setAuthState("pending");
+      return;
+    }
+
+    if (typedStudent.status === "rejected") {
+      setStudent(typedStudent);
+      setAuthState("pending"); // show "pending" screen with rejection message
+      return;
+    }
+
+    // Active student
+    setStudent(typedStudent);
+    await loadAllStudentData(typedStudent.id, typedStudent.teacher_id);
+    setAuthState("active");
+  }, []);
+
+  // Subscribe to auth changes (handles initial session + OAuth redirect)
+  useEffect(() => {
+    loadTeachers();
+
+    const { data: { subscription } } = supabaseStudent.auth.onAuthStateChange(
+      async (_event, session) => {
+        await resolveSession(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Subscribe to realtime student updates while active
+  useEffect(() => {
+    if (!student || authState !== "active") return;
+
     const channel = supabaseAnon
-      .channel(channelName)
+      .channel(`student-updates-${student.id}`)
       .on("postgres_changes",
         { event: "*", schema: "public", table: "students", filter: `id=eq.${student.id}` },
         (payload) => {
-          if (payload.new) {
-            setStudent(payload.new as Student);
-          }
+          if (payload.new) setStudent(payload.new as Student);
         }
       )
       .on("postgres_changes",
         { event: "*", schema: "public", table: "student_requests", filter: `student_id=eq.${student.id}` },
-        () => {
-          loadRequests(student.id);
+        () => { loadRequests(student.id); }
+      )
+      .subscribe();
+
+    return () => { supabaseAnon.removeChannel(channel); };
+  }, [student?.id, authState]);
+
+  // Listen for approval while in "pending" state (teacher approves → student gets access)
+  useEffect(() => {
+    if (!student || authState !== "pending") return;
+
+    const channel = supabaseAnon
+      .channel(`pending-student-${student.id}`)
+      .on("postgres_changes",
+        { event: "UPDATE", schema: "public", table: "students", filter: `id=eq.${student.id}` },
+        async (payload) => {
+          const updated = payload.new as Student;
+          if (updated.status === "active") {
+            setStudent(updated);
+            await loadAllStudentData(updated.id, updated.teacher_id);
+            setAuthState("active");
+          }
         }
       )
       .subscribe();
 
-    return () => {
-      supabaseAnon.removeChannel(channel);
-    };
-  }, [student?.id]);
+    return () => { supabaseAnon.removeChannel(channel); };
+  }, [student?.id, authState]);
 
-  const loginStudent = async (name: string, classId: string) => {
-    const { data: existingStudent, error: findError } = await supabaseAnon
-      .from("students")
-      .select("*")
-      .eq("class_id", classId)
-      .ilike("name", name.trim())
-      .maybeSingle();
+  // ── Auth actions ────────────────────────────────────────────────────────────
 
-    if (findError) {
-      console.error("[useStudentDB] loginStudent falhou:", findError);
-      setError("Erro ao buscar aluno. Tente novamente.");
-      return { success: false, error: "Erro ao buscar aluno. Tente novamente." };
+  const loginWithGoogle = async () => {
+    const { error } = await supabaseStudent.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/aluno`,
+      },
+    });
+    if (error) {
+      setError("Não foi possível iniciar o login com Google.");
     }
-
-    if (existingStudent) {
-      await loadStudent(existingStudent.id);
-      return { success: true, needsCharacter: !existingStudent.character_name };
-    }
-
-    return { 
-      success: false, 
-      error: "Aluno não encontrado. Peça ao professor para adicionar você à turma." 
-    };
   };
+
+  const registerStudent = async (name: string, teacherId: string, classId: string) => {
+    if (!authUser) return { success: false, error: "Não autenticado." };
+
+    const { error } = await supabaseStudent.from("students").insert({
+      name: name.trim(),
+      teacher_id: teacherId,
+      class_id: classId,
+      user_id: authUser.id,
+      status: "pending",
+      coins: 0,
+      level: 1,
+      presencas_consecutivas: 0,
+    });
+
+    if (error) {
+      console.error("[useStudentDB] registerStudent:", error);
+      return { success: false, error: error.message };
+    }
+
+    // Re-resolve to enter "pending" state
+    await resolveSession(authUser);
+    return { success: true };
+  };
+
+  const logout = async () => {
+    await supabaseStudent.auth.signOut();
+    setStudent(null);
+    setAuthUser(null);
+    setRequests([]);
+    setMissions([]);
+    setMissionCompletions([]);
+    setStudentTitles([]);
+    setAuthState("unauthenticated");
+  };
+
+  // ── Student actions ─────────────────────────────────────────────────────────
 
   const requestChallenge = async (challengeId: string) => {
     if (!student) return;
-
     const { error } = await supabaseAnon.from("student_requests").insert({
       student_id: student.id,
       request_type: "challenge",
       challenge_id: challengeId,
     });
+    if (!error) await loadRequests(student.id);
+    return { error };
+  };
 
-    if (!error) {
-      await loadRequests(student.id);
-    }
-
+  const requestAttendance = async () => {
+    if (!student) return;
+    const { error } = await supabaseAnon.from("student_requests").insert({
+      student_id: student.id,
+      request_type: "attendance",
+    });
+    if (!error) await loadRequests(student.id);
     return { error };
   };
 
   const hasChallengeRequest = (challengeId: string) => {
     const challenge = challenges.find(c => c.id === challengeId);
     if (challenge?.challenge_type === "unica") {
-      // For unique challenges: block if any pending or approved request exists
       return requests.some(
         r => r.challenge_id === challengeId && (r.status === "pending" || r.status === "approved")
       );
     }
-    // For simple/repeatable: only block if there's a pending request
-    return requests.some(
-      r => r.challenge_id === challengeId && r.status === "pending"
-    );
+    return requests.some(r => r.challenge_id === challengeId && r.status === "pending");
   };
 
-  const hasAttendanceRequest = () => {
-    return requests.some(
-      r => r.request_type === "attendance" && r.status === "pending"
-    );
-  };
-
-  const requestAttendance = async () => {
-    if (!student) return;
-
-    const { error } = await supabaseAnon.from("student_requests").insert({
-      student_id: student.id,
-      request_type: "attendance",
-    });
-
-    if (!error) {
-      await loadRequests(student.id);
-    }
-
-    return { error };
-  };
-
-  const logout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setStudent(null);
-    setRequests([]);
-    setMissions([]);
-    setMissionCompletions([]);
-    setStudentTitles([]);
-  };
+  const hasAttendanceRequest = () =>
+    requests.some(r => r.request_type === "attendance" && r.status === "pending");
 
   const refreshStudent = async () => {
-    if (student) {
-      const { data, error } = await supabaseAnon
-        .from("students")
-        .select("*")
-        .eq("id", student.id)
-        .maybeSingle();
-      if (error) {
-        console.error("[useStudentDB] refreshStudent falhou:", error);
-        setError("Não foi possível atualizar os dados do aluno.");
-        return;
-      }
-      if (data) setStudent(data);
-    }
+    if (!student) return;
+    const { data } = await supabaseAnon
+      .from("students")
+      .select("*")
+      .eq("id", student.id)
+      .maybeSingle();
+    if (data) setStudent(data as unknown as Student);
   };
 
   const refreshMissions = async () => {
-    if (student) {
-      await Promise.all([
-        loadMissions(student.teacher_id),
-        loadMissionCompletions(student.id),
-      ]);
-    }
+    if (!student) return;
+    await Promise.all([
+      loadMissions(student.teacher_id),
+      loadMissionCompletions(student.id),
+    ]);
   };
 
   const clearError = useCallback(() => setError(null), []);
 
   return {
+    authState,
+    authUser,
     student,
     teachers,
     classes,
@@ -349,7 +367,8 @@ export function useStudentDB() {
     isLoading,
     error,
     clearError,
-    loginStudent,
+    loginWithGoogle,
+    registerStudent,
     requestChallenge,
     requestAttendance,
     hasChallengeRequest,
@@ -361,9 +380,8 @@ export function useStudentDB() {
       }
       return false;
     },
-    isChallengePending: (challengeId: string) => {
-      return requests.some(r => r.challenge_id === challengeId && r.status === "pending");
-    },
+    isChallengePending: (challengeId: string) =>
+      requests.some(r => r.challenge_id === challengeId && r.status === "pending"),
     logout,
     refreshStudent,
     refreshMissions,

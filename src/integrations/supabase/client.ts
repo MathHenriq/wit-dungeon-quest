@@ -13,5 +13,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Teachers use email/password — no OAuth redirect needed.
+    // Prevents picking up the student's Google OAuth callback tokens.
+    detectSessionInUrl: false,
   }
 });

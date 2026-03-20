@@ -11,6 +11,7 @@ import { TeacherClassesPanel } from "@/components/TeacherClassesPanel";
 import { TeacherStudentsPanel } from "@/components/TeacherStudentsPanel";
 import { TeacherChallengesPanel } from "@/components/TeacherChallengesPanel";
 import { TeacherAttendancePanel } from "@/components/TeacherAttendancePanel";
+import { TeacherPendingStudentsPanel } from "@/components/TeacherPendingStudentsPanel";
 import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle } from "@/types";
 import {
   Users,
@@ -22,7 +23,8 @@ import {
   Sword,
   CalendarCheck,
   Sparkles,
-  Award
+  Award,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,7 +32,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -168,8 +170,12 @@ export default function TeacherDashboard() {
     );
   }
 
+  const pendingStudents = students.filter(s => s.status === "pending");
+  const activeStudents = students.filter(s => s.status !== "pending");
+
   const TABS = [
     { id: "requests",   label: "Solicitações", icon: Clock },
+    { id: "pending",    label: "Pendentes",    icon: UserPlus, badge: pendingStudents.length },
     { id: "missions",   label: "Missões",       icon: Sparkles },
     { id: "titles",     label: "Títulos",       icon: Award },
     { id: "attendance", label: "Presença",      icon: CalendarCheck },
@@ -213,7 +219,7 @@ export default function TeacherDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="card-fantasy text-center">
             <Users className="mx-auto text-primary mb-2" size={28} />
-            <p className="text-2xl font-bold">{students.length}</p>
+            <p className="text-2xl font-bold">{activeStudents.length}</p>
             <p className="text-sm text-muted-foreground">Alunos</p>
           </div>
           <div className="card-fantasy text-center">
@@ -235,20 +241,28 @@ export default function TeacherDashboard() {
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
-                activeTab === id
-                  ? "bg-primary text-primary-foreground shadow-lg"
-                  : "bg-card text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              <Icon size={18} />
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          ))}
+          {TABS.map(({ id, label, icon: Icon, ...rest }) => {
+            const badge = "badge" in rest ? (rest as { badge: number }).badge : 0;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`relative px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
+                  activeTab === id
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "bg-card text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                <Icon size={18} />
+                <span className="hidden sm:inline">{label}</span>
+                {badge > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center font-bold">
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab Content */}
@@ -259,6 +273,22 @@ export default function TeacherDashboard() {
               Solicitações Pendentes
             </h2>
             <TeacherRequestsPanel requests={requests} onDataChanged={loadData} />
+          </section>
+        )}
+
+        {activeTab === "pending" && (
+          <section>
+            <h2 className="section-title">
+              <UserPlus className="text-gold" />
+              Alunos Aguardando Aprovação
+            </h2>
+            <div className="card-fantasy">
+              <TeacherPendingStudentsPanel
+                pendingStudents={pendingStudents}
+                classes={classes}
+                onDataChanged={loadData}
+              />
+            </div>
           </section>
         )}
 
@@ -285,7 +315,7 @@ export default function TeacherDashboard() {
             </h2>
             <TeacherStudentsPanel
               teacherId={teacher!.id}
-              students={students}
+              students={activeStudents}
               classes={classes}
               onDataChanged={loadData}
             />
@@ -313,7 +343,7 @@ export default function TeacherDashboard() {
               Controle de Presença
             </h2>
             <TeacherAttendancePanel
-              students={students}
+              students={activeStudents}
               classes={classes}
               onDataChanged={loadData}
             />
