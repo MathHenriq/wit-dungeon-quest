@@ -253,7 +253,7 @@ export function useStudentDB() {
     const { error } = await supabaseStudent.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/aluno`,
+        redirectTo: window.location.origin + "/",
       },
     });
     if (error) {
