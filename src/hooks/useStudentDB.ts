@@ -222,11 +222,25 @@ export function useStudentDB() {
 
     const { data: { subscription } } = supabaseStudent.auth.onAuthStateChange(
       async (_event, session) => {
-        await resolveSession(session?.user ?? null);
+        try {
+          await resolveSession(session?.user ?? null);
+        } catch (err) {
+          console.error("[useStudentDB] onAuthStateChange error:", err);
+          setAuthState("unauthenticated");
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    // Safety net: if onAuthStateChange never fires (e.g. client stuck on
+    // code exchange with wrong verifier), bail out after 8 s.
+    const bailout = setTimeout(() => {
+      setAuthState(prev => (prev === "loading" ? "unauthenticated" : prev));
+    }, 8000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(bailout);
+    };
   }, []);
 
   // Subscribe to realtime student updates while active
@@ -286,6 +300,16 @@ export function useStudentDB() {
     }
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    const { error } = await supabaseStudent.auth.signInWithPassword({ email, password });
+    return { error };
+  };
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    const { error } = await supabaseStudent.auth.signUp({ email, password });
+    return { error };
+  };
+
   const registerStudent = async (name: string, teacherId: string, classId: string) => {
     if (!authUser) return { success: false, error: "Não autenticado." };
 
@@ -326,7 +350,7 @@ export function useStudentDB() {
   const purchaseItem = async (itemId: string) => {
     if (!student) return { success: false, error: "Sem sessão" };
 
-    const { data, error } = await supabaseAnon.rpc("purchase_item", {
+    const { data, error } = await supabaseStudent.rpc("purchase_item", {
       p_student_id: student.id,
       p_item_id: itemId,
     });
@@ -416,6 +440,8 @@ export function useStudentDB() {
     error,
     clearError,
     loginWithGoogle,
+    loginWithEmail,
+    signUpWithEmail,
     registerStudent,
     purchaseItem,
     requestChallenge,

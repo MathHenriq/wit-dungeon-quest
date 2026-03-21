@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Teacher } from "@/types";
@@ -10,7 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -22,14 +22,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Ref so the callback always sees the latest teacher without re-subscribing
+  const teacherRef = useRef<Teacher | null>(null);
+  useEffect(() => { teacherRef.current = teacher; }, [teacher]);
+
+  // Prevents concurrent teacher lookups (e.g. INITIAL_SESSION + SIGNED_IN firing together)
+  const lookupInProgressRef = useRef(false);
+
+  // Safety net: if isLoading gets stuck (e.g. Supabase cold start or
+  // concurrent cross-tab SIGNED_IN events), release after 8 s.
   useEffect(() => {
-    // onAuthStateChange fires with INITIAL_SESSION on mount — no need for getSession()
+    if (!isLoading) return;
+    const t = setTimeout(() => setIsLoading(false), 8000);
+    return () => clearTimeout(t);
+  }, [isLoading]);
+
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+        const isIdentityEvent =
+          event === "INITIAL_SESSION" ||
+          event === "SIGNED_IN" ||
+          event === "SIGNED_OUT";
 
-        if (session?.user) {
+        // Show loading only when we don't yet have a teacher (fresh login/load).
+        // If teacher is already resolved, SIGNED_IN can re-fire on tab focus —
+        // skip the spinner so the dashboard doesn't flash loading.
+        const needsLoad = isIdentityEvent && !teacherRef.current;
+        if (needsLoad) setIsLoading(true);
+
+        try {
+          setSession(session);
+          setUser(session?.user ?? null);
+
+          if (!session?.user) {
+            setTeacher(null);
+            return;
+          }
+
+          // If teacher is already loaded and this is not a fresh sign-in,
+          // skip the DB query — avoids blocking UI on tab-focus token refreshes.
+          if (teacherRef.current && !isIdentityEvent) return;
+
+          // Deduplicate: if a lookup is already running, skip this one
+          if (lookupInProgressRef.current) return;
+          lookupInProgressRef.current = true;
+
           let { data: teacherData } = await supabase
             .from("teachers")
             .select("*")
@@ -37,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .maybeSingle();
 
           // First Google login: auto-create teacher record from Google profile
-          if (!teacherData) {
+          if (!teacherData && session.user.app_metadata?.provider === "google") {
             const googleName =
               session.user.user_metadata?.full_name ||
               session.user.user_metadata?.name ||
@@ -48,17 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .from("teachers")
               .insert({ name: googleName, user_id: session.user.id })
               .select()
-              .single();
+              .maybeSingle();
 
             teacherData = created;
           }
 
           setTeacher(teacherData);
-        } else {
+        } catch (err) {
+          console.error("[AuthContext] onAuthStateChange error:", err);
           setTeacher(null);
+        } finally {
+          lookupInProgressRef.current = false;
+          if (needsLoad) setIsLoading(false);
         }
-
-        setIsLoading(false);
       }
     );
 
@@ -90,13 +130,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const loginWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
+  const loginWithGoogle = async (): Promise<{ error: Error | null }> => {
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/professor`,
       },
     });
+    return { error: error as Error | null };
   };
 
   const signOut = async () => {

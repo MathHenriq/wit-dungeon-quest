@@ -44,7 +44,9 @@ export interface Student {
   user_id?: string | null;
   /** 'pending' = awaiting teacher approval, 'active' = full access. */
   status?: "pending" | "active" | "rejected";
-  // Character attributes (accumulated from equipped items)
+  /** Points available to distribute across attributes */
+  pontos_disponiveis?: number;
+  // Character attributes
   attr_forca?: number;
   attr_destreza?: number;
   attr_inteligencia?: number;

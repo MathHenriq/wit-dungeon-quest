@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, ShoppingBag, Eye, EyeOff, Loader2, Image as ImageIcon } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Trash2, ShoppingBag, Eye, EyeOff, Loader2, Image as ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
@@ -64,11 +64,38 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ShopItem | null>(null);
   const [imagePreview, setImagePreview] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const set = (field: keyof typeof EMPTY_FORM, value: string | number) =>
     setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${teacherId}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("shop-items")
+        .upload(path, file, { upsert: true });
+      if (uploadError) {
+        toast.error("Erro ao fazer upload da imagem", { description: uploadError.message });
+        return;
+      }
+      const { data } = supabase.storage.from("shop-items").getPublicUrl(path);
+      set("image_url", data.publicUrl);
+      setImagePreview(data.publicUrl);
+    } catch (err) {
+      toast.error("Erro inesperado no upload");
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,32 +103,37 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
     if (form.cost < 1) { toast.error("Preço deve ser maior que zero"); return; }
 
     setIsSaving(true);
-    const { error } = await supabase.from("shop_items").insert({
-      teacher_id: teacherId,
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      category: form.category,
-      cost: form.cost,
-      min_level: form.min_level,
-      icon: form.icon || CATEGORY_META[form.category].icon,
-      image_url: form.image_url.trim() || null,
-      attr_forca: form.attr_forca,
-      attr_destreza: form.attr_destreza,
-      attr_inteligencia: form.attr_inteligencia,
-      attr_carisma: form.attr_carisma,
-      attr_agilidade: form.attr_agilidade,
-      attr_resistencia: form.attr_resistencia,
-    });
-    setIsSaving(false);
-
-    if (error) {
-      toast.error("Erro ao criar item", { description: error.message });
-    } else {
-      toast.success("Item criado!");
-      setForm(EMPTY_FORM);
-      setImagePreview("");
-      setShowForm(false);
-      onDataChanged();
+    try {
+      const { error } = await supabase.from("shop_items").insert({
+        teacher_id: teacherId,
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        category: form.category,
+        cost: form.cost,
+        min_level: form.min_level,
+        icon: form.icon || CATEGORY_META[form.category].icon,
+        image_url: form.image_url.trim() || null,
+        attr_forca: form.attr_forca,
+        attr_destreza: form.attr_destreza,
+        attr_inteligencia: form.attr_inteligencia,
+        attr_carisma: form.attr_carisma,
+        attr_agilidade: form.attr_agilidade,
+        attr_resistencia: form.attr_resistencia,
+      });
+      if (error) {
+        toast.error("Erro ao criar item", { description: error.message });
+      } else {
+        toast.success("Item criado!");
+        setForm(EMPTY_FORM);
+        setImagePreview("");
+        setShowForm(false);
+        onDataChanged();
+      }
+    } catch (err) {
+      toast.error("Erro inesperado ao criar item");
+      console.error("[TeacherShopPanel] handleCreate:", err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -217,21 +249,42 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
             </div>
           </div>
 
-          {/* Image URL */}
+          {/* Image */}
           <div>
             <label className="text-sm font-medium flex items-center gap-1 mb-1">
-              <ImageIcon size={14} /> URL da Imagem (opcional)
+              <ImageIcon size={14} /> Imagem (opcional)
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={form.image_url}
-                onChange={e => { set("image_url", e.target.value); setImagePreview(e.target.value); }}
-                placeholder="https://exemplo.com/imagem.jpg"
-                className="flex-1 px-3 py-2 rounded-lg bg-background border border-border"
-              />
+            <div className="flex gap-2 items-start">
+              <div className="flex-1 space-y-2">
+                <input
+                  type="text"
+                  value={form.image_url}
+                  onChange={e => { set("image_url", e.target.value); setImagePreview(e.target.value); }}
+                  placeholder="Cole uma URL ou faça upload abaixo"
+                  className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm"
+                />
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageFile}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm hover:bg-secondary disabled:opacity-50"
+                  >
+                    {isUploadingImage
+                      ? <><Loader2 size={14} className="animate-spin" /> Enviando...</>
+                      : <><Upload size={14} /> Enviar arquivo</>}
+                  </button>
+                </div>
+              </div>
               {imagePreview && (
-                <div className="w-10 h-10 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                <div className="w-14 h-14 rounded-lg overflow-hidden border border-border flex-shrink-0">
                   <img
                     src={imagePreview}
                     alt="preview"

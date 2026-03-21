@@ -7,6 +7,7 @@ import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { MissionBoard } from "@/components/MissionBoard";
+import { ClassRanking } from "@/components/ClassRanking";
 import { StudentTitleBadge, AttendanceCrown } from "@/components/StudentTitleBadge";
 import {
   Sword,
@@ -21,6 +22,10 @@ import {
   Loader2,
   ShoppingBag,
   Package,
+  ChevronDown,
+  Mail,
+  Lock,
+  Trophy,
 } from "lucide-react";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
 import type { ShopItem, InventoryItem } from "@/types";
@@ -217,7 +222,47 @@ function InventorySection({ inventory }: { inventory: InventoryItem[] }) {
 // Sub-screens shown before an active session
 // ─────────────────────────────────────────────
 
-function LoginScreen({ onGoogleLogin }: { onGoogleLogin: () => void }) {
+function LoginScreen({
+  onGoogleLogin,
+  onEmailLogin,
+  onEmailSignUp,
+}: {
+  onGoogleLogin: () => void;
+  onEmailLogin: (email: string, password: string) => Promise<{ error: unknown }>;
+  onEmailSignUp: (email: string, password: string) => Promise<{ error: unknown }>;
+}) {
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const handleGoogleLogin = () => {
+    setIsGoogleLoading(true);
+    onGoogleLogin();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (isLogin) {
+        const { error } = await onEmailLogin(email, password);
+        if (error) toast.error("Email ou senha incorretos");
+      } else {
+        const { error } = await onEmailSignUp(email, password);
+        if (error) {
+          toast.error("Erro ao criar conta", { description: (error as { message?: string }).message });
+        } else {
+          toast.success("Conta criada! Agora selecione sua turma.");
+        }
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -232,25 +277,73 @@ function LoginScreen({ onGoogleLogin }: { onGoogleLogin: () => void }) {
           <p className="text-muted-foreground">Entre na masmorra do conhecimento!</p>
         </div>
 
-        <div className="card-fantasy">
-          <p className="text-center text-sm text-muted-foreground mb-6">
-            Use sua conta Google da escola para acessar o portal do aluno.
-          </p>
-
+        <div className="card-fantasy space-y-4">
+          {/* Primary: Google */}
           <button
-            onClick={onGoogleLogin}
-            className="w-full py-3 px-4 rounded-lg border-2 border-border bg-background hover:bg-secondary transition-all flex items-center justify-center gap-3 font-semibold text-foreground"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleLoading}
+            className="w-full py-3 px-4 rounded-lg border-2 border-border bg-background hover:bg-secondary transition-all flex items-center justify-center gap-3 font-semibold text-foreground disabled:opacity-60"
           >
-            {/* Google "G" logo */}
-            <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
-              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              <path fill="none" d="M0 0h48v48H0z"/>
-            </svg>
-            Entrar com Google
+            {isGoogleLoading ? <Loader2 size={20} className="animate-spin" /> : (
+              <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                <path fill="none" d="M0 0h48v48H0z"/>
+              </svg>
+            )}
+            {isGoogleLoading ? "Redirecionando..." : "Entrar com Google"}
           </button>
+
+          {/* Secondary: email/password toggle */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowEmailForm(v => !v)}
+              className="w-full flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+            >
+              <ChevronDown size={16} className={`transition-transform ${showEmailForm ? "rotate-180" : ""}`} />
+              {showEmailForm ? "Ocultar" : "Usar email e senha"}
+            </button>
+
+            {showEmailForm && (
+              <div className="mt-4 space-y-4 border-t border-border pt-4">
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setIsLogin(true)}
+                    className={`flex-1 py-2 rounded-lg font-semibold transition-all text-sm ${isLogin ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    Entrar
+                  </button>
+                  <button type="button" onClick={() => setIsLogin(false)}
+                    className={`flex-1 py-2 rounded-lg font-semibold transition-all text-sm ${!isLogin ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    Criar conta
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <div className="relative">
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                      placeholder="Email" required
+                      className="w-full px-4 py-2.5 pl-10 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all text-sm"
+                    />
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                  <div className="relative">
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                      placeholder="Senha" required minLength={6}
+                      className="w-full px-4 py-2.5 pl-10 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all text-sm"
+                    />
+                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                  <button type="submit" disabled={isSubmitting}
+                    className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
+                    {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}
+                    {isSubmitting ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="text-center mt-6 space-y-2">
@@ -456,6 +549,8 @@ export default function StudentPortal() {
     error,
     clearError,
     loginWithGoogle,
+    loginWithEmail,
+    signUpWithEmail,
     registerStudent,
     requestChallenge,
     requestAttendance,
@@ -473,8 +568,9 @@ export default function StudentPortal() {
     purchaseItem,
   } = useStudentDB();
 
-  const [activeTab, setActiveTab] = useState<"challenges" | "missions" | "shop" | "inventory" | "character">("challenges");
+  const [activeTab, setActiveTab] = useState<"challenges" | "missions" | "shop" | "inventory" | "character" | "ranking">("challenges");
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!isLoading) { setLoadingTimedOut(false); return; }
@@ -512,7 +608,7 @@ export default function StudentPortal() {
 
   // ── Pre-session screens ────────────────────
   if (authState === "unauthenticated") {
-    return <LoginScreen onGoogleLogin={loginWithGoogle} />;
+    return <LoginScreen onGoogleLogin={loginWithGoogle} onEmailLogin={loginWithEmail} onEmailSignUp={signUpWithEmail} />;
   }
 
   if (authState === "needs_registration") {
@@ -613,11 +709,12 @@ export default function StudentPortal() {
               </div>
             </div>
             <button
-              onClick={logout}
-              className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors"
+              onClick={async () => { setIsLoggingOut(true); await logout(); }}
+              disabled={isLoggingOut}
+              className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors disabled:opacity-50"
               title="Sair"
             >
-              <LogOut size={20} />
+              {isLoggingOut ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
             </button>
           </div>
         </div>
@@ -687,6 +784,7 @@ export default function StudentPortal() {
             { id: "missions",   label: "Missões",     icon: <Sparkles size={20} /> },
             { id: "shop",       label: "Loja",        icon: <ShoppingBag size={20} /> },
             { id: "inventory",  label: "Inventário",  icon: <Package size={20} /> },
+            { id: "ranking",    label: "Ranking",     icon: <Trophy size={20} /> },
             { id: "character",  label: "Personagem",  icon: <UserCircle size={20} /> },
           ] as const).map(({ id, label, icon }) => (
             <button
@@ -831,6 +929,11 @@ export default function StudentPortal() {
         {/* Inventory Tab */}
         {activeTab === "inventory" && (
           <InventorySection inventory={inventory} />
+        )}
+
+        {/* Ranking Tab */}
+        {activeTab === "ranking" && (
+          <ClassRanking classId={student.class_id} currentStudentId={student.id} />
         )}
 
         {/* Character Tab */}

@@ -10,11 +10,12 @@ interface TeacherRequestsPanelProps {
 
 export function TeacherRequestsPanel({ requests, onDataChanged }: TeacherRequestsPanelProps) {
   const approveRequest = async (request: StudentRequest) => {
-    const rpcName = request.request_type === "challenge"
-      ? "approve_challenge_request"
-      : "approve_attendance_request";
+    const isAttendance = request.request_type === "attendance";
+    const rpcName = isAttendance
+      ? "approve_attendance_request"
+      : "approve_challenge_request";
 
-    const { error } = await supabase.rpc(rpcName, { p_request_id: request.id });
+    const { data, error } = await supabase.rpc(rpcName, { p_request_id: request.id });
 
     if (error) {
       console.error(`[TeacherRequestsPanel] ${rpcName} falhou:`, error);
@@ -22,7 +23,15 @@ export function TeacherRequestsPanel({ requests, onDataChanged }: TeacherRequest
       return;
     }
 
-    toast.success("Solicitação aprovada!");
+    if (isAttendance) {
+      const coinsEarned = data as number;
+      const streak = coinsEarned / 10;
+      toast.success(`Presença aprovada! +${coinsEarned} 🪙`, {
+        description: `${streak}ª aula consecutiva`,
+      });
+    } else {
+      toast.success("Desafio aprovado!");
+    }
     onDataChanged();
   };
 
@@ -75,6 +84,15 @@ export function TeacherRequestsPanel({ requests, onDataChanged }: TeacherRequest
               <div className="flex items-center gap-1 mt-1 text-sm text-gold-dark">
                 <Coins size={14} />
                 +{request.challenge.reward}
+              </div>
+            )}
+            {request.request_type === "attendance" && request.student && (
+              <div className="flex items-center gap-1 mt-1 text-sm text-gold-dark">
+                <Coins size={14} />
+                +{((request.student.presencas_consecutivas ?? 0) + 1) * 10}
+                <span className="text-muted-foreground ml-1">
+                  ({(request.student.presencas_consecutivas ?? 0) + 1}ª aula)
+                </span>
               </div>
             )}
           </div>

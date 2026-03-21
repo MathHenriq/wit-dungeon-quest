@@ -27,6 +27,7 @@ import {
   Award,
   UserPlus,
   ShoppingBag,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,6 +46,7 @@ export default function TeacherDashboard() {
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Ref always points to the latest loadData, so realtime subscriptions never capture a stale version
   const loadDataRef = useRef(loadData);
@@ -161,6 +163,7 @@ export default function TeacherDashboard() {
   }, [teacher]);
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await signOut();
     navigate("/professor/login");
   };
@@ -212,10 +215,11 @@ export default function TeacherDashboard() {
             <span className="hidden md:block text-sm text-primary-foreground/80">{teacher?.name}</span>
             <button
               onClick={handleLogout}
-              className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors"
+              disabled={isLoggingOut}
+              className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors disabled:opacity-50"
               title="Sair"
             >
-              <LogOut size={20} />
+              {isLoggingOut ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
             </button>
           </div>
         </div>
@@ -292,6 +296,7 @@ export default function TeacherDashboard() {
             <div className="card-fantasy">
               <TeacherPendingStudentsPanel
                 pendingStudents={pendingStudents}
+                allStudents={activeStudents}
                 classes={classes}
                 onDataChanged={loadData}
               />

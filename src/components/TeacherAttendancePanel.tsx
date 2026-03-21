@@ -18,16 +18,21 @@ export function TeacherAttendancePanel({ students, classes, onDataChanged }: Tea
     ? students.filter(s => s.class_id === selectedClass)
     : students;
 
-  const confirmAttendance = async (studentId: string, currentCount: number) => {
+  const confirmAttendance = async (student: { id: string; presencas_consecutivas: number; coins: number }) => {
+    const newStreak = student.presencas_consecutivas + 1;
+    const coinsEarned = newStreak * 10;
+
     const { error } = await supabase
       .from("students")
-      .update({ presencas_consecutivas: currentCount + 1 })
-      .eq("id", studentId);
+      .update({ presencas_consecutivas: newStreak, coins: student.coins + coinsEarned })
+      .eq("id", student.id);
 
     if (error) {
       toast.error("Erro ao confirmar presença");
     } else {
-      toast.success("Presença confirmada!");
+      toast.success(`Presença confirmada! +${coinsEarned} 🪙`, {
+        description: `${newStreak}ª aula consecutiva`,
+      });
       onDataChanged();
     }
   };
@@ -103,7 +108,7 @@ export function TeacherAttendancePanel({ students, classes, onDataChanged }: Tea
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => confirmAttendance(student.id, student.presencas_consecutivas)}
+                    onClick={() => confirmAttendance({ id: student.id, presencas_consecutivas: student.presencas_consecutivas, coins: student.coins })}
                     className="px-4 py-2 rounded-lg bg-success/10 text-success hover:bg-success/20 transition-colors flex items-center gap-2 font-semibold"
                     title="Confirmar presença (+1)"
                   >

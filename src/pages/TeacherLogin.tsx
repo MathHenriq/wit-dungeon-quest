@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
@@ -14,13 +14,24 @@ export default function TeacherLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const { signIn, signUp, loginWithGoogle } = useAuth();
+  const { signIn, signUp, loginWithGoogle, teacher, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Navigate to dashboard once teacher is resolved
+  useEffect(() => {
+    if (teacher && !authLoading) {
+      navigate("/professor");
+    }
+  }, [teacher, authLoading, navigate]);
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await loginWithGoogle();
-    // page will redirect — no need to setIsGoogleLoading(false)
+    const { error } = await loginWithGoogle();
+    if (error) {
+      toast.error("Erro ao entrar com Google", { description: error.message });
+      setIsGoogleLoading(false);
+    }
+    // On success: page redirects — no need to reset state
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,10 +42,8 @@ export default function TeacherLogin() {
         const { error } = await signIn(email, password);
         if (error) {
           toast.error("Erro ao entrar", { description: error.message });
-        } else {
-          toast.success("Bem-vindo de volta!");
-          navigate("/professor");
         }
+        // On success: onAuthStateChange resolves teacher → useEffect navigates
       } else {
         const { error } = await signUp(email, password, name);
         if (error) {

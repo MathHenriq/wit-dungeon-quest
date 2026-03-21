@@ -24,7 +24,7 @@ export function useTeacherReward(
   client: SupabaseClient<Database> = supabase,
 ) {
   const [rewardConfig, setRewardConfig] = useState<RewardConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!teacherId);
 
   useEffect(() => {
     if (!teacherId) {
