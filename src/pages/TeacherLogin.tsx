@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { Sword, Shield, Mail, Lock, User, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";

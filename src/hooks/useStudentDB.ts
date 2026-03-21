@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { supabaseAnon } from "@/integrations/supabase/anonClient";
 import { useTeacherReward } from "@/hooks/useTeacherReward";
 import { supabaseRetry } from "@/lib/supabaseRetry";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem, InventoryItem } from "@/types";
 
 // Auth state machine:
@@ -37,6 +38,12 @@ export function useStudentDB() {
 
   const { rewardConfig, getRewardIcon, getRewardName, getRewardLabel } =
     useTeacherReward(student?.teacher_id ?? null, supabaseAnon);
+
+  const { trackLogin, trackSessionStart, trackSessionEnd, trackShopPurchase, trackAttendance } =
+    useAnalytics();
+
+  // Track session duration
+  const sessionStartRef = useRef<number | null>(null);
 
   // Derived: still loading
   const isLoading = authState === "loading";
@@ -214,6 +221,11 @@ export function useStudentDB() {
     setStudent(typedStudent);
     await loadAllStudentData(typedStudent.id, typedStudent.teacher_id);
     setAuthState("active");
+
+    // Fire-and-forget tracking
+    sessionStartRef.current = Date.now();
+    void trackLogin(typedStudent.teacher_id, typedStudent.id, typedStudent.class_id);
+    void trackSessionStart(typedStudent.teacher_id, typedStudent.id, typedStudent.class_id);
   }, []);
 
   // Subscribe to auth changes (handles initial session + OAuth redirect)
@@ -242,6 +254,18 @@ export function useStudentDB() {
       clearTimeout(bailout);
     };
   }, []);
+
+  // Track session_end on tab close / page unload
+  useEffect(() => {
+    const handleUnload = () => {
+      if (student && sessionStartRef.current) {
+        const durationMinutes = Math.round((Date.now() - sessionStartRef.current) / 60000);
+        void trackSessionEnd(student.teacher_id, student.id, durationMinutes);
+      }
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [student, trackSessionEnd]);
 
   // Subscribe to realtime student updates while active
   useEffect(() => {
@@ -335,6 +359,12 @@ export function useStudentDB() {
   };
 
   const logout = async () => {
+    // Track session end before clearing state
+    if (student && sessionStartRef.current) {
+      const durationMinutes = Math.round((Date.now() - sessionStartRef.current) / 60000);
+      void trackSessionEnd(student.teacher_id, student.id, durationMinutes);
+      sessionStartRef.current = null;
+    }
     await supabaseStudent.auth.signOut();
     setStudent(null);
     setAuthUser(null);
@@ -363,6 +393,13 @@ export function useStudentDB() {
     const result = data as { success: boolean; error?: string };
     if (!result.success) return { success: false, error: result.error ?? "Erro desconhecido" };
 
+    // Fire-and-forget tracking — find item name for event_data
+    const item = shopItems.find(i => i.id === itemId);
+    void trackShopPurchase(
+      student.teacher_id, student.id, student.class_id,
+      itemId, item?.price ?? 0, item?.name ?? ""
+    );
+
     // Refresh coins (student row) and inventory
     await Promise.all([refreshStudent(), loadInventory(student.id)]);
     return { success: true };
@@ -385,7 +422,10 @@ export function useStudentDB() {
       student_id: student.id,
       request_type: "attendance",
     });
-    if (!error) await loadRequests(student.id);
+    if (!error) {
+      await loadRequests(student.id);
+      void trackAttendance(student.teacher_id, student.id, student.class_id, student.presencas_consecutivas ?? 0);
+    }
     return { error };
   };
 

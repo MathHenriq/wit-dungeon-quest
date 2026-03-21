@@ -425,3 +425,22 @@ CREATE POLICY "Anyone can read rewards"             ON public.teacher_rewards FO
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.students;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.student_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.analytics_events;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.guild_posts;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.achievement_feed;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.achievement_reactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.pvp_matches;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.boss_attempts;
+
+
+-- ============================================================
+-- 9. DUNGEON EXPANSION (migration 20260321000000)
+-- analytics_events, guilds, guild_members, guild_posts,
+-- pet_types, student_pets, boss_battles, boss_questions,
+-- boss_attempts, pvp_matches, skill_trees, skill_nodes,
+-- student_skill_progress, time_capsules, class_wars,
+-- mentorships, achievement_feed, achievement_reactions,
+-- craft_recipes, student_crafts, parent_accounts,
+-- parent_student_links, parent_reports, lore_tips
+-- See: supabase/migrations/20260321000000_dungeon_expansion.sql
+-- ============================================================

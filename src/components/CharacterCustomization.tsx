@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import {
@@ -150,27 +149,28 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
 
   const handleSave = async () => {
     setIsSaving(true);
+    try {
+      const { error } = await supabaseStudent
+        .from("students")
+        .update({
+          character_name: characterName.trim() || null,
+          race: race || null,
+          character_class: characterClass || null,
+          motivation: motivation.trim() || null,
+          lore: lore.trim() || null,
+          appearance: appearance.trim() || null,
+          personality: personality || null,
+        })
+        .eq("id", student.id);
 
-    const { error } = await supabase
-      .from("students")
-      .update({
-        character_name: characterName.trim() || null,
-        race: race || null,
-        character_class: characterClass || null,
-        motivation: motivation.trim() || null,
-        lore: lore.trim() || null,
-        appearance: appearance.trim() || null,
-        personality: personality || null,
-      })
-      .eq("id", student.id);
-
-    setIsSaving(false);
-
-    if (error) {
-      toast.error("Erro ao salvar", { description: error.message });
-    } else {
-      toast.success("Personagem atualizado!", { icon: "⚔️" });
-      onUpdate();
+      if (error) {
+        toast.error("Erro ao salvar", { description: error.message });
+      } else {
+        toast.success("Personagem atualizado!", { icon: "⚔️" });
+        onUpdate();
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 

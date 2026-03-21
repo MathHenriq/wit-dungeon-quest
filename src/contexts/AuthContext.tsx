@@ -1,20 +1,6 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import { useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Teacher } from "@/types";
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  teacher: Teacher | null;
-  isLoading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  loginWithGoogle: () => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from "./authContextInstance";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -134,7 +120,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
+        scopes: [
+          "email",
+          "profile",
+          "https://www.googleapis.com/auth/classroom.courses.readonly",
+          "https://www.googleapis.com/auth/classroom.rosters.readonly",
+          "https://www.googleapis.com/auth/classroom.coursework.students.readonly",
+        ].join(" "),
         redirectTo: `${window.location.origin}/professor`,
+        queryParams: {
+          access_type: "offline",
+          // "select_account" allows switching accounts without forcing re-consent
+          prompt: "select_account",
+        },
       },
     });
     return { error: error as Error | null };
@@ -165,10 +163,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}

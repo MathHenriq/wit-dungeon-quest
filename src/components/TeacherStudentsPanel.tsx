@@ -24,8 +24,13 @@ function StudentInventoryModal({ student, onClose }: { student: Student; onClose
       .select("*, item:shop_items(*)")
       .eq("student_id", student.id)
       .order("added_at", { ascending: false })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error("[StudentInventoryModal]", error);
         setInventory((data || []) as unknown as InventoryItem[]);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error("[StudentInventoryModal] fetch error:", err);
         setIsLoading(false);
       });
   }, [student.id]);

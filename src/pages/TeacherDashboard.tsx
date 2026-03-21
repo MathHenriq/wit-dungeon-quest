@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { TeacherMissionsPanel } from "@/components/TeacherMissionsPanel";
@@ -13,6 +13,7 @@ import { TeacherChallengesPanel } from "@/components/TeacherChallengesPanel";
 import { TeacherAttendancePanel } from "@/components/TeacherAttendancePanel";
 import { TeacherPendingStudentsPanel } from "@/components/TeacherPendingStudentsPanel";
 import { TeacherShopPanel } from "@/components/TeacherShopPanel";
+import { GoogleClassroomSync } from "@/components/GoogleClassroomSync";
 import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users,
@@ -28,6 +29,8 @@ import {
   UserPlus,
   ShoppingBag,
   Loader2,
+  BarChart3,
+  GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,7 +38,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -193,6 +196,7 @@ export default function TeacherDashboard() {
     { id: "students",   label: "Alunos",        icon: Users },
     { id: "challenges", label: "Desafios",      icon: Sword },
     { id: "reward",     label: "Recompensa",    icon: Coins },
+    { id: "classroom",  label: "Classroom",     icon: GraduationCap },
   ] as const;
 
   return (
@@ -213,6 +217,13 @@ export default function TeacherDashboard() {
 
           <div className="flex items-center gap-4">
             <span className="hidden md:block text-sm text-primary-foreground/80">{teacher?.name}</span>
+            <button
+              onClick={() => navigate("/professor/analytics")}
+              className="p-2 rounded-lg bg-gold/20 hover:bg-gold/30 transition-colors"
+              title="Analytics"
+            >
+              <BarChart3 size={20} className="text-gold" />
+            </button>
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
@@ -422,6 +433,18 @@ export default function TeacherDashboard() {
             </h2>
             <div className="card-fantasy max-w-2xl">
               <TeacherRewardSettings teacherId={teacher.id} />
+            </div>
+          </section>
+        )}
+
+        {activeTab === "classroom" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <GraduationCap className="text-gold" />
+              Google Classroom
+            </h2>
+            <div className="card-fantasy max-w-2xl">
+              <GoogleClassroomSync teacherId={teacher.id} onDataChanged={loadData} />
             </div>
           </section>
         )}
