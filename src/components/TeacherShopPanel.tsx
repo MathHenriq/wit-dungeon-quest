@@ -40,7 +40,7 @@ function ItemImage({ item, size = "md" }: { item: ShopItem; size?: "sm" | "md" |
           onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
         />
       ) : (
-        <span>{item.icon || CATEGORY_META[item.category]?.icon || "📦"}</span>
+        <span>{item.icon || CATEGORY_META[item.category]?.iconId || "📦"}</span>
       )}
     </div>
   );
@@ -53,7 +53,7 @@ function AttrBadges({ item }: { item: ShopItem }) {
     <div className="flex flex-wrap gap-1 mt-1">
       {active.map(a => (
         <span key={a.key} className="text-xs px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">
-          {a.icon} +{item[a.key]} {a.label}
+          {a.iconId} +{item[a.key]} {a.label}
         </span>
       ))}
     </div>
@@ -111,7 +111,7 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
         category: form.category,
         cost: form.cost,
         min_level: form.min_level,
-        icon: form.icon || CATEGORY_META[form.category].icon,
+        icon: form.icon || CATEGORY_META[form.category].iconId,
         image_url: form.image_url.trim() || null,
         attr_forca: form.attr_forca,
         attr_destreza: form.attr_destreza,
@@ -196,7 +196,7 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
               >
                 {(Object.keys(CATEGORY_META) as ItemCategory[]).map(cat => (
                   <option key={cat} value={cat}>
-                    {CATEGORY_META[cat].icon} {CATEGORY_META[cat].label}
+                    {CATEGORY_META[cat].iconId} {CATEGORY_META[cat].label}
                   </option>
                 ))}
               </select>
@@ -302,7 +302,7 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {ATTRIBUTES.map(attr => (
                 <div key={attr.key} className="flex items-center gap-2">
-                  <span className="text-lg w-6">{attr.icon}</span>
+                  <span className="text-lg w-6">{attr.iconId}</span>
                   <div className="flex-1">
                     <label className="text-xs text-muted-foreground">{attr.label}</label>
                     <input
@@ -412,7 +412,7 @@ function ItemCard({
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium truncate">{item.name}</span>
           <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
-            {meta.icon} {meta.label}
+            {meta.iconId} {meta.label}
           </span>
           {item.min_level > 1 && (
             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">

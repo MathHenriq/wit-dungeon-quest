@@ -9,15 +9,18 @@ import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { MissionBoard } from "@/components/MissionBoard";
 import { ClassRanking } from "@/components/ClassRanking";
 import { StudentTitleBadge, AttendanceCrown } from "@/components/StudentTitleBadge";
+import { AincradBackground } from "@/components/ui/AincradBackground";
+import { DungeonLoadingScreen } from "@/components/student/DungeonLoadingScreen";
+import { DungeonEntrance } from "@/components/student/DungeonEntrance";
+import { StudentHeader } from "@/components/student/StudentHeader";
+import { StudentNavigation, type StudentTab } from "@/components/student/StudentNavigation";
+import { GameIcon } from "@/components/icons/GameIcon";
 import {
   Sword,
   Shield,
   LogOut,
-  Scroll,
   CheckCircle,
   Clock,
-  UserCircle,
-  Sparkles,
   CalendarCheck,
   Loader2,
   ShoppingBag,
@@ -25,7 +28,7 @@ import {
   ChevronDown,
   Mail,
   Lock,
-  Trophy,
+  Flame,
 } from "lucide-react";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
 import type { ShopItem, InventoryItem } from "@/types";
@@ -38,11 +41,11 @@ import { toast } from "sonner";
 function ItemCard({ item }: { item: ShopItem }) {
   const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
   return (
-    <div className="w-full h-full rounded-lg bg-secondary flex items-center justify-center overflow-hidden">
+    <div className="w-full h-full rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
       {item.image_url ? (
         <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
       ) : (
-        <span className="text-4xl">{item.icon || meta.icon}</span>
+        <GameIcon id={meta.iconId} size={48} />
       )}
     </div>
   );
@@ -54,8 +57,8 @@ function AttrList({ item }: { item: ShopItem }) {
   return (
     <div className="flex flex-wrap gap-1 mt-1">
       {active.map(a => (
-        <span key={a.key} className="text-xs px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">
-          {a.icon} +{item[a.key]}
+        <span key={a.key} className="text-xs px-1.5 py-0.5 rounded text-cyan-400 font-medium flex items-center gap-1" style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.15)' }}>
+          <GameIcon id={a.iconId} size={12} /> +{item[a.key]}
         </span>
       ))}
     </div>
@@ -77,12 +80,11 @@ function ShopSection({
 }) {
   const [buying, setBuying] = useState<string | null>(null);
 
-  // For non-token items, treat as already owned if exists in inventory
   const ownedItemIds = new Set(inventory.map(i => i.item_id));
 
   if (items.length === 0) {
     return (
-      <div className="card-fantasy text-center py-10 text-muted-foreground">
+      <div className="holo-panel text-center py-10 text-white/50">
         <ShoppingBag size={48} className="mx-auto mb-4 opacity-40" />
         <p>Nenhum item disponível na loja ainda</p>
       </div>
@@ -92,7 +94,7 @@ function ShopSection({
   return (
     <div>
       <div className="section-title mb-4">
-        <ShoppingBag className="text-gold" />
+        <ShoppingBag size={14} />
         <span>Loja de Itens</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -105,7 +107,7 @@ function ShopSection({
           const isBuying = buying === item.id;
 
           return (
-            <div key={item.id} className="card-fantasy flex flex-col gap-3">
+            <div key={item.id} className="holo-panel flex flex-col gap-3">
               {/* Image */}
               <div className="h-36 rounded-lg overflow-hidden">
                 <ItemCard item={item} />
@@ -114,33 +116,33 @@ function ShopSection({
               {/* Info */}
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-display font-bold text-foreground">{item.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
-                    {meta.icon} {meta.label}
+                  <h3 className="font-semibold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${meta.color}`}>
+                    <GameIcon id={meta.iconId} size={12} /> {meta.label}
                   </span>
                   {item.min_level > 1 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    <span className="text-xs px-2 py-0.5 rounded-full text-white/40" style={{ background: 'rgba(255,255,255,0.06)' }}>
                       Nv. {item.min_level}+
                     </span>
                   )}
                 </div>
                 {item.description && (
-                  <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                  <p className="text-sm text-white/50 mt-1">{item.description}</p>
                 )}
                 <AttrList item={item} />
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border">
-                <span className="font-bold text-gold-dark flex items-center gap-1">
-                  🪙 {item.cost}
+              <div className="flex items-center justify-between gap-2 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <span className="font-bold text-yellow-400 flex items-center gap-1 text-sm">
+                  <GameIcon id="coin" size={16} /> {item.cost}
                 </span>
                 {alreadyOwned ? (
-                  <span className="text-sm px-3 py-1 rounded-lg bg-primary/10 text-primary font-medium">
-                    ✓ Equipado
+                  <span className="text-sm px-3 py-1 rounded-lg text-cyan-400 font-medium" style={{ background: 'rgba(0,229,255,0.08)' }}>
+                    Equipado
                   </span>
                 ) : belowLevel ? (
-                  <span className="text-xs text-muted-foreground">Nível insuficiente</span>
+                  <span className="text-xs text-white/30">Nível insuficiente</span>
                 ) : (
                   <button
                     disabled={cantAfford || isBuying}
@@ -149,11 +151,7 @@ function ShopSection({
                       await onPurchase(item);
                       setBuying(null);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1 transition-all ${
-                      cantAfford
-                        ? "bg-muted text-muted-foreground cursor-not-allowed"
-                        : "bg-primary text-primary-foreground hover:bg-primary/90"
-                    }`}
+                    className={`btn-cyber text-xs py-1.5 px-3 ${cantAfford ? "opacity-40 cursor-not-allowed" : ""}`}
                   >
                     {isBuying ? <Loader2 size={14} className="animate-spin" /> : <ShoppingBag size={14} />}
                     {cantAfford ? "Sem moedas" : "Comprar"}
@@ -171,10 +169,10 @@ function ShopSection({
 function InventorySection({ inventory }: { inventory: InventoryItem[] }) {
   if (inventory.length === 0) {
     return (
-      <div className="card-fantasy text-center py-10 text-muted-foreground">
+      <div className="holo-panel text-center py-10 text-white/50">
         <Package size={48} className="mx-auto mb-4 opacity-40" />
         <p>Seu inventário está vazio</p>
-        <p className="text-sm mt-1">Compre itens na Loja para equipá-los aqui.</p>
+        <p className="text-sm mt-1 text-white/30">Compre itens na Loja para equipá-los aqui.</p>
       </div>
     );
   }
@@ -182,7 +180,7 @@ function InventorySection({ inventory }: { inventory: InventoryItem[] }) {
   return (
     <div>
       <div className="section-title mb-4">
-        <Package className="text-gold" />
+        <Package size={14} />
         <span>Meu Inventário ({inventory.length})</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -191,22 +189,22 @@ function InventorySection({ inventory }: { inventory: InventoryItem[] }) {
           if (!item) return null;
           const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
           return (
-            <div key={entry.id} className="card-fantasy flex flex-col gap-3">
+            <div key={entry.id} className="holo-panel flex flex-col gap-3">
               <div className="h-32 rounded-lg overflow-hidden">
                 <ItemCard item={item} />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-display font-bold">{item.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${meta.color}`}>
-                    {meta.icon} {meta.label}
+                  <h3 className="font-semibold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${meta.color}`}>
+                    <GameIcon id={meta.iconId} size={12} /> {meta.label}
                   </span>
                 </div>
                 {item.description && (
-                  <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                  <p className="text-sm text-white/50 mt-1">{item.description}</p>
                 )}
                 <AttrList item={item} />
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-white/30 mt-2">
                   Adquirido em {new Date(entry.added_at).toLocaleDateString("pt-BR")}
                 </p>
               </div>
@@ -264,58 +262,70 @@ function LoginScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      <AincradBackground scene="login" />
+      <div className="relative z-10 w-full max-w-md">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-dungeon-dark mb-4">
-            <div className="flex items-center gap-1">
-              <Sword className="text-gold" size={28} />
-              <Shield className="text-gold" size={28} />
-            </div>
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <svg width="32" height="32" viewBox="0 0 32 32" className="text-cyan-400">
+              <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" fill="none" stroke="currentColor" strokeWidth="2" className="animate-glow-breathe"/>
+            </svg>
           </div>
-          <h1 className="font-display text-4xl font-bold text-dungeon-dark mb-2">WIT Dungeon</h1>
-          <p className="text-muted-foreground">Entre na masmorra do conhecimento!</p>
+          <h1 className="text-4xl font-bold text-cyan-400 text-glow-cyan" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '6px' }}>
+            WIT DUNGEON
+          </h1>
+          <p className="text-white/40 text-sm mt-2" style={{ fontFamily: 'Exo 2, sans-serif' }}>
+            Entre na masmorra do conhecimento
+          </p>
         </div>
 
-        <div className="card-fantasy space-y-4">
-          {/* Primary: Google */}
+        {/* Panel */}
+        <div className="holo-panel-accent p-6 space-y-4">
+          {/* Google login */}
           <button
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading}
-            className="w-full py-3 px-4 rounded-lg border-2 border-border bg-background hover:bg-secondary transition-all flex items-center justify-center gap-3 font-semibold text-foreground disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-lg transition-all"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.85)',
+            }}
           >
-            {isGoogleLoading ? <Loader2 size={20} className="animate-spin" /> : (
-              <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                <path fill="none" d="M0 0h48v48H0z"/>
+            {isGoogleLoading ? <Loader2 size={18} className="animate-spin" /> : (
+              <svg width="18" height="18" viewBox="0 0 18 18">
+                <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
               </svg>
             )}
             {isGoogleLoading ? "Redirecionando..." : "Entrar com Google"}
           </button>
 
-          {/* Secondary: email/password toggle */}
+          {/* Email toggle */}
           <div>
             <button
               type="button"
               onClick={() => setShowEmailForm(v => !v)}
-              className="w-full flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+              className="w-full flex items-center justify-center gap-1 text-sm text-white/40 hover:text-white/70 transition-colors py-1"
             >
               <ChevronDown size={16} className={`transition-transform ${showEmailForm ? "rotate-180" : ""}`} />
               {showEmailForm ? "Ocultar" : "Usar email e senha"}
             </button>
 
             {showEmailForm && (
-              <div className="mt-4 space-y-4 border-t border-border pt-4">
+              <div className="mt-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1rem' }}>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setIsLogin(true)}
-                    className={`flex-1 py-2 rounded-lg font-semibold transition-all text-sm ${isLogin ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    className="flex-1 py-2 rounded-lg font-semibold transition-all text-sm"
+                    style={{ background: isLogin ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.04)', color: isLogin ? '#00e5ff' : 'rgba(255,255,255,0.4)', border: `1px solid ${isLogin ? 'rgba(0,229,255,0.3)' : 'transparent'}` }}>
                     Entrar
                   </button>
                   <button type="button" onClick={() => setIsLogin(false)}
-                    className={`flex-1 py-2 rounded-lg font-semibold transition-all text-sm ${!isLogin ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    className="flex-1 py-2 rounded-lg font-semibold transition-all text-sm"
+                    style={{ background: !isLogin ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.04)', color: !isLogin ? '#00e5ff' : 'rgba(255,255,255,0.4)', border: `1px solid ${!isLogin ? 'rgba(0,229,255,0.3)' : 'transparent'}` }}>
                     Criar conta
                   </button>
                 </div>
@@ -324,21 +334,26 @@ function LoginScreen({
                   <div className="relative">
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                       placeholder="Email" required
-                      className="w-full px-4 py-2.5 pl-10 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all text-sm"
+                      className="w-full px-4 py-3 pl-10 rounded-lg text-sm transition-colors"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)', outline: 'none' }}
+                      onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
+                      onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                     />
-                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   </div>
                   <div className="relative">
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)}
                       placeholder="Senha" required minLength={6}
-                      className="w-full px-4 py-2.5 pl-10 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all text-sm"
+                      className="w-full px-4 py-3 pl-10 rounded-lg text-sm"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)', outline: 'none' }}
+                      onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
+                      onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
                     />
-                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                   </div>
                   <button type="submit" disabled={isSubmitting}
-                    className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
-                    {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}
-                    {isSubmitting ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+                    className="btn-cyber w-full justify-center">
+                    {isSubmitting ? <><Loader2 size={16} className="animate-spin" /> Aguarde...</> : isLogin ? "Entrar" : "Criar conta"}
                   </button>
                 </form>
               </div>
@@ -346,13 +361,12 @@ function LoginScreen({
           </div>
         </div>
 
-        <div className="text-center mt-6 space-y-2">
-          <p className="text-sm text-muted-foreground">⚔️ Sistema de gamificação educacional ⚔️</p>
-          <Link to="/professor/login" className="text-sm text-primary hover:underline">
-            Acesso do Professor →
+        <p className="text-center text-white/25 text-xs mt-4">
+          <Link to="/professor/login" className="hover:text-cyan-400 transition-colors">
+            Acesso do Professor
           </Link>
-          <DeveloperSignature className="mt-4" />
-        </div>
+        </p>
+        <DeveloperSignature className="mt-4" />
       </div>
     </div>
   );
@@ -390,43 +404,49 @@ function ClassSelectionScreen({
     setIsSubmitting(false);
   };
 
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: 'rgba(255,255,255,0.85)',
+    outline: 'none',
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      <AincradBackground scene="default" />
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-dungeon-dark mb-4">
-            <div className="flex items-center gap-1">
-              <Sword className="text-gold" size={28} />
-              <Shield className="text-gold" size={28} />
-            </div>
-          </div>
-          <h1 className="font-display text-3xl font-bold text-dungeon-dark mb-2">Bem-vindo!</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '4px' }}>BEM-VINDO</h1>
+          <p className="text-white/40 text-sm">
             Primeira vez aqui? Diga-nos em qual turma você está.
           </p>
         </div>
 
-        <div className="card-fantasy">
+        <div className="holo-panel p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2">Seu Nome Completo *</label>
+              <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Seu Nome Completo</label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Como aparece na lista de chamada"
                 required
-                className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
+                className="w-full px-4 py-3 rounded-lg text-sm transition-colors"
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2">Professor *</label>
+              <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Professor</label>
               <select
                 value={teacherId}
                 onChange={e => handleTeacherSelect(e.target.value)}
                 required
-                className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all"
+                className="w-full px-4 py-3 rounded-lg text-sm transition-colors"
+                style={inputStyle}
               >
                 <option value="">Selecione seu professor</option>
                 {teachers.map(t => (
@@ -437,12 +457,13 @@ function ClassSelectionScreen({
 
             {teacherId && (
               <div>
-                <label className="block text-sm font-semibold mb-2">Turma *</label>
+                <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Turma</label>
                 <select
                   value={classId}
                   onChange={e => setClassId(e.target.value)}
                   required
-                  className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-lg text-sm transition-colors"
+                  style={inputStyle}
                 >
                   <option value="">Selecione sua turma</option>
                   {filteredClasses.map(c => (
@@ -450,7 +471,7 @@ function ClassSelectionScreen({
                   ))}
                 </select>
                 {filteredClasses.length === 0 && (
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-sm text-white/30 mt-1">
                     Nenhuma turma disponível para este professor.
                   </p>
                 )}
@@ -460,7 +481,7 @@ function ClassSelectionScreen({
             <button
               type="submit"
               disabled={isSubmitting || !name.trim() || !teacherId || !classId}
-              className="btn-fantasy w-full py-3 text-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              className="btn-cyber w-full justify-center py-3"
             >
               {isSubmitting ? (
                 <><Loader2 size={20} className="animate-spin" /> Enviando...</>
@@ -471,7 +492,7 @@ function ClassSelectionScreen({
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
+        <p className="text-center text-xs text-white/25 mt-4">
           Sua solicitação será analisada pelo professor antes de liberar o acesso.
         </p>
       </div>
@@ -489,42 +510,38 @@ function PendingScreen({
   onLogout: () => void;
 }) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-dungeon-dark mb-6">
-          <Clock className="text-gold" size={36} />
-        </div>
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      <AincradBackground scene="default" />
+      <div className="relative z-10 holo-panel max-w-sm w-full text-center p-8">
+        <svg viewBox="0 0 100 100" className="w-16 h-16 mx-auto mb-4 animate-spin-slow">
+          <polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" fill="none" stroke="hsl(187 100% 50%)" strokeWidth="1.5"/>
+        </svg>
 
         {isRejected ? (
           <>
-            <h1 className="font-display text-2xl font-bold mb-3 text-destructive">
-              Solicitação não aprovada
-            </h1>
-            <p className="text-muted-foreground mb-2">
-              Olá, <strong>{studentName}</strong>. Sua solicitação de acesso não foi aprovada.
+            <h2 className="text-xl font-bold text-red-400 mb-2" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px' }}>
+              NAO APROVADO
+            </h2>
+            <p className="text-white/50 text-sm mb-2">
+              Olá, <strong className="text-white/70">{studentName}</strong>. Sua solicitação de acesso não foi aprovada.
             </p>
-            <p className="text-sm text-muted-foreground mb-6">
-              Fale com seu professor para mais informações.
-            </p>
+            <p className="text-white/30 text-xs">Fale com seu professor para mais informações.</p>
           </>
         ) : (
           <>
-            <h1 className="font-display text-2xl font-bold mb-3">Aguardando Aprovação</h1>
-            <p className="text-muted-foreground mb-2">
-              Olá, <strong>{studentName}</strong>! Sua solicitação foi enviada.
+            <h2 className="text-xl font-bold text-white mb-2" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px' }}>
+              AGUARDANDO APROVACAO
+            </h2>
+            <p className="text-white/50 text-sm mb-2">
+              Olá, <strong className="text-white/70">{studentName}</strong>! Sua solicitação foi enviada.
             </p>
-            <p className="text-sm text-muted-foreground mb-6">
-              Aguarde o professor liberar seu acesso. Esta página atualiza automaticamente
-              assim que você for aprovado. ⚔️
-            </p>
+            <p className="text-white/30 text-xs">Aguarde o professor liberar seu acesso.</p>
           </>
         )}
 
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-2 mx-auto text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <LogOut size={16} /> Sair da conta
+        <button onClick={onLogout} className="btn-cyber mt-6 mx-auto">
+          <LogOut size={14} />
+          Sair
         </button>
       </div>
     </div>
@@ -568,9 +585,11 @@ export default function StudentPortal() {
     purchaseItem,
   } = useStudentDB();
 
-  const [activeTab, setActiveTab] = useState<"challenges" | "missions" | "shop" | "inventory" | "character" | "ranking">("challenges");
+  const [activeTab, setActiveTab] = useState<StudentTab>("challenges");
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showEntrance, setShowEntrance] = useState(false);
+  const [entranceDone, setEntranceDone] = useState(false);
 
   useEffect(() => {
     if (!isLoading) { setLoadingTimedOut(false); return; }
@@ -582,28 +601,29 @@ export default function StudentPortal() {
     if (error) { toast.error(error); clearError(); }
   }, [error, clearError]);
 
+  useEffect(() => {
+    if (authState === "active" && student && !entranceDone) {
+      setShowEntrance(true);
+    }
+  }, [authState, student, entranceDone]);
+
   // ── Loading ────────────────────────────────
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          {loadingTimedOut ? (
-            <>
-              <p className="text-destructive font-semibold mb-2">Não foi possível conectar.</p>
-              <p className="text-muted-foreground text-sm">Verifique sua conexão e recarregue a página.</p>
-              <button onClick={() => window.location.reload()} className="btn-fantasy mt-4 px-6 py-2">
-                Recarregar
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="w-16 h-16 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground font-display">Carregando...</p>
-            </>
-          )}
+    if (loadingTimedOut) {
+      return (
+        <div className="min-h-screen relative flex items-center justify-center">
+          <AincradBackground scene="default" />
+          <div className="relative z-10 text-center p-8">
+            <p className="text-red-400 font-semibold mb-2">Não foi possível conectar.</p>
+            <p className="text-white/40 text-sm">Verifique sua conexão e recarregue a página.</p>
+            <button onClick={() => window.location.reload()} className="btn-cyber mt-4">
+              Recarregar
+            </button>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    return <DungeonLoadingScreen />;
   }
 
   // ── Pre-session screens ────────────────────
@@ -647,7 +667,7 @@ export default function StudentPortal() {
     if (result.error) {
       toast.error("Erro ao solicitar", { description: result.error.message });
     } else {
-      toast.success("Desafio solicitado!", { description: "Aguarde a validação do professor.", icon: "⚔️" });
+      toast.success("Desafio solicitado! Aguarde a validação do professor.");
     }
   };
 
@@ -661,150 +681,67 @@ export default function StudentPortal() {
     if (result.error) {
       toast.error("Erro ao solicitar presença", { description: result.error.message });
     } else {
-      toast.success("Presença solicitada!", { description: "Aguarde a confirmação do professor.", icon: "📋" });
+      toast.success("Presença solicitada! Aguarde a confirmação do professor.");
     }
   };
 
-  const displayName = student.character_name || student.name;
+  const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : 'home';
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-dungeon-dark text-primary-foreground py-4 px-4 md:px-6 shadow-lg">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="hidden md:block">
-              <h1 className="font-display text-xl md:text-2xl font-bold text-gold">WIT Dungeon</h1>
-            </div>
+    <div className="relative min-h-screen">
+      <AincradBackground scene={bgScene} />
 
-            <div className="flex items-center gap-3 bg-primary/20 rounded-lg px-4 py-2">
-              <div className="relative">
-                <ProfilePhoto
-                  studentId={student.id}
-                  currentPhotoUrl={student.profile_photo_url}
-                  onUpdate={refreshStudent}
-                  size="sm"
-                  editable={false}
-                />
-                <div className="absolute -top-2 -right-2">
-                  <AttendanceCrown consecutiveAttendance={student.presencas_consecutivas} />
-                </div>
-              </div>
-              <div>
-                <p className="font-semibold text-primary-foreground">{displayName}</p>
-                <p className="text-sm text-primary-foreground/70">
-                  {classes.find(c => c.id === student.class_id)?.name}
-                </p>
-                <StudentTitleBadge titles={studentTitles} />
-              </div>
-            </div>
-          </div>
+      {/* Dungeon Entrance animation */}
+      {showEntrance && !entranceDone && (
+        <DungeonEntrance
+          studentId={student.id}
+          studentName={student.character_name || student.name}
+          level={student.level}
+          characterClass={student.character_class}
+          onComplete={() => {
+            setShowEntrance(false);
+            setEntranceDone(true);
+          }}
+        />
+      )}
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <RewardDisplay amount={student.coins} icon={getRewardIcon()} size="md" />
-              <div className="hidden md:flex items-center gap-2">
-                <span className="text-sm text-primary-foreground/70">Nível</span>
-                <LevelBadge level={student.level} />
-              </div>
-            </div>
-            <button
-              onClick={async () => { setIsLoggingOut(true); await logout(); }}
-              disabled={isLoggingOut}
-              className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors disabled:opacity-50"
-              title="Sair"
-            >
-              {isLoggingOut ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
-            </button>
-          </div>
-        </div>
-      </header>
+      <StudentHeader student={student} onLogout={async () => { setIsLoggingOut(true); await logout(); }} />
+      <StudentNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <main className="container mx-auto px-4 py-6">
-        {/* Welcome Banner */}
-        <div className="card-fantasy mb-6 bg-gradient-to-r from-dungeon-dark to-primary text-primary-foreground overflow-hidden relative">
-          <div className="absolute right-0 top-0 w-32 h-32 bg-gold/10 rounded-full -mr-16 -mt-16" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2">
-              <LevelBadge level={student.level} />
-            </div>
-            <div>
-              <h2 className="font-display text-xl md:text-2xl font-bold flex items-center gap-2">
-                <Sparkles className="text-gold" size={24} />
-                Bem-vindo, {displayName}!
-              </h2>
-              <p className="text-primary-foreground/80 mt-1">
-                Complete desafios e conquiste recompensas épicas!
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Level */}
-        <div className="md:hidden card-fantasy mb-4 flex items-center justify-center gap-3">
-          <span className="text-muted-foreground">Seu Nível:</span>
-          <LevelBadge level={student.level} />
-        </div>
+      <main className="relative z-10 max-w-4xl mx-auto px-4 py-6 pb-24 md:pl-[88px]">
 
         {/* Attendance Banner */}
-        <div className="card-fantasy mb-6 bg-gradient-to-r from-success/20 to-success/10 border-2 border-success/30">
+        <div className="holo-panel mb-6 p-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center">
-                <CalendarCheck className="text-success" size={24} />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.15)' }}>
+                <CalendarCheck className="text-cyan-400" size={20} />
               </div>
               <div>
-                <p className="text-lg font-bold text-foreground">
-                  🔥 {student.presencas_consecutivas}{" "}
+                <p className="text-sm font-bold text-white flex items-center gap-2" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                  <Flame size={14} className="text-orange-400" />
+                  {student.presencas_consecutivas}{" "}
                   {student.presencas_consecutivas === 1 ? "aula consecutiva" : "aulas consecutivas"}
                 </p>
-                <p className="text-sm text-muted-foreground">Continue assim para manter sua sequência!</p>
+                <p className="text-xs text-white/40">Continue assim para manter sua sequência!</p>
               </div>
             </div>
 
             {hasAttendanceRequest() ? (
-              <button disabled className="btn-fantasy opacity-60 cursor-not-allowed flex items-center gap-2">
-                <Clock size={18} /> Aguardando confirmação
+              <button disabled className="btn-cyber opacity-60 cursor-not-allowed">
+                <Clock size={14} /> Aguardando confirmação
               </button>
             ) : (
-              <button
-                onClick={handleAttendanceRequest}
-                className="btn-fantasy bg-success hover:bg-success/90 flex items-center gap-2"
-              >
-                <CalendarCheck size={18} /> Marcar presença
+              <button onClick={handleAttendanceRequest} className="btn-cyber">
+                <CalendarCheck size={14} /> Marcar presença
               </button>
             )}
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {([
-            { id: "challenges", label: "Desafios",    icon: <Scroll size={20} /> },
-            { id: "missions",   label: "Missões",     icon: <Sparkles size={20} /> },
-            { id: "shop",       label: "Loja",        icon: <ShoppingBag size={20} /> },
-            { id: "inventory",  label: "Inventário",  icon: <Package size={20} /> },
-            { id: "ranking",    label: "Ranking",     icon: <Trophy size={20} /> },
-            { id: "character",  label: "Personagem",  icon: <UserCircle size={20} /> },
-          ] as const).map(({ id, label, icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex-shrink-0 px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-                activeTab === id
-                  ? "bg-primary text-primary-foreground shadow-lg"
-                  : "bg-card text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              {icon}
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-
         {/* Missions Tab */}
         {activeTab === "missions" && (
-          <section className="card-fantasy">
+          <section className="holo-panel">
             <MissionBoard
               studentId={student.id}
               missions={missions}
@@ -819,12 +756,11 @@ export default function StudentPortal() {
         {activeTab === "challenges" && (
           <section>
             <div className="section-title">
-              <Scroll className="text-gold" />
               <span>Desafios da Semana</span>
             </div>
             {challenges.length === 0 ? (
-              <div className="card-fantasy text-center py-8 text-muted-foreground">
-                <Sword size={48} className="mx-auto mb-4 opacity-50" />
+              <div className="holo-panel text-center py-8 text-white/40">
+                <Sword size={48} className="mx-auto mb-4 opacity-30" />
                 <p>Nenhum desafio disponível no momento</p>
               </div>
             ) : (
@@ -834,14 +770,14 @@ export default function StudentPortal() {
                     challenge.challenge_type === "unica" && isChallengeCompleted(challenge.id);
                   const isPending = isChallengePending(challenge.id);
                   return (
-                    <div key={challenge.id} className="card-fantasy relative overflow-hidden">
+                    <div key={challenge.id} className="holo-panel relative overflow-hidden">
                       {(isPending || isCompletedUnique) && (
                         <div className="absolute top-3 right-3">
                           <div
                             className={`flex items-center gap-1 text-sm font-semibold px-2 py-1 rounded-full ${
                               isCompletedUnique
-                                ? "text-primary bg-primary/10"
-                                : "text-success bg-success/10"
+                                ? "text-cyan-400 bg-cyan-400/10"
+                                : "text-green-400 bg-green-400/10"
                             }`}
                           >
                             {isCompletedUnique ? (
@@ -854,44 +790,44 @@ export default function StudentPortal() {
                       )}
 
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Sword className="text-primary" size={24} />
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.15)' }}>
+                          <GameIcon id="sword" size={28} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-display font-bold text-lg text-foreground">
+                            <h3 className="font-bold text-lg text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
                               {challenge.title}
                             </h3>
                             <span
                               className={`text-xs px-2 py-0.5 rounded-full ${
                                 challenge.challenge_type === "unica"
                                   ? "bg-amber-500/20 text-amber-400"
-                                  : "bg-primary/20 text-primary"
+                                  : "bg-cyan-500/20 text-cyan-400"
                               }`}
                             >
                               {challenge.challenge_type === "unica" ? "Única" : "Repetível"}
                             </span>
                           </div>
                           {challenge.description && (
-                            <p className="text-muted-foreground text-sm mb-3">{challenge.description}</p>
+                            <p className="text-white/50 text-sm mb-3">{challenge.description}</p>
                           )}
                           <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5 text-gold-dark font-semibold">
-                              <span className="text-lg">{getRewardIcon()}</span>
+                            <div className="flex items-center gap-1.5 text-yellow-400 font-semibold text-sm">
+                              <GameIcon id="coin" size={16} />
                               <span>+{challenge.reward}</span>
                             </div>
                             {isCompletedUnique ? (
-                              <button disabled className="btn-fantasy opacity-60 cursor-not-allowed flex items-center gap-2">
-                                <CheckCircle size={16} /> Concluído
+                              <button disabled className="btn-cyber opacity-60 cursor-not-allowed">
+                                <CheckCircle size={14} /> Concluído
                               </button>
                             ) : isPending ? (
-                              <button disabled className="btn-fantasy opacity-60 cursor-not-allowed flex items-center gap-2">
-                                <Clock size={16} /> Aguardando
+                              <button disabled className="btn-cyber opacity-60 cursor-not-allowed">
+                                <Clock size={14} /> Aguardando
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleChallengeRequest(challenge.id)}
-                                className="btn-fantasy flex items-center gap-2"
+                                className="btn-cyber"
                               >
                                 Concluir desafio
                               </button>
@@ -920,7 +856,7 @@ export default function StudentPortal() {
               if (!result.success) {
                 toast.error("Compra não realizada", { description: result.error });
               } else {
-                toast.success(`${item.name} adquirido!`, { icon: CATEGORY_META[item.category]?.icon ?? "🎁" });
+                toast.success(`${item.name} adquirido!`);
               }
             }}
           />
@@ -941,8 +877,8 @@ export default function StudentPortal() {
           <CharacterCustomization student={student} onUpdate={refreshStudent} />
         )}
 
-        <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>⚠️ Todas as solicitações são validadas pelo professor</p>
+        <div className="mt-8 text-center text-xs text-white/20">
+          <p>Todas as solicitações são validadas pelo professor</p>
           <DeveloperSignature className="mt-4" />
         </div>
       </main>

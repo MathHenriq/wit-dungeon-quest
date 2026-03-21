@@ -76,14 +76,14 @@ function StudentInventoryModal({ student, onClose }: { student: Student; onClose
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {item.image_url
                         ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                        : <span className="text-xl">{item.icon || meta.icon}</span>
+                        : <span className="text-xl">{item.icon || meta.iconId}</span>
                       }
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{item.name}</p>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-xs px-1.5 py-0.5 rounded-full ${meta.color}`}>
-                          {meta.icon} {meta.label}
+                          {meta.iconId} {meta.label}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           🪙 {item.cost}
@@ -168,7 +168,7 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
           {/* Attribute rows */}
           {ATTRIBUTES.map(attr => (
             <div key={attr.key} className="flex items-center gap-3 p-3 rounded-lg bg-card/60 border border-border">
-              <span className="text-xl w-7 text-center flex-shrink-0">{attr.icon}</span>
+              <span className="text-xl w-7 text-center flex-shrink-0">{attr.iconId}</span>
               <div className="flex-1">
                 <p className="text-sm font-semibold">{attr.label}</p>
                 <div className="h-1.5 rounded-full bg-secondary mt-1 overflow-hidden">

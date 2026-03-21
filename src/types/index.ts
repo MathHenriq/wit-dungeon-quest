@@ -4,22 +4,22 @@ export type TitleType = "helper_of_week" | "presence_guardian" | "attitude_examp
 
 export type ItemCategory = "armamento" | "armadura" | "utilizavel" | "colecao" | "habilidade" | "token";
 
-export const CATEGORY_META: Record<ItemCategory, { label: string; icon: string; color: string }> = {
-  armamento:  { label: "Armamento",  icon: "⚔️",  color: "bg-orange-500/20 text-orange-400" },
-  armadura:   { label: "Armadura",   icon: "🛡️",  color: "bg-blue-500/20 text-blue-400" },
-  utilizavel: { label: "Utilizável", icon: "🧪",  color: "bg-green-500/20 text-green-400" },
-  colecao:    { label: "Coleção",    icon: "⭐",  color: "bg-yellow-500/20 text-yellow-400" },
-  habilidade: { label: "Habilidade", icon: "✨",  color: "bg-purple-500/20 text-purple-400" },
-  token:      { label: "Token",      icon: "🎫",  color: "bg-amber-500/20 text-amber-400" },
+export const CATEGORY_META: Record<ItemCategory, { label: string; iconId: string; color: string }> = {
+  armamento:  { label: "Armamento",  iconId: "sword",   color: "bg-orange-500/20 text-orange-400" },
+  armadura:   { label: "Armadura",   iconId: "shield",  color: "bg-blue-500/20 text-blue-400" },
+  utilizavel: { label: "Utilizável", iconId: "potion",  color: "bg-green-500/20 text-green-400" },
+  colecao:    { label: "Coleção",    iconId: "star",    color: "bg-yellow-500/20 text-yellow-400" },
+  habilidade: { label: "Habilidade", iconId: "wand",    color: "bg-purple-500/20 text-purple-400" },
+  token:      { label: "Token",      iconId: "scroll",  color: "bg-amber-500/20 text-amber-400" },
 };
 
 export const ATTRIBUTES = [
-  { key: "attr_forca",        label: "Força",         icon: "💪" },
-  { key: "attr_destreza",     label: "Destreza",      icon: "🏹" },
-  { key: "attr_inteligencia", label: "Inteligência",  icon: "📚" },
-  { key: "attr_carisma",      label: "Carisma",       icon: "💬" },
-  { key: "attr_agilidade",    label: "Agilidade",     icon: "⚡" },
-  { key: "attr_resistencia",  label: "Resistência",   icon: "🔥" },
+  { key: "attr_forca",        label: "Força",         iconId: "sword" },
+  { key: "attr_destreza",     label: "Destreza",      iconId: "bow" },
+  { key: "attr_inteligencia", label: "Inteligência",  iconId: "wand" },
+  { key: "attr_carisma",      label: "Carisma",       iconId: "heart" },
+  { key: "attr_agilidade",    label: "Agilidade",     iconId: "flame" },
+  { key: "attr_resistencia",  label: "Resistência",   iconId: "shield" },
 ] as const;
 
 export type AttrKey = typeof ATTRIBUTES[number]["key"];

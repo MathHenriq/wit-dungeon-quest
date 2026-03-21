@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Cinzel", "serif"],
-        body: ["Nunito", "sans-serif"],
+        display: ["Rajdhani", "sans-serif"],
+        body: ["Exo 2", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -89,6 +89,28 @@ export default {
           "0%, 100%": { boxShadow: "0 0 8px hsl(43 90% 55% / 0.4)" },
           "50%": { boxShadow: "0 0 20px hsl(43 90% 55% / 0.7)" },
         },
+        "fade-in-up": {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "glow-breathe": {
+          "0%, 100%": { opacity: "0.6" },
+          "50%": { opacity: "1" },
+        },
+        "slow-drift": {
+          "0%": { transform: "translateY(0) translateX(0)" },
+          "50%": { transform: "translateY(-8px) translateX(4px)" },
+          "100%": { transform: "translateY(0) translateX(0)" },
+        },
+        "level-pop": {
+          "0%": { transform: "scale(0)", opacity: "0" },
+          "60%": { transform: "scale(1.3)", opacity: "1" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        "spin-slow": {
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -96,6 +118,11 @@ export default {
         "coin-spin": "coin-spin 1s ease-in-out",
         "float": "float 3s ease-in-out infinite",
         "glow": "glow 2s ease-in-out infinite",
+        "fade-in-up": "fade-in-up 0.5s ease-out forwards",
+        "glow-breathe": "glow-breathe 3s ease-in-out infinite",
+        "slow-drift": "slow-drift 6s ease-in-out infinite",
+        "level-pop": "level-pop 0.5s ease-out forwards",
+        "spin-slow": "spin-slow 8s linear infinite",
       },
     },
   },

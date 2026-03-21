@@ -2,20 +2,20 @@ import { useState, useEffect } from "react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import {
-  Sparkles,
-  Scroll,
-  Heart,
-  Eye,
-  Brain,
   Save,
   Swords,
   Loader2,
   Plus,
   Minus,
+  User,
+  BookOpen,
+  Sparkles,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Student, AttrKey } from "@/types";
 import { ATTRIBUTES } from "@/types";
+import { GameIcon } from "@/components/icons/GameIcon";
 
 interface CharacterCustomizationProps {
   student: Student;
@@ -73,6 +73,14 @@ const PERSONALITIES = [
   "Brincalhão",
   "Protetor",
 ];
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: 'rgba(255,255,255,0.85)',
+  outline: 'none',
+  width: '100%',
+};
 
 export function CharacterCustomization({ student, onUpdate }: CharacterCustomizationProps) {
   const [characterName, setCharacterName] = useState(student.character_name || "");
@@ -139,7 +147,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
       if (error) {
         toast.error("Erro ao salvar atributos", { description: error.message });
       } else {
-        toast.success("Atributos salvos!", { icon: "⚔️" });
+        toast.success("Atributos salvos!");
         onUpdate();
       }
     } finally {
@@ -166,7 +174,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
       if (error) {
         toast.error("Erro ao salvar", { description: error.message });
       } else {
-        toast.success("Personagem atualizado!", { icon: "⚔️" });
+        toast.success("Personagem atualizado!");
         onUpdate();
       }
     } finally {
@@ -177,26 +185,24 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
   return (
     <div className="space-y-6">
       {/* Banner */}
-      <div className="card-fantasy p-0 overflow-hidden">
+      <div className="holo-panel p-0 overflow-hidden">
         {/* Banner image area */}
-        <div className="relative h-36 bg-gradient-to-r from-dungeon-dark to-primary">
+        <div className="relative h-36" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(124,77,255,0.08))' }}>
           {student.profile_photo_url && (
             <img
               src={student.profile_photo_url}
               alt="Banner"
-              className="w-full h-full object-cover opacity-60"
+              className="w-full h-full object-cover opacity-40"
               onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
           )}
-          {/* Gradient overlay at bottom */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         </div>
 
         {/* Avatar + info row */}
         <div className="relative px-5 pb-4">
-          {/* Avatar overlapping the banner */}
           <div className="absolute -top-12 left-5">
-            <div className="ring-4 ring-background rounded-full">
+            <div className="ring-2 ring-cyan-400/30 rounded-full" style={{ boxShadow: '0 0 20px rgba(0,229,255,0.15)' }}>
               <ProfilePhoto
                 studentId={student.id}
                 currentPhotoUrl={student.profile_photo_url || null}
@@ -208,12 +214,11 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
             </div>
           </div>
 
-          {/* Name / class offset to the right of the avatar */}
           <div className="pl-32 pt-2">
-            <h2 className="font-display text-2xl font-bold text-foreground">
+            <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
               {characterName || student.name}
             </h2>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-white/40 text-sm">
               {race && characterClass
                 ? `${race} • ${characterClass}`
                 : "Configure seu personagem abaixo"}
@@ -223,15 +228,15 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
       </div>
 
       {/* Identity Section */}
-      <div className="card-fantasy">
+      <div className="holo-panel">
         <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="text-gold" size={20} />
-          <h3 className="font-display font-bold text-lg">Identidade</h3>
+          <User className="text-cyan-400" size={18} />
+          <h3 className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px', fontSize: '1rem' }}>IDENTIDADE</h3>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-semibold mb-2">
+            <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">
               Nome do Personagem
             </label>
             <input
@@ -240,20 +245,24 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
               onChange={(e) => setCharacterName(e.target.value)}
               placeholder="Escolha um nome épico..."
               maxLength={60}
-              className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
+              className="px-4 py-3 rounded-lg text-sm transition-colors"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              Raça
+            <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">
+              Raca
             </label>
             <select
               value={race}
               onChange={(e) => setRace(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all"
+              className="px-4 py-3 rounded-lg text-sm transition-colors"
+              style={inputStyle}
             >
-              <option value="">Selecione uma raça...</option>
+              <option value="">Selecione uma raca...</option>
               {RACES.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
@@ -261,13 +270,14 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">
+            <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">
               Classe
             </label>
             <select
               value={characterClass}
               onChange={(e) => setCharacterClass(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all"
+              className="px-4 py-3 rounded-lg text-sm transition-colors"
+              style={inputStyle}
             >
               <option value="">Selecione uma classe...</option>
               {CHARACTER_CLASSES.map((c) => (
@@ -277,15 +287,16 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">
+            <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">
               Personalidade
             </label>
             <select
               value={personality}
               onChange={(e) => setPersonality(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold outline-none transition-all"
+              className="px-4 py-3 rounded-lg text-sm transition-colors"
+              style={inputStyle}
             >
-              <option value="">Selecione um traço...</option>
+              <option value="">Selecione um traco...</option>
               {PERSONALITIES.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
@@ -295,59 +306,68 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
       </div>
 
       {/* Motivation */}
-      <div className="card-fantasy">
+      <div className="holo-panel">
         <div className="flex items-center gap-2 mb-4">
-          <Heart className="text-destructive" size={20} />
-          <h3 className="font-display font-bold text-lg">Motivação</h3>
+          <Sparkles className="text-cyan-400" size={18} />
+          <h3 className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px', fontSize: '1rem' }}>MOTIVACAO</h3>
         </div>
-        <p className="text-sm text-muted-foreground mb-3">
-          O que move seu personagem? Por que ele está nessa jornada?
+        <p className="text-sm text-white/40 mb-3">
+          O que move seu personagem? Por que ele esta nessa jornada?
         </p>
         <textarea
           value={motivation}
           onChange={(e) => setMotivation(e.target.value)}
-          placeholder="Ex: Busca vingança pelo seu mestre caído, quer se tornar o maior mago do reino, deseja proteger os inocentes..."
+          placeholder="Ex: Busca vinganca pelo seu mestre caido, quer se tornar o maior mago do reino..."
           maxLength={500}
-          className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all resize-none"
+          className="px-4 py-3 rounded-lg text-sm resize-none transition-colors"
+          style={{ ...inputStyle, width: '100%' }}
           rows={3}
+          onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
         />
       </div>
 
       {/* Lore / History */}
-      <div className="card-fantasy">
+      <div className="holo-panel">
         <div className="flex items-center gap-2 mb-4">
-          <Scroll className="text-gold" size={20} />
-          <h3 className="font-display font-bold text-lg">História</h3>
+          <BookOpen className="text-cyan-400" size={18} />
+          <h3 className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px', fontSize: '1rem' }}>HISTORIA</h3>
         </div>
-        <p className="text-sm text-muted-foreground mb-3">
-          Conte a história do seu personagem. De onde veio? O que já viveu?
+        <p className="text-sm text-white/40 mb-3">
+          Conte a historia do seu personagem. De onde veio? O que ja viveu?
         </p>
         <textarea
           value={lore}
           onChange={(e) => setLore(e.target.value)}
-          placeholder="Ex: Nascido nas montanhas geladas do norte, foi criado por uma tribo de guerreiros nômades..."
+          placeholder="Ex: Nascido nas montanhas geladas do norte, foi criado por uma tribo de guerreiros nomades..."
           maxLength={1000}
-          className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all resize-none"
+          className="px-4 py-3 rounded-lg text-sm resize-none transition-colors"
+          style={{ ...inputStyle, width: '100%' }}
           rows={4}
+          onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
         />
       </div>
 
       {/* Appearance */}
-      <div className="card-fantasy">
+      <div className="holo-panel">
         <div className="flex items-center gap-2 mb-4">
-          <Eye className="text-primary" size={20} />
-          <h3 className="font-display font-bold text-lg">Aparência</h3>
+          <Eye className="text-cyan-400" size={18} />
+          <h3 className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px', fontSize: '1rem' }}>APARENCIA</h3>
         </div>
-        <p className="text-sm text-muted-foreground mb-3">
+        <p className="text-sm text-white/40 mb-3">
           Descreva como seu personagem se parece.
         </p>
         <textarea
           value={appearance}
           onChange={(e) => setAppearance(e.target.value)}
-          placeholder="Ex: Alto e magro, cabelos prateados caindo até os ombros, olhos violeta brilhantes, cicatriz no rosto..."
+          placeholder="Ex: Alto e magro, cabelos prateados caindo ate os ombros, olhos violeta brilhantes..."
           maxLength={500}
-          className="w-full px-4 py-3 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all resize-none"
+          className="px-4 py-3 rounded-lg text-sm resize-none transition-colors"
+          style={{ ...inputStyle, width: '100%' }}
           rows={3}
+          onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
+          onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
         />
       </div>
 
@@ -356,22 +376,24 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="btn-fantasy flex items-center gap-2 px-6 py-3"
+          className="btn-cyber"
         >
-          <Save size={20} />
+          {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
           {isSaving ? "Salvando..." : "Salvar Personagem"}
         </button>
       </div>
 
-      {/* ── Attributes ─────────────────────────────── */}
-      <div className="card-fantasy">
+      {/* Attributes */}
+      <div className="holo-panel">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Swords className="text-gold" size={20} />
-            <h3 className="font-display font-bold text-lg">Atributos do Personagem</h3>
+            <Swords className="text-cyan-400" size={18} />
+            <h3 className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px', fontSize: '1rem' }}>ATRIBUTOS</h3>
           </div>
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${pendingPoints > 0 ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"}`}>
-            ✨ {pendingPoints} {pendingPoints === 1 ? "ponto disponível" : "pontos disponíveis"}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${pendingPoints > 0 ? "text-green-400" : "text-white/30"}`}
+            style={{ background: pendingPoints > 0 ? 'rgba(76,175,80,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${pendingPoints > 0 ? 'rgba(76,175,80,0.3)' : 'rgba(255,255,255,0.06)'}` }}>
+            <Sparkles size={14} />
+            {pendingPoints} {pendingPoints === 1 ? "ponto disponivel" : "pontos disponiveis"}
           </div>
         </div>
 
@@ -380,16 +402,16 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
             const val = pendingAttrs[attr.key] ?? 0;
             const max = 20;
             return (
-              <div key={attr.key} className="flex items-center gap-3 p-3 rounded-lg bg-card/60 border border-border">
-                <span className="text-xl w-7 text-center flex-shrink-0">{attr.icon}</span>
+              <div key={attr.key} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <GameIcon id={attr.iconId} size={28} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold">{attr.label}</span>
-                    <span className="text-sm font-bold text-primary">{val}</span>
+                    <span className="text-sm font-semibold text-white/80">{attr.label}</span>
+                    <span className="text-sm font-bold text-cyan-400">{val}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                  <div className="cyber-progress">
                     <div
-                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      className="cyber-progress-bar"
                       style={{ width: `${Math.min((val / max) * 100, 100)}%` }}
                     />
                   </div>
@@ -398,14 +420,20 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
                   <button
                     onClick={() => removePoint(attr.key)}
                     disabled={val <= 0}
-                    className="w-7 h-7 rounded-full bg-secondary hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all disabled:opacity-30 flex items-center justify-center"
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}
+                    onMouseEnter={e => { if (val > 0) (e.target as HTMLElement).style.background = 'rgba(239,68,68,0.2)'; }}
+                    onMouseLeave={e => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
                   >
                     <Minus size={12} />
                   </button>
                   <button
                     onClick={() => addPoint(attr.key)}
                     disabled={pendingPoints <= 0}
-                    className="w-7 h-7 rounded-full bg-secondary hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all disabled:opacity-30 flex items-center justify-center"
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all disabled:opacity-30"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}
+                    onMouseEnter={e => { if (pendingPoints > 0) (e.target as HTMLElement).style.background = 'rgba(0,229,255,0.15)'; }}
+                    onMouseLeave={e => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
                   >
                     <Plus size={12} />
                   </button>
@@ -422,7 +450,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
             <button
               onClick={handleSaveAttrs}
               disabled={isSavingAttrs}
-              className="btn-fantasy flex items-center gap-2"
+              className="btn-cyber"
             >
               {isSavingAttrs ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               {isSavingAttrs ? "Salvando..." : "Salvar Atributos"}
@@ -432,20 +460,20 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
 
         {pendingPoints > 0 && (
           <p className="text-xs text-green-400 mt-2 text-center">
-            Você tem {pendingPoints} {pendingPoints === 1 ? "ponto" : "pontos"} para distribuir! Use os botões + acima.
+            Voce tem {pendingPoints} {pendingPoints === 1 ? "ponto" : "pontos"} para distribuir! Use os botoes + acima.
           </p>
         )}
       </div>
 
       {/* Info Note */}
-      <div className="card-fantasy bg-secondary/50 border-dashed">
+      <div className="holo-panel" style={{ borderStyle: 'dashed' }}>
         <div className="flex items-start gap-3">
-          <Brain className="text-muted-foreground flex-shrink-0 mt-0.5" size={20} />
-          <div className="text-sm text-muted-foreground">
-            <p className="font-semibold mb-1">Nota importante</p>
+          <Sparkles className="text-white/30 flex-shrink-0 mt-0.5" size={18} />
+          <div className="text-sm text-white/40">
+            <p className="font-semibold mb-1 text-white/60">Nota importante</p>
             <p>
-              Todas as opções acima são visuais e narrativas. Elas não afetam mecânicas do jogo automaticamente. 
-              O professor pode decidir usar essas informações para criar habilidades ou bônus especiais para seu personagem!
+              Todas as opcoes acima sao visuais e narrativas. Elas nao afetam mecanicas do jogo automaticamente.
+              O professor pode decidir usar essas informacoes para criar habilidades ou bonus especiais para seu personagem!
             </p>
           </div>
         </div>
