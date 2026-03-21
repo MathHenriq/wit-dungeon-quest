@@ -87,6 +87,15 @@ export function useTeacherAnalytics(teacherId: string | undefined) {
     await loadAll();
   };
 
+  const clearDemo = async () => {
+    if (!teacherId) return;
+    await supabase
+      .from("analytics_events")
+      .delete()
+      .eq("teacher_id", teacherId);
+    await loadAll();
+  };
+
   return {
     filters,
     setFilters,
@@ -98,6 +107,7 @@ export function useTeacherAnalytics(teacherId: string | undefined) {
     isLoading,
     loadStudentDNA,
     seedDemo,
+    clearDemo,
     refresh: loadAll,
   };
 }

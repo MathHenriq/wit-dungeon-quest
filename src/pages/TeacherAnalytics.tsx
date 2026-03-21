@@ -12,7 +12,7 @@ import { StudentDNARadar } from "@/components/analytics/StudentDNARadar";
 import { AchievementTimeline } from "@/components/analytics/AchievementTimeline";
 import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
 import { ExportButton } from "@/components/analytics/ExportButton";
-import { ArrowLeft, BarChart3, RefreshCw, Sword, Shield, Sparkles } from "lucide-react";
+import { ArrowLeft, BarChart3, RefreshCw, Sword, Shield, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -22,11 +22,12 @@ export default function TeacherAnalytics() {
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [students, setStudents] = useState<{ id: string; name: string }[]>([]);
   const [seeding, setSeeding] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const {
     filters, setFilters,
     overview, heatmap, dailyActivity, riskScores, classComparison,
-    isLoading, loadStudentDNA, seedDemo, refresh,
+    isLoading, loadStudentDNA, seedDemo, clearDemo, refresh,
   } = useTeacherAnalytics(teacher?.id);
 
   useEffect(() => {
@@ -50,6 +51,18 @@ export default function TeacherAnalytics() {
       toast.error("Erro ao gerar dados de demonstração.");
     } finally {
       setSeeding(false);
+    }
+  };
+
+  const handleClearDemo = async () => {
+    setClearing(true);
+    try {
+      await clearDemo();
+      toast.success("Dados de demonstração removidos.");
+    } catch {
+      toast.error("Erro ao remover dados de demonstração.");
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -138,16 +151,28 @@ export default function TeacherAnalytics() {
           <p className="text-sm text-muted-foreground mb-3">
             Sem dados ainda? Gere eventos de demonstração para visualizar o dashboard funcionando.
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSeedDemo}
-            disabled={seeding}
-            className="border-gold/30 text-gold hover:bg-gold/10 gap-2"
-          >
-            {seeding ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {seeding ? "Gerando..." : "Gerar dados de demonstração (~500 eventos)"}
-          </Button>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSeedDemo}
+              disabled={seeding || clearing}
+              className="border-gold/30 text-gold hover:bg-gold/10 gap-2"
+            >
+              {seeding ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {seeding ? "Gerando..." : "Gerar dados de demonstração (~500 eventos)"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearDemo}
+              disabled={seeding || clearing}
+              className="border-destructive/40 text-destructive hover:bg-destructive/10 gap-2"
+            >
+              {clearing ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              {clearing ? "Removendo..." : "Limpar dados de demonstração"}
+            </Button>
+          </div>
         </div>
       </main>
     </div>
