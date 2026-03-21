@@ -62,22 +62,26 @@ export default function TeacherLogin() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-dungeon-dark mb-4">
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-xl mb-4"
+            style={{ background: 'rgba(201,164,74,0.08)', border: '1px solid rgba(201,164,74,0.25)' }}
+          >
             <div className="flex items-center gap-1">
-              <Sword className="text-gold" size={28} />
-              <Shield className="text-gold" size={28} />
+              <Sword className="text-yellow-400" size={22} />
+              <Shield className="text-yellow-400" size={22} />
             </div>
           </div>
-          <h1 className="font-display text-4xl font-bold text-dungeon-dark mb-2">WIT Dungeon</h1>
-          <p className="text-muted-foreground">Painel do Professor</p>
+          <h1 className="font-display text-3xl font-bold text-white mb-1" style={{ letterSpacing: '4px' }}>WIT DUNGEON</h1>
+          <p className="text-white/40 text-sm">Painel do Professor</p>
         </div>
 
-        <div className="card-fantasy space-y-4">
+        <div className="holo-panel-accent space-y-4">
           {/* Primary: Google sign-in */}
           <button
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading}
-            className="w-full py-3 px-4 rounded-lg border-2 border-border bg-background hover:bg-secondary transition-all flex items-center justify-center gap-3 font-semibold text-foreground disabled:opacity-60"
+            className="w-full py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-3 font-semibold text-white/80 disabled:opacity-60"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
           >
             {isGoogleLoading ? (
               <Loader2 size={20} className="animate-spin" />
@@ -98,7 +102,7 @@ export default function TeacherLogin() {
             <button
               type="button"
               onClick={() => setShowEmailForm(v => !v)}
-              className="w-full flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+              className="w-full flex items-center justify-center gap-1 text-sm text-white/30 hover:text-white/60 transition-colors py-1"
             >
               <ChevronDown
                 size={16}
@@ -108,23 +112,25 @@ export default function TeacherLogin() {
             </button>
 
             {showEmailForm && (
-              <div className="mt-4 space-y-4 border-t border-border pt-4">
+              <div className="mt-4 space-y-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setIsLogin(true)}
-                    className={`flex-1 py-2 rounded-lg font-semibold transition-all ${
-                      isLogin ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                    }`}
+                    className="flex-1 py-2 rounded-lg font-semibold transition-all text-sm"
+                    style={isLogin
+                      ? { background: 'rgba(0,229,255,0.15)', border: '1px solid rgba(0,229,255,0.3)', color: '#00e5ff' }
+                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
                   >
                     Entrar
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsLogin(false)}
-                    className={`flex-1 py-2 rounded-lg font-semibold transition-all ${
-                      !isLogin ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                    }`}
+                    className="flex-1 py-2 rounded-lg font-semibold transition-all text-sm"
+                    style={!isLogin
+                      ? { background: 'rgba(0,229,255,0.15)', border: '1px solid rgba(0,229,255,0.3)', color: '#00e5ff' }
+                      : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
                   >
                     Cadastrar
                   </button>
@@ -133,7 +139,7 @@ export default function TeacherLogin() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {!isLogin && (
                     <div>
-                      <label className="block text-sm font-semibold mb-2">Seu Nome</label>
+                      <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">Seu Nome</label>
                       <div className="relative">
                         <input
                           type="text"
@@ -141,7 +147,8 @@ export default function TeacherLogin() {
                           onChange={e => setName(e.target.value)}
                           placeholder="Professor(a) Silva"
                           required={!isLogin}
-                          className="w-full px-4 py-3 pl-11 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
+                          className="w-full px-4 py-3 pl-11 rounded-lg outline-none transition-all text-white/85 text-sm"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                         />
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
                       </div>
@@ -149,7 +156,7 @@ export default function TeacherLogin() {
                   )}
 
                   <div>
-                    <label className="block text-sm font-semibold mb-2">Email</label>
+                    <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">Email</label>
                     <div className="relative">
                       <input
                         type="email"
@@ -157,14 +164,15 @@ export default function TeacherLogin() {
                         onChange={e => setEmail(e.target.value)}
                         placeholder="professor@escola.com"
                         required
-                        className="w-full px-4 py-3 pl-11 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
+                        className="w-full px-4 py-3 pl-11 rounded-lg outline-none transition-all text-white/85 text-sm"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                       />
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold mb-2">Senha</label>
+                    <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">Senha</label>
                     <div className="relative">
                       <input
                         type="password"
@@ -173,7 +181,8 @@ export default function TeacherLogin() {
                         placeholder="••••••••"
                         required
                         minLength={6}
-                        className="w-full px-4 py-3 pl-11 rounded-lg border-2 border-border bg-background focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-all"
+                        className="w-full px-4 py-3 pl-11 rounded-lg outline-none transition-all text-white/85 text-sm"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                       />
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
                     </div>
@@ -182,7 +191,7 @@ export default function TeacherLogin() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="btn-fantasy w-full py-3 text-lg flex items-center justify-center gap-2"
+                    className="btn-cyber w-full py-3 justify-center"
                   >
                     {isLoading ? (
                       <Loader2 className="animate-spin" size={20} />
@@ -196,11 +205,11 @@ export default function TeacherLogin() {
           </div>
         </div>
 
-        <div className="text-center mt-6 space-y-3">
-          <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+        <div className="text-center mt-6 space-y-2">
+          <Link to="/" className="text-sm text-white/30 hover:text-cyan-400 transition-colors">
             ← Voltar para portal do aluno
           </Link>
-          <DeveloperSignature />
+          <DeveloperSignature className="text-center" />
         </div>
       </div>
     </div>

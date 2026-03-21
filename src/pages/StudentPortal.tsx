@@ -361,12 +361,14 @@ function LoginScreen({
           </div>
         </div>
 
-        <p className="text-center text-white/25 text-xs mt-4">
-          <Link to="/professor/login" className="hover:text-cyan-400 transition-colors">
-            Acesso do Professor
-          </Link>
-        </p>
-        <DeveloperSignature className="mt-4" />
+        <div className="text-center mt-4 space-y-2">
+          <p className="text-white/25 text-xs">
+            <Link to="/professor/login" className="hover:text-cyan-400 transition-colors">
+              Acesso do Professor
+            </Link>
+          </p>
+          <DeveloperSignature className="text-center" />
+        </div>
       </div>
     </div>
   );
