@@ -19,6 +19,7 @@ import { TeacherGuildPanel } from "@/components/TeacherGuildPanel";
 import { TeacherPetsPanel } from "@/components/TeacherPetsPanel";
 import { TeacherSkillTreePanel } from "@/components/TeacherSkillTreePanel";
 import { TeacherCraftPanel } from "@/components/TeacherCraftPanel";
+import { TeacherChestPanel } from "@/components/TeacherChestPanel";
 import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users,
@@ -41,6 +42,7 @@ import {
   Heart,
   Network,
   Hammer,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -48,7 +50,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds" | "pets" | "skills" | "craft">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds" | "pets" | "skills" | "craft" | "chests">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -220,6 +222,7 @@ export default function TeacherDashboard() {
       label: "Economia",
       tabs: [
         { id: "shop",       label: "Loja",         icon: ShoppingBag },
+        { id: "chests",     label: "Baús",         icon: Package },
         { id: "reward",     label: "Recompensa",   icon: Coins },
         { id: "pets",       label: "Pets",         icon: Heart },
       ],
@@ -520,6 +523,16 @@ export default function TeacherDashboard() {
             <div className="card-fantasy">
               <TeacherGuildPanel teacherId={teacher.id} students={students} classes={classes} />
             </div>
+          </section>
+        )}
+
+        {activeTab === "chests" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Package className="text-yellow-400" />
+              Gerenciar Baús
+            </h2>
+            <TeacherChestPanel teacherId={teacher.id} />
           </section>
         )}
 

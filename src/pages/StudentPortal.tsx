@@ -21,6 +21,7 @@ import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { GuildPanel } from "@/components/student/GuildPanel";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
 import { CraftPanel } from "@/components/student/CraftPanel";
+import { ChestSection } from "@/components/student/ChestSection";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
 import {
@@ -874,6 +875,7 @@ export default function StudentPortal() {
         {/* Shop Tab */}
         {activeTab === "shop" && (
           <>
+            <ChestSection student={student} onCoinsChanged={refreshStudent} />
             <ShopSection
               items={shopItems}
               inventory={inventory}

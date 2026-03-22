@@ -325,3 +325,40 @@ export interface StudentCraft {
   recipe_id: string;
   crafted_at: string;
 }
+
+export interface ChestType {
+  id: string;
+  teacher_id: string;
+  name: string;
+  tier: number;
+  description: string | null;
+  cost_coins: number;
+  cost_diamonds: number;
+  min_level: number;
+  min_items: number;
+  max_items: number;
+  drop_common: number;
+  drop_uncommon: number;
+  drop_rare: number;
+  drop_epic: number;
+  drop_legendary: number;
+  drop_mythic: number;
+  bonus_coins_min: number;
+  bonus_coins_max: number;
+  bonus_xp_min: number;
+  bonus_xp_max: number;
+  is_active: boolean;
+  is_limited: boolean;
+  stock: number | null;
+  created_at?: string;
+}
+
+export interface ChestOpening {
+  id: string;
+  student_id: string;
+  chest_type_id: string;
+  items_received: { item_id: string; item_name: string; rarity: string }[];
+  bonus_coins: number;
+  bonus_xp: number;
+  opened_at: string;
+}

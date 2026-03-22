@@ -2,7 +2,7 @@ import React from "react";
 import {
   SwordIcon, ShieldIcon, CoinIcon, GemIcon, FlameIcon, ScrollIcon,
   PotionIcon, StarIcon, WandIcon, BowIcon, HeartIcon, CrownIcon,
-  TrophyIcon, UserSaoIcon, PackageIcon, StoreIcon, DragonIcon, HealIcon,
+  TrophyIcon, UserSaoIcon, PackageIcon, StoreIcon, DragonIcon, HealIcon, ChestIcon,
 } from './SaoIcons';
 import type { SaoIconProps } from './SaoIcons';
 
@@ -25,6 +25,7 @@ const ICON_MAP: Record<string, React.FC<SaoIconProps>> = {
   store: StoreIcon,
   dragon: DragonIcon,
   heal: HealIcon,
+  chest: ChestIcon,
 };
 
 const DEFAULT_COLORS: Record<string, { ring: string; fill: string; bg: string }> = {
@@ -46,6 +47,7 @@ const DEFAULT_COLORS: Record<string, { ring: string; fill: string; bg: string }>
   store:  { ring: '#c9a44a', fill: '#c9a44a', bg: 'rgba(201,164,74,0.06)' },
   dragon: { ring: '#e24b4a', fill: '#e24b4a', bg: 'rgba(226,75,74,0.06)' },
   heal:   { ring: '#00e5ff', fill: '#00e5ff', bg: 'rgba(0,229,255,0.06)' },
+  chest:  { ring: '#c9a44a', fill: '#c9a44a', bg: 'rgba(201,164,74,0.06)' },
 };
 
 interface GameIconProps {

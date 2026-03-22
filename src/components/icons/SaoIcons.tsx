@@ -200,3 +200,23 @@ export function HealIcon({ size = 44, ringColor = '#00e5ff', fillColor = '#00e5f
     </svg>
   );
 }
+
+export function ChestIcon({ size = 44, ringColor = '#c9a44a', fillColor = '#c9a44a', bgColor = 'rgba(201,164,74,0.12)', className }: SaoIconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" className={className}>
+      <circle cx="24" cy="24" r="22.5" fill={bgColor} stroke={ringColor} strokeWidth="2"/>
+      {/* Base do baú */}
+      <rect x="11" y="26" width="26" height="13" rx="2" fill={fillColor}/>
+      {/* Tampa */}
+      <path d="M11 26C11 26 11 18 24 17C37 18 37 26 37 26Z" fill={fillColor} opacity="0.85"/>
+      {/* Linha de divisão */}
+      <rect x="11" y="25" width="26" height="2" rx="0" fill="rgba(0,0,0,0.25)"/>
+      {/* Fecho central */}
+      <rect x="21" y="23" width="6" height="6" rx="1.5" fill="rgba(0,0,0,0.35)"/>
+      <rect x="22.5" y="24.5" width="3" height="3" rx="0.75" fill={fillColor} opacity="0.6"/>
+      {/* Dobradiças */}
+      <rect x="13" y="24.5" width="3" height="3" rx="1" fill="rgba(0,0,0,0.3)"/>
+      <rect x="32" y="24.5" width="3" height="3" rx="1" fill="rgba(0,0,0,0.3)"/>
+    </svg>
+  );
+}
