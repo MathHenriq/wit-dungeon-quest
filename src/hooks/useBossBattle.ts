@@ -79,25 +79,39 @@ export function useBattleSession(bossId: string, studentId: string) {
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      const { data: bossData } = await supabaseStudent
-        .from("boss_battles")
-        .select("*")
-        .eq("id", bossId)
-        .single();
+      try {
+        const { data: bossData, error: bossErr } = await supabaseStudent
+          .from("boss_battles")
+          .select("*")
+          .eq("id", bossId)
+          .single();
 
-      const { data: questionsData } = await supabaseStudent
-        .from("boss_questions")
-        .select("*")
-        .eq("boss_id", bossId)
-        .order("sort_order");
+        if (bossErr) {
+          console.error("[BattleSession] boss load error:", bossErr);
+          return;
+        }
 
-      setBoss(bossData as BossBattle);
-      setQuestions((questionsData || []) as BossQuestion[]);
+        const { data: questionsData, error: qErr } = await supabaseStudent
+          .from("boss_questions")
+          .select("*")
+          .eq("boss_id", bossId)
+          .order("sort_order");
 
-      if (bossData?.time_limit_minutes) {
-        setTimeLeft(bossData.time_limit_minutes * 60);
+        if (qErr) {
+          console.error("[BattleSession] questions load error:", qErr);
+        }
+
+        setBoss(bossData as BossBattle);
+        setQuestions((questionsData || []) as BossQuestion[]);
+
+        if (bossData?.time_limit_minutes) {
+          setTimeLeft(bossData.time_limit_minutes * 60);
+        }
+      } catch (err) {
+        console.error("[BattleSession] unexpected error:", err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     load();
   }, [bossId]);
@@ -119,16 +133,16 @@ export function useBattleSession(bossId: string, studentId: string) {
     setQuestionTimeLeft(30);
   }, [currentIndex, isFinished]);
 
-  // Per-question timer countdown (pauses while showing hit/miss result)
+  // Per-question timer countdown (pauses while loading, showing hit/miss result, or no questions)
   useEffect(() => {
-    if (isFinished || lastResult !== null) return;
+    if (isLoading || isFinished || lastResult !== null || questions.length === 0) return;
     if (questionTimeLeft <= 0) {
       submitAnswer('__timeout__');
       return;
     }
     const t = setTimeout(() => setQuestionTimeLeft(q => q - 1), 1000);
     return () => clearTimeout(t);
-  }, [questionTimeLeft, isFinished, lastResult, submitAnswer]);
+  }, [isLoading, questions.length, questionTimeLeft, isFinished, lastResult, submitAnswer]);
 
   const submitAnswer = useCallback((answer: string) => {
     if (!boss || isFinished || lastResult !== null) return;

@@ -116,6 +116,25 @@ export function BattleScreen({
     );
   }
 
+  if (questions.length === 0) {
+    return (
+      <div
+        className="fixed inset-0 flex flex-col items-center justify-center gap-4"
+        style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 40%, #2d1015 100%)', zIndex: 200 }}
+      >
+        <Skull size={40} className="text-orange-400/60" />
+        <p className="text-white/60 font-bold text-lg" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '3px' }}>
+          {boss.boss_name}
+        </p>
+        <p className="text-white/30 text-sm">Este boss não possui perguntas cadastradas.</p>
+        <p className="text-white/20 text-xs">Peça ao professor para adicionar perguntas.</p>
+        <button onClick={onExit} className="btn-cyber gap-2 mt-2">
+          <ChevronLeft size={16} /> Voltar
+        </button>
+      </div>
+    );
+  }
+
   const question = questions[currentIndex];
   const diffConfig = DIFFICULTY_CONFIG[boss.difficulty] ?? DIFFICULTY_CONFIG.normal;
   const studentIconId = CLASS_ICON[student.character_class ?? ''] ?? 'user';
