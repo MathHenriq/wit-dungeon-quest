@@ -162,7 +162,8 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
               value={pontos}
               min={0}
               onChange={e => setPontos(Math.max(0, parseInt(e.target.value) || 0))}
-              className="w-20 px-2 py-1 rounded border border-border text-center text-sm"
+              className="w-20 px-2 py-1 rounded text-center text-sm font-bold text-cyan-400"
+              style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.3)', outline: 'none' }}
             />
           </div>
 
@@ -181,7 +182,8 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
                 value={attrs[attr.key] ?? 0}
                 min={0}
                 onChange={e => setAttrs(prev => ({ ...prev, [attr.key]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                className="w-16 px-2 py-1 rounded border border-border text-center text-sm"
+                className="w-16 px-2 py-1 rounded text-center text-sm font-bold text-white"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', outline: 'none', fontFamily: 'Rajdhani, sans-serif' }}
               />
             </div>
           ))}
