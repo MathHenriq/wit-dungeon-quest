@@ -414,14 +414,23 @@ export function BossBattleTab({
         <GameIcon id="dragon" size={56} ringColor="rgba(255,255,255,0.2)" fillColor="rgba(255,255,255,0.2)" bgColor="rgba(255,255,255,0.03)" className="mx-auto mb-4" />
         <p className="font-bold" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px' }}>NENHUM BOSS ATIVO</p>
         <p className="text-sm mt-1 text-white/25">Aguarde seu professor criar uma batalha</p>
+        <button
+          onClick={() => loadBosses()}
+          className="mt-4 text-xs text-white/20 hover:text-white/50 transition-colors flex items-center gap-1.5 mx-auto"
+        >
+          <RotateCcw size={12} /> Atualizar lista
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="section-title">
+      <div className="section-title flex items-center justify-between">
         <span>Boss Battles</span>
+        <button onClick={() => loadBosses()} className="text-white/20 hover:text-white/50 transition-colors" title="Atualizar">
+          <RotateCcw size={14} />
+        </button>
       </div>
       {activeBosses.map((boss: BossBattleType) => {
         const attempt = getBossAttempt(boss.id);

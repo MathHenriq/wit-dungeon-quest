@@ -184,7 +184,7 @@ export function TeacherBossPanel({ teacherId, classes, onDataChanged }: TeacherB
         reward_xp: rewardXp,
         difficulty,
         class_id: classId || null,
-        is_active: false,
+        is_active: true,
         time_limit_minutes: null,
       }).select().single();
 
@@ -202,7 +202,7 @@ export function TeacherBossPanel({ teacherId, classes, onDataChanged }: TeacherB
 
       await supabase.from("boss_questions").insert(questionsToInsert);
 
-      toast.success("Boss criado! Ative-o para os alunos verem.");
+      toast.success("Boss criado e ativado! Alunos já podem enfrentá-lo.");
       setShowCreate(false);
       resetForm();
       loadBosses();
@@ -347,7 +347,12 @@ export function TeacherBossPanel({ teacherId, classes, onDataChanged }: TeacherB
               <div className="flex items-center gap-3">
                 <GameIcon id="dragon" size={36} ringColor={boss.is_active ? "#ef4444" : "rgba(255,255,255,0.2)"} fillColor={boss.is_active ? "#ef4444" : "rgba(255,255,255,0.2)"} bgColor={boss.is_active ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.04)"} className="flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{boss.boss_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{boss.boss_name}</p>
+                    {!boss.is_active && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-bold uppercase" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>Inativo</span>
+                    )}
+                  </div>
                   <div className="text-xs text-white/30 flex gap-3">
                     <span>HP {boss.boss_hp}</span>
                     <span className="text-yellow-400">{boss.reward_coins} moedas</span>
