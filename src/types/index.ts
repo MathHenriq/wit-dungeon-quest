@@ -229,3 +229,99 @@ export interface GuildPost {
   created_at: string;
   student?: { name: string; character_name: string | null };
 }
+
+export interface PetType {
+  id: string;
+  teacher_id: string;
+  name: string;
+  icon: string;
+  description: string | null;
+  stage1_name: string;
+  stage2_name: string;
+  stage3_name: string;
+  stage1_icon: string;
+  stage2_icon: string;
+  stage3_icon: string;
+  bonus_type: 'xp' | 'coins' | 'streak_protection' | null;
+  bonus_value: number | null;
+  evolution_threshold_2: number;
+  evolution_threshold_3: number;
+  created_at: string;
+}
+
+export interface StudentPet {
+  id: string;
+  student_id: string;
+  pet_type_id: string;
+  name: string;
+  xp: number;
+  current_stage: number;
+  is_active: boolean;
+  adopted_at: string;
+  pet_type?: PetType;
+}
+
+export interface SkillTree {
+  id: string;
+  teacher_id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  created_at?: string;
+}
+
+export interface SkillNode {
+  id: string;
+  tree_id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  parent_node_id: string | null;
+  reward_coins: number;
+  reward_title: string | null;
+  position_x: number;
+  position_y: number;
+  sort_order: number;
+  created_at?: string;
+}
+
+export interface SkillProgress {
+  id: string;
+  student_id: string;
+  node_id: string;
+  completed: boolean;
+  completed_at: string | null;
+}
+
+export interface Mentorship {
+  id: string;
+  mentor_id: string;
+  mentee_id: string;
+  teacher_id: string;
+  status: string;
+  created_at: string;
+  completed_at: string | null;
+  mentor?: Student;
+  mentee?: Student;
+}
+
+export interface CraftRecipe {
+  id: string;
+  teacher_id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  result_item_id: string | null;
+  result_coins: number;
+  result_xp: number;
+  ingredient_nodes: string[];
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  created_at?: string;
+}
+
+export interface StudentCraft {
+  id: string;
+  student_id: string;
+  recipe_id: string;
+  crafted_at: string;
+}

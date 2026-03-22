@@ -19,6 +19,8 @@ import { CharacterSheet } from "@/components/student/CharacterSheet";
 import { ProgressRanking } from "@/components/student/ProgressRanking";
 import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { GuildPanel } from "@/components/student/GuildPanel";
+import { SkillTreeView } from "@/components/student/SkillTreeView";
+import { CraftPanel } from "@/components/student/CraftPanel";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
 import {
@@ -700,7 +702,7 @@ export default function StudentPortal() {
     }
   };
 
-  const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'bosses' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : activeTab === 'guild' ? 'home' : 'home';
+  const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'bosses' ? 'quests' : activeTab === 'skills' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : activeTab === 'guild' ? 'home' : 'home';
 
   return (
     <div className="relative min-h-screen">
@@ -871,21 +873,26 @@ export default function StudentPortal() {
 
         {/* Shop Tab */}
         {activeTab === "shop" && (
-          <ShopSection
-            items={shopItems}
-            inventory={inventory}
-            studentCoins={student.coins}
-            studentLevel={student.level}
-            onPurchase={async (item) => {
-              const result = await purchaseItem(item.id);
-              if (!result) return;
-              if (!result.success) {
-                toast.error("Compra não realizada", { description: result.error });
-              } else {
-                toast.success(`${item.name} adquirido!`);
-              }
-            }}
-          />
+          <>
+            <ShopSection
+              items={shopItems}
+              inventory={inventory}
+              studentCoins={student.coins}
+              studentLevel={student.level}
+              onPurchase={async (item) => {
+                const result = await purchaseItem(item.id);
+                if (!result) return;
+                if (!result.success) {
+                  toast.error("Compra não realizada", { description: result.error });
+                } else {
+                  toast.success(`${item.name} adquirido!`);
+                }
+              }}
+            />
+            <div className="mt-6">
+              <CraftPanel studentId={student.id} teacherId={student.teacher_id} onCoinsChanged={refreshStudent} />
+            </div>
+          </>
         )}
 
         {/* Inventory Tab */}
@@ -899,6 +906,11 @@ export default function StudentPortal() {
 
         {activeTab === "guild" && (
           <GuildPanel student={student} />
+        )}
+
+        {/* Skills Tab */}
+        {activeTab === "skills" && (
+          <SkillTreeView studentId={student.id} teacherId={student.teacher_id} />
         )}
 
         {/* Ranking Tab */}

@@ -16,6 +16,9 @@ import { TeacherShopPanel } from "@/components/TeacherShopPanel";
 import { GoogleClassroomSync } from "@/components/GoogleClassroomSync";
 import { TeacherBossPanel } from "@/components/TeacherBossPanel";
 import { TeacherGuildPanel } from "@/components/TeacherGuildPanel";
+import { TeacherPetsPanel } from "@/components/TeacherPetsPanel";
+import { TeacherSkillTreePanel } from "@/components/TeacherSkillTreePanel";
+import { TeacherCraftPanel } from "@/components/TeacherCraftPanel";
 import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users,
@@ -35,6 +38,9 @@ import {
   GraduationCap,
   Swords,
   Users2,
+  Heart,
+  Network,
+  Hammer,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,7 +48,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds" | "pets" | "skills" | "craft">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -189,20 +195,48 @@ export default function TeacherDashboard() {
   const pendingStudents = students.filter(s => s.status === "pending");
   const activeStudents = students.filter(s => s.status !== "pending");
 
-  const TABS = [
-    { id: "requests",   label: "Solicitações", icon: Clock },
-    { id: "pending",    label: "Pendentes",    icon: UserPlus, badge: pendingStudents.length },
-    { id: "shop",       label: "Loja",          icon: ShoppingBag },
-    { id: "missions",   label: "Missões",       icon: Sparkles },
-    { id: "titles",     label: "Títulos",       icon: Award },
-    { id: "attendance", label: "Presença",      icon: CalendarCheck },
-    { id: "classes",    label: "Turmas",        icon: BookOpen },
-    { id: "students",   label: "Alunos",        icon: Users },
-    { id: "challenges", label: "Desafios",      icon: Sword },
-    { id: "reward",     label: "Recompensa",    icon: Coins },
-    { id: "classroom",  label: "Classroom",     icon: GraduationCap },
-    { id: "bosses",     label: "Boss Battles",  icon: Swords },
-    { id: "guilds",     label: "Guildas",       icon: Users2 },
+  const TAB_GROUPS = [
+    {
+      label: "Gestão",
+      tabs: [
+        { id: "requests",   label: "Solicitações", icon: Clock,        badge: requests.length },
+        { id: "pending",    label: "Pendentes",    icon: UserPlus,     badge: pendingStudents.length },
+        { id: "students",   label: "Alunos",       icon: Users },
+        { id: "classes",    label: "Turmas",       icon: BookOpen },
+        { id: "attendance", label: "Presença",     icon: CalendarCheck },
+      ],
+    },
+    {
+      label: "Conteúdo",
+      tabs: [
+        { id: "missions",   label: "Missões",      icon: Sparkles },
+        { id: "challenges", label: "Desafios",     icon: Sword },
+        { id: "bosses",     label: "Bosses",       icon: Swords },
+        { id: "skills",     label: "Skills",       icon: Network },
+        { id: "craft",      label: "Craft",        icon: Hammer },
+      ],
+    },
+    {
+      label: "Economia",
+      tabs: [
+        { id: "shop",       label: "Loja",         icon: ShoppingBag },
+        { id: "reward",     label: "Recompensa",   icon: Coins },
+        { id: "pets",       label: "Pets",         icon: Heart },
+      ],
+    },
+    {
+      label: "Social",
+      tabs: [
+        { id: "guilds",     label: "Guildas",      icon: Users2 },
+        { id: "titles",     label: "Títulos",      icon: Award },
+      ],
+    },
+    {
+      label: "Integrações",
+      tabs: [
+        { id: "classroom",  label: "Classroom",    icon: GraduationCap },
+      ],
+    },
   ] as const;
 
   return (
@@ -267,30 +301,40 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {TABS.map(({ id, label, icon: Icon, ...rest }) => {
-            const badge = "badge" in rest ? (rest as { badge: number }).badge : 0;
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`relative px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all ${
-                  activeTab === id
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : "bg-card text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                <Icon size={18} />
-                <span className="hidden sm:inline">{label}</span>
-                {badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center font-bold">
-                    {badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Tabs — grouped */}
+        <div className="space-y-3 mb-6">
+          {TAB_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="text-xs text-white/25 uppercase tracking-widest mb-1.5 px-1" style={{ fontFamily: "Rajdhani, sans-serif" }}>
+                {group.label}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {group.tabs.map(({ id, label, icon: Icon, ...rest }) => {
+                  const badge = "badge" in rest ? (rest as { badge: number }).badge : 0;
+                  const isActive = activeTab === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setActiveTab(id as typeof activeTab)}
+                      className={`relative px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-sm transition-all ${
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-lg"
+                          : "bg-card text-muted-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      <Icon size={15} />
+                      <span className="hidden sm:inline">{label}</span>
+                      {badge > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-bold">
+                          {badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Tab Content */}
@@ -476,6 +520,36 @@ export default function TeacherDashboard() {
             <div className="card-fantasy">
               <TeacherGuildPanel teacherId={teacher.id} students={students} classes={classes} />
             </div>
+          </section>
+        )}
+
+        {activeTab === "pets" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Heart className="text-pink-400" />
+              Gerenciar Pets
+            </h2>
+            <TeacherPetsPanel teacherId={teacher.id} />
+          </section>
+        )}
+
+        {activeTab === "skills" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Network className="text-cyan-400" />
+              Skill Trees
+            </h2>
+            <TeacherSkillTreePanel teacherId={teacher.id} />
+          </section>
+        )}
+
+        {activeTab === "craft" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Hammer className="text-amber-400" />
+              Craft — Receitas
+            </h2>
+            <TeacherCraftPanel teacherId={teacher.id} shopItems={shopItems} />
           </section>
         )}
 

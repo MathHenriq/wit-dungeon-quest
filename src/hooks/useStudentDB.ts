@@ -226,6 +226,8 @@ export function useStudentDB() {
     sessionStartRef.current = Date.now();
     void trackLogin(typedStudent.teacher_id, typedStudent.id, typedStudent.class_id);
     void trackSessionStart(typedStudent.teacher_id, typedStudent.id, typedStudent.class_id);
+    // Daily login pet XP (+3)
+    void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: typedStudent.id, p_xp: 3 });
   }, []);
 
   // Subscribe to auth changes (handles initial session + OAuth redirect)
@@ -412,7 +414,11 @@ export function useStudentDB() {
       request_type: "challenge",
       challenge_id: challengeId,
     });
-    if (!error) await loadRequests(student.id);
+    if (!error) {
+      await loadRequests(student.id);
+      // Give pet XP for submitting a challenge (+8)
+      void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: student.id, p_xp: 8 });
+    }
     return { error };
   };
 
@@ -425,6 +431,8 @@ export function useStudentDB() {
     if (!error) {
       await loadRequests(student.id);
       void trackAttendance(student.teacher_id, student.id, student.class_id, student.presencas_consecutivas ?? 0);
+      // Give pet XP for marking attendance (+3)
+      void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: student.id, p_xp: 3 });
     }
     return { error };
   };

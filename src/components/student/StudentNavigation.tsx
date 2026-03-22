@@ -1,13 +1,14 @@
 import React from "react";
-import { Sword, ScrollText, Store, Package, Trophy, User, Skull, Shield } from "lucide-react";
+import { Sword, ScrollText, Store, Package, Trophy, User, Skull, Shield, Network } from "lucide-react";
 
-export type StudentTab = 'challenges' | 'missions' | 'bosses' | 'guild' | 'shop' | 'inventory' | 'ranking' | 'character';
+export type StudentTab = 'challenges' | 'missions' | 'bosses' | 'guild' | 'skills' | 'shop' | 'inventory' | 'ranking' | 'character';
 
 const NAV_ITEMS: { id: StudentTab; label: string; Icon: React.FC<{ size?: number; className?: string }> }[] = [
   { id: 'challenges', label: 'Quests',  Icon: Sword },
   { id: 'missions',   label: 'Missões', Icon: ScrollText },
   { id: 'bosses',     label: 'Bosses',  Icon: Skull },
   { id: 'guild',      label: 'Guilda',  Icon: Shield },
+  { id: 'skills',     label: 'Skills',  Icon: Network },
   { id: 'shop',       label: 'Loja',    Icon: Store },
   { id: 'inventory',  label: 'Mochila', Icon: Package },
   { id: 'ranking',    label: 'Rank',    Icon: Trophy },

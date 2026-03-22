@@ -4,6 +4,8 @@ import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
 import type { Student, InventoryItem } from "@/types";
+import { PetPanel } from "@/components/student/PetPanel";
+import { MentorshipPanel } from "@/components/student/MentorshipPanel";
 
 // ─── Attribute colors ─────────────────────────────────────────────────────────
 
@@ -334,6 +336,12 @@ export function CharacterSheet({ student, inventory, onUpdate }: CharacterSheetP
           )}
         </div>
       )}
+
+      {/* ── Pet panel ── */}
+      <PetPanel studentId={student.id} teacherId={student.teacher_id} />
+
+      {/* ── Mentorship panel ── */}
+      <MentorshipPanel student={student} />
 
       {/* ── Edit button ── */}
       <button
