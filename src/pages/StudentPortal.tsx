@@ -14,6 +14,10 @@ import { DungeonLoadingScreen } from "@/components/student/DungeonLoadingScreen"
 import { DungeonEntrance } from "@/components/student/DungeonEntrance";
 import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentNavigation, type StudentTab } from "@/components/student/StudentNavigation";
+import { OnboardingFlow } from "@/components/student/OnboardingFlow";
+import { CharacterSheet } from "@/components/student/CharacterSheet";
+import { ProgressRanking } from "@/components/student/ProgressRanking";
+import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
 import {
   Sword,
@@ -592,6 +596,7 @@ export default function StudentPortal() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showEntrance, setShowEntrance] = useState(false);
   const [entranceDone, setEntranceDone] = useState(false);
+  const [showAccessibility, setShowAccessibility] = useState(false);
 
   useEffect(() => {
     if (!isLoading) { setLoadingTimedOut(false); return; }
@@ -663,6 +668,10 @@ export default function StudentPortal() {
 
   // ── Active dashboard ───────────────────────
 
+  if (!student.character_name) {
+    return <OnboardingFlow student={student} onComplete={refreshStudent} />;
+  }
+
   const handleChallengeRequest = async (challengeId: string) => {
     const result = await requestChallenge(challengeId);
     if (!result) return;
@@ -707,7 +716,7 @@ export default function StudentPortal() {
         />
       )}
 
-      <StudentHeader student={student} onLogout={async () => { setIsLoggingOut(true); await logout(); }} />
+      <StudentHeader student={student} onLogout={async () => { setIsLoggingOut(true); await logout(); }} onOpenAccessibility={() => setShowAccessibility(true)} />
       <StudentNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className="relative z-10 max-w-4xl mx-auto px-4 py-6 pb-24 md:pl-[88px]">
@@ -871,12 +880,12 @@ export default function StudentPortal() {
 
         {/* Ranking Tab */}
         {activeTab === "ranking" && (
-          <ClassRanking classId={student.class_id} currentStudentId={student.id} />
+          <ProgressRanking student={student} classId={student.class_id} showClassicToggle />
         )}
 
         {/* Character Tab */}
         {activeTab === "character" && (
-          <CharacterCustomization student={student} onUpdate={refreshStudent} />
+          <CharacterSheet student={student} inventory={inventory} onUpdate={refreshStudent} />
         )}
 
         <div className="mt-8 text-center text-xs text-white/20">
@@ -884,6 +893,10 @@ export default function StudentPortal() {
           <DeveloperSignature className="mt-4" />
         </div>
       </main>
+
+      {showAccessibility && (
+        <AccessibilitySettings onClose={() => setShowAccessibility(false)} />
+      )}
     </div>
   );
 }

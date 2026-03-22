@@ -1,12 +1,13 @@
-import { Coins, Flame, LogOut } from "lucide-react";
+import { Coins, Flame, LogOut, Settings } from "lucide-react";
 import type { Student } from "@/types";
 
 interface StudentHeaderProps {
   student: Student;
   onLogout: () => void;
+  onOpenAccessibility?: () => void;
 }
 
-export function StudentHeader({ student, onLogout }: StudentHeaderProps) {
+export function StudentHeader({ student, onLogout, onOpenAccessibility }: StudentHeaderProps) {
   return (
     <header
       className="sticky top-0 z-40 px-4 py-3"
@@ -49,6 +50,16 @@ export function StudentHeader({ student, onLogout }: StudentHeaderProps) {
           <div className="level-badge text-sm" style={{ width: '32px', height: '32px' }}>
             {student.level}
           </div>
+          {onOpenAccessibility && (
+            <button
+              onClick={onOpenAccessibility}
+              className="p-2 rounded-lg text-white/30 hover:text-white/60 transition-colors"
+              aria-label="Configurações de acessibilidade"
+              title="Acessibilidade"
+            >
+              <Settings size={15} />
+            </button>
+          )}
           <button
             onClick={onLogout}
             className="p-2 rounded-lg text-white/40 hover:text-white/80 transition-colors"

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorRecoveryToast } from "@/components/ErrorRecoveryToast";
+import { ColorBlindFilters } from "@/components/ColorBlindFilters";
 import StudentPortal from "./pages/StudentPortal";
 import TeacherLogin from "./pages/TeacherLogin";
 import TeacherDashboard from "./pages/TeacherDashboard";
@@ -17,6 +18,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
+        <ColorBlindFilters />
         <Toaster />
         <Sonner />
         <ErrorRecoveryToast />

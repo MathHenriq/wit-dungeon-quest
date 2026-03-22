@@ -212,3 +212,40 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ═══ ACCESSIBILITY MODES ═══ */
+.high-contrast {
+  --background: 0 0% 5%;
+  --foreground: 0 0% 100%;
+  --primary: 187 100% 60%;
+  --border: 0 0% 60%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 70%;
+}
+.high-contrast .holo-panel,
+.high-contrast .card-fantasy,
+.high-contrast .holo-panel-accent {
+  background: rgba(0,0,0,0.85) !important;
+  border-color: rgba(255,255,255,0.5) !important;
+}
+.high-contrast .btn-cyber,
+.high-contrast .btn-fantasy {
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
+}
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+*:focus-visible {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+.deuteranopia { filter: url(#filter-deuteranopia); }
+.protanopia   { filter: url(#filter-protanopia); }
+.tritanopia   { filter: url(#filter-tritanopia); }
