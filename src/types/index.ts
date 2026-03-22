@@ -152,3 +152,80 @@ export interface StudentTitle {
   /** Present in teacher-facing queries. */
   student_id?: string;
 }
+
+// ─── Boss Battle types ────────────────────────────────────────────────────────
+
+export interface BossBattle {
+  id: string;
+  teacher_id: string;
+  class_id: string | null;
+  title: string;
+  description: string | null;
+  boss_name: string;
+  boss_icon: string;
+  boss_hp: number;
+  reward_coins: number;
+  reward_xp: number;
+  difficulty: 'easy' | 'normal' | 'hard' | 'legendary';
+  is_active: boolean;
+  time_limit_minutes: number | null;
+  created_at?: string;
+}
+
+export interface BossQuestion {
+  id: string;
+  boss_id: string;
+  question_text: string;
+  question_type: 'multiple_choice' | 'true_false' | 'text';
+  options: string[] | null;
+  correct_answer: string;
+  damage: number;
+  sort_order: number;
+}
+
+export interface BossAttempt {
+  id: string;
+  boss_id: string;
+  student_id: string;
+  answers: { question_id: string; answer: string; correct: boolean; damage_dealt: number }[];
+  total_damage: number;
+  boss_defeated: boolean;
+  coins_earned: number;
+  xp_earned: number;
+  started_at: string;
+  finished_at: string | null;
+}
+
+// ─── Guild types ──────────────────────────────────────────────────────────────
+
+export interface Guild {
+  id: string;
+  teacher_id: string;
+  name: string;
+  emblem: string;
+  description: string | null;
+  level: number;
+  xp: number;
+  max_members: number;
+  created_at: string;
+  member_count?: number;
+}
+
+export interface GuildMember {
+  id: string;
+  guild_id: string;
+  student_id: string;
+  role: 'leader' | 'officer' | 'member';
+  joined_at: string;
+  student?: Student;
+}
+
+export interface GuildPost {
+  id: string;
+  guild_id: string;
+  student_id: string;
+  content: string;
+  post_type: 'message' | 'achievement' | 'tip';
+  created_at: string;
+  student?: { name: string; character_name: string | null };
+}

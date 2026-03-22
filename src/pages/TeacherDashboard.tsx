@@ -14,6 +14,8 @@ import { TeacherAttendancePanel } from "@/components/TeacherAttendancePanel";
 import { TeacherPendingStudentsPanel } from "@/components/TeacherPendingStudentsPanel";
 import { TeacherShopPanel } from "@/components/TeacherShopPanel";
 import { GoogleClassroomSync } from "@/components/GoogleClassroomSync";
+import { TeacherBossPanel } from "@/components/TeacherBossPanel";
+import { TeacherGuildPanel } from "@/components/TeacherGuildPanel";
 import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users,
@@ -31,6 +33,8 @@ import {
   Loader2,
   BarChart3,
   GraduationCap,
+  Swords,
+  Users2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,7 +42,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -197,6 +201,8 @@ export default function TeacherDashboard() {
     { id: "challenges", label: "Desafios",      icon: Sword },
     { id: "reward",     label: "Recompensa",    icon: Coins },
     { id: "classroom",  label: "Classroom",     icon: GraduationCap },
+    { id: "bosses",     label: "Boss Battles",  icon: Swords },
+    { id: "guilds",     label: "Guildas",       icon: Users2 },
   ] as const;
 
   return (
@@ -445,6 +451,30 @@ export default function TeacherDashboard() {
             </h2>
             <div className="card-fantasy max-w-2xl">
               <GoogleClassroomSync teacherId={teacher.id} onDataChanged={loadData} />
+            </div>
+          </section>
+        )}
+
+        {activeTab === "bosses" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Swords className="text-red-400" />
+              Boss Battles
+            </h2>
+            <div className="card-fantasy">
+              <TeacherBossPanel teacherId={teacher.id} classes={classes} onDataChanged={loadData} />
+            </div>
+          </section>
+        )}
+
+        {activeTab === "guilds" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Users2 className="text-purple-400" />
+              Guildas
+            </h2>
+            <div className="card-fantasy">
+              <TeacherGuildPanel teacherId={teacher.id} students={students} classes={classes} />
             </div>
           </section>
         )}

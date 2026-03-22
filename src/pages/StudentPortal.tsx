@@ -17,6 +17,8 @@ import { StudentNavigation, type StudentTab } from "@/components/student/Student
 import { OnboardingFlow } from "@/components/student/OnboardingFlow";
 import { CharacterSheet } from "@/components/student/CharacterSheet";
 import { ProgressRanking } from "@/components/student/ProgressRanking";
+import { BossBattleTab } from "@/components/student/BossBattle";
+import { GuildPanel } from "@/components/student/GuildPanel";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
 import {
@@ -696,7 +698,7 @@ export default function StudentPortal() {
     }
   };
 
-  const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : 'home';
+  const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'bosses' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : activeTab === 'guild' ? 'home' : 'home';
 
   return (
     <div className="relative min-h-screen">
@@ -876,6 +878,14 @@ export default function StudentPortal() {
         {/* Inventory Tab */}
         {activeTab === "inventory" && (
           <InventorySection inventory={inventory} />
+        )}
+
+        {activeTab === "bosses" && (
+          <BossBattleTab student={student} />
+        )}
+
+        {activeTab === "guild" && (
+          <GuildPanel student={student} />
         )}
 
         {/* Ranking Tab */}
