@@ -88,13 +88,30 @@ export function BattleScreen({
     lastResult, isLoading, timeLeft, questionTimeLeft, currentHp, hpPct, submitAnswer,
   } = useBattleSession(bossId, student.id);
 
-  if (isLoading || !boss) {
+  if (isLoading) {
     return (
       <div
         className="fixed inset-0 flex items-center justify-center"
         style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 40%, #2d1015 100%)', zIndex: 200 }}
       >
         <div className="w-10 h-10 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!boss) {
+    return (
+      <div
+        className="fixed inset-0 flex flex-col items-center justify-center gap-4"
+        style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 40%, #2d1015 100%)', zIndex: 200 }}
+      >
+        <Skull size={40} className="text-red-400/60" />
+        <p className="text-white/40 text-sm" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px' }}>
+          Boss não encontrado
+        </p>
+        <button onClick={onExit} className="btn-cyber gap-2 mt-2">
+          <ChevronLeft size={16} /> Voltar
+        </button>
       </div>
     );
   }
