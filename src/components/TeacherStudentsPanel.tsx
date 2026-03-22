@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Coins, TrendingUp, Package, X, Loader2, Swords } from "lucide-react";
+import { GameIcon } from "@/components/icons/GameIcon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePhoto } from "./ProfilePhoto";
@@ -82,11 +83,11 @@ function StudentInventoryModal({ student, onClose }: { student: Student; onClose
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{item.name}</p>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${meta.color}`}>
-                          {meta.iconId} {meta.label}
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${meta.color}`}>
+                          <GameIcon id={meta.iconId} size={12} /> {meta.label}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          🪙 {item.cost}
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <GameIcon id="coin" size={12} /> {item.cost}
                         </span>
                       </div>
                     </div>
@@ -155,7 +156,7 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
         <div className="overflow-y-auto flex-1 p-4 space-y-3">
           {/* Pontos disponíveis */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-            <span className="text-sm font-semibold">✨ Pontos disponíveis</span>
+            <span className="text-sm font-semibold flex items-center gap-2"><GameIcon id="star" size={16} /> Pontos disponíveis</span>
             <input
               type="number"
               value={pontos}
@@ -168,7 +169,7 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
           {/* Attribute rows */}
           {ATTRIBUTES.map(attr => (
             <div key={attr.key} className="flex items-center gap-3 p-3 rounded-lg bg-card/60 border border-border">
-              <span className="text-xl w-7 text-center flex-shrink-0">{attr.iconId}</span>
+              <GameIcon id={attr.iconId} size={28} className="flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-semibold">{attr.label}</p>
                 <div className="h-1.5 rounded-full bg-secondary mt-1 overflow-hidden">
@@ -358,23 +359,25 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Coins className="text-gold" size={18} />
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.2)' }}>
+                  <Coins className="text-yellow-400" size={14} />
                   <input
                     type="number"
                     value={student.coins}
                     onChange={e => updateCoins(student.id, parseInt(e.target.value) || 0)}
-                    className="w-20 px-2 py-1 rounded border border-border text-center"
+                    className="w-16 text-center text-sm font-bold text-yellow-400 bg-transparent outline-none"
+                    style={{ fontFamily: 'Rajdhani, sans-serif' }}
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="text-primary" size={18} />
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)' }}>
+                  <TrendingUp className="text-cyan-400" size={14} />
                   <input
                     type="number"
                     value={student.level}
                     onChange={e => updateLevel(student.id, parseInt(e.target.value) || 1)}
-                    className="w-16 px-2 py-1 rounded border border-border text-center"
+                    className="w-12 text-center text-sm font-bold text-cyan-400 bg-transparent outline-none"
                     min={1}
+                    style={{ fontFamily: 'Rajdhani, sans-serif' }}
                   />
                 </div>
                 <button

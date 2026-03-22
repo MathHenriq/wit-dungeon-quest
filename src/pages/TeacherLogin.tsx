@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
+import { AincradBackground } from "@/components/ui/AincradBackground";
 import { Sword, Shield, Mail, Lock, User, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,8 +59,9 @@ export default function TeacherLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      <AincradBackground scene="default" />
+      <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div
