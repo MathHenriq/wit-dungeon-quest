@@ -4,6 +4,14 @@ import { GameIcon } from "@/components/icons/GameIcon";
 import { useBossBattle, useBattleSession } from "@/hooks/useBossBattle";
 import type { Student, BossBattle as BossBattleType } from "@/types";
 
+// Map character class name → icon id
+const CLASS_ICON: Record<string, string> = {
+  Guerreiro: 'sword', Mago: 'wand', Arqueiro: 'bow', Curandeiro: 'heart',
+  Engenheiro: 'scroll', Alquimista: 'potion', Bardo: 'star', Espião: 'gem',
+  Monge: 'flame', Necromante: 'skull', Paladino: 'shield', Druida: 'scroll',
+  Cavaleiro: 'sword', Oráculo: 'star', Samurai: 'sword',
+};
+
 // Boss HP bar
 function HpBar({ current, max, className = "" }: { current: number; max: number; className?: string }) {
   const pct = Math.max(0, Math.min(100, (current / max) * 100));
@@ -18,12 +26,12 @@ function HpBar({ current, max, className = "" }: { current: number; max: number;
   );
 }
 
-// Difficulty badge
+// Difficulty badge config
 const DIFFICULTY_CONFIG = {
-  easy:      { label: 'Fácil',     color: 'text-green-400',  bg: 'rgba(76,175,80,0.12)'   },
-  normal:    { label: 'Normal',    color: 'text-cyan-400',   bg: 'rgba(0,229,255,0.12)'   },
-  hard:      { label: 'Difícil',   color: 'text-orange-400', bg: 'rgba(255,107,53,0.12)'  },
-  legendary: { label: 'Lendário', color: 'text-yellow-400', bg: 'rgba(255,215,0,0.12)'   },
+  easy:      { label: 'Fácil',    color: 'text-green-400',  bg: 'rgba(76,175,80,0.12)'  },
+  normal:    { label: 'Normal',   color: 'text-cyan-400',   bg: 'rgba(0,229,255,0.12)'  },
+  hard:      { label: 'Difícil',  color: 'text-orange-400', bg: 'rgba(255,107,53,0.12)' },
+  legendary: { label: 'Lendário',color: 'text-yellow-400', bg: 'rgba(255,215,0,0.12)'  },
 };
 
 // Format time mm:ss
@@ -33,17 +41,59 @@ function formatTime(seconds: number) {
   return `${m}:${s}`;
 }
 
-// ─── BATTLE SCREEN ────────────────────────────────────────────────────────────
+// Per-question countdown ring
+function QuestionTimer({ timeLeft }: { timeLeft: number }) {
+  const pct = timeLeft / 30;
+  const urgent = timeLeft <= 10;
+  const r = 18;
+  const circ = 2 * Math.PI * r;
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 48, height: 48 }}>
+      <svg width="48" height="48" style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx="24" cy="24" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+        <circle
+          cx="24" cy="24" r={r} fill="none"
+          stroke={urgent ? '#ef4444' : '#00e5ff'}
+          strokeWidth="3"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - pct)}
+          style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+        />
+      </svg>
+      <span
+        className="absolute font-bold text-sm"
+        style={{ fontFamily: 'Rajdhani, sans-serif', color: urgent ? '#ef4444' : '#00e5ff' }}
+      >
+        {timeLeft}
+      </span>
+    </div>
+  );
+}
 
-function BattleScreen({ bossId, student, onExit }: { bossId: string; student: Student; onExit: () => void }) {
+// ─── BATTLE SCREEN ─────────────────────────────────────────────────────────────
+
+export function BattleScreen({
+  bossId,
+  student,
+  onExit,
+  onRetry,
+}: {
+  bossId: string;
+  student: Student;
+  onExit: () => void;
+  onRetry: () => void;
+}) {
   const {
     boss, questions, currentIndex, totalDamage, isFinished, isDefeated,
-    lastResult, isLoading, timeLeft, currentHp, hpPct, submitAnswer,
+    lastResult, isLoading, timeLeft, questionTimeLeft, currentHp, hpPct, submitAnswer,
   } = useBattleSession(bossId, student.id);
 
   if (isLoading || !boss) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 40%, #2d1015 100%)' }}>
+      <div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 40%, #2d1015 100%)', zIndex: 200 }}
+      >
         <div className="w-10 h-10 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
       </div>
     );
@@ -51,11 +101,15 @@ function BattleScreen({ bossId, student, onExit }: { bossId: string; student: St
 
   const question = questions[currentIndex];
   const diffConfig = DIFFICULTY_CONFIG[boss.difficulty] ?? DIFFICULTY_CONFIG.normal;
+  const studentIconId = CLASS_ICON[student.character_class ?? ''] ?? 'user';
 
   // ── RESULT SCREEN ──
   if (isFinished) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 40%, #2d1015 100%)' }}>
+      <div
+        className="fixed inset-0 flex flex-col items-center justify-center p-6"
+        style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 40%, #2d1015 100%)', zIndex: 200 }}
+      >
         {isDefeated ? (
           <>
             <div className="text-center mb-6">
@@ -112,7 +166,7 @@ function BattleScreen({ bossId, student, onExit }: { bossId: string; student: St
             <ChevronLeft size={16} /> Voltar
           </button>
           {!isDefeated && (
-            <button onClick={() => window.location.reload()} className="btn-cyber gap-2">
+            <button onClick={onRetry} className="btn-cyber gap-2">
               <RotateCcw size={16} /> Tentar Novamente
             </button>
           )}
@@ -123,8 +177,8 @@ function BattleScreen({ bossId, student, onExit }: { bossId: string; student: St
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 20%, #2d1015 40%, #3d1518 55%, #2d1015 70%, #1a0a0e 90%)' }}
+      className="fixed inset-0 flex flex-col"
+      style={{ background: 'linear-gradient(180deg, #0a0408 0%, #1a0a0e 20%, #2d1015 40%, #3d1518 55%, #2d1015 70%, #1a0a0e 90%)', zIndex: 200 }}
     >
       {/* Hit/Miss overlay */}
       {lastResult && (
@@ -134,22 +188,26 @@ function BattleScreen({ bossId, student, onExit }: { bossId: string; student: St
         />
       )}
 
-      {/* Header: boss info + HP */}
+      {/* Header: boss vs student + HP */}
       <div className="p-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(239,68,68,0.15)' }}>
+        {/* VS row */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
+          {/* Boss side */}
+          <div className="flex items-center gap-2 min-w-0">
             <GameIcon id="dragon" size={36} ringColor="#ef4444" fillColor="#ef4444" bgColor="rgba(239,68,68,0.1)" />
-            <div>
-              <h2 className="font-bold text-white text-lg" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px' }}>
+            <div className="min-w-0">
+              <h2 className="font-bold text-white text-base truncate" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '1px' }}>
                 {boss.boss_name}
               </h2>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${diffConfig.color}`} style={{ background: diffConfig.bg }}>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${diffConfig.color}`} style={{ background: diffConfig.bg }}>
                 {diffConfig.label}
               </span>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-red-400 font-bold text-sm" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+
+          {/* HP counter */}
+          <div className="flex flex-col items-center px-2 flex-shrink-0">
+            <span className="text-red-400 font-bold text-xs" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
               HP {currentHp}/{boss.boss_hp}
             </span>
             {timeLeft !== null && (
@@ -158,28 +216,44 @@ function BattleScreen({ bossId, student, onExit }: { bossId: string; student: St
               </p>
             )}
           </div>
+
+          {/* Student side */}
+          <div className="flex items-center gap-2 min-w-0 flex-row-reverse">
+            <GameIcon id={studentIconId} size={36} ringColor="#00e5ff" fillColor="#00e5ff" bgColor="rgba(0,229,255,0.08)" />
+            <div className="min-w-0 text-right">
+              <p className="font-bold text-cyan-400 text-base truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                {student.character_name || student.name}
+              </p>
+              <p className="text-white/40 text-xs">{student.character_class ?? 'Guerreiro'}</p>
+            </div>
+          </div>
         </div>
+
+        {/* Boss HP bar */}
         <HpBar current={currentHp} max={boss.boss_hp} />
       </div>
 
       {/* Battle area */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col">
-        {/* Question counter */}
+        {/* Question counter + per-question timer */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-white/40 text-xs uppercase tracking-wider" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
             Pergunta {currentIndex + 1} de {questions.length}
           </span>
-          <span className="text-red-400 text-sm font-bold flex items-center gap-1">
-            <Zap size={14} /> {totalDamage} dano
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-red-400 text-sm font-bold flex items-center gap-1">
+              <Zap size={14} /> {totalDamage} dano
+            </span>
+            <QuestionTimer timeLeft={questionTimeLeft} />
+          </div>
         </div>
 
-        {/* Progress bar for questions */}
+        {/* Progress bar */}
         <div className="cyber-progress h-0.5 mb-5">
-          <div className="cyber-progress-bar" style={{ width: `${((currentIndex) / questions.length) * 100}%`, background: '#ef4444', boxShadow: '0 0 4px rgba(239,68,68,0.5)' }} />
+          <div className="cyber-progress-bar" style={{ width: `${(currentIndex / questions.length) * 100}%`, background: '#ef4444', boxShadow: '0 0 4px rgba(239,68,68,0.5)' }} />
         </div>
 
-        {/* Question text */}
+        {/* Question */}
         {question && (
           <>
             <div className="holo-panel p-4 mb-5 flex-shrink-0" style={{ borderColor: 'rgba(239,68,68,0.15)' }}>
@@ -187,7 +261,9 @@ function BattleScreen({ bossId, student, onExit }: { bossId: string; student: St
                 {question.question_text}
               </p>
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs text-red-400/60 uppercase tracking-wider">{question.question_type === 'multiple_choice' ? 'Múltipla Escolha' : question.question_type === 'true_false' ? 'V ou F' : 'Resposta Aberta'}</span>
+                <span className="text-xs text-red-400/60 uppercase tracking-wider">
+                  {question.question_type === 'multiple_choice' ? 'Múltipla Escolha' : question.question_type === 'true_false' ? 'V ou F' : 'Resposta Aberta'}
+                </span>
                 <span className="text-xs text-white/30">·</span>
                 <span className="text-xs text-orange-400">{question.damage} dano</span>
               </div>
@@ -196,7 +272,7 @@ function BattleScreen({ bossId, student, onExit }: { bossId: string; student: St
             {/* Answers */}
             {question.question_type === 'multiple_choice' && question.options && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {question.options.map((opt, i) => {
+                {(question.options as string[]).map((opt, i) => {
                   const letter = ['A', 'B', 'C', 'D'][i];
                   return (
                     <button
@@ -247,8 +323,10 @@ function BattleScreen({ bossId, student, onExit }: { bossId: string; student: St
 
             {/* Hit/Miss feedback */}
             {lastResult && (
-              <div className={`mt-4 p-3 rounded-lg text-center font-bold text-lg animate-fade-in-up ${lastResult === 'hit' ? 'text-green-400' : 'text-red-400'}`}
-                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px', background: lastResult === 'hit' ? 'rgba(76,175,80,0.1)' : 'rgba(239,68,68,0.1)' }}>
+              <div
+                className={`mt-4 p-3 rounded-lg text-center font-bold text-lg animate-fade-in-up ${lastResult === 'hit' ? 'text-green-400' : 'text-red-400'}`}
+                style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px', background: lastResult === 'hit' ? 'rgba(76,175,80,0.1)' : 'rgba(239,68,68,0.1)' }}
+              >
                 {lastResult === 'hit' ? (
                   <span className="flex items-center justify-center gap-2">
                     <CheckCircle size={20} /> HIT! -{question.damage} HP
@@ -294,21 +372,16 @@ function TextAnswerForm({ onSubmit, disabled }: { onSubmit: (v: string) => void;
   );
 }
 
-// ─── BOSS SELECTION LIST ──────────────────────────────────────────────────────
+// ─── BOSS SELECTION LIST ───────────────────────────────────────────────────────
 
-export function BossBattleTab({ student }: { student: Student }) {
+export function BossBattleTab({
+  student,
+  onStartBoss,
+}: {
+  student: Student;
+  onStartBoss: (bossId: string) => void;
+}) {
   const { activeBosses, isLoading, getBossAttempt, loadBosses } = useBossBattle(student.id);
-  const [activeBossId, setActiveBossId] = useState<string | null>(null);
-
-  if (activeBossId) {
-    return (
-      <BattleScreen
-        bossId={activeBossId}
-        student={student}
-        onExit={() => { setActiveBossId(null); loadBosses(); }}
-      />
-    );
-  }
 
   if (isLoading) {
     return (
@@ -338,7 +411,6 @@ export function BossBattleTab({ student }: { student: Student }) {
         const diffConfig = DIFFICULTY_CONFIG[boss.difficulty] ?? DIFFICULTY_CONFIG.normal;
         return (
           <div key={boss.id} className="holo-panel relative overflow-hidden" style={{ borderColor: attempt?.boss_defeated ? 'rgba(255,215,0,0.3)' : 'rgba(239,68,68,0.15)' }}>
-            {/* Red glow for uncompleted */}
             {!attempt?.boss_defeated && (
               <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ boxShadow: 'inset 0 0 30px rgba(239,68,68,0.04)' }} />
             )}
@@ -379,7 +451,7 @@ export function BossBattleTab({ student }: { student: Student }) {
                   </div>
                 ) : (
                   <button
-                    onClick={() => setActiveBossId(boss.id)}
+                    onClick={() => onStartBoss(boss.id)}
                     className="px-4 py-2 rounded-lg font-bold text-sm transition-all hover:scale-105"
                     style={{
                       background: 'rgba(239,68,68,0.12)',

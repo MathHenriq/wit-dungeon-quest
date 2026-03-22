@@ -17,7 +17,7 @@ import { StudentNavigation, type StudentTab } from "@/components/student/Student
 import { OnboardingFlow } from "@/components/student/OnboardingFlow";
 import { CharacterSheet } from "@/components/student/CharacterSheet";
 import { ProgressRanking } from "@/components/student/ProgressRanking";
-import { BossBattleTab } from "@/components/student/BossBattle";
+import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { GuildPanel } from "@/components/student/GuildPanel";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
@@ -599,6 +599,8 @@ export default function StudentPortal() {
   const [showEntrance, setShowEntrance] = useState(false);
   const [entranceDone, setEntranceDone] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
+  const [activeBossId, setActiveBossId] = useState<string | null>(null);
+  const [battleKey, setBattleKey] = useState(0);
 
   useEffect(() => {
     if (!isLoading) { setLoadingTimedOut(false); return; }
@@ -703,6 +705,17 @@ export default function StudentPortal() {
   return (
     <div className="relative min-h-screen">
       <AincradBackground scene={bgScene} />
+
+      {/* BattleScreen renders at root level — outside z-10 stacking context — so it covers the nav */}
+      {activeBossId && student && (
+        <BattleScreen
+          key={battleKey}
+          bossId={activeBossId}
+          student={student}
+          onExit={() => setActiveBossId(null)}
+          onRetry={() => setBattleKey(k => k + 1)}
+        />
+      )}
 
       {/* Dungeon Entrance animation */}
       {showEntrance && !entranceDone && (
@@ -881,7 +894,7 @@ export default function StudentPortal() {
         )}
 
         {activeTab === "bosses" && (
-          <BossBattleTab student={student} />
+          <BossBattleTab student={student} onStartBoss={setActiveBossId} />
         )}
 
         {activeTab === "guild" && (

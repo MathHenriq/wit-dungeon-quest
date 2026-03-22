@@ -70,6 +70,7 @@ export function useBattleSession(bossId: string, studentId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
 
   useEffect(() => {
     const load = async () => {
@@ -97,16 +98,33 @@ export function useBattleSession(bossId: string, studentId: string) {
     load();
   }, [bossId]);
 
-  // Timer countdown
+  // Global timer countdown
   useEffect(() => {
     if (timeLeft === null || isFinished) return;
     if (timeLeft <= 0) {
       finishBattle(answers, totalDamage, false);
       return;
     }
-    const t = setTimeout(() => setTimeLeft(t => (t ?? 1) - 1), 1000);
+    const t = setTimeout(() => setTimeLeft(prev => (prev ?? 1) - 1), 1000);
     return () => clearTimeout(t);
   }, [timeLeft, isFinished]);
+
+  // Per-question timer: reset to 30 on each new question
+  useEffect(() => {
+    if (isFinished) return;
+    setQuestionTimeLeft(30);
+  }, [currentIndex, isFinished]);
+
+  // Per-question timer countdown (pauses while showing hit/miss result)
+  useEffect(() => {
+    if (isFinished || lastResult !== null) return;
+    if (questionTimeLeft <= 0) {
+      submitAnswer('__timeout__');
+      return;
+    }
+    const t = setTimeout(() => setQuestionTimeLeft(q => q - 1), 1000);
+    return () => clearTimeout(t);
+  }, [questionTimeLeft, isFinished, lastResult, submitAnswer]);
 
   const submitAnswer = useCallback((answer: string) => {
     if (!boss || isFinished || lastResult !== null) return;
@@ -172,6 +190,6 @@ export function useBattleSession(bossId: string, studentId: string) {
 
   return {
     boss, questions, currentIndex, totalDamage, isFinished, isDefeated,
-    lastResult, isLoading, isSaving, timeLeft, currentHp, hpPct, submitAnswer,
+    lastResult, isLoading, isSaving, timeLeft, questionTimeLeft, currentHp, hpPct, submitAnswer,
   };
 }
