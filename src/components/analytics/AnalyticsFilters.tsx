@@ -14,7 +14,7 @@ export function AnalyticsFilters({ filters, onChange, classes }: Props) {
         value={String(filters.period)}
         onValueChange={(v) => onChange({ ...filters, period: Number(v) })}
       >
-        <SelectTrigger className="w-36 bg-dungeon-dark border-gold/30 text-primary-foreground">
+        <SelectTrigger className="w-36 bg-dungeon-dark border-gold/30 text-foreground">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -29,7 +29,7 @@ export function AnalyticsFilters({ filters, onChange, classes }: Props) {
         value={filters.classId ?? "all"}
         onValueChange={(v) => onChange({ ...filters, classId: v === "all" ? null : v })}
       >
-        <SelectTrigger className="w-44 bg-dungeon-dark border-gold/30 text-primary-foreground">
+        <SelectTrigger className="w-44 bg-dungeon-dark border-gold/30 text-foreground">
           <SelectValue placeholder="Todas as turmas" />
         </SelectTrigger>
         <SelectContent>

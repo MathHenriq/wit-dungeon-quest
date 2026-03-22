@@ -77,7 +77,7 @@ export default function TeacherAnalytics() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-dungeon-dark text-primary-foreground py-4 px-4 md:px-6 shadow-lg border-b border-gold/20">
+      <header className="bg-dungeon-dark text-foreground py-4 px-4 md:px-6 shadow-lg border-b border-gold/20">
         <div className="container mx-auto flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <button
@@ -97,7 +97,7 @@ export default function TeacherAnalytics() {
                   <BarChart3 size={20} />
                   Dungeon Analytics
                 </h1>
-                <p className="text-xs text-primary-foreground/70">{teacher?.name}</p>
+                <p className="text-xs text-foreground/70">{teacher?.name}</p>
               </div>
             </div>
           </div>

@@ -52,12 +52,24 @@ interface OpenResult {
   num_items: number;
 }
 
+// ─── Rarity → icon mapping ────────────────────────────────────────────────────
+
+const RARITY_ICON: Record<string, string> = {
+  common:    'pack',
+  uncommon:  'scroll',
+  rare:      'gem',
+  epic:      'wand',
+  legendary: 'crown',
+  mythic:    'star',
+};
+
 // ─── ItemRevealCard ───────────────────────────────────────────────────────────
 
 function ItemRevealCard({ item, big = false }: { item: { item_name: string; rarity: string }; big?: boolean }) {
   const rs = RARITY_STYLES[item.rarity] ?? RARITY_STYLES.common;
   const isEpicPlus = ['epic', 'legendary', 'mythic'].includes(item.rarity);
   const size = big ? 96 : 72;
+  const iconId = RARITY_ICON[item.rarity] ?? 'pack';
 
   return (
     <div
@@ -70,7 +82,7 @@ function ItemRevealCard({ item, big = false }: { item: { item_name: string; rari
         animation: isEpicPlus ? 'glow-breathe 2s ease-in-out infinite' : undefined,
       }}
     >
-      <GameIcon id="chest" size={size / 2} ringColor={rs.labelColor} fillColor={rs.labelColor} bgColor={`${rs.labelColor}18`} />
+      <GameIcon id={iconId} size={size / 2} ringColor={rs.labelColor} fillColor={rs.labelColor} bgColor={`${rs.labelColor}18`} />
       <p
         className="mt-2 font-bold leading-tight"
         style={{

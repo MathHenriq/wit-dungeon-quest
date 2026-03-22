@@ -604,6 +604,7 @@ export default function StudentPortal() {
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
   const [battleKey, setBattleKey] = useState(0);
+  const [bossTabKey, setBossTabKey] = useState(0);
 
   useEffect(() => {
     if (!isLoading) { setLoadingTimedOut(false); return; }
@@ -715,7 +716,7 @@ export default function StudentPortal() {
           key={battleKey}
           bossId={activeBossId}
           student={student}
-          onExit={() => setActiveBossId(null)}
+          onExit={() => { setActiveBossId(null); setBossTabKey(k => k + 1); }}
           onRetry={() => setBattleKey(k => k + 1)}
         />
       )}
@@ -903,7 +904,7 @@ export default function StudentPortal() {
         )}
 
         {activeTab === "bosses" && (
-          <BossBattleTab student={student} onStartBoss={setActiveBossId} />
+          <BossBattleTab key={bossTabKey} student={student} onStartBoss={setActiveBossId} />
         )}
 
         {activeTab === "guild" && (
