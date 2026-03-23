@@ -10,6 +10,9 @@ import StudentPortal from "./pages/StudentPortal";
 import TeacherLogin from "./pages/TeacherLogin";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherAnalytics from "./pages/TeacherAnalytics";
+import ParentLogin from "./pages/ParentLogin";
+import ParentPortal from "./pages/ParentPortal";
+import ParentReport from "./pages/ParentReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +31,9 @@ const App = () => (
             <Route path="/professor/login" element={<TeacherLogin />} />
             <Route path="/professor" element={<TeacherDashboard />} />
             <Route path="/professor/analytics" element={<TeacherAnalytics />} />
+            <Route path="/pais/login" element={<ParentLogin />} />
+            <Route path="/pais" element={<ParentPortal />} />
+            <Route path="/relatorio/:reportId" element={<ParentReport />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

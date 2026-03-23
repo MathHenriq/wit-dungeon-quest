@@ -12,6 +12,7 @@ import { StudentDNARadar } from "@/components/analytics/StudentDNARadar";
 import { AchievementTimeline } from "@/components/analytics/AchievementTimeline";
 import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
 import { ExportButton } from "@/components/analytics/ExportButton";
+import { FullExport } from "@/components/analytics/FullExport";
 import { ArrowLeft, BarChart3, RefreshCw, Sword, Shield, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -173,6 +174,13 @@ export default function TeacherAnalytics() {
               {clearing ? "Removendo..." : "Limpar dados de demonstração"}
             </Button>
           </div>
+        </div>
+
+        {/* Full Export */}
+        <div className="px-4 pb-8">
+          {teacher && (
+            <FullExport teacherId={teacher.id} classes={classes} students={students} />
+          )}
         </div>
       </main>
     </div>

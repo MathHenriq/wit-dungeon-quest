@@ -362,3 +362,34 @@ export interface ChestOpening {
   bonus_xp: number;
   opened_at: string;
 }
+
+// ─── Parent Portal types ──────────────────────────────────────────────────────
+
+export interface ParentAccount {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string;
+}
+
+export interface ParentInvite {
+  id: string;
+  student_id: string;
+  teacher_id: string;
+  invite_code: string;
+  used_by: string | null;
+  used_at: string | null;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface ParentReport {
+  id: string;
+  student_id: string;
+  teacher_id: string;
+  report_type: 'weekly' | 'monthly';
+  period_start: string;
+  period_end: string;
+  report_data: Record<string, unknown>;
+  created_at: string;
+}

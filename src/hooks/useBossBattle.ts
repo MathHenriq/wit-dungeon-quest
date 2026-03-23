@@ -77,14 +77,27 @@ export function useBattleSession(bossId: string, studentId: string) {
   const [questionTimeLeft, setQuestionTimeLeft] = useState(30);
 
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
       setIsLoading(true);
+
+      // Safety timeout: if loading hangs for 12s, abort gracefully
+      const safetyTimer = setTimeout(() => {
+        if (!cancelled) {
+          console.error("[BattleSession] loading timeout after 12s");
+          setIsLoading(false);
+        }
+      }, 12000);
+
       try {
         const { data: bossData, error: bossErr } = await supabaseStudent
           .from("boss_battles")
           .select("*")
           .eq("id", bossId)
           .single();
+
+        if (cancelled) return;
 
         if (bossErr) {
           console.error("[BattleSession] boss load error:", bossErr);
@@ -96,6 +109,8 @@ export function useBattleSession(bossId: string, studentId: string) {
           .select("*")
           .eq("boss_id", bossId)
           .order("sort_order");
+
+        if (cancelled) return;
 
         if (qErr) {
           console.error("[BattleSession] questions load error:", qErr);
@@ -110,10 +125,14 @@ export function useBattleSession(bossId: string, studentId: string) {
       } catch (err) {
         console.error("[BattleSession] unexpected error:", err);
       } finally {
-        setIsLoading(false);
+        clearTimeout(safetyTimer);
+        if (!cancelled) setIsLoading(false);
       }
     };
+
     load();
+
+    return () => { cancelled = true; };
   }, [bossId]);
 
   // Global timer countdown
