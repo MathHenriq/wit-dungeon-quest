@@ -135,59 +135,7 @@ export function useBattleSession(bossId: string, studentId: string) {
     return () => { cancelled = true; };
   }, [bossId]);
 
-  // Global timer countdown
-  useEffect(() => {
-    if (timeLeft === null || isFinished) return;
-    if (timeLeft <= 0) {
-      finishBattle(answers, totalDamage, false);
-      return;
-    }
-    const t = setTimeout(() => setTimeLeft(prev => (prev ?? 1) - 1), 1000);
-    return () => clearTimeout(t);
-  }, [timeLeft, isFinished]);
-
-  // Per-question timer: reset to 30 on each new question
-  useEffect(() => {
-    if (isFinished) return;
-    setQuestionTimeLeft(30);
-  }, [currentIndex, isFinished]);
-
-  // Per-question timer countdown (pauses while loading, showing hit/miss result, or no questions)
-  useEffect(() => {
-    if (isLoading || isFinished || lastResult !== null || questions.length === 0) return;
-    if (questionTimeLeft <= 0) {
-      submitAnswer('__timeout__');
-      return;
-    }
-    const t = setTimeout(() => setQuestionTimeLeft(q => q - 1), 1000);
-    return () => clearTimeout(t);
-  }, [isLoading, questions.length, questionTimeLeft, isFinished, lastResult, submitAnswer]);
-
-  const submitAnswer = useCallback((answer: string) => {
-    if (!boss || isFinished || lastResult !== null) return;
-    const question = questions[currentIndex];
-    if (!question) return;
-
-    const correct = answer.trim().toLowerCase() === question.correct_answer.trim().toLowerCase();
-    const damage = correct ? question.damage : 0;
-    const newAnswer: Answer = { question_id: question.id, answer, correct, damage_dealt: damage };
-    const newAnswers = [...answers, newAnswer];
-    const newDamage = totalDamage + damage;
-
-    setLastResult(correct ? 'hit' : 'miss');
-    setAnswers(newAnswers);
-    setTotalDamage(newDamage);
-
-    setTimeout(() => {
-      setLastResult(null);
-      if (currentIndex + 1 >= questions.length) {
-        finishBattle(newAnswers, newDamage, true);
-      } else {
-        setCurrentIndex(i => i + 1);
-      }
-    }, 1100);
-  }, [boss, isFinished, lastResult, questions, currentIndex, answers, totalDamage]);
-
+  // 1. finishBattle — no deps on other hook functions, must be declared first
   const finishBattle = useCallback(async (finalAnswers: Answer[], finalDamage: number, _allAnswered: boolean) => {
     if (!boss || isSaving) return;
     setIsSaving(true);
@@ -223,6 +171,60 @@ export function useBattleSession(bossId: string, studentId: string) {
       setIsSaving(false);
     }
   }, [boss, bossId, studentId, isSaving]);
+
+  // 2. submitAnswer — depends on finishBattle, must come after it
+  const submitAnswer = useCallback((answer: string) => {
+    if (!boss || isFinished || lastResult !== null) return;
+    const question = questions[currentIndex];
+    if (!question) return;
+
+    const correct = answer.trim().toLowerCase() === question.correct_answer.trim().toLowerCase();
+    const damage = correct ? question.damage : 0;
+    const newAnswer: Answer = { question_id: question.id, answer, correct, damage_dealt: damage };
+    const newAnswers = [...answers, newAnswer];
+    const newDamage = totalDamage + damage;
+
+    setLastResult(correct ? 'hit' : 'miss');
+    setAnswers(newAnswers);
+    setTotalDamage(newDamage);
+
+    setTimeout(() => {
+      setLastResult(null);
+      if (currentIndex + 1 >= questions.length) {
+        finishBattle(newAnswers, newDamage, true);
+      } else {
+        setCurrentIndex(i => i + 1);
+      }
+    }, 1100);
+  }, [boss, isFinished, lastResult, questions, currentIndex, answers, totalDamage]);
+
+  // 3. Global timer countdown — depends on finishBattle
+  useEffect(() => {
+    if (timeLeft === null || isFinished) return;
+    if (timeLeft <= 0) {
+      finishBattle(answers, totalDamage, false);
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft(prev => (prev ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [timeLeft, isFinished]);
+
+  // 4. Per-question timer: reset to 30 on each new question (no function deps)
+  useEffect(() => {
+    if (isFinished) return;
+    setQuestionTimeLeft(30);
+  }, [currentIndex, isFinished]);
+
+  // 5. Per-question timer countdown — depends on submitAnswer
+  useEffect(() => {
+    if (isLoading || isFinished || lastResult !== null || questions.length === 0) return;
+    if (questionTimeLeft <= 0) {
+      submitAnswer('__timeout__');
+      return;
+    }
+    const t = setTimeout(() => setQuestionTimeLeft(q => q - 1), 1000);
+    return () => clearTimeout(t);
+  }, [isLoading, questions.length, questionTimeLeft, isFinished, lastResult, submitAnswer]);
 
   const currentHp = Math.max(0, (boss?.boss_hp ?? 0) - totalDamage);
   const hpPct = boss ? (currentHp / boss.boss_hp) * 100 : 100;

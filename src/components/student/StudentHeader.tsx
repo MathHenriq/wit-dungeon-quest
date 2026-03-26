@@ -1,72 +1,261 @@
-import { Coins, Flame, LogOut, Settings } from "lucide-react";
-import type { Student } from "@/types";
+import { useState } from "react";
+import { Search, Bell, ChevronRight, Home, X } from "lucide-react";
+import type { StudentTab } from "@/components/student/StudentNavigation";
+
+const TAB_LABELS: Record<StudentTab, string> = {
+  challenges: "Quests",
+  missions:   "Missões",
+  bosses:     "Bosses",
+  guild:      "Guilda",
+  skills:     "Skills",
+  shop:       "Loja",
+  inventory:  "Mochila",
+  ranking:    "Ranking",
+  character:  "Herói",
+  dungeon:    "Dungeon",
+  capsule:    "Cápsula",
+  pvp:        "PvP Arena",
+  trading:    "Trading",
+};
 
 interface StudentHeaderProps {
-  student: Student;
-  onLogout: () => void;
-  onOpenAccessibility?: () => void;
+  activeTab: StudentTab;
 }
 
-export function StudentHeader({ student, onLogout, onOpenAccessibility }: StudentHeaderProps) {
+export function StudentHeader({ activeTab }: StudentHeaderProps) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const tabLabel = TAB_LABELS[activeTab] ?? activeTab;
+
   return (
     <header
-      className="sticky top-0 z-40 px-4 py-3"
+      className="sticky top-0 z-30"
       style={{
-        background: 'rgba(10, 14, 26, 0.92)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(0, 229, 255, 0.08)',
+        background: "rgba(8, 12, 22, 0.85)",
+        backdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
       }}
     >
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <svg width="18" height="18" viewBox="0 0 18 18" className="text-cyan-400">
-            <polygon points="9,1 17,5 17,13 9,17 1,13 1,5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
-          <span className="font-bold text-cyan-400 hidden sm:block text-xs tracking-[3px] uppercase" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-            WIT Dungeon
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 20px",
+          minHeight: 52,
+        }}
+      >
+        {/* ── Breadcrumb ─────────────── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          <Home
+            size={13}
+            style={{ color: "rgba(255,255,255,0.25)", flexShrink: 0 }}
+          />
+          <ChevronRight
+            size={12}
+            style={{ color: "rgba(255,255,255,0.15)", flexShrink: 0 }}
+          />
+          <span
+            style={{
+              fontFamily: "Rajdhani, sans-serif",
+              fontWeight: 700,
+              fontSize: 16,
+              color: "rgba(255,255,255,0.85)",
+              letterSpacing: "0.03em",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {tabLabel}
           </span>
         </div>
-        <div className="flex-1 flex items-center gap-3 min-w-0 justify-center sm:justify-start">
-          <div className="min-w-0">
-            <p className="font-bold text-white text-sm truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-              {student.character_name || student.name}
-            </p>
-            {student.character_class && (
-              <p className="text-white/40 text-xs truncate">{student.character_class}</p>
-            )}
-          </div>
-          {student.presencas_consecutivas > 0 && (
-            <div className="hidden sm:flex items-center gap-1 text-orange-400 text-xs flex-shrink-0">
-              <Flame size={14} />
-              <span>{student.presencas_consecutivas}</span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="coin-badge text-xs">
-            <Coins size={13} />
-            <span>{student.coins.toLocaleString()}</span>
-          </div>
-          <div className="level-badge text-sm" style={{ width: '32px', height: '32px' }}>
-            {student.level}
-          </div>
-          {onOpenAccessibility && (
-            <button
-              onClick={onOpenAccessibility}
-              className="p-2 rounded-lg text-white/30 hover:text-white/60 transition-colors"
-              aria-label="Configurações de acessibilidade"
-              title="Acessibilidade"
+
+        {/* ── Search ─────────────── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0,
+            transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
+          }}
+        >
+          {searchOpen ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "5px 12px",
+                borderRadius: 8,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(0,229,255,0.25)",
+                width: 200,
+              }}
             >
-              <Settings size={15} />
+              <Search size={13} style={{ color: "rgba(0,229,255,0.6)", flexShrink: 0 }} />
+              <input
+                autoFocus
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                placeholder="Buscar..."
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  color: "rgba(255,255,255,0.8)",
+                  fontSize: 13,
+                  width: "100%",
+                  fontFamily: "Exo 2, sans-serif",
+                }}
+              />
+              <button
+                onClick={() => { setSearchOpen(false); setSearchValue(""); }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "rgba(255,255,255,0.3)",
+                  cursor: "pointer",
+                  padding: 0,
+                  display: "flex",
+                  flexShrink: 0,
+                }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setSearchOpen(true)}
+              title="Buscar"
+              style={{
+                padding: "6px 8px",
+                borderRadius: 7,
+                background: "transparent",
+                border: "none",
+                color: "rgba(255,255,255,0.3)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "rgba(255,255,255,0.6)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "rgba(255,255,255,0.3)";
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <Search size={15} />
+              <span
+                className="hidden sm:inline"
+                style={{ fontSize: 12, fontFamily: "Exo 2, sans-serif" }}
+              >
+                Buscar
+              </span>
+              <kbd
+                className="hidden sm:inline"
+                style={{
+                  fontSize: 10,
+                  padding: "1px 5px",
+                  borderRadius: 4,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.25)",
+                  fontFamily: "Exo 2, sans-serif",
+                }}
+              >
+                ⌘K
+              </kbd>
             </button>
           )}
-          <button
-            onClick={onLogout}
-            className="p-2 rounded-lg text-white/40 hover:text-white/80 transition-colors"
-            title="Sair"
+        </div>
+
+        {/* ── Notifications ─────────────── */}
+        <button
+          title="Notificações"
+          style={{
+            position: "relative",
+            padding: 7,
+            borderRadius: 7,
+            background: "transparent",
+            border: "none",
+            color: "rgba(255,255,255,0.3)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+            e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "rgba(255,255,255,0.3)";
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <Bell size={16} />
+          {/* Notification dot */}
+          <span
+            style={{
+              position: "absolute",
+              top: 5,
+              right: 5,
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: "#00e5ff",
+              boxShadow: "0 0 6px rgba(0,229,255,0.7)",
+              border: "1.5px solid rgba(8,12,22,1)",
+            }}
+          />
+        </button>
+
+        {/* ── Divider ─────────────── */}
+        <div
+          style={{
+            width: 1,
+            height: 20,
+            background: "rgba(255,255,255,0.07)",
+            flexShrink: 0,
+          }}
+        />
+
+        {/* ── Tab indicator pill ─────────────── */}
+        <div
+          style={{
+            padding: "4px 10px",
+            borderRadius: 6,
+            background: "rgba(0,229,255,0.06)",
+            border: "1px solid rgba(0,229,255,0.15)",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "Rajdhani, sans-serif",
+              fontWeight: 700,
+              fontSize: 11,
+              color: "rgba(0,229,255,0.7)",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+            }}
           >
-            <LogOut size={16} />
-          </button>
+            {tabLabel}
+          </span>
         </div>
       </div>
     </header>

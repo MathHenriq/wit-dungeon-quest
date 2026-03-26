@@ -20,6 +20,9 @@ import { TeacherPetsPanel } from "@/components/TeacherPetsPanel";
 import { TeacherSkillTreePanel } from "@/components/TeacherSkillTreePanel";
 import { TeacherCraftPanel } from "@/components/TeacherCraftPanel";
 import { TeacherChestPanel } from "@/components/TeacherChestPanel";
+import { TeacherAIGenerator } from "@/components/TeacherAIGenerator";
+import { TeacherTimeCapsulePanel } from "@/components/TeacherTimeCapsulePanel";
+import { TeacherClassWarPanel } from "@/components/TeacherClassWarPanel";
 import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users,
@@ -43,6 +46,9 @@ import {
   Network,
   Hammer,
   Package,
+  BrainCircuit,
+  Swords as SwordsIcon,
+  Monitor,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,7 +56,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds" | "pets" | "skills" | "craft" | "chests">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds" | "pets" | "skills" | "craft" | "chests" | "ia" | "capsule" | "classwar">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -235,6 +241,14 @@ export default function TeacherDashboard() {
       ],
     },
     {
+      label: "IA & Extras",
+      tabs: [
+        { id: "ia",         label: "Gerador IA",   icon: BrainCircuit },
+        { id: "capsule",    label: "Cápsulas",     icon: Clock },
+        { id: "classwar",   label: "Class War",    icon: SwordsIcon },
+      ],
+    },
+    {
       label: "Integrações",
       tabs: [
         { id: "classroom",  label: "Classroom",    icon: GraduationCap },
@@ -260,6 +274,13 @@ export default function TeacherDashboard() {
 
           <div className="flex items-center gap-4">
             <span className="hidden md:block text-sm text-primary-foreground/80">{teacher?.name}</span>
+            <button
+              onClick={() => navigate("/professor/apresentacao")}
+              className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 transition-colors"
+              title="Modo Apresentação"
+            >
+              <Monitor size={20} className="text-purple-400" />
+            </button>
             <button
               onClick={() => navigate("/professor/analytics")}
               className="p-2 rounded-lg bg-gold/20 hover:bg-gold/30 transition-colors"
@@ -563,6 +584,42 @@ export default function TeacherDashboard() {
               Craft — Receitas
             </h2>
             <TeacherCraftPanel teacherId={teacher.id} shopItems={shopItems} />
+          </section>
+        )}
+
+        {activeTab === "ia" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <BrainCircuit className="text-purple-400" />
+              Gerador Inteligente
+            </h2>
+            <div className="card-fantasy max-w-3xl">
+              <TeacherAIGenerator teacherId={teacher.id} classes={classes} onDataChanged={loadData} />
+            </div>
+          </section>
+        )}
+
+        {activeTab === "capsule" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Clock className="text-cyan-400" />
+              Cápsulas do Tempo
+            </h2>
+            <div className="card-fantasy max-w-3xl">
+              <TeacherTimeCapsulePanel teacherId={teacher.id} classes={classes} />
+            </div>
+          </section>
+        )}
+
+        {activeTab === "classwar" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <SwordsIcon className="text-red-400" />
+              Class Wars
+            </h2>
+            <div className="card-fantasy max-w-3xl">
+              <TeacherClassWarPanel teacherId={teacher.id} classes={classes} />
+            </div>
           </section>
         )}
 

@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { rawColors } from "./src/styles/design-tokens";
 
 export default {
   darkMode: ["class"],
@@ -14,10 +15,18 @@ export default {
     },
     extend: {
       fontFamily: {
+        // ── Fontes legadas (mantidas para compatibilidade) ──
         display: ["Rajdhani", "sans-serif"],
         body: ["Exo 2", "sans-serif"],
+        // ── AAA Game UI ──
+        orbitron: ["Orbitron", "sans-serif"],
+        // ── Fontes do Design System v2 ──
+        "ds-sans":    ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        "ds-display": ["Space Grotesk", "sans-serif"],
+        "ds-mono":    ["JetBrains Mono", "Fira Code", "monospace"],
       },
       colors: {
+        // ── Tokens shadcn/ui (mantidos — não remover) ──────────────────────
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -62,11 +71,48 @@ export default {
         "dungeon-dark": "hsl(var(--dungeon-dark))",
         parchment: "hsl(var(--parchment))",
         leather: "hsl(var(--leather))",
+        // ── Design System v2 (namespace `ds`) ─────────────────────────────
+        // Classes geradas: bg-ds-bg-primary, bg-ds-bg-primary/50, etc.
+        ds: {
+          bg: {
+            primary:   `hsl(${rawColors.bg.primary} / <alpha-value>)`,
+            secondary: `hsl(${rawColors.bg.secondary} / <alpha-value>)`,
+            tertiary:  `hsl(${rawColors.bg.tertiary} / <alpha-value>)`,
+            elevated:  `hsl(${rawColors.bg.elevated} / <alpha-value>)`,
+          },
+          border: {
+            default: `hsl(${rawColors.border.default} / <alpha-value>)`,
+            muted:   `hsl(${rawColors.border.muted} / <alpha-value>)`,
+            accent:  `hsl(${rawColors.border.accent} / <alpha-value>)`,
+          },
+          text: {
+            primary:   `hsl(${rawColors.text.primary} / <alpha-value>)`,
+            secondary: `hsl(${rawColors.text.secondary} / <alpha-value>)`,
+            muted:     `hsl(${rawColors.text.muted} / <alpha-value>)`,
+            accent:    `hsl(${rawColors.text.accent} / <alpha-value>)`,
+          },
+          status: {
+            success: `hsl(${rawColors.status.success} / <alpha-value>)`,
+            warning: `hsl(${rawColors.status.warning} / <alpha-value>)`,
+            error:   `hsl(${rawColors.status.error} / <alpha-value>)`,
+            info:    `hsl(${rawColors.status.info} / <alpha-value>)`,
+          },
+          rewards: {
+            coins:    `hsl(${rawColors.rewards.coins} / <alpha-value>)`,
+            diamonds: `hsl(${rawColors.rewards.diamonds} / <alpha-value>)`,
+            xp:       `hsl(${rawColors.rewards.xp} / <alpha-value>)`,
+          },
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // ── Design System v2 ──
+        "ds-sm": "0.5rem",
+        "ds-md": "0.75rem",
+        "ds-lg": "1rem",
+        "ds-xl": "1.5rem",
       },
       keyframes: {
         "accordion-down": {

@@ -110,6 +110,21 @@ export function PetPanel({ studentId, teacherId }: PetPanelProps) {
 
   async function adoptPet(petType: PetType) {
     setAdopting(petType.id);
+
+    // Optimistic: show the pet immediately so the screen transitions at 0ms
+    const optimisticPet: StudentPet = {
+      id: `opt-${Date.now()}`,
+      student_id: studentId,
+      pet_type_id: petType.id,
+      name: petType.name,
+      xp: 0,
+      current_stage: 1,
+      is_active: true,
+      adopted_at: new Date().toISOString(),
+      pet_type: petType,
+    };
+    setMyPet(optimisticPet);
+
     try {
       const { error } = await supabaseStudent.from("student_pets").insert({
         student_id: studentId,
@@ -120,13 +135,14 @@ export function PetPanel({ studentId, teacherId }: PetPanelProps) {
         is_active: true,
       } as never);
       if (error) {
+        setMyPet(null); // revert
         toast.error("Erro ao adotar pet: " + error.message);
         return;
       }
-      // Give 3 XP for first-time login/adopt
       void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: studentId, p_xp: 3 });
       toast.success(`${petType.name} adotado!`);
-      await load();
+      // Sync real row in background (replaces optimistic entry with real id)
+      void load();
     } finally {
       setAdopting(null);
     }

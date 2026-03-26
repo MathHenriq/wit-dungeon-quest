@@ -13,6 +13,7 @@ import { AchievementTimeline } from "@/components/analytics/AchievementTimeline"
 import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
 import { ExportButton } from "@/components/analytics/ExportButton";
 import { FullExport } from "@/components/analytics/FullExport";
+import { WeeklySummary } from "@/components/analytics/WeeklySummary";
 import { ArrowLeft, BarChart3, RefreshCw, Sword, Shield, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -120,6 +121,11 @@ export default function TeacherAnalytics() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Weekly Summary */}
+        {teacher && (
+          <WeeklySummary teacherId={teacher.id} classId={filters.classId} />
+        )}
+
         {/* KPI Overview */}
         <AnalyticsOverview overview={overview} isLoading={isLoading} />
 

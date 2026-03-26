@@ -85,6 +85,16 @@ export function CraftPanel({ studentId, teacherId, onCoinsChanged }: CraftPanelP
 
   async function doCraft(recipe: CraftRecipe) {
     setCraftingId(recipe.id);
+
+    // Optimistic: mark recipe as crafted instantly so the button disappears
+    const tempCraft: StudentCraft = {
+      id: `opt-${Date.now()}`,
+      student_id: studentId,
+      recipe_id: recipe.id,
+      crafted_at: new Date().toISOString(),
+    };
+    setCrafted(prev => [...prev, tempCraft]);
+
     try {
       const { data, error } = await supabaseStudent.rpc("craft_item" as never, {
         p_student_id: studentId,
@@ -92,12 +102,14 @@ export function CraftPanel({ studentId, teacherId, onCoinsChanged }: CraftPanelP
       });
 
       if (error) {
+        setCrafted(prev => prev.filter(c => c.id !== tempCraft.id));
         toast.error("Erro ao craftar: " + error.message);
         return;
       }
 
       const result = data as { success: boolean; error?: string; reward_coins?: number; reward_xp?: number };
       if (!result.success) {
+        setCrafted(prev => prev.filter(c => c.id !== tempCraft.id));
         toast.error(result.error ?? "Não foi possível craftar este item.");
         return;
       }
@@ -111,7 +123,14 @@ export function CraftPanel({ studentId, teacherId, onCoinsChanged }: CraftPanelP
       toast.success(`${recipe.name} criado!${parts.length ? " " + parts.join(", ") : ""}`, { duration: 4000 });
 
       onCoinsChanged?.();
-      await load();
+      // Sync real DB row in background (replaces temp entry with real id)
+      void supabaseStudent
+        .from("student_crafts")
+        .select("*")
+        .eq("student_id", studentId)
+        .then(({ data: craftedData }) => {
+          if (craftedData) setCrafted(craftedData as StudentCraft[]);
+        });
     } finally {
       setCraftingId(null);
     }

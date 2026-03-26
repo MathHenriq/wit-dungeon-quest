@@ -1,18 +1,30 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, ArrowRight, Loader2, AlertCircle, Users } from "lucide-react";
+import { supabaseStudent } from "@/integrations/supabase/studentClient";
+import { BookOpen, ArrowRight, Loader2, AlertCircle, Users, KeyRound, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+
+type Tab = 'convite' | 'filho';
 
 export default function ParentLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [inviteCode, setInviteCode] = useState(searchParams.get('code') ?? '');
-  const [isLoading, setIsLoading] = useState(false);
+  const [tab, setTab] = useState<Tab>(searchParams.get('code') ? 'convite' : 'filho');
   const [checking, setChecking] = useState(true);
 
-  // If already a parent, go to portal
+  // Invite tab state
+  const [inviteCode, setInviteCode] = useState(searchParams.get('code') ?? '');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Child credentials tab state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+
+  // If already a parent (has parent_account), go to parent portal
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -22,23 +34,29 @@ export default function ParentLogin() {
           .select('id')
           .eq('user_id', user.id)
           .single();
-        if (pa) {
-          navigate('/pais', { replace: true });
-          return;
-        }
+        if (pa) { navigate('/pais', { replace: true }); return; }
+      }
+      // If already logged in as student, go to student view
+      const { data: { user: studentUser } } = await supabaseStudent.auth.getUser();
+      if (studentUser) {
+        const { data: st } = await supabaseStudent
+          .from('students')
+          .select('id')
+          .eq('user_id', studentUser.id)
+          .single();
+        if (st) { navigate('/pais/filho', { replace: true }); return; }
       }
       setChecking(false);
     };
     check();
   }, [navigate]);
 
+  // ── Google OAuth (invite code flow) ──
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
+    setIsGoogleLoading(true);
     try {
       const cleanCode = inviteCode.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
-      if (cleanCode) {
-        sessionStorage.setItem('parent_invite_code', cleanCode);
-      }
+      if (cleanCode) sessionStorage.setItem('parent_invite_code', cleanCode);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/pais` },
@@ -46,7 +64,49 @@ export default function ParentLogin() {
       if (error) throw error;
     } catch (err: unknown) {
       toast.error((err as Error)?.message ?? 'Erro ao fazer login com Google.');
-      setIsLoading(false);
+      setIsGoogleLoading(false);
+    }
+  };
+
+  // ── Email/senha do filho ──
+  const handleChildLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      toast.error('Preencha o e-mail e a senha do seu filho.');
+      return;
+    }
+    setIsLoginLoading(true);
+    try {
+      const { data, error } = await supabaseStudent.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error('Usuário não encontrado.');
+
+      // Verify this is actually a student account
+      const { data: student, error: stErr } = await supabaseStudent
+        .from('students')
+        .select('id, name')
+        .eq('user_id', data.user.id)
+        .single();
+
+      if (stErr || !student) {
+        await supabaseStudent.auth.signOut();
+        toast.error('Estas credenciais não pertencem a um aluno cadastrado.');
+        return;
+      }
+
+      navigate('/pais/filho', { replace: true });
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message ?? '';
+      if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
+        toast.error('E-mail ou senha incorretos. Verifique com seu filho.');
+      } else {
+        toast.error(msg || 'Erro ao fazer login.');
+      }
+    } finally {
+      setIsLoginLoading(false);
     }
   };
 
@@ -64,7 +124,7 @@ export default function ParentLogin() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
             <BookOpen size={32} className="text-white" />
           </div>
@@ -72,16 +132,110 @@ export default function ParentLogin() {
           <p className="text-slate-500 mt-1">Acompanhe o progresso do seu filho</p>
         </div>
 
-        <div className="space-y-4">
-          {/* With invite code */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-              <Users size={16} className="text-indigo-500" />
-              Tenho um código de convite
-            </p>
-            <p className="text-xs text-slate-400 mb-3">
-              Insira o código enviado pelo professor antes de continuar com o Google.
-            </p>
+        {/* Tabs */}
+        <div className="flex rounded-xl overflow-hidden border border-slate-200 bg-white mb-4 shadow-sm">
+          <button
+            onClick={() => setTab('filho')}
+            className="flex-1 py-3 text-sm font-semibold transition-all flex items-center justify-center gap-2"
+            style={{
+              background: tab === 'filho' ? '#6366f1' : 'transparent',
+              color: tab === 'filho' ? 'white' : '#64748b',
+            }}
+          >
+            <KeyRound size={15} />
+            Login do filho
+          </button>
+          <button
+            onClick={() => setTab('convite')}
+            className="flex-1 py-3 text-sm font-semibold transition-all flex items-center justify-center gap-2"
+            style={{
+              background: tab === 'convite' ? '#6366f1' : 'transparent',
+              color: tab === 'convite' ? 'white' : '#64748b',
+            }}
+          >
+            <Users size={15} />
+            Código de convite
+          </button>
+        </div>
+
+        {/* Tab: Login do filho */}
+        {tab === 'filho' && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                <KeyRound size={15} className="text-indigo-500" />
+                Entrar com e-mail e senha do seu filho
+              </p>
+              <p className="text-xs text-slate-400">
+                Use as mesmas credenciais que seu filho usa para acessar o WIT Dungeon.
+                Você verá uma versão do relatório de desenvolvimento dele.
+              </p>
+            </div>
+
+            <form onSubmit={handleChildLogin} className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">E-mail do filho</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="email@exemplo.com"
+                  autoComplete="email"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:border-indigo-400 focus:bg-white transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Senha do filho</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className="w-full px-4 py-3 pr-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:border-indigo-400 focus:bg-white transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: '#eff6ff' }}>
+                <AlertCircle size={14} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-blue-600">
+                  Você verá apenas o relatório de desenvolvimento — sem acesso ao jogo ou às notas do sistema.
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoginLoading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl h-11"
+              >
+                {isLoginLoading ? <Loader2 size={18} className="animate-spin" /> : 'Ver relatório do meu filho'}
+              </Button>
+            </form>
+          </div>
+        )}
+
+        {/* Tab: Código de convite */}
+        {tab === 'convite' && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                <Users size={15} className="text-indigo-500" />
+                Tenho um código de convite
+              </p>
+              <p className="text-xs text-slate-400">
+                Insira o código enviado pelo professor e continue com o Google para criar sua conta.
+              </p>
+            </div>
+
             <input
               type="text"
               value={inviteCode}
@@ -91,40 +245,35 @@ export default function ParentLogin() {
               className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-center text-lg font-mono tracking-widest focus:outline-none focus:border-indigo-400 focus:bg-white transition-all"
             />
             {inviteCode.trim().length > 0 && codeLength < 8 && (
-              <p className="text-xs text-orange-500 mt-2 flex items-center gap-1">
+              <p className="text-xs text-orange-500 flex items-center gap-1">
                 <AlertCircle size={12} /> O código deve ter 8 caracteres (ex: ABCD-1234)
               </p>
             )}
             <Button
               onClick={handleGoogleLogin}
-              disabled={isLoading}
-              className="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2"
+              disabled={isGoogleLoading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl h-11 flex items-center justify-center gap-2"
             >
-              {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <GoogleIcon />
-              )}
-              Entrar com Google (com código)
-            </Button>
-          </div>
-
-          {/* Already have account */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-            <p className="text-sm font-semibold text-slate-700 mb-3">Já tenho conta</p>
-            <Button
-              onClick={handleGoogleLogin}
-              variant="outline"
-              disabled={isLoading}
-              className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl h-11 flex items-center justify-center gap-2"
-            >
-              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
+              {isGoogleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
               Entrar com Google
             </Button>
-          </div>
-        </div>
 
-        <div className="mt-6 flex items-center justify-center gap-6">
+            <div className="border-t border-slate-100 pt-3">
+              <p className="text-xs text-slate-400 mb-2 text-center">Já tenho conta de pai</p>
+              <Button
+                onClick={handleGoogleLogin}
+                variant="outline"
+                disabled={isGoogleLoading}
+                className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-10 flex items-center justify-center gap-2 text-sm"
+              >
+                {isGoogleLoading ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
+                Entrar com Google
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5 flex items-center justify-center gap-6">
           <Link to="/" className="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors">
             <ArrowRight size={14} /> Portal do Aluno
           </Link>

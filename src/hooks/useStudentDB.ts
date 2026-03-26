@@ -5,6 +5,7 @@ import { supabaseAnon } from "@/integrations/supabase/anonClient";
 import { useTeacherReward } from "@/hooks/useTeacherReward";
 import { supabaseRetry } from "@/lib/supabaseRetry";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { applyOptimistic } from "@/utils/optimisticUpdate";
 import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem, InventoryItem } from "@/types";
 
 // Auth state machine:
@@ -19,6 +20,16 @@ export type StudentAuthState =
   | "needs_registration"
   | "pending"
   | "active";
+
+/** Promise.allSettled wrapper: runs all promises in parallel and logs failures without throwing. */
+async function parallelLoad(label: string, promises: Promise<unknown>[]) {
+  const results = await Promise.allSettled(promises);
+  results.forEach((result, i) => {
+    if (result.status === "rejected") {
+      console.error(`[useStudentDB] ${label}[${i}] failed:`, result.reason);
+    }
+  });
+}
 
 export function useStudentDB() {
   const [authState, setAuthState] = useState<StudentAuthState>("loading");
@@ -44,6 +55,11 @@ export function useStudentDB() {
 
   // Track session duration
   const sessionStartRef = useRef<number | null>(null);
+  // Debounce timer for realtime student_requests batching
+  const requestsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Lazy-load guards: prevent re-fetching data that is already in state
+  const missionsLoadedRef = useRef(false);
+  const shopLoadedRef = useRef(false);
 
   // Derived: still loading
   const isLoading = authState === "loading";
@@ -75,16 +91,13 @@ export function useStudentDB() {
     setClasses(data || []);
   };
 
-  // Load all student-specific data after auth confirms an active student
+  // Load critical data needed immediately on login (default "challenges" tab + header)
+  // Non-critical data (missions, shop, inventory) is loaded lazily on first tab visit.
   const loadAllStudentData = async (studentId: string, teacherId: string) => {
-    await Promise.all([
+    await parallelLoad("loadAllStudentData", [
       loadChallenges(teacherId),
       loadRequests(studentId),
-      loadMissions(teacherId),
-      loadMissionCompletions(studentId),
       loadStudentTitles(studentId),
-      loadShopItems(teacherId),
-      loadInventory(studentId),
     ]);
   };
 
@@ -177,6 +190,8 @@ export function useStudentDB() {
   // Resolve auth state from a Supabase session (called on auth change and mount)
   const resolveSession = useCallback(async (user: User | null) => {
     if (!user) {
+      missionsLoadedRef.current = false;
+      shopLoadedRef.current = false;
       setAuthUser(null);
       setStudent(null);
       setAuthState("unauthenticated");
@@ -217,7 +232,9 @@ export function useStudentDB() {
       return;
     }
 
-    // Active student
+    // Active student — reset lazy-load flags for new session
+    missionsLoadedRef.current = false;
+    shopLoadedRef.current = false;
     setStudent(typedStudent);
     await loadAllStudentData(typedStudent.id, typedStudent.teacher_id);
     setAuthState("active");
@@ -278,16 +295,35 @@ export function useStudentDB() {
       .on("postgres_changes",
         { event: "*", schema: "public", table: "students", filter: `id=eq.${student.id}` },
         (payload) => {
-          if (payload.new) setStudent(payload.new as Student);
+          try {
+            if (payload.new) setStudent(payload.new as Student);
+          } catch (err) {
+            console.error("[Realtime] students handler error:", err);
+          }
         }
       )
       .on("postgres_changes",
         { event: "*", schema: "public", table: "student_requests", filter: `student_id=eq.${student.id}` },
-        () => { loadRequests(student.id); }
+        () => {
+          try {
+            // Debounce: coalesce rapid-fire events into one fetch after 300ms of silence
+            if (requestsDebounceRef.current) clearTimeout(requestsDebounceRef.current);
+            requestsDebounceRef.current = setTimeout(() => {
+              loadRequests(student.id).catch(err =>
+                console.error("[Realtime] student_requests fetch error:", err)
+              );
+            }, 300);
+          } catch (err) {
+            console.error("[Realtime] student_requests handler error:", err);
+          }
+        }
       )
       .subscribe();
 
-    return () => { supabaseAnon.removeChannel(channel); };
+    return () => {
+      supabaseAnon.removeChannel(channel);
+      if (requestsDebounceRef.current) clearTimeout(requestsDebounceRef.current);
+    };
   }, [student?.id, authState]);
 
   // Listen for approval while in "pending" state (teacher approves → student gets access)
@@ -367,6 +403,8 @@ export function useStudentDB() {
       void trackSessionEnd(student.teacher_id, student.id, durationMinutes);
       sessionStartRef.current = null;
     }
+    missionsLoadedRef.current = false;
+    shopLoadedRef.current = false;
     await supabaseStudent.auth.signOut();
     setStudent(null);
     setAuthUser(null);
@@ -382,59 +420,101 @@ export function useStudentDB() {
   const purchaseItem = async (itemId: string) => {
     if (!student) return { success: false, error: "Sem sessão" };
 
+    const item = shopItems.find(i => i.id === itemId);
+
+    // Optimistic: deduct cost immediately so the UI reflects the change at 0ms
+    const revertCoins = item
+      ? applyOptimistic(setStudent, prev => prev ? { ...prev, coins: prev.coins - item.cost } : prev)
+      : () => {};
+
     const { data, error } = await supabaseStudent.rpc("purchase_item", {
       p_student_id: student.id,
       p_item_id: itemId,
     });
 
     if (error) {
+      revertCoins();
       console.error("[useStudentDB] purchaseItem:", error);
       return { success: false, error: error.message };
     }
 
     const result = data as { success: boolean; error?: string };
-    if (!result.success) return { success: false, error: result.error ?? "Erro desconhecido" };
+    if (!result.success) {
+      revertCoins();
+      return { success: false, error: result.error ?? "Erro desconhecido" };
+    }
 
     // Fire-and-forget tracking — find item name for event_data
-    const item = shopItems.find(i => i.id === itemId);
     void trackShopPurchase(
       student.teacher_id, student.id, student.class_id,
-      itemId, item?.price ?? 0, item?.name ?? ""
+      itemId, item?.cost ?? 0, item?.name ?? ""
     );
 
-    // Refresh coins (student row) and inventory
-    await Promise.all([refreshStudent(), loadInventory(student.id)]);
+    // Coins already updated optimistically — only reload inventory
+    await loadInventory(student.id);
     return { success: true };
   };
 
   const requestChallenge = async (challengeId: string) => {
     if (!student) return;
+
+    // Optimistic: add a temp request so the button disables instantly
+    const tempId = `opt-${Date.now()}`;
+    const optimisticReq: StudentRequest = {
+      id: tempId,
+      request_type: "challenge",
+      challenge_id: challengeId,
+      item_id: null,
+      status: "pending",
+    };
+    setRequests(prev => [...prev, optimisticReq]);
+
     const { error } = await supabaseAnon.from("student_requests").insert({
       student_id: student.id,
       request_type: "challenge",
       challenge_id: challengeId,
     });
-    if (!error) {
-      await loadRequests(student.id);
-      // Give pet XP for submitting a challenge (+8)
-      void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: student.id, p_xp: 8 });
+
+    if (error) {
+      // Revert temp entry on failure
+      setRequests(prev => prev.filter(r => r.id !== tempId));
+      return { error };
     }
-    return { error };
+
+    // Realtime subscription will reconcile; loadRequests replaces the temp entry with the real row
+    void loadRequests(student.id);
+    void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: student.id, p_xp: 8 });
+    return { error: null };
   };
 
   const requestAttendance = async () => {
     if (!student) return;
+
+    // Optimistic: add a temp request so the button disables instantly
+    const tempId = `opt-${Date.now()}`;
+    const optimisticReq: StudentRequest = {
+      id: tempId,
+      request_type: "attendance",
+      challenge_id: null,
+      item_id: null,
+      status: "pending",
+    };
+    setRequests(prev => [...prev, optimisticReq]);
+
     const { error } = await supabaseAnon.from("student_requests").insert({
       student_id: student.id,
       request_type: "attendance",
     });
-    if (!error) {
-      await loadRequests(student.id);
-      void trackAttendance(student.teacher_id, student.id, student.class_id, student.presencas_consecutivas ?? 0);
-      // Give pet XP for marking attendance (+3)
-      void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: student.id, p_xp: 3 });
+
+    if (error) {
+      setRequests(prev => prev.filter(r => r.id !== tempId));
+      return { error };
     }
-    return { error };
+
+    void loadRequests(student.id);
+    void trackAttendance(student.teacher_id, student.id, student.class_id, student.presencas_consecutivas ?? 0);
+    void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: student.id, p_xp: 3 });
+    return { error: null };
   };
 
   const hasChallengeRequest = (challengeId: string) => {
@@ -462,11 +542,34 @@ export function useStudentDB() {
 
   const refreshMissions = async () => {
     if (!student) return;
-    await Promise.all([
+    missionsLoadedRef.current = true; // mark loaded so ensureMissionsLoaded won't double-fetch
+    await parallelLoad("refreshMissions", [
       loadMissions(student.teacher_id),
       loadMissionCompletions(student.id),
     ]);
   };
+
+  // ── Lazy loaders (called on first tab visit) ─────────────────────────────────
+
+  // Loads missions + completions once; subsequent calls are no-ops until next login.
+  const ensureMissionsLoaded = useCallback(async () => {
+    if (!student || missionsLoadedRef.current) return;
+    missionsLoadedRef.current = true;
+    await parallelLoad("ensureMissionsLoaded", [
+      loadMissions(student.teacher_id),
+      loadMissionCompletions(student.id),
+    ]);
+  }, [student]);
+
+  // Loads shop items + inventory once; covers shop, inventory, character, and trading tabs.
+  const ensureShopLoaded = useCallback(async () => {
+    if (!student || shopLoadedRef.current) return;
+    shopLoadedRef.current = true;
+    await parallelLoad("ensureShopLoaded", [
+      loadShopItems(student.teacher_id),
+      loadInventory(student.id),
+    ]);
+  }, [student]);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -508,6 +611,8 @@ export function useStudentDB() {
     logout,
     refreshStudent,
     refreshMissions,
+    ensureMissionsLoaded,
+    ensureShopLoaded,
     loadClassesByTeacher,
     getRewardIcon,
     getRewardName,

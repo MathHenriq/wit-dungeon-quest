@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+// UI transformation: new sidebar layout
 import { Link } from "react-router-dom";
 import { useStudentDB } from "@/hooks/useStudentDB";
 import { RewardDisplay } from "@/components/RewardDisplay";
@@ -20,6 +21,11 @@ import { ProgressRanking } from "@/components/student/ProgressRanking";
 import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { GuildPanel } from "@/components/student/GuildPanel";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
+import { DailyDungeon } from "@/components/student/DailyDungeon";
+import { TimeCapsule } from "@/components/student/TimeCapsule";
+import { PvPArena } from "@/components/student/PvPArena";
+import { TradingPanel } from "@/components/student/TradingPanel";
+import { ClassWarBanner } from "@/components/student/ClassWarBanner";
 import { CraftPanel } from "@/components/student/CraftPanel";
 import { ChestSection } from "@/components/student/ChestSection";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
@@ -371,9 +377,13 @@ function LoginScreen({
         </div>
 
         <div className="text-center mt-4 space-y-2">
-          <p className="text-white/25 text-xs">
+          <p className="text-white/25 text-xs flex items-center justify-center gap-3">
             <Link to="/professor/login" className="hover:text-cyan-400 transition-colors">
               Acesso do Professor
+            </Link>
+            <span className="opacity-40">·</span>
+            <Link to="/pais/login" className="hover:text-cyan-400 transition-colors">
+              Portal dos Pais
             </Link>
           </p>
           <DeveloperSignature className="text-center" />
@@ -589,6 +599,8 @@ export default function StudentPortal() {
     logout,
     refreshStudent,
     refreshMissions,
+    ensureMissionsLoaded,
+    ensureShopLoaded,
     loadClassesByTeacher,
     getRewardIcon,
     shopItems,
@@ -621,6 +633,22 @@ export default function StudentPortal() {
       setShowEntrance(true);
     }
   }, [authState, student, entranceDone]);
+
+  // Lazy-load tab data on first visit
+  useEffect(() => {
+    if (authState !== "active") return;
+    if (activeTab === "missions") {
+      void ensureMissionsLoaded();
+    }
+    if (
+      activeTab === "shop" ||
+      activeTab === "inventory" ||
+      activeTab === "character" ||
+      activeTab === "trading"
+    ) {
+      void ensureShopLoaded();
+    }
+  }, [activeTab, authState, ensureMissionsLoaded, ensureShopLoaded]);
 
   // ── Loading ────────────────────────────────
   if (isLoading) {
@@ -735,10 +763,17 @@ export default function StudentPortal() {
         />
       )}
 
-      <StudentHeader student={student} onLogout={async () => { setIsLoggingOut(true); await logout(); }} onOpenAccessibility={() => setShowAccessibility(true)} />
-      <StudentNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <StudentNavigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        student={student}
+        onLogout={async () => { setIsLoggingOut(true); await logout(); }}
+        onOpenAccessibility={() => setShowAccessibility(true)}
+      />
 
-      <main className="relative z-10 max-w-4xl mx-auto px-4 py-6 pb-24 md:pl-[88px]">
+      <div className="md:pl-60">
+        <StudentHeader activeTab={activeTab} />
+        <main className="relative z-10 max-w-5xl mx-auto px-5 py-6 pb-24">
 
         {/* Attendance Banner */}
         <div className="holo-panel mb-6 p-4">
@@ -768,6 +803,11 @@ export default function StudentPortal() {
             )}
           </div>
         </div>
+
+        {/* Class War Banner — shown on missions/challenges tab */}
+        {(activeTab === 'missions' || activeTab === 'challenges') && student.class_id && (
+          <ClassWarBanner classId={student.class_id} />
+        )}
 
         {/* Missions Tab */}
         {activeTab === "missions" && (
@@ -926,11 +966,44 @@ export default function StudentPortal() {
           <CharacterSheet student={student} inventory={inventory} onUpdate={refreshStudent} />
         )}
 
+        {/* Daily Dungeon Tab */}
+        {activeTab === "dungeon" && (
+          <div className="max-w-lg mx-auto">
+            <DailyDungeon student={student} onCoinsChanged={refreshStudent} />
+          </div>
+        )}
+
+        {/* Time Capsule Tab */}
+        {activeTab === "capsule" && (
+          <div className="max-w-lg mx-auto">
+            <TimeCapsule student={student} />
+          </div>
+        )}
+
+        {/* PvP Arena Tab */}
+        {activeTab === "pvp" && (
+          <div className="max-w-lg mx-auto">
+            <PvPArena student={student} />
+          </div>
+        )}
+
+        {/* Trading Tab */}
+        {activeTab === "trading" && (
+          <div className="max-w-lg mx-auto">
+            <TradingPanel
+              student={student}
+              inventory={inventory}
+              onInventoryChanged={refreshStudent}
+            />
+          </div>
+        )}
+
         <div className="mt-8 text-center text-xs text-white/20">
           <p>Todas as solicitações são validadas pelo professor</p>
           <DeveloperSignature className="mt-4" />
         </div>
-      </main>
+        </main>
+      </div>
 
       {showAccessibility && (
         <AccessibilitySettings onClose={() => setShowAccessibility(false)} />
