@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 // UI transformation: new sidebar layout
 import { Link } from "react-router-dom";
 import { useStudentDB } from "@/hooks/useStudentDB";
@@ -616,7 +617,33 @@ export default function StudentPortal() {
 
   const { data: battleCharacter, isLoading: isLoadingCharacter } = useBattleCharacter(authUser?.id);
 
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<StudentTab>("challenges");
+
+  const handleTabChange = (tab: StudentTab) => {
+    setActiveTab(tab);
+    switch (tab) {
+      case 'skills':
+        queryClient.invalidateQueries({ queryKey: ['battle', 'abilities'] });
+        queryClient.invalidateQueries({ queryKey: ['battle', 'equipped'] });
+        break;
+      case 'inventory':
+        queryClient.invalidateQueries({ queryKey: ['inventory'] });
+        break;
+      case 'pvp':
+        queryClient.invalidateQueries({ queryKey: ['pvp-opponents'] });
+        queryClient.invalidateQueries({ queryKey: ['pvp-rating'] });
+        queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+        break;
+      case 'dungeon':
+        queryClient.invalidateQueries({ queryKey: ['floors'] });
+        queryClient.invalidateQueries({ queryKey: ['battle-character'] });
+        break;
+      case 'profile':
+        queryClient.invalidateQueries({ queryKey: ['battle-character'] });
+        break;
+    }
+  };
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showEntrance, setShowEntrance] = useState(false);
@@ -773,7 +800,7 @@ export default function StudentPortal() {
 
       <StudentNavigation
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         student={student}
         onLogout={async () => { setIsLoggingOut(true); await logout(); }}
         onOpenAccessibility={() => setShowAccessibility(true)}
