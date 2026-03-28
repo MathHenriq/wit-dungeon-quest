@@ -23,6 +23,9 @@ import { GuildPanel } from "@/components/student/GuildPanel";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
 import { DailyDungeon } from "@/components/student/DailyDungeon";
 import { BattleDungeonView } from "@/components/student/BattleDungeonView";
+import { BattleSkillsView } from "@/components/student/BattleSkillsView";
+import { BattleInventoryView } from "@/components/student/BattleInventoryView";
+import { BattlePvPView } from "@/components/student/BattlePvPView";
 import { useBattleCharacter } from "@/hooks/useBattleCharacter";
 import { TimeCapsule } from "@/components/student/TimeCapsule";
 import { PvPArena } from "@/components/student/PvPArena";
@@ -945,7 +948,15 @@ export default function StudentPortal() {
 
         {/* Inventory Tab */}
         {activeTab === "inventory" && (
-          <InventorySection inventory={inventory} />
+          <div className="space-y-6">
+            <InventorySection inventory={inventory} />
+            {battleCharacter && (
+              <div className="border-t border-white/10 pt-6">
+                <h3 className="text-xl font-bold mb-4">⚔️ Itens de Batalha</h3>
+                <BattleInventoryView characterId={battleCharacter.id} />
+              </div>
+            )}
+          </div>
         )}
 
         {activeTab === "bosses" && (
@@ -958,7 +969,17 @@ export default function StudentPortal() {
 
         {/* Skills Tab */}
         {activeTab === "skills" && (
-          <SkillTreeView studentId={student.id} teacherId={student.teacher_id} />
+          isLoadingCharacter ? (
+            <div className="flex items-center justify-center h-64 text-white/60">
+              <span className="animate-spin mr-3">⏳</span> Carregando habilidades...
+            </div>
+          ) : battleCharacter ? (
+            <BattleSkillsView character={battleCharacter} />
+          ) : (
+            <div className="holo-panel text-center py-12 text-white/60">
+              <p>Erro ao carregar sistema de habilidades</p>
+            </div>
+          )
         )}
 
         {/* Ranking Tab */}
@@ -995,9 +1016,17 @@ export default function StudentPortal() {
 
         {/* PvP Arena Tab */}
         {activeTab === "pvp" && (
-          <div className="max-w-lg mx-auto">
-            <PvPArena student={student} />
-          </div>
+          isLoadingCharacter ? (
+            <div className="flex items-center justify-center h-64 text-white/60">
+              <span className="animate-spin mr-3">⏳</span> Carregando arena PvP...
+            </div>
+          ) : battleCharacter ? (
+            <BattlePvPView character={battleCharacter} />
+          ) : (
+            <div className="holo-panel text-center py-12 text-white/60">
+              <p>Erro ao carregar arena PvP</p>
+            </div>
+          )
         )}
 
         {/* Trading Tab */}
