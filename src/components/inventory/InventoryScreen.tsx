@@ -94,6 +94,7 @@ export function InventoryScreen({ characterId, onClose, onUseItem }: InventorySc
     queryKey: ['inventory', characterId],
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
     refetchInterval: false,
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,

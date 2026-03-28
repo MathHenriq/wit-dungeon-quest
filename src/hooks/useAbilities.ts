@@ -102,6 +102,7 @@ export function useEquippedAbilities(characterId: string | null) {
     enabled:  !!characterId,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
     refetchInterval: false,
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,

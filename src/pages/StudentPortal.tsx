@@ -622,27 +622,6 @@ export default function StudentPortal() {
 
   const handleTabChange = (tab: StudentTab) => {
     setActiveTab(tab);
-    switch (tab) {
-      case 'skills':
-        queryClient.invalidateQueries({ queryKey: ['battle', 'abilities'] });
-        queryClient.invalidateQueries({ queryKey: ['battle', 'equipped'] });
-        break;
-      case 'inventory':
-        queryClient.invalidateQueries({ queryKey: ['inventory'] });
-        break;
-      case 'pvp':
-        queryClient.invalidateQueries({ queryKey: ['pvp-opponents'] });
-        queryClient.invalidateQueries({ queryKey: ['pvp-rating'] });
-        queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-        break;
-      case 'dungeon':
-        queryClient.invalidateQueries({ queryKey: ['floors'] });
-        queryClient.invalidateQueries({ queryKey: ['battle-character'] });
-        break;
-      case 'profile':
-        queryClient.invalidateQueries({ queryKey: ['battle-character'] });
-        break;
-    }
   };
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);

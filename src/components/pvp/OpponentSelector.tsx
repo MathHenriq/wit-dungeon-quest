@@ -59,6 +59,7 @@ export function OpponentSelector({ character, onSelectOpponent }: OpponentSelect
     enabled: !!myRating,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
     refetchInterval: false,
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,
