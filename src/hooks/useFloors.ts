@@ -103,6 +103,9 @@ function rowToProgress(r: any): FloorProgress {
 export function useFloors() {
   return useQuery({
     queryKey: ['floors'],
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('floors')
@@ -119,6 +122,9 @@ export function useFloorEnemies(floorId: string | null) {
   return useQuery({
     queryKey: ['floor_enemies', floorId],
     enabled:  !!floorId,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('enemies')
@@ -136,6 +142,8 @@ export function useFloorProgress(characterId: string | null) {
   return useQuery({
     queryKey: ['floor_progress', characterId],
     enabled:  !!characterId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await studentSupabase
         .from('character_progress')

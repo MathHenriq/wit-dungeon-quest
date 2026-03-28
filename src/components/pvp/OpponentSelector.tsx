@@ -32,6 +32,8 @@ export function OpponentSelector({ character, onSelectOpponent }: OpponentSelect
 
   const { data: myRating } = useQuery({
     queryKey: ['pvp-rating', character.id],
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data } = await supabase
         .from('pvp_stats')
@@ -51,8 +53,10 @@ export function OpponentSelector({ character, onSelectOpponent }: OpponentSelect
     isFetching
   } = useQuery<PvPOpponent[]>({
     queryKey: ['pvp-opponents', character.id, rating],
+    enabled: !!myRating,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     queryFn: () => findOpponents(character.id, character.level, rating),
-    enabled: !!myRating
   });
 
   return (

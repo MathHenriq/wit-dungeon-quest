@@ -9,6 +9,9 @@ import { canUseAbility } from '@/types/character';
 export function useAbilities() {
   return useQuery({
     queryKey: ['battle', 'abilities'],
+    staleTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async (): Promise<Ability[]> => {
       const { data, error } = await supabase
         .from('abilities')
@@ -44,7 +47,7 @@ export function useAbilities() {
         elementIcon:  row.elements?.icon_url,
       }));
     },
-    staleTime: 1000 * 60 * 10, // abilities rarely change
+    staleTime: 10 * 60_000, // abilities rarely change
   });
 }
 
@@ -54,6 +57,9 @@ export function useAbilitiesByElement(element: ElementType | null) {
   return useQuery({
     queryKey: ['battle', 'abilities', element],
     enabled:  !!element,
+    staleTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async (): Promise<Ability[]> => {
       const { data, error } = await supabase
         .from('abilities')
@@ -88,6 +94,8 @@ export function useEquippedAbilities(characterId: string | null) {
   return useQuery({
     queryKey: ['battle', 'equipped', characterId],
     enabled:  !!characterId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('character_abilities')

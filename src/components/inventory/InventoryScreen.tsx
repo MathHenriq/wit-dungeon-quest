@@ -92,6 +92,8 @@ const TYPE_ORDER = ['potion_hp', 'potion_energy', 'revive', 'buff', 'material'];
 export function InventoryScreen({ characterId, onClose, onUseItem }: InventoryScreenProps) {
   const { data: inventory = [], isLoading } = useQuery<InventoryItem[]>({
     queryKey: ['inventory', characterId],
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('character_inventory')

@@ -27,6 +27,9 @@ function winRate(wins: number, losses: number): number {
 export function Leaderboard() {
   const { data: rows = [], isLoading } = useQuery<LeaderboardRow[]>({
     queryKey: ['leaderboard'],
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pvp_stats')
@@ -39,7 +42,6 @@ export function Leaderboard() {
       if (error) throw error;
       return (data ?? []) as LeaderboardRow[];
     },
-    refetchInterval: 30_000
   });
 
   if (isLoading) {

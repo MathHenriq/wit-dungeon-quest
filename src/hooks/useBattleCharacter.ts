@@ -47,6 +47,9 @@ export function useBattleCharacter(userId: string | undefined) {
   return useQuery({
     queryKey: ['battle-character', userId],
     enabled:  !!userId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: async (): Promise<BattleCharacter | null> => {
       // 1. Try to find existing character
       const { data, error } = await supabaseStudent
