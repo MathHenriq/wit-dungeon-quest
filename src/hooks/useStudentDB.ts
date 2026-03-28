@@ -47,11 +47,17 @@ export function useStudentDB() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Ref to read authState synchronously inside auth listener (avoids stale closure)
+  const authStateRef = useRef<StudentAuthState>("loading");
+
   const { rewardConfig, getRewardIcon, getRewardName, getRewardLabel } =
     useTeacherReward(student?.teacher_id ?? null, supabaseAnon);
 
   const { trackLogin, trackSessionStart, trackSessionEnd, trackShopPurchase, trackAttendance } =
     useAnalytics();
+
+  // Keep authStateRef in sync so the auth listener can read the latest value
+  useEffect(() => { authStateRef.current = authState; }, [authState]);
 
   // Track session duration
   const sessionStartRef = useRef<number | null>(null);
@@ -252,7 +258,16 @@ export function useStudentDB() {
     loadTeachers();
 
     const { data: { subscription } } = supabaseStudent.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        // TOKEN_REFRESHED fires on tab-focus — skip full reload if already active
+        // (mirrors the same guard in AuthContext for the teacher side)
+        const isIdentityEvent =
+          event === "INITIAL_SESSION" ||
+          event === "SIGNED_IN" ||
+          event === "SIGNED_OUT";
+
+        if (!isIdentityEvent && authStateRef.current === "active") return;
+
         try {
           await resolveSession(session?.user ?? null);
         } catch (err) {
