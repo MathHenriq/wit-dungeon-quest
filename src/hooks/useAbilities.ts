@@ -12,6 +12,9 @@ export function useAbilities() {
     staleTime: 10 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async (): Promise<Ability[]> => {
       const { data, error } = await supabase
         .from('abilities')
@@ -60,6 +63,9 @@ export function useAbilitiesByElement(element: ElementType | null) {
     staleTime: 10 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async (): Promise<Ability[]> => {
       const { data, error } = await supabase
         .from('abilities')
@@ -96,6 +102,9 @@ export function useEquippedAbilities(characterId: string | null) {
     enabled:  !!characterId,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('character_abilities')

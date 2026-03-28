@@ -94,6 +94,9 @@ export function InventoryScreen({ characterId, onClose, onUseItem }: InventorySc
     queryKey: ['inventory', characterId],
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('character_inventory')

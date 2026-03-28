@@ -34,6 +34,9 @@ export function OpponentSelector({ character, onSelectOpponent }: OpponentSelect
     queryKey: ['pvp-rating', character.id],
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       const { data } = await supabase
         .from('pvp_stats')
@@ -56,6 +59,9 @@ export function OpponentSelector({ character, onSelectOpponent }: OpponentSelect
     enabled: !!myRating,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: () => findOpponents(character.id, character.level, rating),
   });
 

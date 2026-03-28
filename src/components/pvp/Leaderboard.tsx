@@ -29,7 +29,9 @@ export function Leaderboard() {
     queryKey: ['leaderboard'],
     staleTime: 30_000,
     refetchOnWindowFocus: false,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pvp_stats')

@@ -51,6 +51,9 @@ export function useCharacter(userId: string | null) {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async (): Promise<BattleCharacter | null> => {
       const { data, error } = await supabase
         .from('characters')
@@ -73,6 +76,9 @@ export function useCharacterById(characterId: string | null) {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async (): Promise<BattleCharacter | null> => {
       const { data, error } = await supabase
         .from('characters')

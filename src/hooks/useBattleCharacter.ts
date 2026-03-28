@@ -50,6 +50,9 @@ export function useBattleCharacter(userId: string | undefined) {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
     queryFn: async (): Promise<BattleCharacter | null> => {
       // 1. Try to find existing character
       const { data, error } = await supabaseStudent
