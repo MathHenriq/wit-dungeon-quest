@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorRecoveryToast } from "@/components/ErrorRecoveryToast";
 import { ColorBlindFilters } from "@/components/ColorBlindFilters";
+import { SpaceBackground } from "@/components/background/SpaceBackground";
+import { BootSequenceWrapper } from "@/components/entrance/BootSequence";
 import StudentPortal from "./pages/StudentPortal";
 import TeacherLogin from "./pages/TeacherLogin";
 import TeacherDashboard from "./pages/TeacherDashboard";
@@ -23,25 +25,28 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <ColorBlindFilters />
-        <Toaster />
-        <Sonner />
-        <ErrorRecoveryToast />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<StudentPortal />} />
-            <Route path="/professor/login" element={<TeacherLogin />} />
-            <Route path="/professor" element={<TeacherDashboard />} />
-            <Route path="/professor/analytics" element={<TeacherAnalytics />} />
-            <Route path="/pais/login" element={<ParentLogin />} />
-            <Route path="/pais" element={<ParentPortal />} />
-            <Route path="/pais/filho" element={<ParentStudentView />} />
-            <Route path="/relatorio/:reportId" element={<ParentReport />} />
-            <Route path="/professor/apresentacao" element={<PresentationMode />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <BootSequenceWrapper>
+          <SpaceBackground />
+          <ColorBlindFilters />
+          <Toaster />
+          <Sonner />
+          <ErrorRecoveryToast />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<StudentPortal />} />
+              <Route path="/professor/login" element={<TeacherLogin />} />
+              <Route path="/professor" element={<TeacherDashboard />} />
+              <Route path="/professor/analytics" element={<TeacherAnalytics />} />
+              <Route path="/pais/login" element={<ParentLogin />} />
+              <Route path="/pais" element={<ParentPortal />} />
+              <Route path="/pais/filho" element={<ParentStudentView />} />
+              <Route path="/relatorio/:reportId" element={<ParentReport />} />
+              <Route path="/professor/apresentacao" element={<PresentationMode />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </BootSequenceWrapper>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

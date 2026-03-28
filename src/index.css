@@ -57,54 +57,54 @@
   .card-fantasy,
   .holo-panel {
     @apply rounded-lg p-4;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(0, 229, 255, 0.12);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 229, 255, 0.35);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
   }
   .holo-panel-accent {
     @apply rounded-lg p-4;
-    background: rgba(0, 229, 255, 0.04);
-    border: 1px solid rgba(0, 229, 255, 0.2);
-    backdrop-filter: blur(12px);
+    background: rgba(0, 229, 255, 0.12);
+    border: 1px solid rgba(0, 229, 255, 0.5);
+    backdrop-filter: blur(30px);
   }
   .holo-panel-gold {
     @apply rounded-lg p-4;
-    background: rgba(255, 215, 0, 0.04);
-    border: 1px solid rgba(255, 215, 0, 0.15);
-    backdrop-filter: blur(12px);
+    background: rgba(255, 215, 0, 0.12);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    backdrop-filter: blur(30px);
   }
 
   .btn-fantasy,
   .btn-cyber {
     @apply px-5 py-2.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2;
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(124, 77, 255, 0.12));
-    border: 1px solid rgba(0, 229, 255, 0.3);
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(124, 77, 255, 0.25));
+    border: 1px solid rgba(0, 229, 255, 0.7);
     color: #00e5ff;
     letter-spacing: 1px;
     text-transform: uppercase;
     font-size: 0.8rem;
   }
   .btn-fantasy:hover, .btn-cyber:hover {
-    background: linear-gradient(135deg, rgba(0, 229, 255, 0.22), rgba(124, 77, 255, 0.22));
-    box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.4), rgba(124, 77, 255, 0.4));
+    box-shadow: 0 0 30px rgba(0, 229, 255, 0.5), 0 0 60px rgba(0, 229, 255, 0.25);
+    transform: translateY(-2px);
   }
   .btn-fantasy:active, .btn-cyber:active { transform: translateY(1px); }
   .btn-fantasy:disabled, .btn-cyber:disabled { @apply opacity-40 cursor-not-allowed; transform: none; }
 
   .btn-cyber-gold {
     @apply px-5 py-2.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(255, 170, 0, 0.12));
-    border: 1px solid rgba(255, 215, 0, 0.3);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 170, 0, 0.25));
+    border: 1px solid rgba(255, 215, 0, 0.7);
     color: #ffd700;
     letter-spacing: 1px;
     text-transform: uppercase;
     font-size: 0.8rem;
   }
   .btn-cyber-gold:hover {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
-    transform: translateY(-1px);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(255, 215, 0, 0.25);
+    transform: translateY(-2px);
   }
 
   .section-title {
@@ -146,10 +146,10 @@
     transition: width 0.6s ease;
   }
 
-  .glow-cyan { box-shadow: 0 0 15px rgba(0, 229, 255, 0.25); }
-  .glow-gold { box-shadow: 0 0 15px rgba(255, 215, 0, 0.25); }
-  .text-glow-cyan { text-shadow: 0 0 8px rgba(0, 229, 255, 0.4); }
-  .text-glow-gold { text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+  .glow-cyan { box-shadow: 0 0 30px rgba(0, 229, 255, 0.6), 0 0 60px rgba(0, 229, 255, 0.3); }
+  .glow-gold { box-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3); }
+  .text-glow-cyan { text-shadow: 0 0 10px rgba(0, 229, 255, 0.9), 0 0 20px rgba(0, 229, 255, 0.6), 0 0 40px rgba(0, 229, 255, 0.3); }
+  .text-glow-gold { text-shadow: 0 0 10px rgba(255, 215, 0, 0.9), 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3); }
 
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
@@ -202,6 +202,31 @@
 .animate-glow-breathe { animation: glow-breathe 3s ease-in-out infinite; }
 .animate-slow-drift { animation: slow-drift 6s ease-in-out infinite; }
 .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+
+/* ── Battle UI ────────────────────────────────────────────────────────────── */
+.pixelated { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.animate-fadeIn { animation: fadeIn 0.25s ease-out forwards; }
+
+@keyframes shake-x {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-6px); }
+  40%     { transform: translateX(6px); }
+  60%     { transform: translateX(-4px); }
+  80%     { transform: translateX(4px); }
+}
+.animate-shake { animation: shake-x 0.35s ease-in-out; }
+
+@keyframes battle-hit {
+  0%   { filter: brightness(1); }
+  25%  { filter: brightness(3) saturate(0); }
+  100% { filter: brightness(1); }
+}
+.animate-hit { animation: battle-hit 0.3s ease-out; }
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.1s; }
 .stagger-3 { animation-delay: 0.15s; }
@@ -226,9 +251,9 @@
   background: linear-gradient(
     to bottom,
     transparent 50%,
-    rgba(0, 217, 255, 0.025) 50%
+    rgba(0, 217, 255, 0.08) 50%
   );
-  background-size: 100% 3px;
+  background-size: 100% 4px;
   pointer-events: none;
   z-index: 9998;
   animation: scanline-sweep 10s linear infinite;
@@ -237,8 +262,8 @@
 /* ── Cyber grid background (Cyberpunk 2077) ── */
 .cyber-grid {
   background-image:
-    linear-gradient(rgba(0, 217, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 217, 255, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(0, 217, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 217, 255, 0.06) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
@@ -258,22 +283,22 @@
 
 /* ── Glass morphism — heavy (Destiny 2 panels) ── */
 .glass-heavy {
-  background: rgba(10, 14, 22, 0.5);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid rgba(0, 217, 255, 0.1);
+  background: rgba(10, 14, 22, 0.6);
+  backdrop-filter: blur(50px) saturate(180%);
+  -webkit-backdrop-filter: blur(50px) saturate(180%);
+  border: 1px solid rgba(0, 217, 255, 0.25);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .glass-boss {
-  background: rgba(8, 5, 12, 0.6);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(239, 68, 68, 0.12);
+  background: rgba(8, 5, 12, 0.7);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* ── Hologram flicker (SAO) ── */
@@ -290,26 +315,26 @@
 /* ── Neon border pulse ── */
 @keyframes neon-pulse-cyan {
   0%, 100% {
-    border-color: rgba(0, 217, 255, 0.4);
-    box-shadow: 0 0 8px rgba(0, 217, 255, 0.3), inset 0 0 8px rgba(0, 217, 255, 0.05);
+    border-color: rgba(0, 217, 255, 0.6);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.5), inset 0 0 8px rgba(0, 217, 255, 0.05);
   }
   50% {
     border-color: rgba(0, 217, 255, 0.9);
-    box-shadow: 0 0 20px rgba(0, 217, 255, 0.6), 0 0 40px rgba(0, 217, 255, 0.2), inset 0 0 12px rgba(0, 217, 255, 0.08);
+    box-shadow: 0 0 30px rgba(0, 217, 255, 0.8), 0 0 60px rgba(0, 217, 255, 0.4), inset 0 0 12px rgba(0, 217, 255, 0.08);
   }
 }
 @keyframes neon-pulse-purple {
   0%, 100% {
-    border-color: rgba(157, 78, 221, 0.4);
-    box-shadow: 0 0 8px rgba(157, 78, 221, 0.3);
+    border-color: rgba(157, 78, 221, 0.6);
+    box-shadow: 0 0 15px rgba(157, 78, 221, 0.5);
   }
   50% {
     border-color: rgba(157, 78, 221, 0.9);
-    box-shadow: 0 0 20px rgba(157, 78, 221, 0.6), 0 0 40px rgba(157, 78, 221, 0.2);
+    box-shadow: 0 0 30px rgba(157, 78, 221, 0.8), 0 0 60px rgba(157, 78, 221, 0.4);
   }
 }
-.neon-border { border: 1px solid; animation: neon-pulse-cyan 2.5s ease-in-out infinite; }
-.neon-border-purple { border: 1px solid; animation: neon-pulse-purple 2.5s ease-in-out infinite; }
+.neon-border { border: 2px solid; animation: neon-pulse-cyan 2.5s ease-in-out infinite; }
+.neon-border-purple { border: 2px solid; animation: neon-pulse-purple 2.5s ease-in-out infinite; }
 
 /* ── Glow rings (Destiny 2 ability icons) ── */
 @keyframes ring-pulse {
@@ -325,20 +350,115 @@
 }
 
 /* ── Enhanced glow utilities ── */
-.glow-cyan-intense  { box-shadow: 0 0 20px rgba(0, 217, 255, 0.5), 0 0 40px rgba(0, 217, 255, 0.25); }
-.glow-purple-intense { box-shadow: 0 0 20px rgba(157, 78, 221, 0.5), 0 0 40px rgba(157, 78, 221, 0.25); }
-.glow-gold-intense  { box-shadow: 0 0 20px rgba(255, 214, 10, 0.5), 0 0 40px rgba(255, 214, 10, 0.25); }
-.glow-red-intense   { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.25); }
-.glow-green-intense { box-shadow: 0 0 20px rgba(74, 222, 128, 0.5), 0 0 40px rgba(74, 222, 128, 0.25); }
-
-.text-glow-cyan   { text-shadow: 0 0 10px rgba(0, 217, 255, 0.9), 0 0 20px rgba(0, 217, 255, 0.5), 0 0 40px rgba(0, 217, 255, 0.25); }
-.text-glow-gold   { text-shadow: 0 0 10px rgba(255, 214, 10, 0.9), 0 0 20px rgba(255, 214, 10, 0.5), 0 0 40px rgba(255, 214, 10, 0.25); }
-.text-glow-purple { text-shadow: 0 0 10px rgba(157, 78, 221, 0.9), 0 0 20px rgba(157, 78, 221, 0.5), 0 0 40px rgba(157, 78, 221, 0.25); }
-.text-glow-red    { text-shadow: 0 0 10px rgba(239, 68, 68, 0.9), 0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.25); }
-.text-glow-green  { text-shadow: 0 0 10px rgba(74, 222, 128, 0.9), 0 0 20px rgba(74, 222, 128, 0.5), 0 0 40px rgba(74, 222, 128, 0.25); }
+.glow-cyan-intense  {
+  box-shadow:
+    0 0 10px rgba(0, 217, 255, 1),
+    0 0 30px rgba(0, 217, 255, 0.8),
+    0 0 60px rgba(0, 217, 255, 0.5),
+    0 0 100px rgba(0, 217, 255, 0.3);
+}
+.glow-purple-intense {
+  box-shadow:
+    0 0 10px rgba(157, 78, 221, 1),
+    0 0 30px rgba(157, 78, 221, 0.8),
+    0 0 60px rgba(157, 78, 221, 0.5),
+    0 0 100px rgba(157, 78, 221, 0.3);
+}
+.glow-gold-intense  {
+  box-shadow:
+    0 0 10px rgba(255, 214, 10, 1),
+    0 0 30px rgba(255, 214, 10, 0.8),
+    0 0 60px rgba(255, 214, 10, 0.5),
+    0 0 100px rgba(255, 214, 10, 0.3);
+}
+.glow-red-intense   {
+  box-shadow:
+    0 0 10px rgba(239, 68, 68, 1),
+    0 0 30px rgba(239, 68, 68, 0.8),
+    0 0 60px rgba(239, 68, 68, 0.5),
+    0 0 100px rgba(239, 68, 68, 0.3);
+}
+.glow-green-intense {
+  box-shadow:
+    0 0 10px rgba(74, 222, 128, 1),
+    0 0 30px rgba(74, 222, 128, 0.8),
+    0 0 60px rgba(74, 222, 128, 0.5),
+    0 0 100px rgba(74, 222, 128, 0.3);
+}
+.text-glow-cyan   {
+  text-shadow:
+    0 0 5px rgba(0, 217, 255, 1),
+    0 0 15px rgba(0, 217, 255, 0.9),
+    0 0 30px rgba(0, 217, 255, 0.7),
+    0 0 50px rgba(0, 217, 255, 0.5);
+}
+.text-glow-gold   {
+  text-shadow:
+    0 0 5px rgba(255, 214, 10, 1),
+    0 0 15px rgba(255, 214, 10, 0.9),
+    0 0 30px rgba(255, 214, 10, 0.7),
+    0 0 50px rgba(255, 214, 10, 0.5);
+}
+.text-glow-purple {
+  text-shadow:
+    0 0 5px rgba(157, 78, 221, 1),
+    0 0 15px rgba(157, 78, 221, 0.9),
+    0 0 30px rgba(157, 78, 221, 0.7),
+    0 0 50px rgba(157, 78, 221, 0.5);
+}
+.text-glow-red    {
+  text-shadow:
+    0 0 5px rgba(239, 68, 68, 1),
+    0 0 15px rgba(239, 68, 68, 0.9),
+    0 0 30px rgba(239, 68, 68, 0.7),
+    0 0 50px rgba(239, 68, 68, 0.5);
+}
+.text-glow-green  {
+  text-shadow:
+    0 0 5px rgba(74, 222, 128, 1),
+    0 0 15px rgba(74, 222, 128, 0.9),
+    0 0 30px rgba(74, 222, 128, 0.7),
+    0 0 50px rgba(74, 222, 128, 0.5);
+}
 
 /* ── Orbitron display font utility ── */
 .font-orbitron { font-family: 'Orbitron', sans-serif; }
+
+/* ── Ambient card glow (Destiny 2 atmosphere) ── */
+.card-ambient {
+  position: relative;
+}
+.card-ambient::before {
+  content: '';
+  position: absolute;
+  inset: -120px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(0, 217, 255, 0.2) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  z-index: -1;
+}
+.card-ambient:hover::before {
+  opacity: 1;
+}
+.card-ambient-gold::before {
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(255, 214, 10, 0.2) 0%,
+    transparent 60%
+  );
+}
+.card-ambient-purple::before {
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(157, 78, 221, 0.2) 0%,
+    transparent 60%
+  );
+}
 
 /* ── HologramCard corner accents ── */
 .holo-card-corner::before,
@@ -451,3 +571,183 @@
 .deuteranopia { filter: url(#filter-deuteranopia); }
 .protanopia   { filter: url(#filter-protanopia); }
 .tritanopia   { filter: url(#filter-tritanopia); }
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOST EFFECTS — Efeitos adicionais para impacto AAA
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Edge highlight (Valorant-style gradient borders) ── */
+.edge-highlight {
+  position: relative;
+}
+.edge-highlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 217, 255, 0.8) 0%,
+    rgba(157, 78, 221, 0.8) 50%,
+    rgba(0, 217, 255, 0.8) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.edge-highlight:hover::after {
+  opacity: 1;
+}
+
+/* ── Pulse glow on hover (breathing effect) ── */
+@keyframes pulse-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 25px currentColor);
+  }
+}
+.hover-pulse {
+  transition: all 0.3s ease;
+}
+.hover-pulse:hover {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ── Screen flash effect (para vitórias/conquistas) ── */
+@keyframes screen-flash {
+  0% { opacity: 0; }
+  10% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+.flash-success {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(74, 222, 128, 0.3) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  opacity: 0;
+  animation: screen-flash 0.8s ease-out;
+}
+
+/* ── Glitch effect (para erros/falhas) ── */
+@keyframes glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+}
+.glitch-effect {
+  animation: glitch 0.3s ease-in-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WAVE 8 — Battle Polish & Achievement Animations
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Attack flash (sprite avança e brilha) ── */
+@keyframes attackFlash {
+  0%   { transform: translateX(0);    filter: brightness(1); }
+  45%  { transform: translateX(28px); filter: brightness(1.6); }
+  100% { transform: translateX(0);    filter: brightness(1); }
+}
+.animate-attack { animation: attackFlash 0.3s ease-out; }
+
+/* ── Critical hit (brilho dourado) ── */
+@keyframes criticalHit {
+  0%, 100% { filter: brightness(1)   drop-shadow(0 0 0px transparent); }
+  50%       { filter: brightness(1.9) drop-shadow(0 0 18px #ffd700); }
+}
+.animate-critical { animation: criticalHit 0.45s ease-in-out; }
+
+/* ── Death fade out ── */
+@keyframes fadeOut {
+  from { opacity: 1; transform: scale(1);   }
+  to   { opacity: 0; transform: scale(0.8); }
+}
+.animate-death { animation: fadeOut 0.9s ease-out forwards; }
+
+/* ── Level up explosion ── */
+@keyframes levelUp {
+  0%   { transform: scale(0.4) rotate(0deg);   opacity: 0; }
+  55%  { transform: scale(1.2) rotate(180deg); opacity: 1; }
+  100% { transform: scale(1)   rotate(360deg); opacity: 1; }
+}
+.animate-levelup { animation: levelUp 0.75s cubic-bezier(0.34,1.56,0.64,1); }
+
+/* ── Damage numbers floating up ── */
+@keyframes floatUp {
+  0%   { transform: translateY(0)    scale(0.5); opacity: 0; }
+  12%  { transform: translateY(-10px) scale(1);  opacity: 1; }
+  100% { transform: translateY(-80px) scale(0.8);opacity: 0; }
+}
+.damage-number {
+  animation: floatUp 1.4s ease-out forwards;
+  position: absolute;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 2rem;
+  pointer-events: none;
+  z-index: 100;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+.damage-number.critical {
+  color: #ffd700;
+  text-shadow: 0 0 12px #ff6000, 0 2px 8px rgba(0,0,0,0.8);
+  font-size: 2.6rem;
+}
+.damage-number.miss {
+  color: rgba(255,255,255,0.5);
+  font-size: 1.4rem;
+  font-style: italic;
+}
+.damage-number.heal {
+  color: #4ade80;
+  text-shadow: 0 0 10px rgba(74,222,128,0.8);
+}
+
+/* ── Particle burst ── */
+@keyframes particle {
+  0%   { transform: translate(0, 0)           scale(1); opacity: 1; }
+  100% { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
+}
+.particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--color, #00e5ff);
+  border-radius: 50%;
+  animation: particle 0.7s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ── Achievement toast slide-in from right ── */
+@keyframes achievementSlideIn {
+  0%   { transform: translateX(420px); opacity: 0; }
+  10%  { transform: translateX(0);     opacity: 1; }
+  85%  { transform: translateX(0);     opacity: 1; }
+  100% { transform: translateX(420px); opacity: 0; }
+}
+.achievement-toast { animation: achievementSlideIn 4s cubic-bezier(0.34,1.56,0.64,1); }
+
+/* ── Slow pulse for CTA buttons ── */
+@keyframes pulseSlow {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
+}
+.animate-pulse-slow { animation: pulseSlow 2.2s ease-in-out infinite; }
+
+/* ── HP bar smooth transition ── */
+.hp-transition { transition: width 0.55s cubic-bezier(0.4,0,0.2,1); }

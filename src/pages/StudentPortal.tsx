@@ -22,6 +22,8 @@ import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { GuildPanel } from "@/components/student/GuildPanel";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
 import { DailyDungeon } from "@/components/student/DailyDungeon";
+import { BattleDungeonView } from "@/components/student/BattleDungeonView";
+import { useBattleCharacter } from "@/hooks/useBattleCharacter";
 import { TimeCapsule } from "@/components/student/TimeCapsule";
 import { PvPArena } from "@/components/student/PvPArena";
 import { TradingPanel } from "@/components/student/TradingPanel";
@@ -576,6 +578,7 @@ function PendingScreen({
 export default function StudentPortal() {
   const {
     authState,
+    authUser,
     student,
     teachers,
     classes,
@@ -607,6 +610,8 @@ export default function StudentPortal() {
     inventory,
     purchaseItem,
   } = useStudentDB();
+
+  const { data: battleCharacter, isLoading: isLoadingCharacter } = useBattleCharacter(authUser?.id);
 
   const [activeTab, setActiveTab] = useState<StudentTab>("challenges");
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
@@ -968,9 +973,17 @@ export default function StudentPortal() {
 
         {/* Daily Dungeon Tab */}
         {activeTab === "dungeon" && (
-          <div className="max-w-lg mx-auto">
-            <DailyDungeon student={student} onCoinsChanged={refreshStudent} />
-          </div>
+          isLoadingCharacter ? (
+            <div className="flex items-center justify-center h-64 text-white/60">
+              <span className="animate-spin mr-3">⏳</span> Carregando personagem...
+            </div>
+          ) : battleCharacter ? (
+            <BattleDungeonView character={battleCharacter} />
+          ) : (
+            <div className="holo-panel text-center py-12 text-white/60">
+              <p>Não foi possível carregar o personagem. Tente recarregar a página.</p>
+            </div>
+          )
         )}
 
         {/* Time Capsule Tab */}
