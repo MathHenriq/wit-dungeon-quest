@@ -7,8 +7,9 @@ import { BattleScreen } from '@/components/battle/BattleScreen';
 import { VictoryScreen } from '@/components/battle/VictoryScreen';
 import { useFloorEnemies, useRecordEnemyDefeat, type Floor, type FloorEnemy } from '@/hooks/useFloors';
 import { useEquippedAbilities, useAbilities } from '@/hooks/useAbilities';
-import { calculateXPGain, processXPGain } from '@/lib/progression/xpCalculator';
+import { calculateXPGain } from '@/lib/progression/xpCalculator';
 import { calculateCoinReward } from '@/lib/loot/lootGenerator';
+import { useApplyBattleRewards } from '@/hooks/useCharacter';
 import type { BattleRewards } from '@/lib/loot/lootGenerator';
 import type { XPReward } from '@/lib/progression/xpCalculator';
 
@@ -81,10 +82,11 @@ type DungeonPhase =
   | { type: 'floor_complete'; floor: Floor };
 
 interface BattleDungeonViewProps {
-  character: BattleCharacter;
+  character:         BattleCharacter;
+  onRewardApplied?:  () => void;
 }
 
-export function BattleDungeonView({ character }: BattleDungeonViewProps) {
+export function BattleDungeonView({ character, onRewardApplied }: BattleDungeonViewProps) {
   const [phase, setPhase] = useState<DungeonPhase>({ type: 'select' });
 
   // Load all abilities and equipped slots
@@ -98,7 +100,8 @@ export function BattleDungeonView({ character }: BattleDungeonViewProps) {
     .map(s => abilityMap[s.ability_id])
     .filter(Boolean);
 
-  const recordDefeat = useRecordEnemyDefeat();
+  const recordDefeat    = useRecordEnemyDefeat();
+  const applyRewards    = useApplyBattleRewards(character.id);
 
   // Enemies for current floor (only needed during battle/select-enemy phase)
   const activeFlorId = phase.type !== 'select' ? phase.floor.id : null;
@@ -114,6 +117,7 @@ export function BattleDungeonView({ character }: BattleDungeonViewProps) {
 
   function handleVictory(floor: Floor, enemy: FloorEnemy, xp: number, coins: number) {
     recordDefeat.mutate({ characterId: character.id, floorId: floor.id, isBoss: enemy.isBoss });
+    applyRewards.mutate({ xp, coins }, { onSuccess: () => onRewardApplied?.() });
     setPhase({ type: 'victory', floor, enemy, xp, coins });
   }
 
@@ -190,7 +194,8 @@ export function BattleDungeonView({ character }: BattleDungeonViewProps) {
   }
 
   if (phase.type === 'victory') {
-    const xpReward: XPReward = processXPGain(character.level, character.xp, phase.xp);
+    // Level-up is teacher-managed (academic level) — battle XP accumulates as a metric only.
+    const xpReward: XPReward = { baseXP: phase.xp, bonusXP: 0, totalXP: phase.xp, leveledUp: false, levelsGained: 0 };
     const rewards: BattleRewards = {
       xp:       phase.xp,
       coins:    phase.coins,

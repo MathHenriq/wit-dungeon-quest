@@ -1,183 +1,224 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef, useState, useCallback } from 'react'; // useCallback kept for onCheckTyped
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { ParticleField } from './ParticleField';
+import { GlitchOverlay } from './GlitchOverlay';
+import './BootSequence.css';
+
+interface SystemCheck {
+  id: string;
+  label: string;
+  duration: number;
+}
+
+const SYSTEM_CHECKS: SystemCheck[] = [
+  { id: 'auth',      label: 'Autenticação de Usuário',       duration: 0.8 },
+  { id: 'database',  label: 'Conexão com Banco de Dados',    duration: 0.6 },
+  { id: 'classroom', label: 'Integração Google Classroom',   duration: 0.7 },
+  { id: 'realtime',  label: 'Sistema de Tempo Real',         duration: 0.5 },
+  { id: 'graphics',  label: 'Motor Gráfico 3D',              duration: 0.9 },
+  { id: 'audio',     label: 'Sistema de Áudio',              duration: 0.4 },
+  { id: 'complete',  label: 'Sistema Pronto',                duration: 0.3 },
+];
+
+type CheckState = 'hidden' | 'typing' | 'complete';
 
 interface BootSequenceProps {
   onComplete: () => void;
 }
 
-export function BootSequence({ onComplete }: BootSequenceProps) {
-  const [stage, setStage] = useState(0);
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+function TypewriterLabel({
+  text,
+  state,
+  onDone,
+}: {
+  text: string;
+  state: CheckState;
+  onDone: () => void;
+}) {
+  const [displayed, setDisplayed] = useState('');
+  const doneRef = useRef(false);
 
   useEffect(() => {
-    const timers = [
-      setTimeout(() => setStage(1), 100),
-      setTimeout(() => setStage(2), 1800),
-      setTimeout(() => setStage(3), 2600),
-      setTimeout(() => setStage(4), 4800),
-      setTimeout(() => {
-        localStorage.setItem('wit_boot_seen', 'true');
-        onCompleteRef.current();
-      }, 5400),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-[9999] bg-black flex items-center justify-center overflow-hidden"
-      animate={{ opacity: stage === 4 ? 0 : 1 }}
-      transition={{ duration: 0.5, delay: stage === 4 ? 0.15 : 0 }}
-    >
-      {/* Scanlines sweep */}
-      {[0, 1, 2].map(i => (
-        <motion.div
-          key={i}
-          className="fixed left-0 w-full h-0.5 bg-cyan-500/30"
-          initial={{ top: '-2px' }}
-          animate={stage >= 1 ? { top: '100vh' } : { top: '-2px' }}
-          transition={{ duration: 1.8, delay: i * 0.15, ease: 'linear' }}
-        />
-      ))}
-
-      <div className="relative text-center">
-        {/* Logo */}
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
-          animate={stage >= 1 ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.8, y: 20 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <h1 className="text-7xl font-orbitron font-black text-glow-cyan tracking-widest">
-            WIT DUNGEON
-          </h1>
-          <motion.div
-            className="h-px mx-auto mt-4 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"
-            initial={{ width: 0 }}
-            animate={stage >= 1 ? { width: 256 } : { width: 0 }}
-            transition={{ duration: 1.0, delay: 0.4, ease: 'easeOut' }}
-          />
-        </motion.div>
-
-        {/* Typewriter text */}
-        <motion.div
-          className="font-mono text-cyan-400 text-xl tracking-[0.3em] mb-12"
-          initial={{ opacity: 0 }}
-          animate={stage >= 2 ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {stage >= 2 && <TypewriterText text="INITIALIZING LINK..." />}
-        </motion.div>
-
-        {/* Loading circle */}
-        <motion.div
-          className="relative w-32 h-32 mx-auto"
-          initial={{ opacity: 0 }}
-          animate={stage >= 3 ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <motion.svg
-            className="absolute inset-0 w-full h-full"
-            viewBox="0 0 100 100"
-            animate={stage >= 3 ? { rotate: 720 } : { rotate: 0 }}
-            transition={{ duration: 2.0, ease: 'linear' }}
-          >
-            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(0,217,255,0.2)" strokeWidth="1" />
-            <circle
-              cx="50" cy="50" r="45"
-              fill="none"
-              stroke="url(#grad-boot)"
-              strokeWidth="2"
-              strokeDasharray="283"
-              strokeDashoffset="70"
-              strokeLinecap="round"
-            />
-            <defs>
-              <linearGradient id="grad-boot" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#00d9ff" stopOpacity="1" />
-                <stop offset="100%" stopColor="#9d4edd" stopOpacity="1" />
-              </linearGradient>
-            </defs>
-          </motion.svg>
-          <div className="absolute inset-0 flex items-center justify-center text-cyan-400 font-mono text-2xl font-bold">
-            {stage >= 3 && <GlyphRotator />}
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Flash */}
-      <motion.div
-        className="fixed inset-0 bg-white pointer-events-none"
-        initial={{ opacity: 0 }}
-        animate={stage >= 4 ? { opacity: [0, 0.8, 0] } : { opacity: 0 }}
-        transition={{ duration: 0.4 }}
-      />
-    </motion.div>
-  );
-}
-
-function TypewriterText({ text }: { text: string }) {
-  const [displayText, setDisplayText] = useState('');
-  const [cursorVisible, setCursorVisible] = useState(true);
-
-  useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index <= text.length) {
-        setDisplayText(text.slice(0, index));
-        index++;
-      } else {
-        clearInterval(interval);
+    if (state !== 'typing') return;
+    doneRef.current = false;
+    setDisplayed('');
+    let idx = 0;
+    const id = setInterval(() => {
+      idx++;
+      setDisplayed(text.slice(0, idx));
+      if (idx >= text.length) {
+        clearInterval(id);
+        if (!doneRef.current) {
+          doneRef.current = true;
+          onDone();
+        }
       }
-    }, 80);
-    const cursorInterval = setInterval(() => setCursorVisible(v => !v), 500);
-    return () => { clearInterval(interval); clearInterval(cursorInterval); };
-  }, [text]);
+    }, 28);
+    return () => clearInterval(id);
+  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return (
-    <span>
-      {displayText}
-      <span className={cursorVisible ? 'opacity-100' : 'opacity-0'}>▮</span>
-    </span>
-  );
+  if (state === 'complete') {
+    return (
+      <span className="boot-check-label">
+        {text}
+        <span className="boot-checkmark"> ✓</span>
+      </span>
+    );
+  }
+
+  return <span className="boot-check-label">{displayed}</span>;
 }
 
-function GlyphRotator() {
-  const [glyph, setGlyph] = useState('◬');
-  const glyphs = ['◬', '◭', '◮', '◯', '◰', '◱', '◲', '◳'];
+export function BootSequence({ onComplete }: BootSequenceProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dividerRef = useRef<HTMLDivElement>(null);
+  const [checkStates, setCheckStates] = useState<CheckState[]>(
+    SYSTEM_CHECKS.map(() => 'hidden')
+  );
+  const [progress, setProgress] = useState(0);
+  const [showGlitch, setShowGlitch] = useState(false);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
 
-  useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      setGlyph(glyphs[index % glyphs.length]);
-      index++;
-    }, 150);
-    return () => clearInterval(interval);
+  // Advance to next check after typewriter finishes
+  const onCheckTyped = useCallback((index: number) => {
+    setCheckStates(prev => {
+      const next = [...prev];
+      next[index] = 'complete';
+      if (index + 1 < SYSTEM_CHECKS.length) next[index + 1] = 'typing';
+      return next;
+    });
+    setProgress(((index + 1) / SYSTEM_CHECKS.length) * 100);
+    tlRef.current?.resume();
   }, []);
 
-  return <span className="text-glow-cyan">{glyph}</span>;
-}
+  useGSAP(() => {
+    const tl = gsap.timeline({ paused: false });
+    tlRef.current = tl;
 
-export function BootSequenceWrapper({ children }: { children: React.ReactNode }) {
-  // Read localStorage synchronously at first render — no null state, no race
-  const [showBoot, setShowBoot] = useState(() => !localStorage.getItem('wit_boot_seen'));
+    // Phase 1 — logo entrance (1.5s)
+    tl.from('.boot-logo', {
+      scale: 0,
+      rotation: 540,
+      opacity: 0,
+      duration: 1.5,
+      ease: 'back.out(1.7)',
+    });
 
-  const handleComplete = useCallback(() => setShowBoot(false), []);
+    // Divider line expand
+    tl.to('.boot-logo-divider', {
+      width: 240,
+      duration: 0.8,
+      ease: 'power2.out',
+    }, '-=0.6');
 
-  if (!showBoot) return <>{children}</>;
+    // Phase 2 — logo pulse
+    tl.to('.boot-logo', {
+      scale: 1.05,
+      duration: 0.25,
+      yoyo: true,
+      repeat: 1,
+      ease: 'power2.inOut',
+    });
+
+    // Phase 3 — system checks (pause & resume driven by typewriter)
+    SYSTEM_CHECKS.forEach((_, index) => {
+      tl.call(() => {
+        setCheckStates(prev => {
+          const next = [...prev];
+          next[index] = 'typing';
+          return next;
+        });
+        // Pause; TypewriterLabel calls resume via onCheckTyped when done
+        tl.pause();
+      });
+      // Small gap after each resume before starting next check
+      tl.to({}, { duration: 0.05 });
+    });
+
+    // Phase 4 — green glow on checks
+    tl.to('.boot-system-checks', {
+      filter: 'drop-shadow(0 0 18px rgba(0, 255, 136, 0.7))',
+      duration: 0.4,
+    });
+
+    // Phase 5 — glitch + flash
+    tl.call(() => setShowGlitch(true));
+    tl.to({}, { duration: 0.6 });
+
+    // Phase 6 — fade out + complete callback
+    tl.to(containerRef.current, {
+      opacity: 0,
+      duration: 0.5,
+      onComplete: () => {
+        localStorage.setItem('wit_boot_seen', 'true');
+        onComplete();
+      },
+    });
+  }, { scope: containerRef });
 
   return (
-    <>
-      <AnimatePresence>
-        {showBoot && <BootSequence onComplete={handleComplete} />}
-      </AnimatePresence>
-      <motion.div
-        animate={{ opacity: showBoot ? 0 : 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {children}
-      </motion.div>
-    </>
+    <div ref={containerRef} className="boot-container">
+      {/* Background particles */}
+      <ParticleField />
+
+      {/* Scanline */}
+      <div className="boot-scanline" />
+
+      {/* Corner brackets */}
+      <div className="boot-corner boot-corner-tl" />
+      <div className="boot-corner boot-corner-tr" />
+      <div className="boot-corner boot-corner-bl" />
+      <div className="boot-corner boot-corner-br" />
+
+      {/* Glitch overlay */}
+      {showGlitch && <GlitchOverlay />}
+
+      {/* Main content */}
+      <div className="boot-content">
+        {/* Logo */}
+        <div className="boot-logo">
+          <div className="boot-logo-text">WIT</div>
+          <div className="boot-logo-subtext">DUNGEON</div>
+          <div ref={dividerRef} className="boot-logo-divider" />
+          <div className="boot-logo-version">v2.0</div>
+        </div>
+
+        {/* System checks */}
+        <div className="boot-system-checks">
+          <div className="boot-checks-title">INICIALIZANDO SISTEMAS</div>
+          {SYSTEM_CHECKS.map((check, index) => {
+            const state = checkStates[index];
+            return (
+              <div
+                key={check.id}
+                className={`boot-check-item ${state !== 'hidden' ? 'visible' : ''} ${state}`}
+              >
+                <span className="boot-check-arrow">{'>'}</span>
+                <TypewriterLabel
+                  text={check.label}
+                  state={state}
+                  onDone={() => onCheckTyped(index)}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="boot-progress-container">
+          <div className="boot-progress-bar">
+            <div
+              className="boot-progress-fill"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="boot-progress-text">{Math.round(progress)}%</div>
+        </div>
+      </div>
+    </div>
   );
 }
+
+// BootSequenceWrapper removed — intro flow is now handled by IntroRouter
+// at src/components/IntroRouter.tsx using the hasSeenIntro localStorage key.

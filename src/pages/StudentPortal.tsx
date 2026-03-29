@@ -284,7 +284,12 @@ function LoginScreen({
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
-      <AincradBackground scene="login" />
+      {/* Video background — replaces AincradBackground on login */}
+      <div className="login-video-background">
+        <video autoPlay loop muted playsInline className="login-background-video">
+          <source src="/videos/login-bg.mp4" type="video/mp4" />
+        </video>
+      </div>
       <div className="relative z-10 w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -1005,7 +1010,7 @@ export default function StudentPortal() {
               <span className="animate-spin mr-3">⏳</span> Carregando personagem...
             </div>
           ) : battleCharacter ? (
-            <BattleDungeonView character={battleCharacter} />
+            <BattleDungeonView character={battleCharacter} onRewardApplied={refreshStudent} />
           ) : (
             <div className="holo-panel text-center py-12 text-white/60">
               <p>Não foi possível carregar o personagem. Tente recarregar a página.</p>

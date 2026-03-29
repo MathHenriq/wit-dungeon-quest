@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { toast } from 'sonner';
 import type { BattleCharacter, ElementType } from '@/types/character';
 
@@ -145,6 +146,68 @@ export function useDistributePoints(characterId: string) {
     },
     onError: (err: any) => {
       toast.error(err.message ?? 'Erro ao distribuir pontos.');
+    },
+  });
+}
+
+// ─── Apply battle rewards (coins + XP, with level-up handling) ───────────────
+
+export function useApplyBattleRewards(characterId: string) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ xp, coins }: { xp: number; coins: number }) => {
+      // Fetch current character state (user_id needed to update students table)
+      const { data: char, error: fetchErr } = await supabaseStudent
+        .from('characters')
+        .select('xp, coins, user_id')
+        .eq('id', characterId)
+        .single();
+
+      if (fetchErr) throw fetchErr;
+
+      // Update characters: accumulate raw XP and coins only.
+      // Level-up is exclusively managed by the academic sync in useBattleCharacter
+      // (teacher controls level via students.level — battle XP is a metric, not a level gate).
+      const { error: updateErr } = await supabaseStudent
+        .from('characters')
+        .update({
+          xp:         (char.xp    ?? 0) + xp,
+          coins:      (char.coins ?? 0) + coins,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', characterId);
+
+      if (updateErr) throw updateErr;
+
+      // Mirror coins + XP to students table (unified economy — portal HUD uses this)
+      if (char.user_id) {
+        const { data: studentData } = await supabaseStudent
+          .from('students')
+          .select('coins, xp')
+          .eq('user_id', char.user_id)
+          .maybeSingle();
+
+        if (studentData) {
+          await supabaseStudent
+            .from('students')
+            .update({
+              coins: (studentData.coins ?? 0) + coins,
+              xp:    (studentData.xp    ?? 0) + xp,
+            })
+            .eq('user_id', char.user_id);
+        }
+      }
+    },
+    onSuccess: () => {
+      // 'battle-character' is the key used by useBattleCharacter (StudentPortal)
+      qc.invalidateQueries({ queryKey: ['battle-character'] });
+      // Also invalidate the teacher-side character queries just in case
+      qc.invalidateQueries({ queryKey: ['battle', 'character-by-id', characterId] });
+      qc.invalidateQueries({ queryKey: ['battle', 'character'] });
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao salvar recompensas: ' + (err.message ?? 'Erro desconhecido'));
     },
   });
 }

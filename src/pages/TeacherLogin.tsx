@@ -60,7 +60,12 @@ export default function TeacherLogin() {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
-      <AincradBackground scene="default" />
+      {/* Video background instead of AincradBackground */}
+      <div className="login-video-background">
+        <video autoPlay loop muted playsInline className="login-background-video">
+          <source src="/videos/login-bg.mp4" type="video/mp4" />
+        </video>
+      </div>
       <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -73,8 +78,18 @@ export default function TeacherLogin() {
               <Shield className="text-yellow-400" size={22} />
             </div>
           </div>
-          <h1 className="font-display text-3xl font-bold text-white mb-1" style={{ letterSpacing: '4px' }}>WIT DUNGEON</h1>
-          <p className="text-white/40 text-sm">Painel do Professor</p>
+          <h1 className="text-4xl font-bold text-cyan-400 text-glow-cyan" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '6px' }}>
+            WIT DUNGEON
+          </h1>
+          <p 
+            className="text-xs font-semibold text-green-400 mt-2 tracking-widest uppercase" 
+            style={{ 
+              textShadow: '0 0 10px rgba(74, 222, 128, 0.6), 0 0 20px rgba(74, 222, 128, 0.4)', 
+              fontFamily: 'Exo 2, sans-serif' 
+            }}
+          >
+            Painel do Professor
+          </p>
         </div>
 
         <div className="holo-panel-accent space-y-4">

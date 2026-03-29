@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import type { BattleCharacter } from '@/types/character';
+import { getPointsForLevelUp } from '@/lib/progression/xpCalculator';
 
 function rowToCharacter(row: any): BattleCharacter {
   return {
@@ -54,7 +55,15 @@ export function useBattleCharacter(userId: string | undefined) {
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,
     queryFn: async (): Promise<BattleCharacter | null> => {
-      // 1. Try to find existing character
+      // 1. Fetch student academic level (source of truth for level sync)
+      const { data: studentRow } = await supabaseStudent
+        .from('students')
+        .select('level')
+        .eq('user_id', userId!)
+        .maybeSingle();
+      const academicLevel = studentRow?.level ?? 1;
+
+      // 2. Try to find existing character
       const { data, error } = await supabaseStudent
         .from('characters')
         .select('*')
@@ -62,16 +71,40 @@ export function useBattleCharacter(userId: string | undefined) {
         .maybeSingle();
 
       if (error) throw error;
-      if (data) return rowToCharacter(data);
 
-      // 2. Auto-create if none exists
+      if (data) {
+        // Sync level up if student academic level is higher than battle level
+        if (academicLevel > (data.level ?? 1)) {
+          const levelsGained = academicLevel - (data.level ?? 1);
+          const bonuses = getPointsForLevelUp(levelsGained);
+          await supabaseStudent
+            .from('characters')
+            .update({
+              level:         academicLevel,
+              free_points:   (data.free_points  ?? 0)  + bonuses.freePoints,
+              forca:         (data.forca        ?? 10) + bonuses.attributePoints,
+              inteligencia:  (data.inteligencia ?? 10) + bonuses.attributePoints,
+              destreza:      (data.destreza     ?? 10) + bonuses.attributePoints,
+              carisma:       (data.carisma      ?? 10) + bonuses.attributePoints,
+              agilidade:     (data.agilidade    ?? 10) + bonuses.attributePoints,
+              resistencia:   (data.resistencia  ?? 10) + bonuses.attributePoints,
+              hp_current:    data.hp_max ?? 100,
+              updated_at:    new Date().toISOString(),
+            })
+            .eq('id', data.id);
+          return rowToCharacter({ ...data, level: academicLevel });
+        }
+        return rowToCharacter(data);
+      }
+
+      // 3. Auto-create if none exists (use academic level from the start)
       const { data: newChar, error: createError } = await supabaseStudent
         .from('characters')
         .insert({
           user_id:      userId!,
           name:         'Aventureiro',
           class:        'Guerreiro',
-          level:        1,
+          level:        academicLevel,
           xp:           0,
           hp_current:   100,
           hp_max:       100,
