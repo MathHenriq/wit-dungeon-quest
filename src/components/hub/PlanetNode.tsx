@@ -9,6 +9,7 @@ export interface PlanetProps {
   color: string;
   glowColor: string;
   texture?: string;
+  planetImage?: string; // path to PNG planet image
   position: { top: string; left: string };
   orbits?: number;
   onClick?: () => void;
@@ -18,14 +19,19 @@ export interface PlanetProps {
 export const PlanetNode: React.FC<PlanetProps> = ({
   size,
   color,
+  glowColor,
+  planetImage,
   position,
   onClick,
-  icon
+  icon,
+  name,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Mapeamos size para algo razoável no painel plano (24 a 48px)
-  const iconSize = Math.max(30, Math.min(50, size / 3));
+  const planetSize = Math.max(48, Math.min(96, size * 1.8));
+  const ringInner  = planetSize + 16;
+  const ringOuter  = planetSize + 26;
+  const lockRing   = planetSize + 38;
 
   return (
     <div
@@ -37,93 +43,110 @@ export const PlanetNode: React.FC<PlanetProps> = ({
     >
       <div className="relative flex items-center justify-center">
 
-        {/* SAO Constant Spinning Data Rings */}
-        <motion.div 
+        {/* Glow halo behind planet */}
+        <motion.div
+          className="absolute rounded-full pointer-events-none"
+          style={{ width: planetSize, height: planetSize, background: glowColor, filter: 'blur(18px)' }}
+          animate={{ opacity: isHovered ? 0.9 : 0.35, scale: isHovered ? 1.3 : 1 }}
+          transition={{ duration: 0.35 }}
+        />
+
+        {/* SAO Spinning Data Rings */}
+        <motion.div
           className="absolute pointer-events-none rounded-full"
-          style={{ 
-            width: iconSize + 20, // Aumentado para criar a pequena lacuna
-            height: iconSize + 20, 
+          style={{
+            width: ringInner,
+            height: ringInner,
             border: '1px solid rgba(0, 229, 255, 0.2)',
             borderLeftColor: 'rgba(0, 229, 255, 0.8)',
-            borderRightColor: 'rgba(0, 229, 255, 0.8)'
+            borderRightColor: 'rgba(0, 229, 255, 0.8)',
           }}
-          animate={{ rotate: 360, scale: isHovered ? 1.05 : 1, opacity: isHovered ? 1 : 0.6 }}
+          animate={{ rotate: 360, scale: isHovered ? 1.05 : 1, opacity: isHovered ? 1 : 0.5 }}
           transition={{ rotate: { duration: 8, repeat: Infinity, ease: 'linear' }, scale: { duration: 0.2 } }}
         />
-        <motion.div 
+        <motion.div
           className="absolute pointer-events-none rounded-full"
-          style={{ 
-            width: iconSize + 28, // Aumentado para acompanhar a lacuna 
-            height: iconSize + 28, 
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+          style={{
+            width: ringOuter,
+            height: ringOuter,
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderTopColor: 'rgba(0, 229, 255, 0.5)',
-            borderBottomColor: 'rgba(0, 229, 255, 0.5)'
+            borderBottomColor: 'rgba(0, 229, 255, 0.5)',
           }}
-          animate={{ rotate: -360, scale: isHovered ? 1.1 : 1, opacity: isHovered ? 1 : 0.4 }}
+          animate={{ rotate: -360, scale: isHovered ? 1.1 : 1, opacity: isHovered ? 1 : 0.35 }}
           transition={{ rotate: { duration: 12, repeat: Infinity, ease: 'linear' }, scale: { duration: 0.2 } }}
         />
 
-        {/* Hover Fast Lock-on Selector (Classic Destiny Rotating Cursor) */}
-        <motion.div 
+        {/* Destiny Lock-on Selector on Hover */}
+        <motion.div
           className="absolute pointer-events-none rounded-full"
-          style={{ width: iconSize + 36, height: iconSize + 36, border: '2px solid rgba(255,255,255,0.8)', borderStyle: 'dotted' }}
+          style={{ width: lockRing, height: lockRing, border: '2px dotted rgba(255,255,255,0.75)' }}
           initial={{ opacity: 0, scale: 1.5 }}
-          animate={{ 
-            opacity: isHovered ? 1 : 0, 
-            scale: isHovered ? 1 : 1.5, 
-            rotate: isHovered ? 180 : 0 
+          animate={{
+            opacity: isHovered ? 1 : 0,
+            scale: isHovered ? 1 : 1.5,
+            rotate: isHovered ? 180 : 0,
           }}
-          transition={{ 
+          transition={{
             opacity: { duration: 0.2 },
             scale: { type: 'spring', damping: 20, stiffness: 300 },
-            rotate: { duration: 15, repeat: Infinity, ease: 'linear' }
+            rotate: { duration: 15, repeat: Infinity, ease: 'linear' },
           }}
         />
-        
-        {/* Inner lock-ring solid */}
-        <motion.div 
-          className="absolute rounded-full pointer-events-none border border-white/30"
-          style={{ width: iconSize + 12, height: iconSize + 12 }}
+
+        {/* Inner lock-ring */}
+        <motion.div
+          className="absolute rounded-full pointer-events-none border border-white/25"
+          style={{ width: planetSize + 8, height: planetSize + 8 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: isHovered ? 1 : 0 }}
           transition={{ duration: 0.2 }}
         />
 
-        {/* Outer Hexagon border faintly always visible */}
-        <div 
-          className="absolute pointer-events-none"
-          style={{
-            width: iconSize + 8,
-            height: iconSize + 8,
-            backgroundColor: 'transparent',
-            border: '1px solid rgba(255,255,255,0.3)',
-            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-          }}
-        />
-
-        {/* The Emblem Body (Hexagon Base - Flat military D2 style) */}
-        <motion.div 
+        {/* Planet image or fallback hexagon */}
+        <motion.div
           className="relative flex items-center justify-center"
-          style={{
-            width: iconSize,
-            height: iconSize,
-            backgroundColor: color,
-            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
-            opacity: 0.95
-          }}
-          whileHover={{ scale: 1.05 }}
+          style={{ width: planetSize, height: planetSize }}
+          whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.95 }}
         >
-          {/* Faint inner texture/noise for the emblem */}
-          <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'1\' numOctaves=\'1\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-          }} />
+          {planetImage ? (
+            <img
+              src={planetImage}
+              alt={name}
+              className="w-full h-full object-contain drop-shadow-2xl"
+              style={{
+                filter: isHovered ? `drop-shadow(0 0 12px ${glowColor})` : 'none',
+                transition: 'filter 0.3s',
+              }}
+              draggable={false}
+            />
+          ) : (
+            <div
+              className="w-full h-full flex items-center justify-center"
+              style={{
+                backgroundColor: color,
+                clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div className="text-white drop-shadow-md">{icon}</div>
+            </div>
+          )}
 
-          {/* Icon */}
-          <div className="relative z-10 text-white drop-shadow-md flex items-center justify-center scale-75">
-            {icon}
-          </div>
+          {/* Icon badge overlay */}
+          {icon && (
+            <div
+              className="absolute bottom-1 right-1 w-6 h-6 rounded-full flex items-center justify-center"
+              style={{
+                background: 'rgba(2,6,17,0.75)',
+                border: '1px solid rgba(0,229,255,0.4)',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              <div className="text-white/80 scale-75">{icon}</div>
+            </div>
+          )}
         </motion.div>
       </div>
     </div>

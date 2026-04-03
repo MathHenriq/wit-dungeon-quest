@@ -10,8 +10,9 @@ const mapNodesData: PlanetProps[] = [
     name: 'Andares',
     type: 'The Core',
     size: 48,
-    color: '#334c6b', // Muted blue
-    glowColor: 'rgba(51, 76, 107, 0.5)',
+    color: '#334c6b',
+    glowColor: 'rgba(0, 212, 255, 0.5)',
+    planetImage: '/images/planets/Gemini_Generated_Image_m93eljm93eljm93e.png',
     position: { top: '50%', left: '45%' },
     icon: <Home size={22} className="opacity-80" />
   },
@@ -20,8 +21,9 @@ const mapNodesData: PlanetProps[] = [
     name: 'Missões',
     type: 'Patrols & Quests',
     size: 32,
-    color: '#824949', // Muted crimson
-    glowColor: 'rgba(130, 73, 73, 0.5)',
+    color: '#824949',
+    glowColor: 'rgba(157, 0, 255, 0.5)',
+    planetImage: '/images/planets/Gemini_Generated_Image_rz4uvprz4uvprz4u.png',
     position: { top: '35%', left: '60%' },
     icon: <Target size={16} className="opacity-80" />
   },
@@ -30,8 +32,9 @@ const mapNodesData: PlanetProps[] = [
     name: 'Inventário',
     type: 'The Vault',
     size: 36,
-    color: '#8b693e', // Rust/mud
-    glowColor: 'rgba(139, 105, 62, 0.5)',
+    color: '#8b693e',
+    glowColor: 'rgba(26, 35, 50, 0.6)',
+    planetImage: '/images/planets/Gemini_Generated_Image_lndtfxlndtfxlndt.png',
     position: { top: '70%', left: '55%' },
     icon: <Box size={16} className="opacity-80" />
   },
@@ -40,8 +43,9 @@ const mapNodesData: PlanetProps[] = [
     name: 'Competitivo',
     type: 'Crucible',
     size: 38,
-    color: '#703333', // Dark red
-    glowColor: 'rgba(112, 51, 51, 0.5)',
+    color: '#703333',
+    glowColor: 'rgba(139, 0, 0, 0.6)',
+    planetImage: '/images/planets/Gemini_Generated_Image_p23lzrp23lzrp23l.png',
     position: { top: '65%', left: '28%' },
     icon: <Sword size={18} className="opacity-80" />
   },
@@ -50,8 +54,9 @@ const mapNodesData: PlanetProps[] = [
     name: 'Trocas',
     type: 'Trading Outpost',
     size: 30,
-    color: '#475569', // Slate
-    glowColor: 'rgba(71, 85, 105, 0.5)',
+    color: '#475569',
+    glowColor: 'rgba(64, 224, 208, 0.5)',
+    planetImage: '/images/planets/Gemini_Generated_Image_dqkvgrdqkvgrdqkv.png',
     position: { top: '25%', left: '30%' },
     icon: <ArrowLeftRight size={14} className="opacity-80" />
   },
@@ -60,8 +65,9 @@ const mapNodesData: PlanetProps[] = [
     name: 'Eververse',
     type: 'Emporium',
     size: 44,
-    color: '#2b5f54', // Muted Teal
-    glowColor: 'rgba(43, 95, 84, 0.5)',
+    color: '#2b5f54',
+    glowColor: 'rgba(160, 130, 109, 0.6)',
+    planetImage: '/images/planets/Gemini_Generated_Image_7bum2j7bum2j7bum.png',
     position: { top: '20%', left: '15%' },
     icon: <ShoppingCart size={20} className="opacity-80" />
   }
@@ -75,7 +81,18 @@ const HubDemo = () => {
       
       {/* SAO 'Link Start' / ALO VR Data Room Background */}
       <div className="absolute inset-0 z-0 bg-[#020611] overflow-hidden">
-        
+
+        {/* Background giant planets */}
+        <img src="/images/backgrounds/Gemini_Generated_Image_o6a9lbo6a9lbo6a9.png" alt="" draggable={false}
+          className="absolute -top-32 -right-32 w-[520px] opacity-25 pointer-events-none select-none" />
+        <img src="/images/backgrounds/Gemini_Generated_Image_arbykzarbykzarby.png" alt="" draggable={false}
+          className="absolute -bottom-40 -left-40 w-[480px] opacity-20 pointer-events-none select-none" />
+        <img src="/images/backgrounds/Gemini_Generated_Image_f73dxuf73dxuf73d.png" alt="" draggable={false}
+          className="absolute top-1/2 -right-48 w-[360px] opacity-15 pointer-events-none select-none"
+          style={{ transform: 'translateY(-50%)' }} />
+        <img src="/images/backgrounds/Gemini_Generated_Image_f6sq7wf6sq7wf6sq.png" alt="" draggable={false}
+          className="absolute -top-16 left-1/4 w-[200px] opacity-10 pointer-events-none select-none" />
+
         {/* Floating Data Rings (SAO System Menu aesthetic) */}
         <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
           <motion.div 
