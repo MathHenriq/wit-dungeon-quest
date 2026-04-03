@@ -12,7 +12,7 @@ const mapNodesData: PlanetProps[] = [
     size: 48,
     color: '#334c6b',
     glowColor: 'rgba(0, 212, 255, 0.5)',
-    planetImage: '/images/planets/Gemini_Generated_Image_m93eljm93eljm93e.png',
+    planetImage: '/images/planets/Gemini_Generated_Image_m93eljm93eljm93e-removebg-preview.png',
     position: { top: '50%', left: '45%' },
     icon: <Home size={22} className="opacity-80" />
   },
@@ -23,7 +23,7 @@ const mapNodesData: PlanetProps[] = [
     size: 32,
     color: '#824949',
     glowColor: 'rgba(157, 0, 255, 0.5)',
-    planetImage: '/images/planets/Gemini_Generated_Image_rz4uvprz4uvprz4u.png',
+    planetImage: '/images/planets/Gemini_Generated_Image_rz4uvprz4uvprz4u-removebg-preview.png',
     position: { top: '35%', left: '60%' },
     icon: <Target size={16} className="opacity-80" />
   },
@@ -34,7 +34,7 @@ const mapNodesData: PlanetProps[] = [
     size: 36,
     color: '#8b693e',
     glowColor: 'rgba(26, 35, 50, 0.6)',
-    planetImage: '/images/planets/Gemini_Generated_Image_lndtfxlndtfxlndt.png',
+    planetImage: '/images/planets/Gemini_Generated_Image_lndtfxlndtfxlndt-removebg-preview.png',
     position: { top: '70%', left: '55%' },
     icon: <Box size={16} className="opacity-80" />
   },
@@ -45,7 +45,7 @@ const mapNodesData: PlanetProps[] = [
     size: 38,
     color: '#703333',
     glowColor: 'rgba(139, 0, 0, 0.6)',
-    planetImage: '/images/planets/Gemini_Generated_Image_p23lzrp23lzrp23l.png',
+    planetImage: '/images/planets/Gemini_Generated_Image_p23lzrp23lzrp23l-removebg-preview (1).png',
     position: { top: '65%', left: '28%' },
     icon: <Sword size={18} className="opacity-80" />
   },
@@ -56,7 +56,7 @@ const mapNodesData: PlanetProps[] = [
     size: 30,
     color: '#475569',
     glowColor: 'rgba(64, 224, 208, 0.5)',
-    planetImage: '/images/planets/Gemini_Generated_Image_dqkvgrdqkvgrdqkv.png',
+    planetImage: '/images/planets/Gemini_Generated_Image_dqkvgrdqkvgrdqkv-removebg-preview (1).png',
     position: { top: '25%', left: '30%' },
     icon: <ArrowLeftRight size={14} className="opacity-80" />
   },
@@ -67,7 +67,7 @@ const mapNodesData: PlanetProps[] = [
     size: 44,
     color: '#2b5f54',
     glowColor: 'rgba(160, 130, 109, 0.6)',
-    planetImage: '/images/planets/Gemini_Generated_Image_7bum2j7bum2j7bum.png',
+    planetImage: '/images/planets/Gemini_Generated_Image_7bum2j7bum2j7bum-removebg-preview.png',
     position: { top: '20%', left: '15%' },
     icon: <ShoppingCart size={20} className="opacity-80" />
   }
@@ -83,11 +83,11 @@ const HubDemo = () => {
       <div className="absolute inset-0 z-0 bg-[#020611] overflow-hidden">
 
         {/* Background giant planets */}
-        <img src="/images/backgrounds/Gemini_Generated_Image_o6a9lbo6a9lbo6a9.png" alt="" draggable={false}
+        <img src="/images/backgrounds/Gemini_Generated_Image_o6a9lbo6a9lbo6a9-removebg-preview (1).png" alt="" draggable={false}
           className="absolute -top-32 -right-32 w-[520px] opacity-25 pointer-events-none select-none" />
-        <img src="/images/backgrounds/Gemini_Generated_Image_arbykzarbykzarby.png" alt="" draggable={false}
+        <img src="/images/backgrounds/Gemini_Generated_Image_arbykzarbykzarby-removebg-preview.png" alt="" draggable={false}
           className="absolute -bottom-40 -left-40 w-[480px] opacity-20 pointer-events-none select-none" />
-        <img src="/images/backgrounds/Gemini_Generated_Image_f73dxuf73dxuf73d.png" alt="" draggable={false}
+        <img src="/images/backgrounds/Gemini_Generated_Image_f73dxuf73dxuf73d-removebg-preview.png" alt="" draggable={false}
           className="absolute top-1/2 -right-48 w-[360px] opacity-15 pointer-events-none select-none"
           style={{ transform: 'translateY(-50%)' }} />
         <img src="/images/backgrounds/Gemini_Generated_Image_f6sq7wf6sq7wf6sq.png" alt="" draggable={false}

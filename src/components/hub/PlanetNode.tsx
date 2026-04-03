@@ -28,7 +28,7 @@ export const PlanetNode: React.FC<PlanetProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  const planetSize = Math.max(48, Math.min(96, size * 1.8));
+  const planetSize = Math.max(72, Math.min(144, size * 2.7));
   const ringInner  = planetSize + 16;
   const ringOuter  = planetSize + 26;
   const lockRing   = planetSize + 38;

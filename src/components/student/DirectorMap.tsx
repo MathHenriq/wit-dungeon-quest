@@ -11,18 +11,18 @@ import { GameIcon } from '@/components/icons/GameIcon';
 
 // ─── Planet image mapping ────────────────────────────────
 const PLANET_CONFIG: Record<string, { file: string; glowColor: string }> = {
-  challenges: { file: 'Gemini_Generated_Image_1k478i1k478i1k47.png',  glowColor: 'rgba(74, 124, 30, 0.6)'   },
-  missions:   { file: 'Gemini_Generated_Image_rz4uvprz4uvprz4u.png',  glowColor: 'rgba(157, 0, 255, 0.6)'   },
-  bosses:     { file: 'Gemini_Generated_Image_si79sxsi79sxsi79.png',  glowColor: 'rgba(255, 0, 0, 0.6)'     },
-  dungeon:    { file: 'Gemini_Generated_Image_m93eljm93eljm93e.png',  glowColor: 'rgba(0, 212, 255, 0.6)'   },
-  pvp:        { file: 'Gemini_Generated_Image_p23lzrp23lzrp23l.png',  glowColor: 'rgba(139, 0, 0, 0.6)'     },
-  guild:      { file: 'Gemini_Generated_Image_s41uhks41uhks41u.png',  glowColor: 'rgba(75, 0, 130, 0.6)'    },
-  skills:     { file: 'Gemini_Generated_Image_doqkzjdoqkzjdoqk.png', glowColor: 'rgba(255, 136, 0, 0.6)'   },
-  shop:       { file: 'Gemini_Generated_Image_7bum2j7bum2j7bum.png',  glowColor: 'rgba(160, 130, 109, 0.6)' },
-  inventory:  { file: 'Gemini_Generated_Image_lndtfxlndtfxlndt.png', glowColor: 'rgba(26, 35, 50, 0.6)'    },
-  trading:    { file: 'Gemini_Generated_Image_dqkvgrdqkvgrdqkv.png',  glowColor: 'rgba(64, 224, 208, 0.6)'  },
-  ranking:    { file: 'Gemini_Generated_Image_vb47acvb47acvb47.png',  glowColor: 'rgba(255, 215, 0, 0.6)'   },
-  character:  { file: 'Gemini_Generated_Image_txwjmctxwjmctxwj.png', glowColor: 'rgba(139, 139, 139, 0.6)' },
+  challenges: { file: 'Gemini_Generated_Image_1k478i1k478i1k47-removebg-preview.png',  glowColor: 'rgba(74, 124, 30, 0.6)'   },
+  missions:   { file: 'Gemini_Generated_Image_rz4uvprz4uvprz4u-removebg-preview.png',  glowColor: 'rgba(157, 0, 255, 0.6)'   },
+  bosses:     { file: 'Gemini_Generated_Image_si79sxsi79sxsi79-removebg-preview.png',  glowColor: 'rgba(255, 0, 0, 0.6)'     },
+  dungeon:    { file: 'Gemini_Generated_Image_m93eljm93eljm93e-removebg-preview.png',  glowColor: 'rgba(0, 212, 255, 0.6)'   },
+  pvp:        { file: 'Gemini_Generated_Image_p23lzrp23lzrp23l-removebg-preview (1).png',  glowColor: 'rgba(139, 0, 0, 0.6)'     },
+  guild:      { file: 'Gemini_Generated_Image_s41uhks41uhks41u-removebg-preview (1).png',  glowColor: 'rgba(75, 0, 130, 0.6)'    },
+  skills:     { file: 'Gemini_Generated_Image_doqkzjdoqkzjdoqk-removebg-preview.png', glowColor: 'rgba(255, 136, 0, 0.6)'   },
+  shop:       { file: 'Gemini_Generated_Image_7bum2j7bum2j7bum-removebg-preview.png',  glowColor: 'rgba(160, 130, 109, 0.6)' },
+  inventory:  { file: 'Gemini_Generated_Image_lndtfxlndtfxlndt-removebg-preview.png', glowColor: 'rgba(26, 35, 50, 0.6)'    },
+  trading:    { file: 'Gemini_Generated_Image_dqkvgrdqkvgrdqkv-removebg-preview (1).png',  glowColor: 'rgba(64, 224, 208, 0.6)'  },
+  ranking:    { file: 'Gemini_Generated_Image_vb47acvb47acvb47-removebg-preview.png',  glowColor: 'rgba(255, 215, 0, 0.6)'   },
+  character:  { file: 'Gemini_Generated_Image_txwjmctxwjmctxwj-removebg-preview (1).png', glowColor: 'rgba(139, 139, 139, 0.6)' },
 };
 
 const getPlanetPath = (id: string) =>
@@ -34,15 +34,15 @@ const getGlowColor = (id: string) =>
 // ─── Background planets ──────────────────────────────────
 const BG_PLANETS = [
   {
-    file: 'Gemini_Generated_Image_o6a9lbo6a9lbo6a9.png',
+    file: 'Gemini_Generated_Image_o6a9lbo6a9lbo6a9-removebg-preview (1).png',
     className: 'absolute -top-32 -right-32 w-[520px] opacity-25 pointer-events-none select-none',
   },
   {
-    file: 'Gemini_Generated_Image_arbykzarbykzarby.png',
+    file: 'Gemini_Generated_Image_arbykzarbykzarby-removebg-preview.png',
     className: 'absolute -bottom-40 -left-40 w-[480px] opacity-20 pointer-events-none select-none',
   },
   {
-    file: 'Gemini_Generated_Image_f73dxuf73dxuf73d.png',
+    file: 'Gemini_Generated_Image_f73dxuf73dxuf73d-removebg-preview.png',
     className: 'absolute top-1/2 -right-48 w-[360px] opacity-15 pointer-events-none select-none',
     style: { transform: 'translateY(-50%)' },
   },
@@ -81,7 +81,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Patrulhas & Objetivos',
     size: 38,
     color: '#4a6741',
-    position: { top: '34%', left: '63%' },
+    position: { top: '30%', left: '66%' },
     icon: <ScrollText size={18} />,
   },
   {
@@ -90,7 +90,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Combate de Chefes',
     size: 44,
     color: '#6b2525',
-    position: { top: '62%', left: '70%' },
+    position: { top: '65%', left: '75%' },
     icon: <Skull size={20} />,
     danger: true,
   },
@@ -100,7 +100,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Expedição Diária',
     size: 40,
     color: '#5c3d7a',
-    position: { top: '70%', left: '54%' },
+    position: { top: '75%', left: '55%' },
     icon: <Zap size={18} />,
   },
   {
@@ -109,7 +109,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Combate Competitivo',
     size: 36,
     color: '#703333',
-    position: { top: '66%', left: '36%' },
+    position: { top: '70%', left: '32%' },
     icon: <Swords size={16} />,
     danger: true,
   },
@@ -119,7 +119,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Aliança de Heróis',
     size: 34,
     color: '#2a5a5a',
-    position: { top: '42%', left: '30%' },
+    position: { top: '40%', left: '25%' },
     icon: <Shield size={16} />,
   },
   {
@@ -128,7 +128,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Árvore de Habilidades',
     size: 32,
     color: '#4a4a6b',
-    position: { top: '28%', left: '42%' },
+    position: { top: '22%', left: '40%' },
     icon: <Network size={14} />,
   },
   {
@@ -137,7 +137,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Emporium Arcano',
     size: 42,
     color: '#2b5f54',
-    position: { top: '24%', left: '74%' },
+    position: { top: '17%', left: '80%' },
     icon: <Store size={20} />,
   },
   {
@@ -146,7 +146,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Arsenal do Herói',
     size: 34,
     color: '#8b693e',
-    position: { top: '56%', left: '24%' },
+    position: { top: '58%', left: '17%' },
     icon: <Package size={16} />,
   },
   {
@@ -155,7 +155,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Posto de Trocas',
     size: 30,
     color: '#475569',
-    position: { top: '78%', left: '44%' },
+    position: { top: '83%', left: '42%' },
     icon: <ArrowLeftRight size={14} />,
   },
   {
@@ -164,7 +164,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Classificação Global',
     size: 36,
     color: '#6b5b1e',
-    position: { top: '20%', left: '56%' },
+    position: { top: '12%', left: '57%' },
     icon: <Trophy size={16} />,
   },
   {
@@ -173,7 +173,7 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Ficha de Personagem',
     size: 38,
     color: '#1a4a6b',
-    position: { top: '80%', left: '68%' },
+    position: { top: '85%', left: '70%' },
     icon: <User size={18} />,
   },
 ];
@@ -219,7 +219,7 @@ function MapNode({
   onLeave: () => void;
   onClick: () => void;
 }) {
-  const planetSize = Math.max(48, Math.min(90, node.size * 1.6));
+  const planetSize = Math.max(72, Math.min(135, node.size * 2.4));
   const ringInner  = planetSize + 16;
   const ringOuter  = planetSize + 26;
   const lockRing   = planetSize + 38;
