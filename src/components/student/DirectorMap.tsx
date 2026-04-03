@@ -9,6 +9,49 @@ import type { StudentTab } from './StudentNavigation';
 import type { Student } from '@/types';
 import { GameIcon } from '@/components/icons/GameIcon';
 
+// ─── Planet image mapping ────────────────────────────────
+const PLANET_CONFIG: Record<string, { file: string; glowColor: string }> = {
+  challenges: { file: 'Gemini_Generated_Image_1k478i1k478i1k47.png',  glowColor: 'rgba(74, 124, 30, 0.6)'   },
+  missions:   { file: 'Gemini_Generated_Image_rz4uvprz4uvprz4u.png',  glowColor: 'rgba(157, 0, 255, 0.6)'   },
+  bosses:     { file: 'Gemini_Generated_Image_si79sxsi79sxsi79.png',  glowColor: 'rgba(255, 0, 0, 0.6)'     },
+  dungeon:    { file: 'Gemini_Generated_Image_m93eljm93eljm93e.png',  glowColor: 'rgba(0, 212, 255, 0.6)'   },
+  pvp:        { file: 'Gemini_Generated_Image_p23lzrp23lzrp23l.png',  glowColor: 'rgba(139, 0, 0, 0.6)'     },
+  guild:      { file: 'Gemini_Generated_Image_s41uhks41uhks41u.png',  glowColor: 'rgba(75, 0, 130, 0.6)'    },
+  skills:     { file: 'Gemini_Generated_Image_doqkzjdoqkzjdoqk.png', glowColor: 'rgba(255, 136, 0, 0.6)'   },
+  shop:       { file: 'Gemini_Generated_Image_7bum2j7bum2j7bum.png',  glowColor: 'rgba(160, 130, 109, 0.6)' },
+  inventory:  { file: 'Gemini_Generated_Image_lndtfxlndtfxlndt.png', glowColor: 'rgba(26, 35, 50, 0.6)'    },
+  trading:    { file: 'Gemini_Generated_Image_dqkvgrdqkvgrdqkv.png',  glowColor: 'rgba(64, 224, 208, 0.6)'  },
+  ranking:    { file: 'Gemini_Generated_Image_vb47acvb47acvb47.png',  glowColor: 'rgba(255, 215, 0, 0.6)'   },
+  character:  { file: 'Gemini_Generated_Image_txwjmctxwjmctxwj.png', glowColor: 'rgba(139, 139, 139, 0.6)' },
+};
+
+const getPlanetPath = (id: string) =>
+  PLANET_CONFIG[id] ? `/images/planets/${PLANET_CONFIG[id].file}` : '';
+
+const getGlowColor = (id: string) =>
+  PLANET_CONFIG[id]?.glowColor ?? 'rgba(0, 229, 255, 0.4)';
+
+// ─── Background planets ──────────────────────────────────
+const BG_PLANETS = [
+  {
+    file: 'Gemini_Generated_Image_o6a9lbo6a9lbo6a9.png',
+    className: 'absolute -top-32 -right-32 w-[520px] opacity-25 pointer-events-none select-none',
+  },
+  {
+    file: 'Gemini_Generated_Image_arbykzarbykzarby.png',
+    className: 'absolute -bottom-40 -left-40 w-[480px] opacity-20 pointer-events-none select-none',
+  },
+  {
+    file: 'Gemini_Generated_Image_f73dxuf73dxuf73d.png',
+    className: 'absolute top-1/2 -right-48 w-[360px] opacity-15 pointer-events-none select-none',
+    style: { transform: 'translateY(-50%)' },
+  },
+  {
+    file: 'Gemini_Generated_Image_f6sq7wf6sq7wf6sq.png',
+    className: 'absolute -top-16 left-1/4 w-[200px] opacity-10 pointer-events-none select-none',
+  },
+];
+
 // ─── Node data type ─────────────────────────────────────
 interface DirectorNode {
   id: StudentTab;
@@ -176,7 +219,12 @@ function MapNode({
   onLeave: () => void;
   onClick: () => void;
 }) {
-  const iconSize = Math.max(30, Math.min(50, node.size / 3 * 2.5));
+  const planetSize = Math.max(48, Math.min(90, node.size * 1.6));
+  const ringInner  = planetSize + 16;
+  const ringOuter  = planetSize + 26;
+  const lockRing   = planetSize + 38;
+  const glowColor  = getGlowColor(node.id);
+  const planetPath = getPlanetPath(node.id);
 
   return (
     <div
@@ -187,36 +235,45 @@ function MapNode({
       onClick={onClick}
     >
       <div className="relative flex items-center justify-center">
+
+        {/* Glow halo behind planet */}
+        <motion.div
+          className="absolute rounded-full pointer-events-none"
+          style={{ width: planetSize, height: planetSize, background: glowColor, filter: 'blur(18px)' }}
+          animate={{ opacity: isHovered ? 0.9 : 0.35, scale: isHovered ? 1.3 : 1 }}
+          transition={{ duration: 0.35 }}
+        />
+
         {/* SAO Spinning Data Rings */}
         <motion.div
           className="absolute pointer-events-none rounded-full"
           style={{
-            width: iconSize + 20,
-            height: iconSize + 20,
+            width: ringInner,
+            height: ringInner,
             border: '1px solid rgba(0, 229, 255, 0.2)',
             borderLeftColor: 'rgba(0, 229, 255, 0.8)',
             borderRightColor: 'rgba(0, 229, 255, 0.8)',
           }}
-          animate={{ rotate: 360, scale: isHovered ? 1.05 : 1, opacity: isHovered ? 1 : 0.6 }}
+          animate={{ rotate: 360, scale: isHovered ? 1.05 : 1, opacity: isHovered ? 1 : 0.5 }}
           transition={{ rotate: { duration: 8, repeat: Infinity, ease: 'linear' }, scale: { duration: 0.2 } }}
         />
         <motion.div
           className="absolute pointer-events-none rounded-full"
           style={{
-            width: iconSize + 28,
-            height: iconSize + 28,
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            width: ringOuter,
+            height: ringOuter,
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderTopColor: 'rgba(0, 229, 255, 0.5)',
             borderBottomColor: 'rgba(0, 229, 255, 0.5)',
           }}
-          animate={{ rotate: -360, scale: isHovered ? 1.1 : 1, opacity: isHovered ? 1 : 0.4 }}
+          animate={{ rotate: -360, scale: isHovered ? 1.1 : 1, opacity: isHovered ? 1 : 0.35 }}
           transition={{ rotate: { duration: 12, repeat: Infinity, ease: 'linear' }, scale: { duration: 0.2 } }}
         />
 
         {/* Destiny Lock-on Selector on Hover */}
         <motion.div
           className="absolute pointer-events-none rounded-full"
-          style={{ width: iconSize + 36, height: iconSize + 36, border: '2px solid rgba(255,255,255,0.8)', borderStyle: 'dotted' }}
+          style={{ width: lockRing, height: lockRing, border: '2px dotted rgba(255,255,255,0.75)' }}
           initial={{ opacity: 0, scale: 1.5 }}
           animate={{
             opacity: isHovered ? 1 : 0,
@@ -232,42 +289,52 @@ function MapNode({
 
         {/* Inner lock-ring */}
         <motion.div
-          className="absolute rounded-full pointer-events-none border border-white/30"
-          style={{ width: iconSize + 12, height: iconSize + 12 }}
+          className="absolute rounded-full pointer-events-none border border-white/25"
+          style={{ width: planetSize + 8, height: planetSize + 8 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: isHovered ? 1 : 0 }}
           transition={{ duration: 0.2 }}
         />
 
-        {/* Outer Hexagon border */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            width: iconSize + 8,
-            height: iconSize + 8,
-            border: '1px solid rgba(255,255,255,0.3)',
-            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-          }}
-        />
-
-        {/* Hexagon body */}
+        {/* Planet PNG image */}
         <motion.div
           className="relative flex items-center justify-center"
-          style={{
-            width: iconSize,
-            height: iconSize,
-            backgroundColor: node.color,
-            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
-          }}
-          whileHover={{ scale: 1.05 }}
+          style={{ width: planetSize, height: planetSize }}
+          whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.95 }}
         >
-          <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'1\' numOctaves=\'1\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-          }} />
-          <div className="relative z-10 text-white drop-shadow-md flex items-center justify-center scale-75">
-            {node.icon}
+          {planetPath ? (
+            <img
+              src={planetPath}
+              alt={node.name}
+              className="w-full h-full object-contain drop-shadow-2xl"
+              style={{ filter: isHovered ? `drop-shadow(0 0 12px ${glowColor})` : 'none', transition: 'filter 0.3s' }}
+              draggable={false}
+            />
+          ) : (
+            /* Fallback hexagon if image not found */
+            <div
+              className="w-full h-full flex items-center justify-center"
+              style={{
+                backgroundColor: node.color,
+                clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div className="text-white drop-shadow-md">{node.icon}</div>
+            </div>
+          )}
+
+          {/* Icon badge overlay (bottom-right) */}
+          <div
+            className="absolute bottom-1 right-1 w-6 h-6 rounded-full flex items-center justify-center"
+            style={{
+              background: 'rgba(2,6,17,0.75)',
+              border: '1px solid rgba(0,229,255,0.4)',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            <div className="text-white/80 scale-75">{node.icon}</div>
           </div>
         </motion.div>
       </div>
@@ -333,6 +400,18 @@ export function DirectorMap({ student, onNavigate, onLogout, onOpenAccessibility
           className="absolute inset-0 w-full h-full object-cover opacity-60"
           style={{ filter: 'brightness(0.5) saturate(1.3)' }}
         />
+
+        {/* Giant background planets */}
+        {BG_PLANETS.map((p, i) => (
+          <img
+            key={i}
+            src={`/images/backgrounds/${p.file}`}
+            alt=""
+            className={p.className}
+            style={(p as { style?: React.CSSProperties }).style}
+            draggable={false}
+          />
+        ))}
 
         {/* Floating Data Rings (SAO) over the space */}
         <div className="absolute inset-0 flex items-center justify-center opacity-8 pointer-events-none">
