@@ -19,6 +19,7 @@ import ParentPortal from "./pages/ParentPortal";
 import ParentReport from "./pages/ParentReport";
 import ParentStudentView from "./pages/ParentStudentView";
 import PresentationMode from "./pages/PresentationMode";
+import HubDemo from "./pages/HubDemo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -61,6 +62,7 @@ function AppRoutes() {
       <Route path="/pais/filho"             element={<ParentStudentView />} />
       <Route path="/relatorio/:reportId"    element={<ParentReport />} />
       <Route path="/professor/apresentacao" element={<PresentationMode />} />
+      <Route path="/hub-demo"               element={<HubDemo />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*"                       element={<NotFound />} />
     </Routes>

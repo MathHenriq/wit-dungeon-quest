@@ -16,6 +16,7 @@ import { DungeonLoadingScreen } from "@/components/student/DungeonLoadingScreen"
 import { DungeonEntrance } from "@/components/student/DungeonEntrance";
 import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentNavigation, type StudentTab } from "@/components/student/StudentNavigation";
+import { DirectorMap } from "@/components/student/DirectorMap";
 import { OnboardingFlow } from "@/components/student/OnboardingFlow";
 import { CharacterSheet } from "@/components/student/CharacterSheet";
 import { ProgressRanking } from "@/components/student/ProgressRanking";
@@ -623,7 +624,7 @@ export default function StudentPortal() {
   const { data: battleCharacter, isLoading: isLoadingCharacter } = useBattleCharacter(authUser?.id);
 
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<StudentTab>("challenges");
+  const [activeTab, setActiveTab] = useState<StudentTab>("director");
 
   const handleTabChange = (tab: StudentTab) => {
     setActiveTab(tab);
@@ -751,13 +752,58 @@ export default function StudentPortal() {
     }
   };
 
+  const isDirector = activeTab === 'director';
   const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'bosses' ? 'quests' : activeTab === 'skills' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : activeTab === 'guild' ? 'home' : 'home';
 
+  // ── Director Map (fullscreen, replaces sidebar+content) ──
+  if (isDirector) {
+    return (
+      <div className="relative min-h-screen">
+        {/* BattleScreen renders at root level */}
+        {activeBossId && student && (
+          <BattleScreen
+            key={battleKey}
+            bossId={activeBossId}
+            student={student}
+            onExit={() => { setActiveBossId(null); setBossTabKey(k => k + 1); }}
+            onRetry={() => setBattleKey(k => k + 1)}
+          />
+        )}
+
+        {/* Dungeon Entrance animation */}
+        {showEntrance && !entranceDone && (
+          <DungeonEntrance
+            studentId={student.id}
+            studentName={student.character_name || student.name}
+            level={student.level}
+            characterClass={student.character_class}
+            onComplete={() => {
+              setShowEntrance(false);
+              setEntranceDone(true);
+            }}
+          />
+        )}
+
+        <DirectorMap
+          student={student}
+          onNavigate={handleTabChange}
+          onLogout={async () => { setIsLoggingOut(true); await logout(); }}
+          onOpenAccessibility={() => setShowAccessibility(true)}
+        />
+
+        {showAccessibility && (
+          <AccessibilitySettings onClose={() => setShowAccessibility(false)} />
+        )}
+      </div>
+    );
+  }
+
+  // ── Standard tab view (with sidebar) ──
   return (
     <div className="relative min-h-screen">
       <AincradBackground scene={bgScene} />
 
-      {/* BattleScreen renders at root level — outside z-10 stacking context — so it covers the nav */}
+      {/* BattleScreen renders at root level */}
       {activeBossId && student && (
         <BattleScreen
           key={battleKey}
@@ -793,6 +839,16 @@ export default function StudentPortal() {
       <div className="md:pl-60">
         <StudentHeader activeTab={activeTab} />
         <main className="relative z-10 max-w-5xl mx-auto px-5 py-6 pb-24">
+
+        {/* Back to Director button */}
+        <button
+          onClick={() => setActiveTab('director')}
+          className="mb-4 flex items-center gap-2 text-sm text-cyan-400/70 hover:text-cyan-400 transition-colors font-mono tracking-wider"
+          style={{ fontFamily: 'Exo 2, sans-serif' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          VOLTAR À ÓRBITA
+        </button>
 
         {/* Attendance Banner */}
         <div className="holo-panel mb-6 p-4">

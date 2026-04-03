@@ -23,6 +23,7 @@ import type { Student } from "@/types";
 import { GameIcon } from "@/components/icons/GameIcon";
 
 export type StudentTab =
+  | "director"
   | "challenges"
   | "missions"
   | "bosses"

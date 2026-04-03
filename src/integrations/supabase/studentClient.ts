@@ -9,7 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Only detect OAuth code when we're on the student portal route (/).
 // At /professor the teacher client handles its own code; the student client
 // must not try to exchange a code it has no verifier for.
-const isStudentRoute = window.location.pathname === "/";
+const isStudentRoute = window.location.pathname === "/" || window.location.pathname === "/login";
 
 export const supabaseStudent = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
