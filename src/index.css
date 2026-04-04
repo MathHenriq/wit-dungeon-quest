@@ -4,6 +4,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Planet Icon ─────────────────────────────────────── */
+.planet-icon-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.planet-icon-wrapper svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  animation: icon-pulse 3s ease-in-out infinite;
+}
+
+.planet-destination:hover .planet-icon-wrapper {
+  filter: drop-shadow(0 0 12px currentColor);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.planet-destination:hover .planet-icon-wrapper svg {
+  animation-play-state: paused;
+  opacity: 1;
+}
+
+@keyframes icon-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
 @layer base {
   :root {
     --background: 222 47% 6%;

@@ -8,21 +8,22 @@ import {
 import type { StudentTab } from './StudentNavigation';
 import type { Student } from '@/types';
 import { GameIcon } from '@/components/icons/GameIcon';
+import { PlanetIcon } from '@/components/orbital/PlanetIcon';
 
 // ─── Planet image mapping ────────────────────────────────
-const PLANET_CONFIG: Record<string, { file: string; glowColor: string }> = {
-  challenges: { file: 'Gemini_Generated_Image_1k478i1k478i1k47-removebg-preview.png',  glowColor: 'rgba(74, 124, 30, 0.6)'   },
-  missions:   { file: 'Gemini_Generated_Image_rz4uvprz4uvprz4u-removebg-preview.png',  glowColor: 'rgba(157, 0, 255, 0.6)'   },
-  bosses:     { file: 'Gemini_Generated_Image_si79sxsi79sxsi79-removebg-preview.png',  glowColor: 'rgba(255, 0, 0, 0.6)'     },
-  dungeon:    { file: 'Gemini_Generated_Image_m93eljm93eljm93e-removebg-preview.png',  glowColor: 'rgba(0, 212, 255, 0.6)'   },
-  pvp:        { file: 'Gemini_Generated_Image_p23lzrp23lzrp23l-removebg-preview (1).png',  glowColor: 'rgba(139, 0, 0, 0.6)'     },
-  guild:      { file: 'Gemini_Generated_Image_s41uhks41uhks41u-removebg-preview (1).png',  glowColor: 'rgba(75, 0, 130, 0.6)'    },
-  skills:     { file: 'Gemini_Generated_Image_doqkzjdoqkzjdoqk-removebg-preview.png', glowColor: 'rgba(255, 136, 0, 0.6)'   },
-  shop:       { file: 'Gemini_Generated_Image_7bum2j7bum2j7bum-removebg-preview.png',  glowColor: 'rgba(160, 130, 109, 0.6)' },
-  inventory:  { file: 'Gemini_Generated_Image_lndtfxlndtfxlndt-removebg-preview.png', glowColor: 'rgba(26, 35, 50, 0.6)'    },
-  trading:    { file: 'Gemini_Generated_Image_dqkvgrdqkvgrdqkv-removebg-preview (1).png',  glowColor: 'rgba(64, 224, 208, 0.6)'  },
-  ranking:    { file: 'Gemini_Generated_Image_vb47acvb47acvb47-removebg-preview.png',  glowColor: 'rgba(255, 215, 0, 0.6)'   },
-  character:  { file: 'Gemini_Generated_Image_txwjmctxwjmctxwj-removebg-preview (1).png', glowColor: 'rgba(139, 139, 139, 0.6)' },
+const PLANET_CONFIG: Record<string, { file: string; glowColor: string; iconType: string; iconColor: string }> = {
+  challenges: { file: 'Gemini_Generated_Image_1k478i1k478i1k47-removebg-preview.png',      glowColor: 'rgba(74, 124, 30, 0.6)',    iconType: 'swords',         iconColor: '#a8e06a' },
+  missions:   { file: 'Gemini_Generated_Image_rz4uvprz4uvprz4u-removebg-preview.png',      glowColor: 'rgba(157, 0, 255, 0.6)',    iconType: 'scroll',         iconColor: '#c97aff' },
+  bosses:     { file: 'Gemini_Generated_Image_si79sxsi79sxsi79-removebg-preview.png',      glowColor: 'rgba(255, 0, 0, 0.6)',      iconType: 'skull',          iconColor: '#ff6b6b' },
+  dungeon:    { file: 'Gemini_Generated_Image_m93eljm93eljm93e-removebg-preview.png',      glowColor: 'rgba(0, 212, 255, 0.6)',    iconType: 'compass',        iconColor: '#7ee8fa' },
+  pvp:        { file: 'Gemini_Generated_Image_p23lzrp23lzrp23l-removebg-preview (1).png',  glowColor: 'rgba(139, 0, 0, 0.6)',      iconType: 'crossed-swords', iconColor: '#ff4444' },
+  guild:      { file: 'Gemini_Generated_Image_s41uhks41uhks41u-removebg-preview (1).png',  glowColor: 'rgba(75, 0, 130, 0.6)',     iconType: 'shield',         iconColor: '#b388ff' },
+  skills:     { file: 'Gemini_Generated_Image_doqkzjdoqkzjdoqk-removebg-preview.png',     glowColor: 'rgba(255, 136, 0, 0.6)',    iconType: 'tree',           iconColor: '#ffb74d' },
+  shop:       { file: 'Gemini_Generated_Image_7bum2j7bum2j7bum-removebg-preview.png',      glowColor: 'rgba(160, 130, 109, 0.6)',  iconType: 'coin',           iconColor: '#d4a96a' },
+  inventory:  { file: 'Gemini_Generated_Image_lndtfxlndtfxlndt-removebg-preview.png',     glowColor: 'rgba(26, 35, 50, 0.6)',     iconType: 'chest',          iconColor: '#90caf9' },
+  trading:    { file: 'Gemini_Generated_Image_dqkvgrdqkvgrdqkv-removebg-preview (1).png',  glowColor: 'rgba(64, 224, 208, 0.6)',   iconType: 'arrows',         iconColor: '#40e0d0' },
+  ranking:    { file: 'Gemini_Generated_Image_vb47acvb47acvb47-removebg-preview.png',      glowColor: 'rgba(255, 215, 0, 0.6)',    iconType: 'trophy',         iconColor: '#ffd700' },
+  character:  { file: 'Gemini_Generated_Image_txwjmctxwjmctxwj-removebg-preview (1).png', glowColor: 'rgba(139, 139, 139, 0.6)',  iconType: 'user',           iconColor: '#e0e0e0' },
 };
 
 const getPlanetPath = (id: string) =>
@@ -298,7 +299,7 @@ function MapNode({
 
         {/* Planet PNG image */}
         <motion.div
-          className="relative flex items-center justify-center"
+          className="planet-destination relative flex items-center justify-center"
           style={{ width: planetSize, height: planetSize }}
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.95 }}
@@ -312,7 +313,6 @@ function MapNode({
               draggable={false}
             />
           ) : (
-            /* Fallback hexagon if image not found */
             <div
               className="w-full h-full flex items-center justify-center"
               style={{
@@ -325,17 +325,12 @@ function MapNode({
             </div>
           )}
 
-          {/* Icon badge overlay (bottom-right) */}
-          <div
-            className="absolute bottom-1 right-1 w-6 h-6 rounded-full flex items-center justify-center"
-            style={{
-              background: 'rgba(2,6,17,0.75)',
-              border: '1px solid rgba(0,229,255,0.4)',
-              backdropFilter: 'blur(4px)',
-            }}
-          >
-            <div className="text-white/80 scale-75">{node.icon}</div>
-          </div>
+          {/* SVG Icon overlay */}
+          <PlanetIcon
+            type={PLANET_CONFIG[node.id]?.iconType ?? 'settings'}
+            color={PLANET_CONFIG[node.id]?.iconColor ?? '#ffffff'}
+            size={Math.round(planetSize * 0.55)}
+          />
         </motion.div>
       </div>
     </div>
