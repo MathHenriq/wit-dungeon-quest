@@ -31,6 +31,7 @@ import { BattlePvPView } from "@/components/student/BattlePvPView";
 import { useBattleCharacter } from "@/hooks/useBattleCharacter";
 import { TimeCapsule } from "@/components/student/TimeCapsule";
 import { PvPArena } from "@/components/student/PvPArena";
+import { PvpArena } from "@/components/pvp-arena/PvpArena";
 import { TradingPanel } from "@/components/student/TradingPanel";
 import { ClassWarBanner } from "@/components/student/ClassWarBanner";
 import { CraftPanel } from "@/components/student/CraftPanel";
@@ -798,12 +799,16 @@ export default function StudentPortal() {
     );
   }
 
-  // ── Standard tab view (with sidebar) ──
-  return (
-    <div className="relative min-h-screen">
-      <AincradBackground scene={bgScene} />
+  // ── TAB LABELS ──
+  const TAB_LABELS: Record<string, string> = {
+    challenges: 'Quests', missions: 'Missões', bosses: 'Bosses',
+    guild: 'Guilda', skills: 'Skills', shop: 'Loja', inventory: 'Mochila',
+    ranking: 'Ranking', character: 'Herói', capsule: 'Cápsula', pvp: 'PvP Arena', trading: 'Trading',
+  };
 
-      {/* BattleScreen renders at root level */}
+  // ── Shared overlays (boss battle + entrance + accessibility) ──
+  const sharedOverlays = (
+    <>
       {activeBossId && student && (
         <BattleScreen
           key={battleKey}
@@ -813,42 +818,107 @@ export default function StudentPortal() {
           onRetry={() => setBattleKey(k => k + 1)}
         />
       )}
-
-      {/* Dungeon Entrance animation */}
       {showEntrance && !entranceDone && (
         <DungeonEntrance
           studentId={student.id}
           studentName={student.character_name || student.name}
           level={student.level}
           characterClass={student.character_class}
-          onComplete={() => {
-            setShowEntrance(false);
-            setEntranceDone(true);
-          }}
+          onComplete={() => { setShowEntrance(false); setEntranceDone(true); }}
         />
       )}
+      {showAccessibility && (
+        <AccessibilitySettings onClose={() => setShowAccessibility(false)} />
+      )}
+    </>
+  );
 
-      <StudentNavigation
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        student={student}
-        onLogout={async () => { setIsLoggingOut(true); await logout(); }}
-        onOpenAccessibility={() => setShowAccessibility(true)}
-      />
+  // ── Dungeon tab — BattleDungeonView is fully full-screen ──
+  if (activeTab === 'dungeon') {
+    return (
+      <div className="fixed inset-0 bg-[#020611]">
+        {sharedOverlays}
+        {isLoadingCharacter ? (
+          <div className="flex items-center justify-center h-full text-white/60">
+            <Loader2 className="animate-spin mr-3" size={24} /> Carregando personagem...
+          </div>
+        ) : battleCharacter ? (
+          <BattleDungeonView
+            character={battleCharacter}
+            onRewardApplied={refreshStudent}
+            onBack={() => setActiveTab('director')}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-white/60">
+            <p>Não foi possível carregar o personagem. Tente recarregar a página.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
-      <div className="md:pl-60">
-        <StudentHeader activeTab={activeTab} />
-        <main className="relative z-10 max-w-5xl mx-auto px-5 py-6 pb-24">
+  // ── PvP Arena tab — full-screen overlay ──
+  if (activeTab === 'pvp') {
+    return (
+      <div className="fixed inset-0">
+        {sharedOverlays}
+        <PvpArena onBack={() => setActiveTab('director')} />
+      </div>
+    );
+  }
 
-        {/* Back to Director button */}
+  // ── All other tabs — full-screen with top bar ──
+  return (
+    <div className="fixed inset-0 bg-[#020611] z-30 overflow-hidden">
+      <AincradBackground scene={bgScene} />
+      {sharedOverlays}
+
+      {/* Top navigation bar */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 flex items-center gap-4 px-5 py-3"
+        style={{
+          background: 'rgba(2,6,17,0.88)',
+          backdropFilter: 'blur(14px)',
+          borderBottom: '1px solid rgba(0,229,255,0.08)',
+        }}
+      >
         <button
           onClick={() => setActiveTab('director')}
-          className="mb-4 flex items-center gap-2 text-sm text-cyan-400/70 hover:text-cyan-400 transition-colors font-mono tracking-wider"
-          style={{ fontFamily: 'Exo 2, sans-serif' }}
+          className="flex items-center gap-2 text-xs text-cyan-400/70 hover:text-cyan-400 transition-colors font-mono tracking-widest shrink-0"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-          VOLTAR À ÓRBITA
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          HUB
         </button>
+        <span
+          className="flex-1 text-center text-sm font-bold tracking-[0.18em] text-white/80 uppercase"
+          style={{ fontFamily: 'Rajdhani, sans-serif' }}
+        >
+          {TAB_LABELS[activeTab] ?? activeTab}
+        </span>
+        <div className="flex items-center gap-3 text-xs shrink-0">
+          <div className="flex items-center gap-1">
+            <GameIcon id="coin" size={13} />
+            <span className="text-yellow-400 font-bold font-mono">{student.coins >= 1000 ? `${(student.coins/1000).toFixed(1)}k` : student.coins}</span>
+          </div>
+          {student.presencas_consecutivas > 0 && (
+            <div className="flex items-center gap-1">
+              <Flame size={12} className="text-orange-400" />
+              <span className="text-orange-400 font-bold font-mono">{student.presencas_consecutivas}</span>
+            </div>
+          )}
+          <button
+            onClick={async () => { setIsLoggingOut(true); await logout(); }}
+            className="ml-1 text-white/20 hover:text-red-400 transition-colors"
+            title="Sair"
+          >
+            <LogOut size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable content area */}
+      <div className="overflow-y-auto h-full pt-14 pb-8">
+        <div className="relative z-10 max-w-4xl mx-auto px-5 py-6">
 
         {/* Attendance Banner */}
         <div className="holo-panel mb-6 p-4">
@@ -1059,21 +1129,6 @@ export default function StudentPortal() {
           <CharacterSheet student={student} inventory={inventory} onUpdate={refreshStudent} />
         )}
 
-        {/* Daily Dungeon Tab */}
-        {activeTab === "dungeon" && (
-          isLoadingCharacter ? (
-            <div className="flex items-center justify-center h-64 text-white/60">
-              <span className="animate-spin mr-3">⏳</span> Carregando personagem...
-            </div>
-          ) : battleCharacter ? (
-            <BattleDungeonView character={battleCharacter} onRewardApplied={refreshStudent} />
-          ) : (
-            <div className="holo-panel text-center py-12 text-white/60">
-              <p>Não foi possível carregar o personagem. Tente recarregar a página.</p>
-            </div>
-          )
-        )}
-
         {/* Time Capsule Tab */}
         {activeTab === "capsule" && (
           <div className="max-w-lg mx-auto">
@@ -1111,12 +1166,8 @@ export default function StudentPortal() {
           <p>Todas as solicitações são validadas pelo professor</p>
           <DeveloperSignature className="mt-4" />
         </div>
-        </main>
+        </div>
       </div>
-
-      {showAccessibility && (
-        <AccessibilitySettings onClose={() => setShowAccessibility(false)} />
-      )}
     </div>
   );
 }

@@ -1,0 +1,579 @@
+/* ═══════════════════════════════════════════════════════════════
+   FLOOR MAP — Visual Polish
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Root ──────────────────────────────────────────────────────── */
+.fm-root {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #080c0a;
+  font-family: 'Rajdhani', sans-serif;
+  user-select: none;
+}
+
+/* ── HUD bar ───────────────────────────────────────────────────── */
+.fm-hud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 14px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
+}
+
+.fm-hud__back {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.5);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.fm-hud__back:hover {
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.08);
+}
+
+.fm-hud__center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.fm-hud__floor-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(74,124,30,0.85);
+}
+.fm-hud__floor-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.88);
+}
+
+.fm-hud__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.fm-hud__progress-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.7);
+}
+.fm-hud__progress-bar {
+  width: 60px;
+  height: 2px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.fm-hud__progress-fill {
+  height: 100%;
+  background: rgba(74,124,30,0.85);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+/* ── Map canvas ────────────────────────────────────────────────── */
+.fm-canvas {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  overflow: hidden;
+}
+
+/* ── Background ────────────────────────────────────────────────── */
+.fm-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.fm-bg--forest { background: radial-gradient(ellipse 140% 120% at 40% 35%, #142414 0%, #0e140c 55%, #090e08 100%); }
+.fm-bg--desert { background: radial-gradient(ellipse 140% 120% at 55% 40%, #1e1608 0%, #17130a 55%, #0e0c05 100%); }
+.fm-bg--cave   { background: radial-gradient(ellipse 140% 120% at 50% 50%, #131228 0%, #0e0d1c 55%, #09090f 100%); }
+.fm-bg--castle { background: radial-gradient(ellipse 140% 120% at 45% 55%, #220c0c 0%, #180808 55%, #0d0404 100%); }
+.fm-bg--ice    { background: radial-gradient(ellipse 140% 120% at 55% 30%, #0a1424 0%, #0a1318 55%, #060a0e 100%); }
+
+/* ── Organic topo SVG ──────────────────────────────────────────── */
+.fm-topo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* ── Fog layer ─────────────────────────────────────────────────── */
+.fm-fog {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  animation: fm-fog-drift 25s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes fm-fog-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(15px, -10px) scale(1.02); }
+}
+
+/* ── Vignette ──────────────────────────────────────────────────── */
+.fm-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 90% 90% at 50% 50%,
+    transparent 40%,
+    rgba(0,0,0,0.38) 72%,
+    rgba(0,0,0,0.72) 100%
+  );
+}
+
+/* ── Scanlines ─────────────────────────────────────────────────── */
+.fm-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.01;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,1) 2px,
+    rgba(255,255,255,1) 3px
+  );
+}
+
+/* ── Zone labels (ghost text) ──────────────────────────────────── */
+.fm-zone-label {
+  position: absolute;
+  z-index: 4;
+  color: rgba(255,255,255,0.32);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
+  text-shadow: none;
+}
+
+/* ── Click ripple ──────────────────────────────────────────────── */
+.fm-ripple {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(100,220,180,0.6);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9;
+  animation: fm-ripple-out 0.65s ease-out forwards;
+}
+@keyframes fm-ripple-out {
+  0%   { width: 6px;  height: 6px;  opacity: 1; }
+  100% { width: 48px; height: 48px; opacity: 0; }
+}
+
+/* ── Player marker ─────────────────────────────────────────────── */
+.fm-player {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
+  will-change: left, top;
+  transition:
+    left 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    top  0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.fm-player__glow {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  left: -12px;
+  top: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(100,220,180,0.22) 0%, transparent 70%);
+  animation: fm-player-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes fm-player-pulse {
+  0%, 100% { transform: scale(1);   opacity: 0.6; }
+  50%       { transform: scale(1.3); opacity: 1;   }
+}
+
+.fm-player__icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 5px rgba(100,220,180,0.7));
+}
+
+/* ── Enemy markers ─────────────────────────────────────────────── */
+.fm-enemy {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 0.5s ease;
+}
+
+.fm-enemy__circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(180,60,60,0.12);
+  border: 1.5px solid rgba(180,60,60,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fm-enemy-pulse 3s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes fm-enemy-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(180,60,60,0.15); }
+  50%       { box-shadow: 0 0 20px rgba(180,60,60,0.38); }
+}
+
+.fm-enemy__name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.32);
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* Defeated state */
+.fm-enemy--defeated {
+  opacity: 0.35;
+}
+.fm-enemy--defeated .fm-enemy__circle {
+  background: rgba(100,100,100,0.06);
+  border-color: rgba(100,100,100,0.2);
+  animation: none;
+  box-shadow: none;
+}
+.fm-enemy--defeated .fm-enemy__name {
+  color: rgba(120,120,120,0.4);
+}
+
+/* Defeated checkmark */
+.fm-enemy__check {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: rgba(34,197,94,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 6px rgba(34,197,94,0.5);
+}
+
+/* ── Boss marker ───────────────────────────────────────────────── */
+.fm-boss {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.fm-boss__circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(201,164,74,0.12);
+  border: 2px solid rgba(201,164,74,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fm-boss-pulse 2s ease-in-out infinite;
+  position: relative;
+}
+
+.fm-boss__circle--locked {
+  border-color: rgba(180,60,60,0.4);
+  background: rgba(180,60,60,0.06);
+  animation: none;
+  box-shadow: none;
+}
+
+@keyframes fm-boss-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(201,164,74,0.22), 0 0 30px rgba(201,164,74,0.1);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(201,164,74,0.52), 0 0 60px rgba(201,164,74,0.22);
+    transform: scale(1.04);
+  }
+}
+
+/* Orbit particles (unlocked) */
+.fm-boss__orbit {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  animation: fm-orbit-spin 3.5s linear infinite;
+}
+@keyframes fm-orbit-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.fm-boss__particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(201,164,74,0.9);
+  box-shadow: 0 0 5px rgba(201,164,74,0.7);
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.fm-boss__orbit--2 { animation-delay: -1.17s; }
+.fm-boss__orbit--3 { animation-delay: -2.33s; }
+
+/* Locked ring */
+.fm-boss__shield {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(180,60,60,0.4);
+  animation: fm-shield-spin 6s linear infinite;
+}
+@keyframes fm-shield-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.fm-boss__name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(201,164,74,0.85);
+  white-space: normal;
+  text-align: center;
+  max-width: 140px;
+  line-height: 1.3;
+  text-shadow: 0 0 12px rgba(0,0,0,0.95);
+  pointer-events: none;
+}
+.fm-boss__name--locked {
+  color: rgba(180,60,60,0.6);
+}
+
+.fm-boss__lock-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.88);
+  border: 1px solid rgba(180,60,60,0.3);
+  border-radius: 3px;
+  padding: 4px 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(180,60,60,0.8);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Tooltip ───────────────────────────────────────────────────── */
+.fm-tooltip {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  z-index: 20;
+  color: rgba(255,255,255,0.28);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* ── Battle transition overlay ─────────────────────────────────── */
+.fm-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: all;
+}
+
+/* White flash */
+.fm-transition__flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  animation: fm-flash 0.22s ease-out forwards;
+}
+@keyframes fm-flash {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.82; }
+  100% { opacity: 0; }
+}
+
+/* Black overlay with enemy name */
+.fm-transition__wipe {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  animation: fm-fade-in 0.35s ease-out forwards;
+}
+@keyframes fm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.fm-transition__label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+}
+
+.fm-transition__name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.82);
+}
+
+.fm-transition__sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.22);
+  margin-top: 4px;
+}
+
+/* ── Floor complete overlay ────────────────────────────────────── */
+.fm-complete {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(6px);
+}
+.fm-complete__card {
+  padding: 40px 48px;
+  background: rgba(8,12,10,0.96);
+  border: 1px solid rgba(201,164,74,0.35);
+  border-radius: 6px;
+  text-align: center;
+  max-width: 360px;
+  box-shadow: 0 0 60px rgba(201,164,74,0.12);
+}
+.fm-complete__title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(201,164,74,0.92);
+  margin-bottom: 8px;
+}
+.fm-complete__sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 28px;
+}
+.fm-complete__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 28px;
+  background: rgba(201,164,74,0.1);
+  border: 1px solid rgba(201,164,74,0.4);
+  border-radius: 4px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(201,164,74,0.9);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.fm-complete__btn:hover {
+  background: rgba(201,164,74,0.2);
+  border-color: rgba(201,164,74,0.65);
+}

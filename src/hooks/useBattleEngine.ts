@@ -15,6 +15,16 @@ export function useBattleEngine() {
       engineRef.current = engine;
       const initial = engine.start();
       setCtx(initial);
+
+      // If enemy is faster, auto-trigger its first turn
+      if (initial.phase === 'ENEMY_TURN') {
+        setTimeout(() => {
+          if (!engineRef.current) return;
+          const afterEnemy = engineRef.current.enemyTurn();
+          setCtx(afterEnemy);
+        }, 1200);
+      }
+
       return initial;
     },
     [],

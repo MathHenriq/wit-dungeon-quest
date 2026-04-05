@@ -1,0 +1,417 @@
+/* ═══════════════════════════════════════════════════════════════
+   FLOOR SELECT — Tower / SAO Aesthetic
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Root ──────────────────────────────────────────────────────── */
+.fs-root {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: #06080a;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-family: 'Rajdhani', sans-serif;
+  user-select: none;
+}
+
+/* ── HUD ───────────────────────────────────────────────────────── */
+.fs-hud {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: linear-gradient(to bottom, #06080a 60%, transparent);
+}
+
+.fs-hud__back {
+  color: rgba(255,255,255,0.68);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.fs-hud__back:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+}
+
+.fs-hud__center {
+  text-align: center;
+}
+.fs-hud__label {
+  display: block;
+  color: rgba(201,164,74,0.88);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.fs-hud__title {
+  display: block;
+  color: rgba(255,255,255,0.85);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.fs-hud__stats {
+  color: rgba(255,255,255,0.55);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-align: right;
+}
+.fs-hud__stats-count {
+  display: block;
+  color: rgba(255,255,255,0.78);
+  font-size: 13px;
+  font-weight: 600;
+}
+.fs-hud__stats-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+
+/* ── Background layer ──────────────────────────────────────────── */
+.fs-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fs-topo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+}
+
+/* ── Content area ──────────────────────────────────────────────── */
+.fs-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 60px;
+}
+
+/* ── Tower column ──────────────────────────────────────────────── */
+.fs-tower {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column-reverse; /* andar 1 na base */
+  gap: 0;
+  padding: 20px 0;
+}
+
+/* ── Vertical line ─────────────────────────────────────────────── */
+.fs-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.01),
+    rgba(255,255,255,0.07) 20%,
+    rgba(255,255,255,0.07) 80%,
+    rgba(255,255,255,0.01)
+  );
+  transform-origin: bottom;
+}
+
+/* ── Floor node wrapper ────────────────────────────────────────── */
+.fs-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+}
+
+/* Dot on the line */
+.fs-node__dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid;
+  background: #06080a;
+  z-index: 2;
+  pointer-events: none;
+}
+.fs-node__dot--completed { border-color: rgba(100,220,180,0.5); }
+.fs-node__dot--current   { border-color: rgba(201,164,74,0.7); background: rgba(201,164,74,0.15); }
+.fs-node__dot--locked    { border-color: rgba(255,255,255,0.1); }
+
+/* ── Floor card ────────────────────────────────────────────────── */
+.fs-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  transition: border-color 0.25s, background 0.25s, transform 0.15s;
+  cursor: pointer;
+}
+.fs-card:hover {
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+}
+.fs-card--locked {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.4;
+}
+.fs-card--locked:hover {
+  border-color: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.015);
+}
+.fs-card--current {
+  border-color: rgba(201,164,74,0.18);
+}
+.fs-card--current:hover {
+  border-color: rgba(201,164,74,0.3);
+  background: rgba(201,164,74,0.03);
+}
+.fs-card--completed {
+  border-color: rgba(255,255,255,0.06);
+}
+
+/* ── Floor number circle ───────────────────────────────────────── */
+.fs-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+  border: 1.5px solid;
+  letter-spacing: 0;
+}
+.fs-num--completed {
+  color: rgba(100,220,180,0.82);
+  border-color: rgba(100,220,180,0.3);
+  background: rgba(100,220,180,0.06);
+}
+.fs-num--current {
+  color: rgba(201,164,74,0.92);
+  border-color: rgba(201,164,74,0.4);
+  background: rgba(201,164,74,0.08);
+  animation: fs-current-pulse 2.5s ease-in-out infinite;
+}
+.fs-num--locked {
+  color: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.02);
+}
+
+@keyframes fs-current-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(201,164,74,0.1); }
+  50%       { box-shadow: 0 0 22px rgba(201,164,74,0.28); }
+}
+
+/* ── Floor info (center) ───────────────────────────────────────── */
+.fs-info {
+  flex: 1;
+  min-width: 0;
+}
+.fs-info__name {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-info__name--completed { color: rgba(255,255,255,0.88); }
+.fs-info__name--current   { color: rgba(201,164,74,0.96); }
+.fs-info__name--locked    { color: rgba(255,255,255,0.42); }
+
+.fs-info__theme {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.48);
+}
+.fs-info__theme--locked { color: rgba(255,255,255,0.22); }
+
+/* ── Boss preview ──────────────────────────────────────────────── */
+.fs-boss {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.fs-boss__ring {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid;
+}
+.fs-boss__ring--defeated {
+  border-color: rgba(100,220,180,0.25);
+  background: rgba(100,220,180,0.05);
+}
+.fs-boss__ring--active {
+  border-color: rgba(201,164,74,0.35);
+  background: rgba(201,164,74,0.07);
+  animation: fs-boss-active 2s ease-in-out infinite;
+}
+.fs-boss__ring--unknown {
+  border-color: rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.02);
+}
+
+@keyframes fs-boss-active {
+  0%, 100% { box-shadow: 0 0 6px rgba(201,164,74,0.1); }
+  50%       { box-shadow: 0 0 16px rgba(201,164,74,0.3); }
+}
+
+.fs-boss__name {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.38);
+  text-align: right;
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-boss__name--active   { color: rgba(201,164,74,0.55); }
+.fs-boss__name--unknown  { color: rgba(255,255,255,0.15); }
+
+.fs-boss__drops {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: rgba(201,164,74,0.4);
+  text-align: right;
+}
+
+/* ── Status icon ───────────────────────────────────────────────── */
+.fs-status {
+  width: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Expanded boss panel ───────────────────────────────────────── */
+.fs-panel {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+  width: 100%;
+  max-width: 520px;
+  opacity: 0;
+}
+.fs-panel--open {
+  max-height: 200px;
+  opacity: 1;
+}
+
+.fs-panel__inner {
+  display: flex;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.018);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+}
+
+.fs-panel__portrait {
+  width: 58px;
+  height: 58px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fs-panel__details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fs-panel__name {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+}
+
+.fs-panel__stats {
+  display: flex;
+  gap: 14px;
+}
+.fs-panel__stat {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.28);
+  text-transform: uppercase;
+}
+.fs-panel__stat b {
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+}
+
+.fs-panel__rewards {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fs-panel__reward {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+}
+.fs-panel__reward--coin { color: rgba(201,164,74,0.6); }
+.fs-panel__reward--xp   { color: rgba(100,220,180,0.55); }
+.fs-panel__reward--item { color: rgba(180,130,255,0.55); }

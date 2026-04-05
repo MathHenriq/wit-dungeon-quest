@@ -1,21 +1,55 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Loader2, RotateCcw } from 'lucide-react';
 import type { BattleCharacter, Ability } from '@/types/character';
 import type { BattleEnemy } from '@/lib/battle/BattleEngine';
-import { FloorSelect } from '@/components/student/FloorSelect';
+import { FloorSelect as FloorSelectVisual } from '@/components/floor-select/FloorSelect';
+import { getFloorStatus } from '@/components/floor-select/useFloorSelect';
+import type { FloorSelectData } from '@/components/floor-select/useFloorSelect';
+import { FloorMap } from '@/components/floor-map/FloorMap';
+import type { FloorMapHandle, FloorMapEnemy } from '@/components/floor-map/FloorMap';
+import type { FloorData } from '@/components/floor-map/useFloorMap';
 import { BattleScreen } from '@/components/battle/BattleScreen';
 import { VictoryScreen } from '@/components/battle/VictoryScreen';
-import { useFloorEnemies, useRecordEnemyDefeat, type Floor, type FloorEnemy } from '@/hooks/useFloors';
+import {
+  useFloors, useFloorProgress, useFloorEnemies,
+  useEnemyDefeats, useRecordEnemyDefeatById, useRecordEnemyDefeat,
+  type Floor, type FloorEnemy,
+} from '@/hooks/useFloors';
 import { useEquippedAbilities, useAbilities } from '@/hooks/useAbilities';
-import { calculateXPGain } from '@/lib/progression/xpCalculator';
-import { calculateCoinReward } from '@/lib/loot/lootGenerator';
 import { useApplyBattleRewards } from '@/hooks/useCharacter';
 import type { BattleRewards } from '@/lib/loot/lootGenerator';
 import type { XPReward } from '@/lib/progression/xpCalculator';
 
-// ─── Convert FloorEnemy → BattleEnemy ────────────────────────────────────────
+// ─── Convert FloorEnemy → FloorMapEnemy ──────────────────────────────────────
 
-function toBattleEnemy(fe: FloorEnemy, abilityMap: Record<string, Ability>): BattleEnemy {
+function toFloorMapEnemy(fe: FloorEnemy, defeatedIds: Set<string>): FloorMapEnemy {
+  return {
+    id:           fe.id,
+    positionX:    fe.positionX,
+    positionY:    fe.positionY,
+    defeated:     defeatedIds.has(fe.id),
+    isBoss:       fe.isBoss,
+    name:         fe.name,
+    level:        fe.level,
+    iconType:     fe.iconType,
+    hpMax:        fe.hpMax,
+    defFisica:    fe.defFisica,
+    defMagica:    fe.defMagica,
+    velocidade:   fe.velocidade,
+    elementType:  fe.elementType,
+    ability1:     fe.ability1,
+    ability2:     fe.ability2,
+    ability3:     fe.ability3,
+    ability4:     fe.ability4,
+    specialAbilityName:   fe.specialAbilityName,
+    specialAbilityEffect: fe.specialAbilityEffect,
+    specialTrigger:       fe.specialTrigger,
+  };
+}
+
+// ─── Convert FloorMapEnemy → BattleEnemy ─────────────────────────────────────
+
+function toBattleEnemy(fe: FloorMapEnemy, abilityMap: Record<string, Ability>): BattleEnemy {
   const ids = [fe.ability1, fe.ability2, fe.ability3, fe.ability4].filter(Boolean) as string[];
   return {
     id:          fe.id,
@@ -26,7 +60,7 @@ function toBattleEnemy(fe: FloorEnemy, abilityMap: Record<string, Ability>): Bat
     defFisica:   fe.defFisica,
     defMagica:   fe.defMagica,
     velocidade:  fe.velocidade,
-    elementType: fe.elementType,
+    elementType: fe.elementType as BattleEnemy['elementType'],
     abilities:   ids.map(id => abilityMap[id]).filter(Boolean),
     isBoss:      fe.isBoss,
     spriteUrl:   undefined,
@@ -36,165 +70,188 @@ function toBattleEnemy(fe: FloorEnemy, abilityMap: Record<string, Ability>): Bat
   };
 }
 
-// ─── Enemy battle sub-view ────────────────────────────────────────────────────
-
-interface EnemyBattleProps {
-  character:   BattleCharacter;
-  floor:       Floor;
-  enemy:       FloorEnemy;
-  abilityMap:  Record<string, Ability>;
-  equippedAbilities: Ability[];
-  onWin:       (xp: number, coins: number) => void;
-  onLose:      () => void;
-}
-
-function EnemyBattle({ character, floor, enemy, abilityMap, equippedAbilities, onWin, onLose }: EnemyBattleProps) {
-  const battleEnemy = toBattleEnemy(enemy, abilityMap);
-
-  if (equippedAbilities.length === 0) {
-    return (
-      <div className="holo-panel text-center py-12 text-white/60">
-        <p className="text-lg font-bold mb-2">Nenhuma habilidade equipada!</p>
-        <p className="text-sm">Vá até a aba <strong>Skills</strong> e equipe até 4 habilidades antes de batalhar.</p>
-      </div>
-    );
-  }
-
-  return (
-    <BattleScreen
-      player={character}
-      enemy={battleEnemy}
-      equippedAbilities={equippedAbilities}
-      onVictory={onWin}
-      onDefeat={onLose}
-      onFled={onLose}
-    />
-  );
-}
-
-// ─── Main BattleDungeonView ───────────────────────────────────────────────────
+// ─── Phase types ──────────────────────────────────────────────────────────────
 
 type DungeonPhase =
   | { type: 'select' }
-  | { type: 'battle'; floor: Floor; enemy: FloorEnemy }
-  | { type: 'victory'; floor: Floor; enemy: FloorEnemy; xp: number; coins: number }
-  | { type: 'defeat';  floor: Floor }
-  | { type: 'floor_complete'; floor: Floor };
+  | { type: 'map';     floor: Floor }
+  | { type: 'battle';  floor: Floor; enemy: FloorMapEnemy }
+  | { type: 'victory'; floor: Floor; enemy: FloorMapEnemy; xp: number; coins: number }
+  | { type: 'defeat';  floor: Floor; enemy: FloorMapEnemy };
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface BattleDungeonViewProps {
   character:         BattleCharacter;
   onRewardApplied?:  () => void;
+  onBack?:           () => void;
 }
 
-export function BattleDungeonView({ character, onRewardApplied }: BattleDungeonViewProps) {
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function BattleDungeonView({ character, onRewardApplied, onBack }: BattleDungeonViewProps) {
   const [phase, setPhase] = useState<DungeonPhase>({ type: 'select' });
 
-  // Load all abilities and equipped slots
-  const { data: allAbilities = [] }  = useAbilities();
-  const { data: equippedSlots = [], isLoading: loadingEquipped } =
-    useEquippedAbilities(character.id);
+  // Floor map handle (to mark enemies defeated / reset after battle)
+  const mapHandle = useRef<FloorMapHandle>(null);
 
+  // Floors + progress (for FloorSelect visual)
+  const { data: floors = [],   isLoading: loadingFloors }   = useFloors();
+  const { data: progress = [], isLoading: loadingProgress }  = useFloorProgress(character.id);
+
+  // Abilities
+  const { data: allAbilities = [] } = useAbilities();
+  const { data: equippedSlots = [], isLoading: loadingEquipped } = useEquippedAbilities(character.id);
   const abilityMap = Object.fromEntries(allAbilities.map(a => [a.id, a]));
   const equippedAbilities: Ability[] = equippedSlots
     .sort((a, b) => a.slot - b.slot)
     .map(s => abilityMap[s.ability_id])
     .filter(Boolean);
 
-  const recordDefeat    = useRecordEnemyDefeat();
-  const applyRewards    = useApplyBattleRewards(character.id);
+  // Active floor's enemies (loaded when on map/battle phase)
+  const activeFloorId = (phase.type === 'map' || phase.type === 'battle' || phase.type === 'victory' || phase.type === 'defeat')
+    ? phase.floor.id : null;
+  const { data: floorEnemies = [], isLoading: loadingEnemies } = useFloorEnemies(activeFloorId);
 
-  // Enemies for current floor (only needed during battle/select-enemy phase)
-  const activeFlorId = phase.type !== 'select' ? phase.floor.id : null;
-  const { data: floorEnemies = [], isLoading: loadingEnemies } = useFloorEnemies(activeFlorId);
+  // Which individual enemies this character has already defeated on this floor
+  const { data: defeatedIds = new Set<string>(), isLoading: loadingDefeats } =
+    useEnemyDefeats(character.id, activeFloorId);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // Mutations
+  const recordDefeatById = useRecordEnemyDefeatById();
+  const recordDefeat     = useRecordEnemyDefeat();
+  const applyRewards     = useApplyBattleRewards(character.id);
 
-  function handleSelectFloor(floor: Floor) {
-    // Load enemies, then pick first non-boss; if none, pick boss
-    // We set to battle phase once enemies load (handled by effect below via floorEnemies)
-    setPhase({ type: 'battle', floor, enemy: undefined as unknown as FloorEnemy });
-  }
-
-  function handleVictory(floor: Floor, enemy: FloorEnemy, xp: number, coins: number) {
-    recordDefeat.mutate({ characterId: character.id, floorId: floor.id, isBoss: enemy.isBoss });
-    applyRewards.mutate({ xp, coins }, { onSuccess: () => onRewardApplied?.() });
-    setPhase({ type: 'victory', floor, enemy, xp, coins });
-  }
-
-  function handleDefeat(floor: Floor) {
-    setPhase({ type: 'defeat', floor });
-  }
-
-  function handleContinueAfterVictory(floor: Floor, enemy: FloorEnemy) {
-    if (enemy.isBoss) {
-      setPhase({ type: 'floor_complete', floor });
-      return;
-    }
-    // Next enemy: pick first non-boss not yet defeated
-    // For simplicity, return to floor select so progress reloads
-    setPhase({ type: 'select' });
-  }
-
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── SELECT phase ──────────────────────────────────────────────────────────
 
   if (phase.type === 'select') {
+    if (loadingFloors || loadingProgress) {
+      return (
+        <div className="flex items-center justify-center h-full text-white/60">
+          <Loader2 className="animate-spin mr-3" size={24} /> Carregando andares...
+        </div>
+      );
+    }
+
+    if (floors.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4 text-white/60 text-center">
+          <span className="text-4xl">🏰</span>
+          <p>Nenhum andar disponível ainda.</p>
+          <p className="text-sm">Aguarde o professor criar os andares.</p>
+        </div>
+      );
+    }
+
+    const bossDefeatedSet = new Set<number>(
+      progress
+        .filter(p => p.bossDefeated)
+        .map(p => floors.find(f => f.id === p.floorId)?.floorNumber)
+        .filter((n): n is number => n !== undefined),
+    );
+
+    const floorSelectData: FloorSelectData[] = floors.map(floor => ({
+      id:           floor.id,
+      floor_number: floor.floorNumber,
+      name:         floor.name || floor.theme,
+      theme:        floor.theme,
+      boss:         null,
+      status:       getFloorStatus(floor.floorNumber, bossDefeatedSet),
+    }));
+
     return (
-      <FloorSelect
-        characterId={character.id}
-        characterLevel={character.level}
-        onSelectFloor={handleSelectFloor}
+      <FloorSelectVisual
+        floors={floorSelectData}
+        onBack={onBack ?? (() => {})}
+        onPlay={(floorId) => {
+          const floor = floors.find(f => f.id === floorId);
+          if (floor) setPhase({ type: 'map', floor });
+        }}
       />
     );
   }
 
-  // "battle" phase but enemies not loaded yet
-  if (phase.type === 'battle' && (!phase.enemy || loadingEnemies || loadingEquipped)) {
-    if (loadingEnemies || loadingEquipped) {
+  // ── MAP phase ─────────────────────────────────────────────────────────────
+
+  if (phase.type === 'map') {
+    if (loadingEnemies || loadingDefeats) {
       return (
-        <div className="flex items-center justify-center h-64 text-white/60">
-          <Loader2 className="animate-spin mr-3" size={24} />
-          Carregando batalha...
+        <div className="fixed inset-0 flex items-center justify-center bg-[#020611] text-white/60">
+          <Loader2 className="animate-spin mr-3" size={24} /> Carregando mapa...
         </div>
       );
     }
 
-    // Pick next enemy: first non-boss, fallback to boss
-    const normal = floorEnemies.filter(e => !e.isBoss);
-    const boss   = floorEnemies.filter(e =>  e.isBoss);
-    const next   = normal[0] ?? boss[0];
+    const mapEnemies: FloorMapEnemy[] = floorEnemies.map(fe => toFloorMapEnemy(fe, defeatedIds));
 
-    if (!next) {
-      return (
-        <div className="holo-panel text-center py-12">
-          <p className="text-white/60">Este andar não tem inimigos cadastrados ainda.</p>
-          <button className="btn-cyber mt-4" onClick={() => setPhase({ type: 'select' })}>
-            Voltar
-          </button>
-        </div>
-      );
-    }
+    const floorData: FloorData = {
+      id:          String(phase.floor.id),
+      floorNumber: phase.floor.floorNumber,
+      name:        phase.floor.name,
+      theme:       (phase.floor.theme as FloorData['theme']) ?? 'forest',
+    };
 
-    // Update phase with the resolved enemy
-    setPhase({ type: 'battle', floor: phase.floor, enemy: next });
-    return null;
+    return (
+      <FloorMap
+        floor={floorData}
+        enemies={mapEnemies}
+        mapRef={mapHandle}
+        onBack={() => setPhase({ type: 'select' })}
+        onEnemyEncounter={(enemy) => {
+          setPhase({ type: 'battle', floor: phase.floor, enemy });
+        }}
+      />
+    );
   }
 
-  if (phase.type === 'battle' && phase.enemy) {
+  // ── BATTLE phase ──────────────────────────────────────────────────────────
+
+  if (phase.type === 'battle') {
+    if (loadingEquipped) {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-[#020611] text-white/60">
+          <Loader2 className="animate-spin mr-3" size={24} /> Carregando batalha...
+        </div>
+      );
+    }
+
+    if (equippedAbilities.length === 0) {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-[#020611]">
+          <div className="holo-panel text-center p-8 max-w-sm">
+            <p className="text-lg font-bold mb-2 text-white">Nenhuma habilidade equipada!</p>
+            <p className="text-sm text-white/60 mb-4">Vá até a aba <strong>Skills</strong> e equipe até 4 habilidades antes de batalhar.</p>
+            <button className="btn-cyber" onClick={() => setPhase({ type: 'map', floor: phase.floor })}>
+              Voltar ao mapa
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const battleEnemy = toBattleEnemy(phase.enemy, abilityMap);
+
     return (
-      <EnemyBattle
-        character={character}
-        floor={phase.floor}
-        enemy={phase.enemy}
-        abilityMap={abilityMap}
+      <BattleScreen
+        player={character}
+        enemy={battleEnemy}
         equippedAbilities={equippedAbilities}
-        onWin={(xp, coins) => handleVictory(phase.floor, phase.enemy, xp, coins)}
-        onLose={() => handleDefeat(phase.floor)}
+        onVictory={(xp, coins) => {
+          // Record defeat in both tables
+          recordDefeatById.mutate({ characterId: character.id, enemyId: phase.enemy.id });
+          recordDefeat.mutate({ characterId: character.id, floorId: phase.floor.id, isBoss: phase.enemy.isBoss });
+          applyRewards.mutate({ xp, coins }, { onSuccess: () => onRewardApplied?.() });
+          setPhase({ type: 'victory', floor: phase.floor, enemy: phase.enemy, xp, coins });
+        }}
+        onDefeat={() => setPhase({ type: 'defeat', floor: phase.floor, enemy: phase.enemy })}
+        onFled={() => setPhase({ type: 'defeat', floor: phase.floor, enemy: phase.enemy })}
       />
     );
   }
+
+  // ── VICTORY phase ─────────────────────────────────────────────────────────
 
   if (phase.type === 'victory') {
-    // Level-up is teacher-managed (academic level) — battle XP accumulates as a metric only.
     const xpReward: XPReward = { baseXP: phase.xp, bonusXP: 0, totalXP: phase.xp, leveledUp: false, levelsGained: 0 };
     const rewards: BattleRewards = {
       xp:       phase.xp,
@@ -207,48 +264,37 @@ export function BattleDungeonView({ character, onRewardApplied }: BattleDungeonV
       <VictoryScreen
         rewards={rewards}
         xpReward={xpReward}
-        onContinue={() => handleContinueAfterVictory(phase.floor, phase.enemy)}
+        onContinue={() => {
+          // Mark enemy as defeated on the map, then return to map
+          mapHandle.current?.markDefeated(phase.enemy.id);
+          setPhase({ type: 'map', floor: phase.floor });
+        }}
       />
     );
   }
 
+  // ── DEFEAT phase ──────────────────────────────────────────────────────────
+
   if (phase.type === 'defeat') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-64 gap-6">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#020611] gap-6">
         <div className="holo-panel text-center p-8 max-w-sm">
           <p className="text-5xl mb-4">💀</p>
           <h2 className="text-2xl font-black text-red-400 mb-2">Derrota...</h2>
-          <p className="text-white/60 text-sm mb-6">
-            Distribua mais pontos elementais e equipe habilidades melhores antes de tentar novamente.
+          <p className="text-white/60 text-sm mb-2">
+            <strong className="text-white/80">{phase.enemy.name}</strong> foi mais forte desta vez.
+          </p>
+          <p className="text-white/40 text-xs mb-6">
+            Distribua mais pontos elementais e equipe habilidades melhores.
           </p>
           <button
             className="btn-cyber w-full justify-center"
-            onClick={() => setPhase({ type: 'select' })}
+            onClick={() => {
+              mapHandle.current?.resetToMap();
+              setPhase({ type: 'map', floor: phase.floor });
+            }}
           >
-            <RotateCcw size={14} /> Tentar novamente
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (phase.type === 'floor_complete') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-64 gap-6">
-        <div className="holo-panel-gold text-center p-8 max-w-sm aaa-pop">
-          <p className="text-5xl mb-4">🏰</p>
-          <h2 className="text-2xl font-black text-yellow-400 text-glow-gold mb-2">
-            Andar Concluído!
-          </h2>
-          <p className="text-white/70 text-sm mb-6">
-            <strong className="text-yellow-300">{phase.floor.name}</strong> foi dominado!
-            O próximo andar foi desbloqueado.
-          </p>
-          <button
-            className="btn-cyber-gold w-full justify-center"
-            onClick={() => setPhase({ type: 'select' })}
-          >
-            Continuar Exploração
+            <RotateCcw size={14} /> Voltar ao mapa
           </button>
         </div>
       </div>

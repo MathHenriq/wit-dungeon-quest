@@ -1,29 +1,40 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sword, ScrollText, Skull, Zap, Swords, Shield, Network,
-  Store, Package, ArrowLeftRight, Trophy, User, Clock,
+  Sword, Zap, Swords, Shield, Network,
+  Store, Package, ArrowLeftRight, Trophy, User,
   LogOut, Settings
 } from 'lucide-react';
 import type { StudentTab } from './StudentNavigation';
 import type { Student } from '@/types';
 import { GameIcon } from '@/components/icons/GameIcon';
-import { PlanetIcon } from '@/components/orbital/PlanetIcon';
 
 // ─── Planet image mapping ────────────────────────────────
-const PLANET_CONFIG: Record<string, { file: string; glowColor: string; iconType: string; iconColor: string }> = {
-  challenges: { file: 'Gemini_Generated_Image_1k478i1k478i1k47-removebg-preview.png',      glowColor: 'rgba(74, 124, 30, 0.6)',    iconType: 'swords',         iconColor: '#a8e06a' },
-  missions:   { file: 'Gemini_Generated_Image_rz4uvprz4uvprz4u-removebg-preview.png',      glowColor: 'rgba(157, 0, 255, 0.6)',    iconType: 'scroll',         iconColor: '#c97aff' },
-  bosses:     { file: 'Gemini_Generated_Image_si79sxsi79sxsi79-removebg-preview.png',      glowColor: 'rgba(255, 0, 0, 0.6)',      iconType: 'skull',          iconColor: '#ff6b6b' },
-  dungeon:    { file: 'Gemini_Generated_Image_m93eljm93eljm93e-removebg-preview.png',      glowColor: 'rgba(0, 212, 255, 0.6)',    iconType: 'compass',        iconColor: '#7ee8fa' },
-  pvp:        { file: 'Gemini_Generated_Image_p23lzrp23lzrp23l-removebg-preview (1).png',  glowColor: 'rgba(139, 0, 0, 0.6)',      iconType: 'crossed-swords', iconColor: '#ff4444' },
-  guild:      { file: 'Gemini_Generated_Image_s41uhks41uhks41u-removebg-preview (1).png',  glowColor: 'rgba(75, 0, 130, 0.6)',     iconType: 'shield',         iconColor: '#b388ff' },
-  skills:     { file: 'Gemini_Generated_Image_doqkzjdoqkzjdoqk-removebg-preview.png',     glowColor: 'rgba(255, 136, 0, 0.6)',    iconType: 'tree',           iconColor: '#ffb74d' },
-  shop:       { file: 'Gemini_Generated_Image_7bum2j7bum2j7bum-removebg-preview.png',      glowColor: 'rgba(160, 130, 109, 0.6)',  iconType: 'coin',           iconColor: '#d4a96a' },
-  inventory:  { file: 'Gemini_Generated_Image_lndtfxlndtfxlndt-removebg-preview.png',     glowColor: 'rgba(26, 35, 50, 0.6)',     iconType: 'chest',          iconColor: '#90caf9' },
-  trading:    { file: 'Gemini_Generated_Image_dqkvgrdqkvgrdqkv-removebg-preview (1).png',  glowColor: 'rgba(64, 224, 208, 0.6)',   iconType: 'arrows',         iconColor: '#40e0d0' },
-  ranking:    { file: 'Gemini_Generated_Image_vb47acvb47acvb47-removebg-preview.png',      glowColor: 'rgba(255, 215, 0, 0.6)',    iconType: 'trophy',         iconColor: '#ffd700' },
-  character:  { file: 'Gemini_Generated_Image_txwjmctxwjmctxwj-removebg-preview (1).png', glowColor: 'rgba(139, 139, 139, 0.6)',  iconType: 'user',           iconColor: '#e0e0e0' },
+const PLANET_CONFIG: Record<string, { file: string; glowColor: string }> = {
+  challenges: { file: 'Gemini_Generated_Image_1k478i1k478i1k47-removebg-preview.png',      glowColor: 'rgba(74, 124, 30, 0.6)'   },
+  dungeon:    { file: 'Gemini_Generated_Image_m93eljm93eljm93e-removebg-preview.png',      glowColor: 'rgba(0, 212, 255, 0.6)'   },
+  pvp:        { file: 'Gemini_Generated_Image_p23lzrp23lzrp23l-removebg-preview (1).png',  glowColor: 'rgba(139, 0, 0, 0.6)'     },
+  guild:      { file: 'Gemini_Generated_Image_s41uhks41uhks41u-removebg-preview (1).png',  glowColor: 'rgba(75, 0, 130, 0.6)'    },
+  skills:     { file: 'Gemini_Generated_Image_doqkzjdoqkzjdoqk-removebg-preview.png',     glowColor: 'rgba(255, 136, 0, 0.6)'   },
+  shop:       { file: 'Gemini_Generated_Image_7bum2j7bum2j7bum-removebg-preview.png',      glowColor: 'rgba(160, 130, 109, 0.6)' },
+  inventory:  { file: 'Gemini_Generated_Image_lndtfxlndtfxlndt-removebg-preview.png',     glowColor: 'rgba(26, 35, 50, 0.6)'    },
+  trading:    { file: 'Gemini_Generated_Image_dqkvgrdqkvgrdqkv-removebg-preview (1).png',  glowColor: 'rgba(64, 224, 208, 0.6)'  },
+  ranking:    { file: 'Gemini_Generated_Image_vb47acvb47acvb47-removebg-preview.png',      glowColor: 'rgba(255, 215, 0, 0.6)'   },
+  character:  { file: 'Gemini_Generated_Image_txwjmctxwjmctxwj-removebg-preview (1).png', glowColor: 'rgba(139, 139, 139, 0.6)' },
+};
+
+// ─── Planet logo icon paths ──────────────────────────────
+const PLANET_ICON: Record<string, string> = {
+  challenges: '/images/Planet Icons/Missões.png',
+  dungeon:    '/images/Planet Icons/Dungeon.png',
+  pvp:        '/images/Planet Icons/PVP.png',
+  guild:      '/images/Planet Icons/Guilda.png',
+  skills:     '/images/Planet Icons/Arvore de Habilidades.png',
+  shop:       '/images/Planet Icons/Loja.png',
+  inventory:  '/images/Planet Icons/Inventário.png',
+  trading:    '/images/Planet Icons/Trocas.png',
+  ranking:    '/images/Planet Icons/Ranking.png',
+  character:  '/images/Planet Icons/Herói.png',
 };
 
 const getPlanetPath = (id: string) =>
@@ -31,6 +42,8 @@ const getPlanetPath = (id: string) =>
 
 const getGlowColor = (id: string) =>
   PLANET_CONFIG[id]?.glowColor ?? 'rgba(0, 229, 255, 0.4)';
+
+const getPlanetIcon = (id: string) => PLANET_ICON[id] ?? '';
 
 // ─── Background planets ──────────────────────────────────
 const BG_PLANETS = [
@@ -69,31 +82,12 @@ interface DirectorNode {
 const DIRECTOR_NODES: DirectorNode[] = [
   {
     id: 'challenges',
-    name: 'Quests',
-    subtitle: 'Desafios Semanais',
+    name: 'Missões',
+    subtitle: 'Missões & Desafios',
     size: 48,
     color: '#1e5a8a',
     position: { top: '50%', left: '50%' },
     icon: <Sword size={22} />,
-  },
-  {
-    id: 'missions',
-    name: 'Missões',
-    subtitle: 'Patrulhas & Objetivos',
-    size: 38,
-    color: '#4a6741',
-    position: { top: '30%', left: '66%' },
-    icon: <ScrollText size={18} />,
-  },
-  {
-    id: 'bosses',
-    name: 'Bosses',
-    subtitle: 'Combate de Chefes',
-    size: 44,
-    color: '#6b2525',
-    position: { top: '65%', left: '75%' },
-    icon: <Skull size={20} />,
-    danger: true,
   },
   {
     id: 'dungeon',
@@ -174,29 +168,27 @@ const DIRECTOR_NODES: DirectorNode[] = [
     subtitle: 'Ficha de Personagem',
     size: 38,
     color: '#1a4a6b',
-    position: { top: '85%', left: '70%' },
+    position: { top: '22%', left: '65%' },
     icon: <User size={18} />,
   },
 ];
 
 // ─── Constellation lines (edges connecting nodes) ───────
 const CONSTELLATION_LINES = [
-  // Central hub (challenges) connects to neighbors
-  { from: 'challenges', to: 'missions' },
-  { from: 'challenges', to: 'bosses' },
+  // Central hub (challenges/missions) connects to neighbors
   { from: 'challenges', to: 'dungeon' },
   { from: 'challenges', to: 'skills' },
   { from: 'challenges', to: 'guild' },
   { from: 'challenges', to: 'pvp' },
+  { from: 'challenges', to: 'ranking' },
+  { from: 'challenges', to: 'character' },
   // Secondary connections
-  { from: 'missions', to: 'ranking' },
-  { from: 'missions', to: 'shop' },
-  { from: 'bosses', to: 'character' },
-  { from: 'bosses', to: 'dungeon' },
   { from: 'guild', to: 'inventory' },
   { from: 'pvp', to: 'trading' },
   { from: 'dungeon', to: 'trading' },
+  { from: 'dungeon', to: 'character' },
   { from: 'shop', to: 'ranking' },
+  { from: 'skills', to: 'shop' },
 ];
 
 // ─── Helper: get node position as percentage numbers ────
@@ -325,12 +317,22 @@ function MapNode({
             </div>
           )}
 
-          {/* SVG Icon overlay */}
-          <PlanetIcon
-            type={PLANET_CONFIG[node.id]?.iconType ?? 'settings'}
-            color={PLANET_CONFIG[node.id]?.iconColor ?? '#ffffff'}
-            size={Math.round(planetSize * 0.55)}
-          />
+          {/* Planet logo icon overlay */}
+          {getPlanetIcon(node.id) && (
+            <img
+              src={getPlanetIcon(node.id)}
+              alt=""
+              className="absolute pointer-events-none select-none"
+              style={{
+                width: 72,
+                height: 72,
+                objectFit: 'contain',
+                filter: isHovered ? 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' : 'none',
+                transition: 'filter 0.3s',
+              }}
+              draggable={false}
+            />
+          )}
         </motion.div>
       </div>
     </div>

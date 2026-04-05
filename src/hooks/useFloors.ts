@@ -37,6 +37,10 @@ export interface FloorEnemy {
   specialAbilityName?:  string | null;
   specialAbilityEffect?: string | null;
   specialTrigger?:      string | null;
+  // Map position & icon (added by floor_map_positions migration)
+  positionX:  number;
+  positionY:  number;
+  iconType:   string;
 }
 
 export interface FloorProgress {
@@ -83,6 +87,9 @@ function rowToEnemy(r: any): FloorEnemy {
     specialAbilityName:   r.special_ability_name  ?? null,
     specialAbilityEffect: r.special_ability_effect ?? null,
     specialTrigger:       r.special_trigger        ?? null,
+    positionX:            r.position_x ?? 50,
+    positionY:            r.position_y ?? 50,
+    iconType:             r.icon_type  ?? 'skull',
   };
 }
 
@@ -249,6 +256,48 @@ export function usePublishFloor() {
     },
     onError: (err: Error) => {
       toast.error(`Erro ao publicar: ${err.message}`);
+    },
+  });
+}
+
+// ─── Per-enemy defeat tracking ───────────────────────────────────────────────
+
+/** Returns the Set of enemy UUIDs already defeated by this character on this floor. */
+export function useEnemyDefeats(characterId: string | null, floorId: string | null) {
+  return useQuery({
+    queryKey: ['enemy_defeats', characterId, floorId],
+    enabled:  !!characterId && !!floorId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
+    queryFn: async () => {
+      // Join through enemies to filter by floor
+      const { data, error } = await studentSupabase
+        .from('floor_enemy_defeats')
+        .select('enemy_id, enemies!inner(floor_id)')
+        .eq('character_id', characterId!)
+        .eq('enemies.floor_id', Number(floorId));
+      if (error) throw error;
+      return new Set<string>((data ?? []).map((r: any) => r.enemy_id));
+    },
+  });
+}
+
+/** Records a single enemy defeat in floor_enemy_defeats. */
+export function useRecordEnemyDefeatById() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ characterId, enemyId }: { characterId: string; enemyId: string }) => {
+      const { error } = await studentSupabase
+        .from('floor_enemy_defeats')
+        .upsert({ character_id: characterId, enemy_id: enemyId }, { onConflict: 'character_id,enemy_id' });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['enemy_defeats'] });
     },
   });
 }

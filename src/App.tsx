@@ -19,8 +19,9 @@ import ParentPortal from "./pages/ParentPortal";
 import ParentReport from "./pages/ParentReport";
 import ParentStudentView from "./pages/ParentStudentView";
 import PresentationMode from "./pages/PresentationMode";
-import HubDemo from "./pages/HubDemo";
 import BattleDemo from "./pages/BattleDemo";
+import FloorMapDemo    from "./pages/FloorMapDemo";
+import FloorSelectDemo from "./pages/FloorSelectDemo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -63,8 +64,9 @@ function AppRoutes() {
       <Route path="/pais/filho"             element={<ParentStudentView />} />
       <Route path="/relatorio/:reportId"    element={<ParentReport />} />
       <Route path="/professor/apresentacao" element={<PresentationMode />} />
-      <Route path="/hub-demo"               element={<HubDemo />} />
       <Route path="/battle-demo"            element={<BattleDemo />} />
+      <Route path="/floor-map-demo"         element={<FloorMapDemo />} />
+      <Route path="/floor-select-demo"      element={<FloorSelectDemo />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*"                       element={<NotFound />} />
     </Routes>
