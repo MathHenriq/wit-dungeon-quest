@@ -1,53 +1,47 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ItemCard } from './ItemCard';
-import type { Item, EquipmentFilter } from './inventory-types';
-import { sortByRarity } from './inventory-types';
+import type { InventoryItemEx, EquipmentFilter } from './inventory-types';
 
 interface EquipmentTabProps {
-  items:       Item[];
+  items:       InventoryItemEx[];
   selectedId:  string | null;
-  onSelect:    (item: Item) => void;
+  isEquipped:  (id: string) => boolean;
+  onSelect:    (inv: InventoryItemEx) => void;
 }
 
 const FILTERS: { id: EquipmentFilter; label: string }[] = [
-  { id: 'all',        label: 'Todos'      },
-  { id: 'weapons',    label: 'Armas'      },
-  { id: 'armor',      label: 'Armaduras'  },
-  { id: 'accessories',label: 'Acessorios' },
+  { id: 'all',         label: 'Todos'      },
+  { id: 'weapons',     label: 'Armas'      },
+  { id: 'armor',       label: 'Armaduras'  },
+  { id: 'accessories', label: 'Acessorios' },
 ];
 
-function filterItems(items: Item[], filter: EquipmentFilter): Item[] {
+function filterItems(items: InventoryItemEx[], filter: EquipmentFilter): InventoryItemEx[] {
   if (filter === 'all') return items;
-  if (filter === 'weapons')     return items.filter(i => i.slot_type === 'weapon' || i.slot_type === 'offhand');
-  if (filter === 'armor')       return items.filter(i => i.slot_type === 'head'   || i.slot_type === 'armor');
-  if (filter === 'accessories') return items.filter(i => i.slot_type === 'accessory' || i.slot_type === 'ring');
+  if (filter === 'weapons')     return items.filter(i => i.item?.category === 'armamento');
+  if (filter === 'armor')       return items.filter(i => i.item?.category === 'armadura');
+  if (filter === 'accessories') return items.filter(i =>
+    i.item?.category !== 'armamento' && i.item?.category !== 'armadura'
+  );
   return items;
 }
 
-export function EquipmentTab({ items, selectedId, onSelect }: EquipmentTabProps) {
+export function EquipmentTab({ items, selectedId, isEquipped, onSelect }: EquipmentTabProps) {
   const [filter, setFilter] = useState<EquipmentFilter>('all');
   const listRef = useRef<HTMLDivElement>(null);
 
-  const visible = sortByRarity(filterItems(items, filter));
+  const visible = filterItems(items, filter);
 
   useEffect(() => {
     if (listRef.current) {
       const cards = listRef.current.querySelectorAll('.item-card');
-      gsap.from(cards, {
-        x: -14,
-        opacity: 0,
-        duration: 0.28,
-        stagger: 0.04,
-        ease: 'power2.out',
-        clearProps: 'all',
-      });
+      gsap.from(cards, { x: -14, opacity: 0, duration: 0.26, stagger: 0.04, ease: 'power2.out', clearProps: 'all' });
     }
-  }, [filter]);
+  }, [filter, items.length]);
 
   return (
     <div className="inv-tab-content">
-      {/* Filters */}
       <div className="inv-filters">
         {FILTERS.map(f => (
           <button
@@ -60,17 +54,17 @@ export function EquipmentTab({ items, selectedId, onSelect }: EquipmentTabProps)
         ))}
       </div>
 
-      {/* Item list */}
       {visible.length === 0 ? (
         <div className="inv-empty">Nenhum equipamento encontrado</div>
       ) : (
         <div ref={listRef}>
-          {visible.map(item => (
+          {visible.map(inv => (
             <ItemCard
-              key={item.id}
-              item={item}
-              selected={item.id === selectedId}
-              onClick={() => onSelect(item)}
+              key={inv.id}
+              inv={inv}
+              selected={inv.id === selectedId}
+              isEquipped={isEquipped(inv.id)}
+              onClick={() => onSelect(inv)}
             />
           ))}
         </div>

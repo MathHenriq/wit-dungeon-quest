@@ -1,65 +1,76 @@
 import React from 'react';
-import type { Item } from './inventory-types';
-import { getRarity, getIconPath, getSellPrice } from './inventory-utils';
+import type { InventoryItemEx, EquipSlotType } from './inventory-types';
+import { getDefaultSlot } from './inventory-types';
+import { getRarity, getIconPath, formatAttrs, getSellPrice, SLOT_CONFIG } from './inventory-utils';
 
 interface ItemDetailPanelProps {
-  item:       Item;
+  inv:        InventoryItemEx;
   isEquipped: boolean;
+  equippedSlot: EquipSlotType | null;
   onEquip:    () => void;
+  onUnequip:  () => void;
   onSell:     () => void;
   onTrade:    () => void;
   onClose:    () => void;
 }
 
-const STAT_LABELS: Record<string, string> = {
-  atk: 'Ataque', def: 'Defesa', hp: 'HP', mp: 'MP',
-  crit: 'Critico', speed: 'Velocidade', int: 'Inteligencia', block: 'Bloqueio',
+const ATTR_LABELS: Record<string, string> = {
+  attr_forca:        'Forca',
+  attr_destreza:     'Destreza',
+  attr_inteligencia: 'Inteligencia',
+  attr_carisma:      'Carisma',
+  attr_agilidade:    'Agilidade',
+  attr_resistencia:  'Resistencia',
 };
 
-export function ItemDetailPanel({ item, isEquipped, onEquip, onSell, onTrade, onClose }: ItemDetailPanelProps) {
-  const rarity    = getRarity(item.rarity);
-  const iconPath  = getIconPath(item.icon_type);
-  const sellPrice = getSellPrice(item.base_sell_price, item.rarity);
-  const stats     = item.stats ?? {};
-  const statEntries = Object.entries(stats).filter(([, v]) => v && v > 0);
+export function ItemDetailPanel({ inv, isEquipped, equippedSlot, onEquip, onUnequip, onSell, onTrade, onClose }: ItemDetailPanelProps) {
+  const shopItem  = inv.item;
+  if (!shopItem) return null;
 
-  const canEquip  = item.category === 'equipment';
-  const canSell   = item.base_sell_price > 0;
-  const canTrade  = item.tradeable;
+  const rarity    = getRarity(shopItem.category);
+  const iconPath  = getIconPath(shopItem.category);
+  const sellPrice = getSellPrice(shopItem.cost);
+  const canEquip  = shopItem.category === 'armamento' || shopItem.category === 'armadura';
+  const canSell   = shopItem.cost > 0;
+  const defaultSlot = getDefaultSlot(shopItem.category);
+  const slotLabel = defaultSlot ? SLOT_CONFIG[defaultSlot].label : '';
+
+  // Collect attribute bonuses
+  const attrEntries = Object.entries(ATTR_LABELS).filter(
+    ([key]) => ((shopItem as unknown as Record<string, unknown>)[key] as number) > 0
+  );
 
   return (
     <div className="item-detail">
-      {/* Header with icon + name */}
       <div className="detail-header">
-        <div
-          className="detail-icon"
-          style={{ borderColor: rarity.border, background: rarity.bg }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={rarity.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d={iconPath} />
-          </svg>
+        {/* Big icon */}
+        <div className="detail-icon" style={{ borderColor: rarity.border, background: rarity.bg }}>
+          {shopItem.image_url ? (
+            <img src={shopItem.image_url} alt={shopItem.name}
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={rarity.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d={iconPath} />
+            </svg>
+          )}
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="detail-name" style={{ color: rarity.color }}>{item.name}</div>
-          <div className="detail-rarity" style={{ color: rarity.color }}>{rarity.name}</div>
-          {item.element && (
-            <div className="detail-element">{item.element}</div>
+          <div className="detail-name" style={{ color: rarity.color }}>{shopItem.name}</div>
+          <div className="detail-rarity" style={{ color: rarity.color }}>
+            {rarity.name}{slotLabel ? ` · ${slotLabel}` : ''}
+          </div>
+          {isEquipped && equippedSlot && (
+            <div className="detail-element" style={{ color: 'rgba(201,164,74,0.75)' }}>
+              Equipado em: {SLOT_CONFIG[equippedSlot]?.label}
+            </div>
           )}
         </div>
 
         <button
           onClick={onClose}
-          style={{
-            color: 'rgba(255,255,255,0.25)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 18,
-            lineHeight: 1,
-            padding: '0 2px',
-            alignSelf: 'flex-start',
-          }}
+          style={{ color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 2px', alignSelf: 'flex-start' }}
           title="Fechar"
         >
           ×
@@ -67,53 +78,40 @@ export function ItemDetailPanel({ item, isEquipped, onEquip, onSell, onTrade, on
       </div>
 
       {/* Description */}
-      <div className="detail-desc">{item.description}</div>
+      {shopItem.description && (
+        <div className="detail-desc">{shopItem.description}</div>
+      )}
 
-      {/* Stats */}
-      {statEntries.length > 0 && (
+      {/* Attribute bonuses */}
+      {attrEntries.length > 0 && (
         <div className="detail-stats">
-          {statEntries.map(([key, val]) => (
+          {attrEntries.map(([key, label]) => (
             <div key={key} className="detail-stat">
-              {STAT_LABELS[key] ?? key}: <b>+{val}</b>
+              {label}: <b>+{(shopItem as unknown as Record<string, unknown>)[key] as number}</b>
             </div>
           ))}
         </div>
       )}
 
-      {/* Consumable info */}
-      {item.category === 'consumable' && item.effect_value && (
-        <div className="detail-stats">
-          <div className="detail-stat">Efeito: <b>+{item.effect_value}</b></div>
-          {item.duration && <div className="detail-stat">Duração: <b>{item.duration} batalha(s)</b></div>}
-          {item.quantity && <div className="detail-stat">Quantidade: <b>x{item.quantity}</b></div>}
-        </div>
-      )}
-
-      {/* Cosmetic info */}
-      {item.category === 'cosmetic' && item.cosmetic_value && (
-        <div className="detail-stats">
-          <div className="detail-stat">Valor: <b>{item.cosmetic_value}</b></div>
-        </div>
-      )}
-
       {/* Actions */}
       <div className="detail-actions">
-        {canEquip && (
-          <button
-            className={`detail-btn-equip${isEquipped ? ' equipped' : ''}`}
-            onClick={isEquipped ? undefined : onEquip}
-          >
-            {isEquipped ? 'Equipado' : 'Equipar'}
+        {canEquip && !isEquipped && (
+          <button className="detail-btn-equip" onClick={onEquip}>
+            Equipar
           </button>
         )}
 
-        {canTrade && (
-          <button className="detail-btn-trade" onClick={onTrade}>
-            Trocar
+        {isEquipped && (
+          <button className="detail-btn-unequip" onClick={onUnequip}>
+            Desequipar
           </button>
         )}
 
-        {canSell && (
+        <button className="detail-btn-trade" onClick={onTrade}>
+          Trocar
+        </button>
+
+        {canSell && !isEquipped && (
           <button className="detail-btn-sell" onClick={onSell}>
             Vender ({sellPrice} moedas)
           </button>

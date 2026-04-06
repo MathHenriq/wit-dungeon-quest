@@ -1,59 +1,164 @@
-import { useState, useCallback } from 'react';
-import type { Item, EquippedItems, ItemCategory, EquipSlotType } from './inventory-types';
-import { MOCK_ITEMS, MOCK_EQUIPPED, MOCK_WALLET, sortByRarity } from './inventory-types';
-import { getSellPrice } from './inventory-utils';
+import { useState, useCallback, useMemo } from 'react';
+import { supabaseAnon } from '@/integrations/supabase/anonClient';
 import { toast } from 'sonner';
+import type { InventoryItemEx, EquippedMap, EquipSlotType, InvTab } from './inventory-types';
+import { getInvTab, getDefaultSlot } from './inventory-types';
+import { getSellPrice } from './inventory-utils';
 
-export function useInventory() {
-  const [items,    setItems]    = useState<Item[]>(MOCK_ITEMS);
-  const [equipped, setEquipped] = useState<EquippedItems>(MOCK_EQUIPPED);
-  const [coins,    setCoins]    = useState(MOCK_WALLET.coins);
-  const [diamonds, setDiamonds] = useState(MOCK_WALLET.diamonds);
+interface UseInventoryProps {
+  rawItems:  InventoryItemEx[];
+  studentId: string;
+  coins:     number;
+  onCoinsChange?: (newCoins: number) => void;
+  onRefresh?: () => void;
+}
 
-  // ── Derived lists by category ──────────────────────────────────────────────
-  const equipment  = sortByRarity(items.filter(i => i.category === 'equipment'));
-  const consumables = sortByRarity(items.filter(i => i.category === 'consumable'));
-  const cosmetics  = sortByRarity(items.filter(i => i.category === 'cosmetic'));
+export function useInventory({ rawItems, studentId, coins, onRefresh }: UseInventoryProps) {
+  // ── Derive equipped map from the items themselves ─────────────────────────
+  const [localEquipped, setLocalEquipped] = useState<EquippedMap>(() => {
+    const map: EquippedMap = {};
+    for (const inv of rawItems) {
+      if (inv.is_equipped && inv.equipped_slot) {
+        map[inv.equipped_slot as EquipSlotType] = inv;
+      }
+    }
+    return map;
+  });
 
-  // ── Check if item is equipped ──────────────────────────────────────────────
-  const isEquipped = useCallback((itemId: string): boolean => {
-    return Object.values(equipped).some(i => i?.id === itemId);
+  // Re-sync if rawItems change (e.g. after refresh)
+  const equippedFromProps = useMemo<EquippedMap>(() => {
+    const map: EquippedMap = {};
+    for (const inv of rawItems) {
+      if (inv.is_equipped && inv.equipped_slot) {
+        map[inv.equipped_slot as EquipSlotType] = inv;
+      }
+    }
+    return map;
+  }, [rawItems]);
+
+  const equipped: EquippedMap = Object.keys(localEquipped).length > 0
+    ? localEquipped
+    : equippedFromProps;
+
+  // ── Categorize items ──────────────────────────────────────────────────────
+  const equipment   = rawItems.filter(i => i.item && getInvTab(i.item.category) === 'equipment');
+  const consumables = rawItems.filter(i => i.item && getInvTab(i.item.category) === 'consumable');
+  const cosmetics   = rawItems.filter(i => i.item && getInvTab(i.item.category) === 'cosmetic');
+
+  // ── Check equipped ────────────────────────────────────────────────────────
+  const isEquipped = useCallback((inventoryId: string): boolean => {
+    return Object.values(equipped).some(i => i?.id === inventoryId);
   }, [equipped]);
 
-  // ── Equip item ─────────────────────────────────────────────────────────────
-  const equipItem = useCallback((item: Item) => {
-    if (!item.slot_type) return;
-    setEquipped(prev => ({ ...prev, [item.slot_type!]: item }));
-    toast.success(`${item.name} equipado`);
-    // TODO: Supabase update
-  }, []);
+  const getEquippedSlot = useCallback((inventoryId: string): EquipSlotType | null => {
+    for (const [slot, inv] of Object.entries(equipped)) {
+      if (inv?.id === inventoryId) return slot as EquipSlotType;
+    }
+    return null;
+  }, [equipped]);
 
-  // ── Unequip slot ───────────────────────────────────────────────────────────
-  const unequipSlot = useCallback((slotType: EquipSlotType) => {
-    setEquipped(prev => {
-      const next = { ...prev };
-      delete next[slotType];
-      return next;
-    });
-    // TODO: Supabase update
-  }, []);
+  // ── Equip ─────────────────────────────────────────────────────────────────
+  const equipItem = useCallback(async (inv: InventoryItemEx, slot: EquipSlotType) => {
+    const prevInSlot = equipped[slot];
 
-  // ── Sell item ──────────────────────────────────────────────────────────────
-  const sellItem = useCallback((item: Item) => {
-    if (isEquipped(item.id)) {
+    // Optimistic update
+    setLocalEquipped(prev => ({ ...prev, [slot]: inv }));
+
+    try {
+      // Unequip whatever was in that slot
+      if (prevInSlot) {
+        await supabaseAnon
+          .from('student_inventory')
+          .update({ is_equipped: false, equipped_slot: null })
+          .eq('id', prevInSlot.id)
+          .eq('student_id', studentId);
+      }
+
+      // Equip new item
+      await supabaseAnon
+        .from('student_inventory')
+        .update({ is_equipped: true, equipped_slot: slot })
+        .eq('id', inv.id)
+        .eq('student_id', studentId);
+
+      toast.success(`${inv.item?.name ?? 'Item'} equipado`);
+      onRefresh?.();
+    } catch {
+      // Rollback
+      setLocalEquipped(prev => {
+        const next = { ...prev };
+        if (prevInSlot) next[slot] = prevInSlot; else delete next[slot];
+        return next;
+      });
+      toast.error('Erro ao equipar item');
+    }
+  }, [equipped, studentId, onRefresh]);
+
+  // ── Unequip ───────────────────────────────────────────────────────────────
+  const unequipItem = useCallback(async (slot: EquipSlotType) => {
+    const inv = equipped[slot];
+    if (!inv) return;
+
+    setLocalEquipped(prev => { const n = { ...prev }; delete n[slot]; return n; });
+
+    try {
+      await supabaseAnon
+        .from('student_inventory')
+        .update({ is_equipped: false, equipped_slot: null })
+        .eq('id', inv.id)
+        .eq('student_id', studentId);
+
+      toast.success(`${inv.item?.name ?? 'Item'} desequipado`);
+      onRefresh?.();
+    } catch {
+      setLocalEquipped(prev => ({ ...prev, [slot]: inv }));
+      toast.error('Erro ao desequipar item');
+    }
+  }, [equipped, studentId, onRefresh]);
+
+  // ── Smart equip: pick slot automatically ──────────────────────────────────
+  const smartEquip = useCallback(async (inv: InventoryItemEx) => {
+    if (!inv.item) return;
+    const defaultSlot = getDefaultSlot(inv.item.category);
+    if (!defaultSlot) {
+      toast.error('Este item não pode ser equipado');
+      return;
+    }
+    await equipItem(inv, defaultSlot);
+  }, [equipItem]);
+
+  // ── Sell ──────────────────────────────────────────────────────────────────
+  const sellItem = useCallback(async (inv: InventoryItemEx) => {
+    if (isEquipped(inv.id)) {
       toast.error('Desequipe o item antes de vender');
       return;
     }
-    const price = getSellPrice(item.base_sell_price, item.rarity);
-    setItems(prev => prev.filter(i => i.id !== item.id));
-    setCoins(prev => prev + price);
-    toast.success(`Vendido por ${price} moedas`);
-    // TODO: Supabase delete + add_coins
-  }, [isEquipped]);
+
+    const price = getSellPrice(inv.item?.cost ?? 10);
+
+    try {
+      await supabaseAnon
+        .from('student_inventory')
+        .delete()
+        .eq('id', inv.id)
+        .eq('student_id', studentId);
+
+      // Give coins via RPC
+      await supabaseAnon.rpc('add_coins', {
+        p_student_id: studentId,
+        p_amount:     price,
+      });
+
+      toast.success(`Vendido por ${price} moedas`);
+      onRefresh?.();
+    } catch {
+      toast.error('Erro ao vender item');
+    }
+  }, [isEquipped, studentId, onRefresh]);
 
   return {
-    items, equipment, consumables, cosmetics,
-    equipped, coins, diamonds,
-    isEquipped, equipItem, unequipSlot, sellItem,
+    rawItems, equipment, consumables, cosmetics,
+    equipped, isEquipped, getEquippedSlot,
+    smartEquip, equipItem, unequipItem, sellItem,
   };
 }

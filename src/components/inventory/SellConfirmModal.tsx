@@ -1,44 +1,47 @@
 import React from 'react';
-import type { Item } from './inventory-types';
+import type { InventoryItemEx } from './inventory-types';
 import { getRarity, getIconPath, getSellPrice } from './inventory-utils';
 
 interface SellConfirmModalProps {
-  item:      Item;
+  inv:       InventoryItemEx;
   onConfirm: () => void;
   onCancel:  () => void;
 }
 
-export function SellConfirmModal({ item, onConfirm, onCancel }: SellConfirmModalProps) {
-  const rarity    = getRarity(item.rarity);
-  const iconPath  = getIconPath(item.icon_type);
-  const sellPrice = getSellPrice(item.base_sell_price, item.rarity);
+export function SellConfirmModal({ inv, onConfirm, onCancel }: SellConfirmModalProps) {
+  const shopItem  = inv.item;
+  if (!shopItem) return null;
+  const rarity    = getRarity(shopItem.category);
+  const iconPath  = getIconPath(shopItem.category);
+  const sellPrice = getSellPrice(shopItem.cost);
 
   return (
     <div className="inv-modal-overlay" onClick={onCancel}>
       <div className="inv-modal" onClick={e => e.stopPropagation()}>
         <div className="inv-modal-title">Vender Item</div>
 
-        {/* Item preview */}
         <div className="inv-modal-item">
           <div style={{
-            width: 40, height: 40,
-            borderRadius: 6,
+            width: 44, height: 44, borderRadius: 7,
             border: `1.5px solid ${rarity.border}`,
             background: rarity.bg,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
+            flexShrink: 0, overflow: 'hidden',
           }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={rarity.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d={iconPath} />
-            </svg>
+            {shopItem.image_url ? (
+              <img src={shopItem.image_url} alt={shopItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={rarity.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d={iconPath} />
+              </svg>
+            )}
           </div>
           <div>
-            <div className="inv-modal-item-name" style={{ color: rarity.color }}>{item.name}</div>
+            <div className="inv-modal-item-name" style={{ color: rarity.color }}>{shopItem.name}</div>
             <div className="inv-modal-item-rarity" style={{ color: rarity.color }}>{rarity.name}</div>
           </div>
         </div>
 
-        {/* Price */}
         <div className="inv-modal-price">{sellPrice}</div>
         <div className="inv-modal-price-label">moedas recebidas</div>
 

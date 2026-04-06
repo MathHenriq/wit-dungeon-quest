@@ -873,7 +873,12 @@ export default function StudentPortal() {
     return (
       <div className="fixed inset-0">
         {sharedOverlays}
-        <Inventory student={student} onBack={() => setActiveTab('director')} />
+        <Inventory
+          student={student}
+          inventory={inventory}
+          onBack={() => setActiveTab('director')}
+          onRefresh={refreshStudent}
+        />
       </div>
     );
   }
