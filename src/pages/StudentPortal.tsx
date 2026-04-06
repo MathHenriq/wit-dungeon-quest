@@ -21,7 +21,7 @@ import { OnboardingFlow } from "@/components/student/OnboardingFlow";
 import { CharacterSheet } from "@/components/student/CharacterSheet";
 import { ProgressRanking } from "@/components/student/ProgressRanking";
 import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
-import { GuildPanel } from "@/components/student/GuildPanel";
+import { Guild } from "@/components/guild/Guild";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
 import { DailyDungeon } from "@/components/student/DailyDungeon";
 import { BattleDungeonView } from "@/components/student/BattleDungeonView";
@@ -867,6 +867,16 @@ export default function StudentPortal() {
     );
   }
 
+  // ── Guild tab — full-screen overlay ──
+  if (activeTab === 'guild') {
+    return (
+      <div className="fixed inset-0">
+        {sharedOverlays}
+        <Guild student={student} onBack={() => setActiveTab('director')} />
+      </div>
+    );
+  }
+
   // ── All other tabs — full-screen with top bar ──
   return (
     <div className="fixed inset-0 bg-[#020611] z-30 overflow-hidden">
@@ -1098,10 +1108,6 @@ export default function StudentPortal() {
 
         {activeTab === "bosses" && (
           <BossBattleTab key={bossTabKey} student={student} onStartBoss={setActiveBossId} />
-        )}
-
-        {activeTab === "guild" && (
-          <GuildPanel student={student} />
         )}
 
         {/* Skills Tab */}
