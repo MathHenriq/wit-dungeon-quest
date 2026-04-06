@@ -22,6 +22,7 @@ import { CharacterSheet } from "@/components/student/CharacterSheet";
 import { ProgressRanking } from "@/components/student/ProgressRanking";
 import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { Guild } from "@/components/guild/Guild";
+import { Inventory } from "@/components/inventory/Inventory";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
 import { DailyDungeon } from "@/components/student/DailyDungeon";
 import { BattleDungeonView } from "@/components/student/BattleDungeonView";
@@ -863,6 +864,16 @@ export default function StudentPortal() {
       <div className="fixed inset-0">
         {sharedOverlays}
         <PvpArena onBack={() => setActiveTab('director')} />
+      </div>
+    );
+  }
+
+  // ── Inventory tab — full-screen overlay ──
+  if (activeTab === 'inventory') {
+    return (
+      <div className="fixed inset-0">
+        {sharedOverlays}
+        <Inventory student={student} onBack={() => setActiveTab('director')} />
       </div>
     );
   }
