@@ -127,10 +127,12 @@ export function useEquipAbility(characterId: string) {
   return useMutation({
     mutationFn: async ({ abilityId, slot }: { abilityId: string; slot: 1 | 2 | 3 | 4 }) => {
       // Upsert into the slot (replaces whatever was there)
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('character_abilities')
-        .upsert({ character_id: characterId, ability_id: abilityId, slot }, { onConflict: 'character_id,slot' });
+        .upsert({ character_id: characterId, ability_id: abilityId, slot }, { onConflict: 'character_id,slot' })
+        .select();
 
+      console.log('EQUIP RESULT:', data, error);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -150,12 +152,14 @@ export function useUnequipAbility(characterId: string) {
 
   return useMutation({
     mutationFn: async (slot: 1 | 2 | 3 | 4) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('character_abilities')
         .delete()
         .eq('character_id', characterId)
-        .eq('slot', slot);
+        .eq('slot', slot)
+        .select();
 
+      console.log('UNEQUIP RESULT:', data, error);
       if (error) throw error;
     },
     onSuccess: () => {

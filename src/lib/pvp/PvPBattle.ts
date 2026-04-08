@@ -29,7 +29,7 @@ function characterToEnemy(char: BattleCharacter, abilities: Ability[]): BattleEn
     velocidade:  char.agilidade,
     elementType: 'Fire',   // PvP ignora type effectiveness — valor neutro
     abilities,
-    spriteUrl:   char.spriteNormal ?? undefined
+    spriteUrl:   char.spritePixelFront ?? char.spriteNormal ?? undefined
   };
 }
 

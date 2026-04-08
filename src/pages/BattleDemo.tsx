@@ -24,9 +24,9 @@ const mockPlayer: BattleCharacter = {
   ptsIce: 0, ptsGround: 1, ptsFighting: 5, ptsSteel: 0,
   ptsPoison: 0, ptsDark: 0, ptsGhost: 0, ptsFlying: 0,
   freePoints: 2,
-  spritePixelFront: null,
-  spritePixelBack: null,
-  spritePixelAttack: null,
+  spritePixelFront:  'https://pvnzfiyxwvfmmhvpvrrk.supabase.co/storage/v1/object/public/profile-photos/sprites/fa180816-50eb-4b31-afa2-147626bbf14e/sprite_pixel_front_1775273440033.png',
+  spritePixelBack:   'https://pvnzfiyxwvfmmhvpvrrk.supabase.co/storage/v1/object/public/profile-photos/sprites/fa180816-50eb-4b31-afa2-147626bbf14e/sprite_pixel_back_1775273450949.webp',
+  spritePixelAttack: 'https://pvnzfiyxwvfmmhvpvrrk.supabase.co/storage/v1/object/public/profile-photos/sprites/fa180816-50eb-4b31-afa2-147626bbf14e/sprite_pixel_attack_1775273458047.png',
 };
 
 const mockEnemy: BattleEnemy = {
@@ -41,7 +41,7 @@ const mockEnemy: BattleEnemy = {
   elementType: 'Dark',
   abilities: [],
   isBoss: true,
-  spriteUrl: undefined,
+  spriteUrl: 'https://pvnzfiyxwvfmmhvpvrrk.supabase.co/storage/v1/object/public/profile-photos/sprites/fa180816-50eb-4b31-afa2-147626bbf14e/sprite_pixel_front_1775273440033.png',
 };
 
 const mockAbilities: Ability[] = [
@@ -72,17 +72,15 @@ const mockAbilities: Ability[] = [
 
 export default function BattleDemo() {
   return (
-    <div style={{ background: '#020611', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-      <div style={{ width: '100%', maxWidth: 900 }}>
-        <BattleScreen
-          player={mockPlayer}
-          enemy={mockEnemy}
-          equippedAbilities={mockAbilities}
-          onVictory={(xp, coins) => console.log('Victory! XP:', xp, 'Coins:', coins)}
-          onDefeat={() => console.log('Defeat!')}
-          onFled={() => console.log('Fled!')}
-        />
-      </div>
+    <div style={{ background: '#020611', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+      <BattleScreen
+        player={mockPlayer}
+        enemy={mockEnemy}
+        equippedAbilities={mockAbilities}
+        onVictory={(xp, coins) => console.log('Victory! XP:', xp, 'Coins:', coins)}
+        onDefeat={() => console.log('Defeat!')}
+        onFled={() => console.log('Fled!')}
+      />
     </div>
   );
 }

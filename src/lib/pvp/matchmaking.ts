@@ -9,6 +9,7 @@ export interface PvPOpponent {
   wins: number;
   losses: number;
   spriteUrl?: string | null;
+  spritePixelFront?: string | null;
 }
 
 export async function findOpponents(
@@ -19,7 +20,7 @@ export async function findOpponents(
   const { data: opponents } = await supabase
     .from('characters')
     .select(`
-      id, name, level, class, sprite_normal,
+      id, name, level, class, sprite_normal, sprite_pixel_front,
       pvp_stats ( rating, wins, losses )
     `)
     .neq('id', characterId)
@@ -45,7 +46,8 @@ export async function findOpponents(
         rating: stats?.rating ?? 1000,
         wins: stats?.wins ?? 0,
         losses: stats?.losses ?? 0,
-        spriteUrl: opp.sprite_normal ?? null
+        spriteUrl:        opp.sprite_normal      ?? null,
+        spritePixelFront: opp.sprite_pixel_front ?? null,
       };
     })
     .sort(

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
+import { SpriteUpload } from "@/components/SpriteUpload";
 import {
   Save,
   Swords,
@@ -11,11 +12,13 @@ import {
   BookOpen,
   Sparkles,
   Eye,
+  Sword,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Student, AttrKey } from "@/types";
 import { ATTRIBUTES } from "@/types";
 import { GameIcon } from "@/components/icons/GameIcon";
+import { useQuery } from "@tanstack/react-query";
 
 interface CharacterCustomizationProps {
   student: Student;
@@ -83,6 +86,21 @@ const inputStyle = {
 };
 
 export function CharacterCustomization({ student, onUpdate }: CharacterCustomizationProps) {
+  // Fetch battle character to get id + sprite URLs (using studentClient for RLS)
+  const { data: battleCharacter } = useQuery({
+    queryKey: ['character-sprites', student.user_id],
+    enabled: !!student.user_id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabaseStudent
+        .from('characters')
+        .select('id, sprite_pixel_front, sprite_pixel_back, sprite_pixel_attack')
+        .eq('user_id', student.user_id!)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
   const [characterName, setCharacterName] = useState(student.character_name || "");
   const [race, setRace] = useState(student.race || "");
   const [characterClass, setCharacterClass] = useState(student.character_class || "");
@@ -370,6 +388,26 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
           onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
         />
       </div>
+
+      {/* Battle Sprites */}
+      {battleCharacter && (
+        <div className="holo-panel">
+          <div className="flex items-center gap-2 mb-4">
+            <Sword className="text-cyan-400" size={18} />
+            <h3 className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '2px', fontSize: '1rem' }}>SPRITES DE BATALHA</h3>
+          </div>
+          <SpriteUpload
+            characterId={battleCharacter.id}
+            studentId={student.id}
+            initialUrls={{
+              sprite_pixel_front:  battleCharacter.sprite_pixel_front,
+              sprite_pixel_back:   battleCharacter.sprite_pixel_back,
+              sprite_pixel_attack: battleCharacter.sprite_pixel_attack,
+            }}
+            onUpdate={onUpdate}
+          />
+        </div>
+      )}
 
       {/* Save Button */}
       <div className="flex justify-end">

@@ -133,30 +133,26 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
       );
     }
 
-    if (floors.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 text-white/60 text-center">
-          <span className="text-4xl">🏰</span>
-          <p>Nenhum andar disponível ainda.</p>
-          <p className="text-sm">Aguarde o professor criar os andares.</p>
-        </div>
-      );
-    }
+    // Removed empty state so that FloorSelectVisual can map the 100 dummy floors.
 
     const bossDefeatedSet = new Set<number>(
       progress
         .filter(p => p.bossDefeated)
-        .map(p => floors.find(f => f.id === p.floorId)?.floorNumber)
+        .map(p => floors.find(f => String(f.id) === String(p.floorId))?.floorNumber)
         .filter((n): n is number => n !== undefined),
     );
 
+    const lowestAvailableFloorNumber = floors.length > 0
+      ? Math.min(...floors.map(f => Number(f.floorNumber)))
+      : 1;
+
     const floorSelectData: FloorSelectData[] = floors.map(floor => ({
-      id:           floor.id,
-      floor_number: floor.floorNumber,
+      id:           String(floor.id),
+      floor_number: Number(floor.floorNumber),
       name:         floor.name || floor.theme,
       theme:        floor.theme,
       boss:         null,
-      status:       getFloorStatus(floor.floorNumber, bossDefeatedSet),
+      status:       getFloorStatus(Number(floor.floorNumber), bossDefeatedSet, lowestAvailableFloorNumber),
     }));
 
     return (
@@ -164,7 +160,8 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
         floors={floorSelectData}
         onBack={onBack ?? (() => {})}
         onPlay={(floorId) => {
-          const floor = floors.find(f => f.id === floorId);
+          const floorIdStr = String(floorId);
+          const floor = floors.find(f => String(f.id) === floorIdStr);
           if (floor) setPhase({ type: 'map', floor });
         }}
       />

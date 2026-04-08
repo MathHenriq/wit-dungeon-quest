@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { PlanetNode, PlanetProps } from '../components/hub/PlanetNode';
 import { DestinationCard } from '../components/hub/DestinationCard';
 import { Box, Home, Target, Sword, ArrowLeftRight, ShoppingCart, User } from 'lucide-react';
@@ -74,7 +75,12 @@ const mapNodesData: PlanetProps[] = [
 ];
 
 const HubDemo = () => {
+  const navigate = useNavigate();
   const [hoveredNode, setHoveredNode] = useState<PlanetProps | null>(null);
+
+  function handlePlanetClick(id: string) {
+    if (id === 'andares') navigate('/floor-select-demo');
+  }
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#0c121c] text-white selection:bg-white/20">
@@ -172,7 +178,7 @@ const HubDemo = () => {
           >
             <PlanetNode
               {...node}
-              onClick={() => console.log('Navigating to', node.name)}
+              onClick={() => handlePlanetClick(node.id)}
             />
           </div>
         ))}

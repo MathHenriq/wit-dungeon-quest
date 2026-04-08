@@ -1,0 +1,215 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   AINCRAD DUNGEON STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* O Container principal que cria o efeito de céu noturno expansivo */
+.aincrad-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 120px); /* Ajuste com o cabeçalho */
+  overflow-y: scroll;
+  overflow-x: hidden;
+  background: linear-gradient(180deg, #020024 0%, #090979 35%, #00d4ff 100%);
+  /* Esconde a barra de rolagem visualmente, dependendo da estética desejada */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+}
+
+.aincrad-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Efeito de Parallax no Fundo: Estrelas e Névoa */
+.aincrad-sky {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 200%; /* Bem alto para permitir scroll sem quebrar o fundo */
+  pointer-events: none;
+  z-index: 0;
+  background-image: 
+    radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 40px 70px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 50px 160px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 130px 80px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 160px 120px, #ffffff, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.6;
+  /* Animação lenta de estrelas descendo para simular subida do jogador se quiser, mas deixaremos estático por ora para focar no scroll real */
+}
+
+/* Estrutura Central (O Pilar) */
+.aincrad-pillar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #111 0%, #333 50%, #111 100%);
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+  border-left: 2px solid rgba(255,255,255,0.05);
+  border-right: 2px solid rgba(255,255,255,0.05);
+  z-index: 1;
+}
+
+/* O fluxo de andares - Stack Vertical bottom-up */
+.aincrad-floors-wrapper {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column-reverse; /* Andar 1 embaixo, 100 em cima */
+  align-items: center;
+  padding: 80px 0 200px 0; /* Padding extra para a câmera focar bem */
+  gap: 24px;
+}
+
+/* Cada Plataforma / Andar */
+.aincrad-floor {
+  position: relative;
+  width: 90%;
+  max-width: 600px;
+  background: rgba(15, 23, 42, 0.85); /* Slate 900 Glassmorphism */
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255,255,255,0.02);
+  transition: all 0.3s ease;
+}
+
+/* Estilo para Andar Desconhecido (Misterioso) */
+.aincrad-floor.unknown {
+  background: rgba(10, 10, 15, 0.7);
+  border-color: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
+  filter: grayscale(100%);
+}
+
+.aincrad-floor.unknown .floor-level-badge {
+  color: #475569;
+  border-color: rgba(255,255,255,0.05);
+}
+
+.floor-unknown-text {
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 4px;
+  color: #475569;
+  font-weight: 600;
+  text-align: center;
+  flex: 1;
+  text-transform: uppercase;
+}
+
+/* Engrenagem / Interface Lateral */
+.aincrad-floor::before, .aincrad-floor::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 30px;
+  background: #334155;
+  border-radius: 4px;
+  z-index: -1;
+}
+
+.aincrad-floor::before { left: -8px; border-right: 1px solid rgba(255,255,255,0.2); }
+.aincrad-floor::after { right: -8px; border-left: 1px solid rgba(255,255,255,0.2); }
+
+.aincrad-floor.unknown::before, .aincrad-floor.unknown::after {
+  background: #0f172a;
+}
+
+/* Badge de Level circular no meio do aincrad card? Talvez no canto. */
+.floor-level-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: 2px solid;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+  background: #0f172a;
+}
+
+/* Glow effects para o state atual */
+.aincrad-floor.active {
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0,229,255,0.2), inset 0 0 15px rgba(0,229,255,0.1);
+}
+
+.aincrad-floor.active .floor-level-badge {
+  color: #00e5ff;
+  border-color: #00e5ff;
+  text-shadow: 0 0 8px #00e5ff;
+  box-shadow: 0 0 15px rgba(0,229,255,0.3);
+}
+
+.aincrad-floor.completed {
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.aincrad-floor.completed .floor-level-badge {
+  color: #4ade80;
+  border-color: #4ade80;
+}
+
+/* Fumaça lateral (Animação de nuvem passando por trás da torre) */
+.aincrad-clouds {
+  position: absolute;
+  bottom: -20vh;
+  left: 0;
+  width: 100%;
+  height: 60vh;
+  background: url('/imgs/clouds_texture.png') repeat-x; /* Falta imagem de nuvem dps colocamos CSS puro ou skipamos a img */
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Marcador visual "Você está aqui" */
+.you-are-here-indicator {
+  position: absolute;
+  right: -120px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 229, 255, 0.2);
+  border: 1px solid #00e5ff;
+  color: #00e5ff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: 'Rajdhani', sans-serif;
+  animation: pulse-indicator 2s infinite;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.you-are-here-indicator::before {
+  content: '◀';
+  position: absolute;
+  left: -12px;
+  color: #00e5ff;
+  font-size: 1rem;
+}
+
+@keyframes pulse-indicator {
+  0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 229, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+}

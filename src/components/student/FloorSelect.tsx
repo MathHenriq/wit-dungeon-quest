@@ -1,8 +1,10 @@
+import { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, CheckCircle2, Swords, ChevronRight } from 'lucide-react';
+import { Lock, CheckCircle2, Swords, ChevronRight, HelpCircle } from 'lucide-react';
 import { useFloors, useFloorProgress, type Floor, type FloorProgress } from '@/hooks/useFloors';
 import { ELEMENT_META } from '@/types/character';
 import type { ElementType } from '@/types/character';
+import '@/styles/aincrad.css';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 

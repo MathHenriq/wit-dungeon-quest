@@ -25,6 +25,24 @@ export function FloorSelect({ floors, onBack, onPlay }: FloorSelectProps) {
   const lineRef   = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // ── 100 Floors Logic ─────────────────────────────────────────────────────
+  const ALL_FLOORS_NUMBERS = Array.from({ length: 100 }, (_, i) => i + 1);
+  const aincradFloors = ALL_FLOORS_NUMBERS.map((num) => {
+    const existing = floors.find(f => Number(f.floor_number) === num);
+    if (existing) return existing;
+    
+    // Fallback: If no floors exist in database, make virtual floor 1 interactive for testing
+    const isFirstVirtual = num === 1 && floors.length === 0;
+    
+    return {
+      id: `virtual_${num}`,
+      floor_number: num,
+      name: '???',
+      theme: 'Misterio',
+      status: isFirstVirtual ? 'current' : 'locked',
+    } as FloorSelectData;
+  });
+
   // ── GSAP entrance ────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -40,12 +58,11 @@ export function FloorSelect({ floors, onBack, onPlay }: FloorSelectProps) {
 
       // Cards stagger from bottom up
       gsap.from('.fs-node', {
-        y: 28,
-        opacity: 0,
-        duration: 0.4,
-        stagger: { each: 0.07, from: 'end' }, // 'end' = first card (bottom) animates first
+        y: 20,
+        duration: 0.6,
+        stagger: 0.02, 
         ease: 'power2.out',
-        delay: 0.2,
+        delay: 0.1,
       });
     }, towerRef);
 
@@ -55,14 +72,20 @@ export function FloorSelect({ floors, onBack, onPlay }: FloorSelectProps) {
   // ── Auto-scroll to current floor ─────────────────────────────────────────
 
   useEffect(() => {
-    if (!currentFloor) return;
-    const el = document.querySelector(`[data-floor="${currentFloor.id}"]`);
-    if (el) {
-      setTimeout(() => {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 700);
+    // Determine the target floor to scroll to.
+    let activeId = currentFloor?.id;
+    if (!activeId) {
+      if (floors.length > 0) activeId = floors[floors.length - 1].id;
+      else activeId = 'virtual_1'; // Start at floor 1 if completely empty
     }
-  }, [currentFloor]);
+
+    setTimeout(() => {
+      const el = document.querySelector(`[data-floor="${activeId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 450);
+  }, [currentFloor, floors]);
 
   return (
     <div className="fs-root">
@@ -70,17 +93,16 @@ export function FloorSelect({ floors, onBack, onPlay }: FloorSelectProps) {
 
       <FloorSelectHUD
         completedCount={completedCount}
-        totalFloors={floors.length}
+        totalFloors={100}
         onBack={onBack}
       />
 
-      <div className="fs-content" ref={contentRef}>
+      <div className="fs-content" ref={contentRef} style={{ paddingBottom: '30vh', paddingTop: '30vh' }}>
         <div className="fs-tower" ref={towerRef}>
           {/* Vertical connecting line */}
-          <div className="fs-line" ref={lineRef} />
+          <div className="fs-line" ref={lineRef} style={{ background: 'linear-gradient(to bottom, transparent, #00e5ff 20%, #4ade80 80%, transparent)' }} />
 
-          {/* Floors rendered in reverse order visually (column-reverse = andar 1 at bottom) */}
-          {floors.map(floor => (
+          {aincradFloors.map(floor => (
             <FloorNode
               key={floor.id}
               floor={floor}

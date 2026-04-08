@@ -83,10 +83,31 @@ export function BattleScreen({
   // Attack sprite
   const [showAttackSprite, setShowAttackSprite] = useState(false);
 
-  // Dialog message
-  const [dialogMsg, setDialogMsg] = useState('');
+  // Attack effects
+  const [attackEffect, setAttackEffect] = useState<{
+    target: 'player' | 'enemy';
+    color: string;
+    active: boolean;
+  } | null>(null);
+  const [projectile, setProjectile] = useState<{
+    active: boolean;
+    from: 'player' | 'enemy';
+    color: string;
+    icon: string;
+  } | null>(null);
+
+  // Dialog message + log
+  const [dialogMsg, setDialogMsg] = useState(`O que ${player.name} fará?`);
+  const [recentLog, setRecentLog] = useState<string[]>([]);
   const prevLogLen = useRef(0);
-  const prevPhase  = useRef('');
+  const prevPhase  = useRef('PLAYER_TURN');
+
+  // Track last used ability for attack animation color
+  const lastUsedAbilityRef = useRef<Ability | null>(null);
+
+  // Active element for overlay effect
+  const [activeElement, setActiveElement] = useState<string>('');
+  const elementTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Item modal
   const [showItems, setShowItems] = useState(false);
@@ -96,19 +117,54 @@ export function BattleScreen({
     startBattle(player, enemy, equippedAbilities);
   }, []); // eslint-disable-line
 
-  // ── Dialog logic ────────────────────────────────────────────────────────────
+  // ── Dialog logic + log + attack animations ──────────────────────────────────
   useEffect(() => {
     if (!ctx) return;
 
-    // New log entry → show it
+    // New log entry → update dialog + recent log + trigger attack animations
     if (ctx.log.length > prevLogLen.current) {
-      const last = ctx.log[ctx.log.length - 1];
-      setDialogMsg(last.text);
+      const newEntries = ctx.log.slice(prevLogLen.current);
+      const last = newEntries[newEntries.length - 1];
+      setDialogMsg(last.message);
+      setRecentLog(prev => [...prev, ...newEntries.map(e => e.message)].slice(-4));
       prevLogLen.current = ctx.log.length;
+
+      // Trigger projectile + flash when an action is detected in the new entries
+      const actionEntry = newEntries.find(e => e.type === 'action');
+      if (actionEntry) {
+        const isPlayerAtk = actionEntry.actor === 'player';
+
+        // Determine color / icon from ability (player) or enemy element (enemy)
+        let color = '#00e5ff';
+        let icon  = '⚡';
+        if (isPlayerAtk && lastUsedAbilityRef.current) {
+          const meta = ELEMENT_META[lastUsedAbilityRef.current.elementName];
+          color = meta?.color ?? '#00e5ff';
+          icon  = meta?.icon  ?? '⚡';
+        } else if (!isPlayerAtk) {
+          const meta = ELEMENT_META[ctx.enemy.elementType];
+          color = meta?.color ?? '#ef4444';
+          icon  = meta?.icon  ?? '💥';
+        }
+
+        if (isPlayerAtk) setShowAttackSprite(true);
+        setProjectile({ active: true, from: isPlayerAtk ? 'player' : 'enemy', color, icon });
+
+        const hasDamage = newEntries.some(e => e.type === 'damage');
+        setTimeout(() => {
+          setProjectile(null);
+          setShowAttackSprite(false);
+          if (hasDamage) {
+            setAttackEffect({ target: isPlayerAtk ? 'enemy' : 'player', color, active: true });
+            setTimeout(() => setAttackEffect(null), 350);
+          }
+        }, 450);
+      }
+
       return;
     }
 
-    // Phase changed
+    // Phase changed (no new log entries)
     if (ctx.phase !== prevPhase.current) {
       prevPhase.current = ctx.phase;
       if (ctx.phase === 'PLAYER_TURN') {
@@ -142,14 +198,6 @@ export function BattleScreen({
     prevPlayerHp.current = ctx.player.hpCurrent;
     prevEnemyHp.current  = ctx.enemy.hpCurrent;
   }, [ctx?.player.hpCurrent, ctx?.enemy.hpCurrent]); // eslint-disable-line
-
-  // ── Attack sprite flash ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (ctx?.phase === 'PROCESSING') {
-      setShowAttackSprite(true);
-      setTimeout(() => setShowAttackSprite(false), 500);
-    }
-  }, [ctx?.phase]);
 
   // ── End states ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -200,7 +248,7 @@ export function BattleScreen({
     : ctx.player.spritePixelBack;
 
   return (
-    <div className="poke-scene">
+    <div className="poke-scene" data-element={activeElement}>
 
       {/* ── Background ──────────────────────────────────────────────────────── */}
       <div className="poke-bg" />
@@ -254,11 +302,37 @@ export function BattleScreen({
         </div>
       </div>
 
+      {/* ── Projectile ──────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {projectile?.active && (
+          <motion.div
+            key="projectile"
+            style={{
+              position: 'absolute',
+              zIndex: 10,
+              fontSize: '1.6rem',
+              pointerEvents: 'none',
+              filter: `drop-shadow(0 0 8px ${projectile.color})`,
+            }}
+            initial={projectile.from === 'player'
+              ? { left: '18%', top: '62%', opacity: 1, scale: 1 }
+              : { left: '65%', top: '22%', opacity: 1, scale: 1 }}
+            animate={projectile.from === 'player'
+              ? { left: '65%', top: '22%', opacity: 0, scale: 0.5 }
+              : { left: '18%', top: '62%', opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.42, ease: 'easeIn' }}
+          >
+            {projectile.icon}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Enemy Sprite ────────────────────────────────────────────────────── */}
       <motion.div
         className="poke-sprite-wrapper poke-sprite-enemy"
         animate={shakeEnemy ? { x: [0, -8, 8, -5, 5, 0] } : {}}
         transition={{ duration: 0.35 }}
+        style={{ position: 'absolute' }}
       >
         {ctx.enemy.spriteUrl ? (
           <img
@@ -267,10 +341,28 @@ export function BattleScreen({
             className="poke-sprite-img"
           />
         ) : (
-          <div className="poke-sprite-fallback">
-            {ctx.enemy.isBoss ? '👾' : enemyMeta?.icon ?? '👹'}
+          <div className="poke-sprite-placeholder poke-sprite-placeholder--enemy">
+            <span>{ctx.enemy.isBoss ? '👾' : enemyMeta?.icon ?? '👹'}</span>
           </div>
         )}
+        {/* Hit flash overlay */}
+        <AnimatePresence>
+          {attackEffect?.active && attackEffect.target === 'enemy' && (
+            <motion.div
+              key="enemy-flash"
+              initial={{ opacity: 0.9 }}
+              animate={{ opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              style={{
+                position: 'absolute', inset: 0,
+                borderRadius: '50%',
+                background: `radial-gradient(circle, white 10%, ${attackEffect.color}88 50%, transparent 75%)`,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* ── Player Sprite ───────────────────────────────────────────────────── */}
@@ -278,17 +370,38 @@ export function BattleScreen({
         className="poke-sprite-wrapper poke-sprite-player"
         animate={shakePlayer ? { x: [0, 8, -8, 5, -5, 0] } : {}}
         transition={{ duration: 0.35 }}
+        style={{ position: 'absolute' }}
       >
         {playerSprite ? (
           <img
             src={playerSprite}
             alt={ctx.player.name}
             className="poke-sprite-img"
-            style={{ transform: 'scaleX(-1)' }} /* back sprite faces right */
+            style={{ transform: 'scaleX(-1)' }}
           />
         ) : (
-          <div className="poke-sprite-fallback">🧙</div>
+          <div className="poke-sprite-placeholder poke-sprite-placeholder--player">
+            <span>🧙</span>
+          </div>
         )}
+        {/* Hit flash overlay */}
+        <AnimatePresence>
+          {attackEffect?.active && attackEffect.target === 'player' && (
+            <motion.div
+              key="player-flash"
+              initial={{ opacity: 0.9 }}
+              animate={{ opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              style={{
+                position: 'absolute', inset: 0,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, white 10%, rgba(239,68,68,0.7) 50%, transparent 75%)',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* ── Player HP Box ───────────────────────────────────────────────────── */}
@@ -330,7 +443,7 @@ export function BattleScreen({
               transition={{ duration: 0.4, ease: 'easeOut' }}
             />
           </div>
-          <span style={{ fontSize: '0.65rem', color: 'rgba(0,229,255,0.6)', fontFamily: 'Rajdhani, sans-serif', fontWeight: 600 }}>
+          <span style={{ fontSize: '0.38rem', color: 'rgba(0,229,255,0.6)', fontFamily: "'Press Start 2P', monospace" }}>
             {ctx.playerEnergy}/{ctx.player.energyMax}
           </span>
         </div>
@@ -339,8 +452,18 @@ export function BattleScreen({
       {/* ── Bottom: Dialog + Actions ─────────────────────────────────────────── */}
       <div className="poke-bottom">
 
+        {/* Element attack overlay */}
+        <div className="poke-element-overlay" key={activeElement || 'idle'} />
+
         {/* Dialog box */}
         <div className="poke-dialog">
+          {/* Recent log entries (greyed out) */}
+          <div className="poke-log-history">
+            {recentLog.slice(0, -1).map((entry, i) => (
+              <p key={i} className="poke-log-entry">{entry}</p>
+            ))}
+          </div>
+          {/* Current message with typewriter */}
           <p className="poke-dialog-text">
             {typeText}
             {!typeDone && <span className="poke-dialog-cursor">▌</span>}
@@ -393,7 +516,16 @@ export function BattleScreen({
                     key={ability.id}
                     className="poke-skill-btn"
                     disabled={!canAfford}
+                    style={{ '--el-color': meta?.color ?? 'rgba(0,229,255,0.5)' } as React.CSSProperties}
                     onClick={() => {
+                      lastUsedAbilityRef.current = ability;
+                      // Trigger elemental overlay effect
+                      if (elementTimerRef.current) clearTimeout(elementTimerRef.current);
+                      setActiveElement('');
+                      requestAnimationFrame(() => {
+                        setActiveElement(ability.elementName);
+                        elementTimerRef.current = setTimeout(() => setActiveElement(''), 1500);
+                      });
                       playerAttack(ability.id);
                       setMenu('main');
                     }}
@@ -441,11 +573,10 @@ export function BattleScreen({
                 style={{
                   gridColumn: 'span 2',
                   textAlign: 'center',
-                  fontFamily: 'Rajdhani, sans-serif',
-                  fontSize: '0.8rem',
+                  fontFamily: "'Press Start 2P', monospace",
+                  fontSize: '0.45rem',
                   letterSpacing: 3,
                   color: 'rgba(0,229,255,0.5)',
-                  fontWeight: 700,
                 }}
               >
                 AGUARDANDO...

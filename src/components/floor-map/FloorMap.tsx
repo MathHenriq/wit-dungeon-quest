@@ -5,6 +5,7 @@ import { MapHUD }          from './MapHUD';
 import { FloorTransition } from './FloorTransition';
 import { useFloorMap }     from './useFloorMap';
 import type { FloorData, FloorMapEnemy } from './useFloorMap';
+export type { FloorData, FloorMapEnemy };
 import './floor-map.css';
 
 // ─── Props ────────────────────────────────────────────────────────────────────

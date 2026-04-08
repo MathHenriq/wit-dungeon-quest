@@ -56,8 +56,8 @@ export interface FloorProgress {
 
 function rowToFloor(r: any): Floor {
   return {
-    id:          r.id,
-    floorNumber: r.floor_number,
+    id:          String(r.id),
+    floorNumber: Number(r.floor_number),
     name:        r.name,
     theme:       r.theme,
     levelMin:    r.level_min,
@@ -69,8 +69,8 @@ function rowToFloor(r: any): Floor {
 
 function rowToEnemy(r: any): FloorEnemy {
   return {
-    id:                   r.id,
-    floorId:              r.floor_id,
+    id:                   String(r.id),
+    floorId:              String(r.floor_id),
     name:                 r.name,
     level:                r.level,
     isBoss:               r.is_boss ?? false,
@@ -95,9 +95,9 @@ function rowToEnemy(r: any): FloorEnemy {
 
 function rowToProgress(r: any): FloorProgress {
   return {
-    id:              r.id,
-    characterId:     r.character_id,
-    floorId:         r.floor_id,
+    id:              String(r.id),
+    characterId:     String(r.character_id),
+    floorId:         String(r.floor_id),
     enemiesDefeated: r.enemies_defeated ?? 0,
     bossDefeated:    r.boss_defeated    ?? false,
     completedAt:     r.completed_at     ?? null,

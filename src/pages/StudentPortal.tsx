@@ -27,6 +27,7 @@ import { SkillTreeView } from "@/components/student/SkillTreeView";
 import { DailyDungeon } from "@/components/student/DailyDungeon";
 import { BattleDungeonView } from "@/components/student/BattleDungeonView";
 import { BattleSkillsView } from "@/components/student/BattleSkillsView";
+import { SkillTreePage } from "@/components/student/SkillTreePage";
 import { BattleInventoryView } from "@/components/student/BattleInventoryView";
 import { BattlePvPView } from "@/components/student/BattlePvPView";
 import { useBattleCharacter } from "@/hooks/useBattleCharacter";
@@ -858,6 +859,26 @@ export default function StudentPortal() {
     );
   }
 
+  // ── Skills tab — full-screen Yggdrasil tree ──
+  if (activeTab === 'skills') {
+    return (
+      <div className="fixed inset-0">
+        {sharedOverlays}
+        {isLoadingCharacter ? (
+          <div className="flex items-center justify-center h-full text-white/60 bg-[#020611]">
+            <Loader2 className="animate-spin mr-3" size={24} /> Carregando habilidades...
+          </div>
+        ) : battleCharacter ? (
+          <SkillTreePage character={battleCharacter} onBack={() => setActiveTab('director')} />
+        ) : (
+          <div className="flex items-center justify-center h-full text-white/60 bg-[#020611]">
+            <p>Erro ao carregar sistema de habilidades</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ── PvP Arena tab — full-screen overlay ──
   if (activeTab === 'pvp') {
     return (
@@ -1126,20 +1147,7 @@ export default function StudentPortal() {
           <BossBattleTab key={bossTabKey} student={student} onStartBoss={setActiveBossId} />
         )}
 
-        {/* Skills Tab */}
-        {activeTab === "skills" && (
-          isLoadingCharacter ? (
-            <div className="flex items-center justify-center h-64 text-white/60">
-              <span className="animate-spin mr-3">⏳</span> Carregando habilidades...
-            </div>
-          ) : battleCharacter ? (
-            <BattleSkillsView character={battleCharacter} />
-          ) : (
-            <div className="holo-panel text-center py-12 text-white/60">
-              <p>Erro ao carregar sistema de habilidades</p>
-            </div>
-          )
-        )}
+        {/* Skills Tab — now handled as full-screen overlay above */}
 
         {/* Ranking Tab */}
         {activeTab === "ranking" && (

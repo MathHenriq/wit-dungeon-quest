@@ -142,6 +142,7 @@ export function useDistributePoints(characterId: string) {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['battle', 'character-by-id', characterId] });
+      qc.invalidateQueries({ queryKey: ['battle-character'] });
       toast.success(`+${vars.amount} ponto(s) em ${vars.element}!`);
     },
     onError: (err: any) => {

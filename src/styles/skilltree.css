@@ -1,0 +1,684 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SKILL TREE — Yggdrasil Cósmica
+   Immersive cosmic tree visualization for the abilities system
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Fonts ──────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap');
+
+/* ── Variables ──────────────────────────────────────────────────────────────── */
+:root {
+  --st-bg-deep: #020611;
+  --st-bg-panel: rgba(8, 14, 28, 0.92);
+  --st-border: rgba(0, 229, 255, 0.08);
+  --st-glow-cyan: rgba(0, 229, 255, 0.6);
+  --st-glow-gold: rgba(255, 215, 0, 0.6);
+  --st-glow-purple: rgba(168, 85, 247, 0.6);
+  --st-text-primary: rgba(255, 255, 255, 0.92);
+  --st-text-secondary: rgba(255, 255, 255, 0.55);
+  --st-text-dim: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Root Container ─────────────────────────────────────────────────────────── */
+.skill-tree-root {
+  position: fixed;
+  inset: 0;
+  background: var(--st-bg-deep);
+  overflow: hidden;
+  z-index: 30;
+  font-family: 'Exo 2', system-ui, sans-serif;
+}
+
+/* ── Cosmic Background ──────────────────────────────────────────────────────── */
+.st-cosmos {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.st-cosmos::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 120% 80% at 30% 20%, rgba(20, 0, 60, 0.6) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 100% at 80% 80%, rgba(0, 40, 80, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 60% 40%, rgba(10, 20, 40, 0.8) 0%, transparent 70%);
+}
+
+.st-cosmos::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 15% 70%, rgba(0,229,255,0.3) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 85% 15%, rgba(168,85,247,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 45% 85%, rgba(255,255,255,0.25) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 25%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 45%, rgba(255,255,255,0.15) 0%, transparent 100%);
+  animation: st-stars-drift 120s linear infinite;
+}
+
+@keyframes st-stars-drift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-20px); }
+}
+
+/* ── Floating nebula particles ──────────────────────────────────────────────── */
+.st-nebula {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.15;
+  animation: st-nebula-float 30s ease-in-out infinite;
+}
+
+.st-nebula--1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(88, 28, 135, 0.8), transparent 70%);
+  top: -10%; left: -5%;
+  animation-duration: 35s;
+}
+.st-nebula--2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(6, 95, 70, 0.6), transparent 70%);
+  bottom: -15%; right: -10%;
+  animation-duration: 40s;
+  animation-delay: -10s;
+}
+.st-nebula--3 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(14, 116, 144, 0.5), transparent 70%);
+  top: 40%; left: 50%;
+  animation-duration: 45s;
+  animation-delay: -20s;
+}
+
+@keyframes st-nebula-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.1); }
+  50% { transform: translate(-20px, 30px) scale(0.95); }
+  75% { transform: translate(15px, 15px) scale(1.05); }
+}
+
+/* ── Vignette ───────────────────────────────────────────────────────────────── */
+.st-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(2, 6, 17, 0.75) 80%);
+}
+
+/* ── Canvas Container (pannable area) ──────────────────────────────────────── */
+.st-canvas-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.st-canvas-container:active {
+  cursor: grabbing;
+}
+
+.st-canvas-inner {
+  position: absolute;
+  transform-origin: 0 0;
+  will-change: transform;
+  transition: transform 0.05s linear;
+}
+
+/* ── SVG Pathways ───────────────────────────────────────────────────────────── */
+.st-pathway {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.st-pathway--locked {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+}
+
+.st-pathway--available {
+  stroke: rgba(0, 229, 255, 0.2);
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+}
+
+.st-pathway--active {
+  stroke-width: 3;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* Energy flow animation on active pathways */
+.st-pathway-energy {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 8 24;
+  animation: st-energy-flow 2s linear infinite;
+  opacity: 0.7;
+}
+
+@keyframes st-energy-flow {
+  0% { stroke-dashoffset: 32; }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* ── Hexagonal Nodes ────────────────────────────────────────────────────────── */
+.st-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+}
+
+.st-node:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+  z-index: 10;
+}
+
+.st-node--locked {
+  cursor: default;
+  opacity: 0.45;
+}
+.st-node--locked:hover {
+  transform: translate(-50%, -50%) scale(1.02);
+}
+
+.st-hex {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.st-hex__shape {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  transition: all 0.3s ease;
+}
+
+.st-hex__border {
+  position: absolute;
+  inset: -3px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  transition: all 0.3s ease;
+}
+
+.st-hex__icon {
+  position: relative;
+  z-index: 2;
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+.st-hex__glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  filter: blur(16px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.st-node:hover .st-hex__glow,
+.st-node--available .st-hex__glow {
+  opacity: 0.5;
+}
+
+.st-node--equipped .st-hex__glow {
+  opacity: 0.8;
+  animation: st-equipped-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes st-equipped-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* ── Node size variants ─────────────────────────────────────────────────────── */
+.st-hex--sm { width: 52px; height: 52px; }
+.st-hex--md { width: 64px; height: 64px; }
+.st-hex--lg { width: 76px; height: 76px; }
+.st-hex--xl { width: 88px; height: 88px; }
+
+/* ── Node label ─────────────────────────────────────────────────────────────── */
+.st-node__label {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: 'Exo 2', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-align: center;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+}
+
+/* ── Tier indicators ────────────────────────────────────────────────────────── */
+.st-tier-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  font-family: 'Cinzel', serif;
+  z-index: 3;
+  border: 1.5px solid;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.st-tier-badge--1 {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.7);
+}
+.st-tier-badge--2 {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #60a5fa;
+}
+.st-tier-badge--3 {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(192, 132, 252, 0.5);
+  color: #c084fc;
+}
+.st-tier-badge--4 {
+  background: rgba(250, 204, 21, 0.2);
+  border-color: rgba(253, 224, 71, 0.5);
+  color: #fde047;
+  animation: st-legendary-glow 2s ease-in-out infinite;
+}
+
+@keyframes st-legendary-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(250, 204, 21, 0.4); }
+  50% { box-shadow: 0 0 14px rgba(250, 204, 21, 0.8); }
+}
+
+/* ── Equipped slot badge ────────────────────────────────────────────────────── */
+.st-slot-badge {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.9);
+  border: 2px solid #22c55e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  z-index: 3;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+/* ── Equip Bar ──────────────────────────────────────────────────────────────── */
+.st-equip-bar {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: rgba(8, 14, 28, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 229, 255, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 1px rgba(0, 229, 255, 0.2);
+}
+
+.st-equip-slot {
+  width: 60px;
+  height: 68px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s;
+  position: relative;
+}
+
+.st-equip-slot--filled {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.st-equip-slot__num {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.25);
+}
+
+.st-equip-slot__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.st-equip-slot__name {
+  font-size: 8px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.st-equip-slot__remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.8);
+  border: 1.5px solid #ef4444;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.st-equip-slot:hover .st-equip-slot__remove {
+  opacity: 1;
+}
+
+/* ── Detail Panel ───────────────────────────────────────────────────────────── */
+.st-detail-panel {
+  position: absolute;
+  top: 64px;
+  right: 0;
+  bottom: 100px;
+  width: 320px;
+  z-index: 35;
+  background: rgba(8, 14, 28, 0.95);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(0, 229, 255, 0.08);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,229,255,0.15) transparent;
+}
+
+.st-detail-panel::-webkit-scrollbar { width: 4px; }
+.st-detail-panel::-webkit-scrollbar-track { background: transparent; }
+.st-detail-panel::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.15); border-radius: 4px; }
+
+/* ── Element Filter Tabs ────────────────────────────────────────────────────── */
+.st-element-tabs {
+  position: absolute;
+  top: 64px;
+  left: 16px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: rgba(8, 14, 28, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.st-element-tab {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  background: transparent;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.st-element-tab:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+}
+
+.st-element-tab--active {
+  border-color: var(--tab-color, rgba(0,229,255,0.5));
+  background: var(--tab-bg, rgba(0,229,255,0.08));
+  box-shadow: 0 0 12px var(--tab-glow, rgba(0,229,255,0.2));
+}
+
+.st-element-tab__tooltip {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: rgba(8, 14, 28, 0.97);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  color: var(--tab-color, #00e5ff);
+  z-index: 100;
+}
+
+.st-element-tab:hover .st-element-tab__tooltip {
+  opacity: 1;
+}
+
+/* ── Top Bar ────────────────────────────────────────────────────────────────── */
+.st-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: rgba(2, 6, 17, 0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+}
+
+.st-top-bar__title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.9);
+  text-transform: uppercase;
+  text-shadow: 0 0 20px rgba(0,229,255,0.3);
+}
+
+.st-top-bar__subtitle {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.15em;
+  margin-top: 2px;
+}
+
+/* ── Point Distributor ──────────────────────────────────────────────────────── */
+.st-points-banner {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 42;
+  padding: 8px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(245, 158, 11, 0.08));
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(250, 204, 21, 0.15);
+  animation: st-points-glow 3s ease-in-out infinite;
+}
+
+@keyframes st-points-glow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(250, 204, 21, 0.15); }
+  50% { box-shadow: 0 4px 30px rgba(250, 204, 21, 0.3); }
+}
+
+/* ── Stat Bars ──────────────────────────────────────────────────────────────── */
+.st-stat-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.st-stat-bar__fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .st-detail-panel {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 50vh;
+    max-height: 50vh;
+    border-left: none;
+    border-top: 1px solid rgba(0, 229, 255, 0.12);
+    border-radius: 20px 20px 0 0;
+  }
+
+  .st-element-tabs {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    flex-direction: row;
+    padding: 6px;
+    gap: 2px;
+  }
+
+  .st-element-tab {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .st-equip-bar {
+    bottom: 12px;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .st-equip-slot {
+    width: 52px;
+    height: 58px;
+  }
+
+  .st-hex--sm { width: 44px; height: 44px; }
+  .st-hex--md { width: 52px; height: 52px; }
+  .st-hex--lg { width: 62px; height: 62px; }
+  .st-hex--xl { width: 72px; height: 72px; }
+
+  .st-node__label { font-size: 8px; max-width: 70px; }
+
+  .st-points-banner {
+    left: 60px;
+    transform: none;
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+}
+
+/* ── Scroll animations for detail panel content ─────────────────────────────── */
+@keyframes st-slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes st-fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.st-animate-slide-in {
+  animation: st-slide-in-right 0.3s ease-out both;
+}
+
+.st-animate-fade-up {
+  animation: st-fade-in-up 0.25s ease-out both;
+}
+
+/* ── Selected node ring ─────────────────────────────────────────────────────── */
+.st-node--selected .st-hex__border {
+  animation: st-selected-ring 1.5s ease-in-out infinite;
+}
+
+@keyframes st-selected-ring {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
+
+/* ── Lock icon ──────────────────────────────────────────────────────────────── */
+.st-lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: rgba(0, 0, 0, 0.5);
+}

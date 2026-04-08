@@ -59,9 +59,13 @@ export function useFloorSelect({ floors, onPlay }: UseFloorSelectOptions) {
 export function getFloorStatus(
   floorNumber: number,
   bossDefeatedSet: Set<number>,
+  lowestAvailableFloorNumber: number = 1
 ): FloorStatus {
   if (bossDefeatedSet.has(floorNumber)) return 'completed';
-  const prevCompleted = floorNumber === 1 || bossDefeatedSet.has(floorNumber - 1);
+  const prevCompleted =
+    floorNumber === 1 ||
+    floorNumber === lowestAvailableFloorNumber ||
+    bossDefeatedSet.has(floorNumber - 1);
   if (prevCompleted) return 'current';
   return 'locked';
 }
