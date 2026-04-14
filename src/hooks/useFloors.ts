@@ -57,13 +57,13 @@ export interface FloorProgress {
 function rowToFloor(r: any): Floor {
   return {
     id:          String(r.id),
-    floorNumber: Number(r.floor_number),
+    floorNumber: Number(r.floor_number ?? r.floorNumber ?? 1),
     name:        r.name,
     theme:       r.theme,
-    levelMin:    r.level_min,
-    levelMax:    r.level_max,
+    levelMin:    r.level_min ?? r.levelMin ?? 1,
+    levelMax:    r.level_max ?? r.levelMax ?? 1,
     lore:        r.lore ?? null,
-    createdAt:   r.created_at,
+    createdAt:   r.created_at ?? r.createdAt,
   };
 }
 
@@ -117,7 +117,7 @@ export function useFloors() {
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await studentSupabase
         .from('floors')
         .select('*')
         .order('floor_number', { ascending: true });
@@ -139,7 +139,7 @@ export function useFloorEnemies(floorId: string | null) {
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await studentSupabase
         .from('enemies')
         .select('*')
         .eq('floor_id', floorId!)

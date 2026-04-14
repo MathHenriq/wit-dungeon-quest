@@ -146,14 +146,17 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
       ? Math.min(...floors.map(f => Number(f.floorNumber)))
       : 1;
 
-    const floorSelectData: FloorSelectData[] = floors.map(floor => ({
-      id:           String(floor.id),
-      floor_number: Number(floor.floorNumber),
+    const floorSelectData: FloorSelectData[] = floors.map((floor, index) => {
+      const fNum = Number(floor.floorNumber) || (index + 1);
+      return {
+        id:           String(floor.id),
+        floor_number: fNum,
       name:         floor.name || floor.theme,
       theme:        floor.theme,
       boss:         null,
-      status:       getFloorStatus(Number(floor.floorNumber), bossDefeatedSet, lowestAvailableFloorNumber),
-    }));
+      status:       fNum <= 5 ? 'current' : getFloorStatus(fNum, bossDefeatedSet, lowestAvailableFloorNumber),
+    };
+  });
 
     return (
       <FloorSelectVisual

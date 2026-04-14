@@ -62,6 +62,10 @@ export function getFloorStatus(
   lowestAvailableFloorNumber: number = 1
 ): FloorStatus {
   if (bossDefeatedSet.has(floorNumber)) return 'completed';
+
+  // Liberado para testes: andares do 1 ao 5 sempre disponiveis
+  if (floorNumber <= 5) return 'current';
+
   const prevCompleted =
     floorNumber === 1 ||
     floorNumber === lowestAvailableFloorNumber ||

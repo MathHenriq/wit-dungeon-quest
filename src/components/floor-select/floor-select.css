@@ -6,7 +6,8 @@
 .fs-root {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   background: #06080a;
   overflow-y: auto;
   overflow-x: hidden;

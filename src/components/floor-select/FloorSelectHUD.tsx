@@ -4,9 +4,10 @@ interface FloorSelectHUDProps {
   completedCount: number;
   totalFloors: number;
   onBack: () => void;
+  debugFloors?: any[]; // added for debugging
 }
 
-export function FloorSelectHUD({ completedCount, totalFloors, onBack }: FloorSelectHUDProps) {
+export function FloorSelectHUD({ completedCount, totalFloors, onBack, debugFloors }: FloorSelectHUDProps) {
   return (
     <div className="fs-hud">
       <button className="fs-hud__back" onClick={onBack}>

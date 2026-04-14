@@ -26,22 +26,18 @@ export function FloorSelect({ floors, onBack, onPlay }: FloorSelectProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
   // ── 100 Floors Logic ─────────────────────────────────────────────────────
-  const ALL_FLOORS_NUMBERS = Array.from({ length: 100 }, (_, i) => i + 1);
-  const aincradFloors = ALL_FLOORS_NUMBERS.map((num) => {
-    const existing = floors.find(f => Number(f.floor_number) === num);
-    if (existing) return existing;
-    
-    // Fallback: If no floors exist in database, make virtual floor 1 interactive for testing
-    const isFirstVirtual = num === 1 && floors.length === 0;
-    
-    return {
-      id: `virtual_${num}`,
-      floor_number: num,
+  const aincradFloors = [...floors].sort((a, b) => a.floor_number - b.floor_number);
+  // Fill the rest up to 100
+  for (let i = aincradFloors.length + 1; i <= 100; i++) {
+    aincradFloors.push({
+      id: `virtual_${i}`,
+      floor_number: i,
       name: '???',
       theme: 'Misterio',
-      status: isFirstVirtual ? 'current' : 'locked',
-    } as FloorSelectData;
-  });
+      boss: null,
+      status: 'locked'
+    } as FloorSelectData);
+  }
 
   // ── GSAP entrance ────────────────────────────────────────────────────────
 
