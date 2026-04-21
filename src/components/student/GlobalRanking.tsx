@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Globe, GraduationCap, Users2, Swords, Lock } from "lucide-react";
+import { Globe, Users2, Swords, Lock } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import type { Student } from "@/types";
 
@@ -26,7 +26,7 @@ interface GuildEntry {
   wins: number;
 }
 
-type RankScope = "mundial" | "escola" | "sala" | "guildas";
+type RankScope = "mundial" | "sala" | "guildas";
 
 interface GlobalRankingProps {
   student: Student;
@@ -46,18 +46,6 @@ const REALMS = {
     glow:      "rgba(245,158,11,0.28)",
     gradient:  "linear-gradient(135deg, rgba(245,158,11,0.1) 0%, transparent 55%)",
     ring:      "rgba(245,158,11,0.55)",
-  },
-  escola: {
-    id: "escola" as RankScope,
-    label: "Escola",
-    sublabel: "Rank da Escola",
-    Icon: GraduationCap,
-    primary:   "#a78bfa",
-    dim:       "rgba(167,139,250,0.12)",
-    border:    "rgba(167,139,250,0.22)",
-    glow:      "rgba(167,139,250,0.28)",
-    gradient:  "linear-gradient(135deg, rgba(167,139,250,0.1) 0%, transparent 55%)",
-    ring:      "rgba(167,139,250,0.55)",
   },
   sala: {
     id: "sala" as RankScope,
@@ -85,7 +73,7 @@ const REALMS = {
   },
 } as const;
 
-const REALM_ORDER: RankScope[] = ["mundial", "escola", "sala", "guildas"];
+const REALM_ORDER: RankScope[] = ["mundial", "sala", "guildas"];
 
 const PODIUM = [
   { label: "1º", color: "#f59e0b", shadow: "rgba(245,158,11,0.5)", size: 60 },
@@ -931,11 +919,10 @@ function Divider({ color }: { color: string }) {
 export function GlobalRanking({ student }: GlobalRankingProps) {
   const [activeScope, setActiveScope] = useState<RankScope>("sala");
   const [classEntries,  setClassEntries]  = useState<RankEntry[]>([]);
-  const [schoolEntries, setSchoolEntries] = useState<RankEntry[]>([]);
   const [worldEntries,  setWorldEntries]  = useState<RankEntry[]>([]);
   const [guildEntries,  setGuildEntries]  = useState<GuildEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const loadedRef = useRef({ class: false, school: false, world: false, guild: false });
+  const loadedRef = useRef({ class: false, world: false, guild: false });
 
   const SELECT = "id, name, character_name, character_class, profile_photo_url, level, coins, presencas_consecutivas";
 
@@ -946,16 +933,6 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
       .eq("class_id", student.class_id).eq("status", "active")
       .then(({ data }) => { setClassEntries((data || []) as RankEntry[]); setLoading(false); });
   }, [student.class_id]);
-
-  useEffect(() => {
-    if (loadedRef.current.school) return;
-    loadedRef.current.school = true;
-    // Only fetch when the student has a school set
-    if (!student.school_name) { setSchoolEntries([]); return; }
-    supabaseStudent.from("students").select(SELECT)
-      .eq("school_name", student.school_name).eq("status", "active")
-      .then(({ data }) => setSchoolEntries((data || []) as RankEntry[]));
-  }, [student.school_name]);
 
   useEffect(() => {
     if (loadedRef.current.world) return;
@@ -978,20 +955,16 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
 
   // Switch loading state on tab change
   useEffect(() => {
-    // Escola with no school configured: not loading, just unconfigured
-    if (activeScope === "escola" && !student.school_name) { setLoading(false); return; }
     const map: Record<RankScope, RankEntry[] | GuildEntry[]> = {
-      sala: classEntries, escola: schoolEntries,
-      mundial: worldEntries, guildas: guildEntries,
+      sala: classEntries, mundial: worldEntries, guildas: guildEntries,
     };
     setLoading(map[activeScope].length === 0);
-  }, [activeScope, classEntries, schoolEntries, worldEntries, guildEntries, student.school_name]);
+  }, [activeScope, classEntries, worldEntries, guildEntries]);
 
   const realm = REALMS[activeScope];
 
   const activeEntries = (): RankEntry[] => {
     if (activeScope === "sala") return classEntries;
-    if (activeScope === "escola") return schoolEntries;
     if (activeScope === "mundial") return worldEntries;
     return [];
   };
@@ -1209,28 +1182,6 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
             </p>
           </div>
 
-          {/* ── Escola not configured ─── */}
-          {activeScope === "escola" && !student.school_name ? (
-            <div style={{ textAlign: "center", padding: "36px 20px 28px" }}>
-              <GraduationCap size={52} style={{ color: "rgba(255,255,255,0.12)", marginBottom: 14 }} />
-              <p style={{
-                fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: 20, letterSpacing: "0.1em",
-                color: "rgba(255,255,255,0.45)", marginBottom: 8,
-              }}>
-                Escola não configurada
-              </p>
-              <p style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontSize: 12, color: "rgba(255,255,255,0.28)",
-                lineHeight: 1.6, maxWidth: 240, margin: "0 auto",
-              }}>
-                Adicione o nome da sua escola no seu{" "}
-                <span style={{ color: realm.primary, fontWeight: 600 }}>perfil</span>{" "}
-                para entrar no ranking da sua escola.
-              </p>
-            </div>
-          ) : (
           <>
           {/* ── Champions ─── */}
           {activeScope === "guildas" ? (
@@ -1319,7 +1270,6 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
             </>
           )}
           </>
-          )}{/* end escola-not-configured ternary */}
         </div>
         </div>{/* end panel content zIndex wrapper */}
       </div>{/* end arena panel */}
