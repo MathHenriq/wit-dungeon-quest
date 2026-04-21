@@ -144,6 +144,16 @@ export function useBattleCharacter(userId: string | undefined) {
             energy_max:   newEnergyMax,
           });
         }
+
+        // Sync students.level UP when character has advanced beyond academic level via battle XP
+        const characterLevel = data.level ?? 1;
+        if (characterLevel > academicLevel) {
+          await supabaseStudent
+            .from('students')
+            .update({ level: characterLevel })
+            .eq('user_id', userId!);
+        }
+
         return rowToCharacter(data);
       }
 

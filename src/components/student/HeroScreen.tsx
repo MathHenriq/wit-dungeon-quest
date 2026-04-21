@@ -1254,15 +1254,41 @@ function HeroTopBar({
           HUB
         </button>
 
-        <div style={{
-          width: 42, height: 42,
-          background: `linear-gradient(135deg, ${classColor}22, ${classColor}0a)`,
-          border: `2px solid ${classColor}50`, borderRadius: 8,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: FONT_ORB, fontSize: 17, fontWeight: 800, color: classColor,
-          boxShadow: `0 0 14px ${classColor}25`,
-        }}>
-          {student.level}
+        {/* Avatar + level badge */}
+        <div style={{ position: "relative", flexShrink: 0, width: 42, height: 42 }}>
+          <div style={{
+            width: 42, height: 42,
+            border: `2px solid ${classColor}50`, borderRadius: 8,
+            overflow: "hidden",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: `linear-gradient(135deg, ${classColor}22, ${classColor}0a)`,
+            boxShadow: `0 0 14px ${classColor}25`,
+          }}>
+            {student.profile_photo_url ? (
+              <img
+                src={student.profile_photo_url}
+                alt={displayName}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <span style={{ fontFamily: FONT_ORB, fontSize: 15, fontWeight: 800, color: classColor, lineHeight: 1 }}>
+                {displayName.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          {/* Level corner badge */}
+          <div style={{
+            position: "absolute", bottom: -4, right: -6,
+            background: classColor, color: "#050b18",
+            fontFamily: FONT_MON, fontSize: 9, fontWeight: 800,
+            borderRadius: 4, padding: "1px 4px",
+            lineHeight: 1.4, letterSpacing: "0.3px",
+            boxShadow: `0 0 6px ${classColor}80`,
+            pointerEvents: "none",
+          }}>
+            {student.level}
+          </div>
         </div>
 
         <div>

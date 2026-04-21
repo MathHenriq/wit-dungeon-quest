@@ -425,21 +425,35 @@ export function DirectorMap({ student, onNavigate, onLogout, onOpenAccessibility
       <nav className="absolute top-0 left-0 w-full z-50 flex justify-between items-center pt-5 px-6 md:px-10 pointer-events-none">
         {/* Left: Player identity + stats */}
         <div className="flex items-center gap-3 pointer-events-auto" style={{ background: 'rgba(2,6,17,0.6)', backdropFilter: 'blur(12px)', borderRadius: 12, padding: '8px 16px 8px 8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="w-10 h-10 rounded-lg border border-white/20 bg-white/5 flex items-center justify-center overflow-hidden shrink-0">
-            {student.profile_photo_url ? (
-              <img src={student.profile_photo_url} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <User className="text-white/70" size={20} />
-            )}
+          {/* Avatar with level corner badge */}
+          <div className="relative shrink-0" style={{ width: 40, height: 40 }}>
+            <div className="w-10 h-10 rounded-lg border border-white/20 bg-white/5 flex items-center justify-center overflow-hidden">
+              {student.profile_photo_url ? (
+                <img src={student.profile_photo_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-cyan-300 font-bold text-base" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                  {(student.character_name || student.name || '?').charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <span
+              className="absolute font-bold font-mono text-[9px] leading-none"
+              style={{
+                bottom: -4, right: -6,
+                background: '#00e5ff', color: '#050b18',
+                borderRadius: 4, padding: '1px 4px',
+                boxShadow: '0 0 6px rgba(0,229,255,0.7)',
+                pointerEvents: 'none',
+              }}
+            >
+              {student.level}
+            </span>
           </div>
           <div className="flex flex-col">
             <h1 className="text-sm font-bold tracking-[0.12em] text-white leading-tight" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
               {(student.character_name || student.name || '').toUpperCase()}
             </h1>
             <div className="flex items-center gap-2 text-[10px] text-white/50 font-mono tracking-wider">
-              <span className="px-1.5 py-0.5 rounded bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold">
-                Lv. {student.level}
-              </span>
               {student.character_class && (
                 <span className="opacity-60">{student.character_class}</span>
               )}
