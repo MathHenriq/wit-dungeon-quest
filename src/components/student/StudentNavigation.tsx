@@ -3,7 +3,6 @@ import {
   Sword,
   ScrollText,
   Store,
-  Package,
   Trophy,
   User,
   Skull,
@@ -30,7 +29,6 @@ export type StudentTab =
   | "guild"
   | "skills"
   | "shop"
-  | "inventory"
   | "ranking"
   | "character"
   | "dungeon"
@@ -52,7 +50,6 @@ const NAV_ITEMS: {
   { id: "guild",      label: "Guilda",   Icon: Shield },
   { id: "skills",     label: "Skills",   Icon: Network },
   { id: "shop",       label: "Loja",     Icon: Store },
-  { id: "inventory",  label: "Mochila",  Icon: Package },
   { id: "trading",    label: "Trading",  Icon: ArrowLeftRight },
   { id: "ranking",    label: "Rank",     Icon: Trophy },
   { id: "character",  label: "Herói",    Icon: User },

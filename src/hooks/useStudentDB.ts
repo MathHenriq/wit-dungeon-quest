@@ -21,6 +21,19 @@ export type StudentAuthState =
   | "pending"
   | "active";
 
+/**
+ * Races a thenable against a timeout. Throws with a labelled message if the timeout fires first.
+ * Works with Supabase query builders (which are thenables, not native Promises).
+ */
+function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    Promise.resolve(p),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`[${label}] timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 /** Promise.allSettled wrapper: runs all promises in parallel and logs failures without throwing. */
 async function parallelLoad(label: string, promises: Promise<unknown>[]) {
   const results = await Promise.allSettled(promises);
@@ -49,6 +62,8 @@ export function useStudentDB() {
 
   // Ref to read authState synchronously inside auth listener (avoids stale closure)
   const authStateRef = useRef<StudentAuthState>("loading");
+  // Prevents concurrent resolveSession calls (INITIAL_SESSION + SIGNED_IN firing together)
+  const resolveInProgressRef = useRef(false);
 
   const { rewardConfig, getRewardIcon, getRewardName, getRewardLabel } =
     useTeacherReward(student?.teacher_id ?? null, supabaseAnon);
@@ -206,12 +221,12 @@ export function useStudentDB() {
 
     setAuthUser(user);
 
-    // Look up student record by the Google auth user id
-    const { data: studentData, error } = await supabaseStudent
-      .from("students")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Look up student record — 8 s timeout so a hung query never leaves loading forever
+    const { data: studentData, error } = await withTimeout(
+      supabaseStudent.from("students").select("*").eq("user_id", user.id).maybeSingle(),
+      8_000,
+      "useStudentDB/resolveSession"
+    );
 
     if (error) {
       console.error("[useStudentDB] resolveSession lookup:", error);
@@ -259,20 +274,32 @@ export function useStudentDB() {
 
     const { data: { subscription } } = supabaseStudent.auth.onAuthStateChange(
       async (event, session) => {
-        // TOKEN_REFRESHED fires on tab-focus — skip full reload if already active
-        // (mirrors the same guard in AuthContext for the teacher side)
         const isIdentityEvent =
           event === "INITIAL_SESSION" ||
           event === "SIGNED_IN" ||
           event === "SIGNED_OUT";
 
+        // TOKEN_REFRESHED / USER_UPDATED while active — autoRefreshToken already handled it
         if (!isIdentityEvent && authStateRef.current === "active") return;
+
+        // SIGNED_IN while already active fires on tab return after a silent token refresh.
+        // Skip the full DB round-trip — the visibility handler (below) does the light check.
+        if (event === "SIGNED_IN" && authStateRef.current === "active") {
+          console.log("[useStudentDB] SIGNED_IN while active — skipping re-resolve (tab return)");
+          return;
+        }
+
+        // Prevent concurrent lookups (e.g. INITIAL_SESSION + SIGNED_IN arriving together)
+        if (resolveInProgressRef.current) return;
+        resolveInProgressRef.current = true;
 
         try {
           await resolveSession(session?.user ?? null);
         } catch (err) {
           console.error("[useStudentDB] onAuthStateChange error:", err);
           setAuthState("unauthenticated");
+        } finally {
+          resolveInProgressRef.current = false;
         }
       }
     );
@@ -300,6 +327,26 @@ export function useStudentDB() {
     window.addEventListener("beforeunload", handleUnload);
     return () => window.removeEventListener("beforeunload", handleUnload);
   }, [student, trackSessionEnd]);
+
+  // When the tab returns to foreground, probe getSession() so the SDK refreshes the token
+  // if it expired while the tab was backgrounded. This triggers TOKEN_REFRESHED (caught by
+  // onAuthStateChange guard → no re-resolve) or SIGNED_OUT (which goes through normally).
+  // We intentionally do NOT change authState/student here: getSession() can return null
+  // briefly mid-refresh and would cause false sign-outs, breaking any in-progress screens.
+  useEffect(() => {
+    const onVisible = async () => {
+      if (document.hidden) return;
+      if (authStateRef.current !== "active") return;
+      console.log("[useStudentDB] tab visible — probing session");
+      try {
+        await supabaseStudent.auth.getSession();
+      } catch (err) {
+        console.error("[useStudentDB] visibility session probe failed:", err);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   // Subscribe to realtime student updates while active
   useEffect(() => {

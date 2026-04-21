@@ -40,6 +40,8 @@ export interface Student {
   personality: string | null;
   presencas_consecutivas: number;
   profile_photo_url: string | null;
+  /** School the student attends — used for the "escola" ranking scope. */
+  school_name?: string | null;
   /** Set when the student self-registered via Google OAuth. */
   user_id?: string | null;
   /** 'pending' = awaiting teacher approval, 'active' = full access. */

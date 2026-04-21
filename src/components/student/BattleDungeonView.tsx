@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Loader2, RotateCcw } from 'lucide-react';
+import { getEnemySpriteUrl } from '@/lib/sprites/getEnemySprite';
 import type { BattleCharacter, Ability } from '@/types/character';
 import type { BattleEnemy } from '@/lib/battle/BattleEngine';
 import { FloorSelect as FloorSelectVisual } from '@/components/floor-select/FloorSelect';
@@ -18,7 +19,12 @@ import {
 import { useEquippedAbilities, useAbilities } from '@/hooks/useAbilities';
 import { useApplyBattleRewards } from '@/hooks/useCharacter';
 import type { BattleRewards } from '@/lib/loot/lootGenerator';
-import type { XPReward } from '@/lib/progression/xpCalculator';
+import {
+  processXPGain,
+  getTotalXPForLevel,
+  type XPReward,
+} from '@/lib/progression/xpCalculator';
+import { XPLevelBadge } from './XPLevelBadge';
 
 // ─── Convert FloorEnemy → FloorMapEnemy ──────────────────────────────────────
 
@@ -32,6 +38,7 @@ function toFloorMapEnemy(fe: FloorEnemy, defeatedIds: Set<string>): FloorMapEnem
     name:         fe.name,
     level:        fe.level,
     iconType:     fe.iconType,
+    spriteUrl:    getEnemySpriteUrl(fe.id),
     hpMax:        fe.hpMax,
     defFisica:    fe.defFisica,
     defMagica:    fe.defMagica,
@@ -63,7 +70,7 @@ function toBattleEnemy(fe: FloorMapEnemy, abilityMap: Record<string, Ability>): 
     elementType: fe.elementType as BattleEnemy['elementType'],
     abilities:   ids.map(id => abilityMap[id]).filter(Boolean),
     isBoss:      fe.isBoss,
-    spriteUrl:   undefined,
+    spriteUrl:   getEnemySpriteUrl(fe.id),
     specialName:    fe.specialAbilityName   ?? undefined,
     specialEffect:  fe.specialAbilityEffect ?? undefined,
     specialTrigger: (fe.specialTrigger as BattleEnemy['specialTrigger']) ?? undefined,
@@ -91,6 +98,9 @@ interface BattleDungeonViewProps {
 
 export function BattleDungeonView({ character, onRewardApplied, onBack }: BattleDungeonViewProps) {
   const [phase, setPhase] = useState<DungeonPhase>({ type: 'select' });
+
+  // XP reward computed at battle-end, shown in the VictoryScreen
+  const [pendingXPReward, setPendingXPReward] = useState<XPReward | null>(null);
 
   // Floor map handle (to mark enemies defeated / reset after battle)
   const mapHandle = useRef<FloorMapHandle>(null);
@@ -121,6 +131,20 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
   const recordDefeatById = useRecordEnemyDefeatById();
   const recordDefeat     = useRecordEnemyDefeat();
   const applyRewards     = useApplyBattleRewards(character.id);
+
+  // Safety net: if equipped-abilities query never resolves in battle phase, unblock after 10 s
+  const [battleLoadTimedOut, setBattleLoadTimedOut] = useState(false);
+  useEffect(() => {
+    if (phase.type !== 'battle' || !loadingEquipped) {
+      setBattleLoadTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => {
+      console.warn('[BattleDungeonView] loadingEquipped timed out after 10 s');
+      setBattleLoadTimedOut(true);
+    }, 10_000);
+    return () => clearTimeout(t);
+  }, [phase.type, loadingEquipped]);
 
   // ── SELECT phase ──────────────────────────────────────────────────────────
 
@@ -192,25 +216,43 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
     };
 
     return (
-      <FloorMap
-        floor={floorData}
-        enemies={mapEnemies}
-        mapRef={mapHandle}
-        onBack={() => setPhase({ type: 'select' })}
-        onEnemyEncounter={(enemy) => {
-          setPhase({ type: 'battle', floor: phase.floor, enemy });
-        }}
-      />
+      <>
+        <FloorMap
+          floor={floorData}
+          enemies={mapEnemies}
+          mapRef={mapHandle}
+          onBack={() => setPhase({ type: 'select' })}
+          onEnemyEncounter={(enemy) => {
+            setPhase({ type: 'battle', floor: phase.floor, enemy });
+          }}
+        />
+        {/* XP / Level badge — always visible on the floor map */}
+        <XPLevelBadge character={character} />
+      </>
     );
   }
 
   // ── BATTLE phase ──────────────────────────────────────────────────────────
 
   if (phase.type === 'battle') {
-    if (loadingEquipped) {
+    if (loadingEquipped && !battleLoadTimedOut) {
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-[#020611] text-white/60">
           <Loader2 className="animate-spin mr-3" size={24} /> Carregando batalha...
+        </div>
+      );
+    }
+
+    if (battleLoadTimedOut && loadingEquipped) {
+      return (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#020611] gap-4">
+          <div className="holo-panel text-center p-8 max-w-sm">
+            <p className="text-lg font-bold mb-2 text-white">Erro ao carregar batalha</p>
+            <p className="text-sm text-white/60 mb-4">Não foi possível carregar as habilidades. Verifique sua conexão e tente novamente.</p>
+            <button className="btn-cyber w-full justify-center" onClick={() => setPhase({ type: 'map', floor: phase.floor })}>
+              Voltar ao mapa
+            </button>
+          </div>
         </div>
       );
     }
@@ -237,7 +279,13 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
         enemy={battleEnemy}
         equippedAbilities={equippedAbilities}
         onVictory={(xp, coins) => {
-          // Record defeat in both tables
+          // Compute level-up result immediately for instant VictoryScreen feedback
+          const spentOnPastLevels = getTotalXPForLevel(character.level);
+          const currentLevelXP    = Math.max(0, character.xp - spentOnPastLevels);
+          const xpResult          = processXPGain(character.level, currentLevelXP, xp);
+          setPendingXPReward(xpResult);
+
+          // Record defeat + apply rewards (DB write)
           recordDefeatById.mutate({ characterId: character.id, enemyId: phase.enemy.id });
           recordDefeat.mutate({ characterId: character.id, floorId: phase.floor.id, isBoss: phase.enemy.isBoss });
           applyRewards.mutate({ xp, coins }, { onSuccess: () => onRewardApplied?.() });
@@ -252,7 +300,9 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
   // ── VICTORY phase ─────────────────────────────────────────────────────────
 
   if (phase.type === 'victory') {
-    const xpReward: XPReward = { baseXP: phase.xp, bonusXP: 0, totalXP: phase.xp, leveledUp: false, levelsGained: 0 };
+    const xpReward: XPReward = pendingXPReward ?? {
+      baseXP: phase.xp, bonusXP: 0, totalXP: phase.xp, leveledUp: false, levelsGained: 0,
+    };
     const rewards: BattleRewards = {
       xp:       phase.xp,
       coins:    phase.coins,
@@ -265,7 +315,7 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
         rewards={rewards}
         xpReward={xpReward}
         onContinue={() => {
-          // Mark enemy as defeated on the map, then return to map
+          setPendingXPReward(null);
           mapHandle.current?.markDefeated(phase.enemy.id);
           setPhase({ type: 'map', floor: phase.floor });
         }}

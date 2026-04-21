@@ -8,9 +8,10 @@ export interface XPReward {
 }
 
 // XP necessário para sair de `currentLevel` para o próximo
-// Fórmula: 100 * level^1.5
+// Fórmula: 50 * n² + 100 * n  (curva quadrática suavizada)
+// Nível 1→2: 150 XP | 5→6: 1750 XP | 10→11: 6000 XP
 export function getXPRequiredForLevel(currentLevel: number): number {
-  return Math.floor(100 * Math.pow(currentLevel, 1.5));
+  return 50 * currentLevel * currentLevel + 100 * currentLevel;
 }
 
 // XP total acumulado para chegar em `targetLevel` (partindo do 1)

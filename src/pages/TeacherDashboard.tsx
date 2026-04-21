@@ -16,6 +16,7 @@ import { TeacherShopPanel } from "@/components/TeacherShopPanel";
 import { GoogleClassroomSync } from "@/components/GoogleClassroomSync";
 import { TeacherBossPanel } from "@/components/TeacherBossPanel";
 import { TeacherGuildPanel } from "@/components/TeacherGuildPanel";
+import { TeacherGuildMissionsPanel } from "@/components/TeacherGuildMissionsPanel";
 import { TeacherPetsPanel } from "@/components/TeacherPetsPanel";
 import { TeacherSkillTreePanel } from "@/components/TeacherSkillTreePanel";
 import { TeacherCraftPanel } from "@/components/TeacherCraftPanel";
@@ -56,7 +57,7 @@ export default function TeacherDashboard() {
   const { teacher, signOut, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds" | "pets" | "skills" | "craft" | "chests" | "ia" | "capsule" | "classwar">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "pending" | "shop" | "classes" | "students" | "challenges" | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses" | "guilds" | "guild-missions" | "pets" | "skills" | "craft" | "chests" | "ia" | "capsule" | "classwar">("requests");
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -236,8 +237,9 @@ export default function TeacherDashboard() {
     {
       label: "Social",
       tabs: [
-        { id: "guilds",     label: "Guildas",      icon: Users2 },
-        { id: "titles",     label: "Títulos",      icon: Award },
+        { id: "guilds",         label: "Guildas",          icon: Users2 },
+        { id: "guild-missions", label: "Missões de Guilda", icon: Shield },
+        { id: "titles",         label: "Títulos",           icon: Award },
       ],
     },
     {
@@ -543,6 +545,18 @@ export default function TeacherDashboard() {
             </h2>
             <div className="card-fantasy">
               <TeacherGuildPanel teacherId={teacher.id} students={students} classes={classes} />
+            </div>
+          </section>
+        )}
+
+        {activeTab === "guild-missions" && teacher && (
+          <section>
+            <h2 className="section-title">
+              <Shield className="text-purple-400" />
+              Missões de Guilda
+            </h2>
+            <div className="card-fantasy">
+              <TeacherGuildMissionsPanel teacherId={teacher.id} />
             </div>
           </section>
         )}

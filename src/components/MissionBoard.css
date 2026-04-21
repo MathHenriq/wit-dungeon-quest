@@ -1,0 +1,644 @@
+/* ═══════════════════════════════════════════════════════════════
+   MISSION BOARD — Medieval Parchment / Map Aesthetic
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap');
+
+/* ── Variables ──────────────────────────────────────────────── */
+:root {
+  --parchment-light: #f5e6c8;
+  --parchment-mid:   #e8d5a3;
+  --parchment-dark:  #d4b896;
+  --parchment-edge:  #b8945a;
+  --ink-dark:        #2c1810;
+  --ink-brown:       #5c3d1e;
+  --ink-red:         #8b1a1a;
+  --ink-gold:        #c9820c;
+  --ink-fade:        #7a5c3a;
+  --seal-red:        #9b1f1f;
+  --seal-dark:       #6b0f0f;
+  --wax-shine:       #e05252;
+}
+
+/* ── Wrapper — fills the full viewport ─────────────────────── */
+.mb-scroll-wrapper {
+  position: relative;
+  font-family: 'IM Fell English', Georgia, serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 56px 24px 32px;
+  box-sizing: border-box;
+}
+
+/* ── Back button ────────────────────────────────────────────── */
+.mb-back-btn {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.mb-back-btn:hover {
+  color: var(--parchment-mid);
+  border-color: rgba(212,180,150,0.4);
+  background: rgba(212,180,150,0.08);
+}
+
+/* ── Parchment panel ────────────────────────────────────────── */
+.mb-parchment {
+  flex: 1;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255,245,220,0.6) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 90%, rgba(180,130,60,0.25) 0%, transparent 55%),
+    linear-gradient(160deg, #f0deb0 0%, #e8d090 30%, #ddc478 60%, #cdb460 100%);
+  border: 3px solid var(--parchment-edge);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 40px rgba(100,60,10,0.18),
+    inset 0 0 80px rgba(80,40,5,0.08),
+    0 8px 32px rgba(0,0,0,0.55),
+    0 2px 8px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+/* aged paper stain spots */
+.mb-parchment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 60px 40px at 5% 8%,  rgba(120,80,20,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 40px 55px at 95% 15%, rgba(100,60,10,0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 80px 30px at 50% 95%, rgba(110,70,15,0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 35px 50px at 3%  75%, rgba(90,50,5,0.09)   0%, transparent 70%),
+    radial-gradient(ellipse 25px 25px at 88% 60%, rgba(130,90,30,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* torn-edge top/bottom borders */
+.mb-torn-top,
+.mb-torn-bottom {
+  height: 18px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.mb-torn-top {
+  background: linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 100%);
+}
+.mb-torn-top::after,
+.mb-torn-bottom::after {
+  content: '';
+  position: absolute;
+  left: -5px; right: -5px;
+  height: 20px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px, transparent 12px,
+    var(--parchment-mid) 12px, var(--parchment-mid) 14px,
+    transparent 14px, transparent 20px
+  );
+  filter: blur(0.5px);
+}
+.mb-torn-top::after  { bottom: 0; }
+.mb-torn-bottom::after { top: 0; transform: scaleY(-1); }
+
+/* ── Scroll ornament bar ────────────────────────────────────── */
+.mb-ornament-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px;
+  position: relative;
+  z-index: 1;
+}
+.mb-ornament-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ink-brown), transparent);
+  opacity: 0.5;
+}
+.mb-ornament-symbol {
+  color: var(--ink-brown);
+  font-size: 20px;
+  padding: 0 12px;
+  opacity: 0.7;
+  user-select: none;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.mb-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 32px 8px;
+  position: relative;
+  z-index: 1;
+}
+.mb-title-block { flex: 1; text-align: center; }
+.mb-title-latin {
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+  font-size: 11px;
+  color: var(--ink-fade);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  font-style: italic;
+}
+.mb-title-main {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(22px, 4vw, 32px);
+  color: var(--ink-dark);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.3), -1px -1px 0 rgba(0,0,0,0.15);
+  line-height: 1.1;
+}
+.mb-title-sub {
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  color: var(--ink-fade);
+  font-style: italic;
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+
+/* ── Wax seal ────────────────────────────────────────────────── */
+.mb-wax-seal {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  position: relative;
+}
+.mb-wax-seal-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--wax-shine), var(--seal-red) 50%, var(--seal-dark) 100%);
+  border: 2px solid rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.2);
+  position: relative;
+  cursor: default;
+  animation: mb-seal-pulse 4s ease-in-out infinite;
+}
+.mb-wax-seal-circle::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.mb-wax-seal-icon {
+  font-size: 24px;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+@keyframes mb-seal-pulse {
+  0%, 100% { box-shadow: 0 3px 8px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.2), 0 0 0 0 rgba(155,31,31,0); }
+  50%       { box-shadow: 0 3px 8px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.2), 0 0 12px 4px rgba(155,31,31,0.3); }
+}
+
+/* ── Tab Navigation ──────────────────────────────────────────── */
+.mb-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  padding: 0 24px;
+  position: relative;
+  z-index: 1;
+  margin: 4px 0;
+}
+.mb-tab {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-fade);
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  border-radius: 4px 4px 0 0;
+  white-space: nowrap;
+}
+.mb-tab:hover {
+  color: var(--ink-brown);
+  background: rgba(180,130,60,0.15);
+}
+.mb-tab--active {
+  color: var(--ink-dark);
+  background: rgba(210,170,80,0.25);
+  border-color: var(--parchment-edge);
+  border-bottom: 2px solid var(--parchment-mid);
+  font-weight: 700;
+}
+.mb-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0; right: 0;
+  height: 2px;
+  background: var(--parchment-mid);
+}
+.mb-tab-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.mb-divider {
+  height: 1px;
+  margin: 0 24px;
+  background: linear-gradient(90deg, transparent, var(--ink-brown) 20%, var(--ink-brown) 80%, transparent);
+  opacity: 0.3;
+  position: relative;
+  z-index: 1;
+}
+.mb-divider--heavy {
+  height: 2px;
+  opacity: 0.45;
+  margin: 2px 24px;
+}
+.mb-divider--deco::before,
+.mb-divider--deco::after {
+  content: '✦';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-brown);
+  font-size: 10px;
+  opacity: 0.6;
+}
+.mb-divider--deco::before { left: 24px; }
+.mb-divider--deco::after  { right: 24px; }
+
+/* ── Content area ────────────────────────────────────────────── */
+.mb-content {
+  padding: 16px 28px 20px;
+  position: relative;
+  z-index: 1;
+  min-height: 220px;
+}
+
+/* ── Section header ──────────────────────────────────────────── */
+.mb-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  margin-top: 4px;
+}
+.mb-section-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.mb-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-brown);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border-bottom: 1px dashed rgba(92,61,30,0.4);
+  padding-bottom: 2px;
+  flex: 1;
+}
+.mb-section-count {
+  font-family: 'IM Fell English', serif;
+  font-size: 12px;
+  color: var(--ink-fade);
+  font-style: italic;
+}
+
+/* ── Mission list ────────────────────────────────────────────── */
+.mb-mission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Mission row ─────────────────────────────────────────────── */
+.mb-mission-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid rgba(92,61,30,0.15);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.mb-mission-row:last-child { border-bottom: none; }
+.mb-mission-row:hover {
+  background: rgba(180,130,60,0.08);
+}
+
+/* ── Strikethrough ink line (the magic!) ─────────────────────── */
+.mb-mission-row .mb-strike-line {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  right: 8px;
+  height: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.mb-mission-row .mb-strike-line::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 0%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ink-red) 0%, #6b0000 60%, var(--ink-red) 100%);
+  border-radius: 1px;
+  box-shadow: 0 0 3px rgba(139,26,26,0.5);
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Hover triggers the draw for pending/available missions */
+.mb-mission-row--can-strike:hover .mb-strike-line::after {
+  width: 100%;
+}
+/* Already struck through (approved) */
+.mb-mission-row--struck .mb-strike-line::after {
+  width: 100%;
+  background: linear-gradient(90deg, #5a7a2a 0%, #3d5c1a 60%, #5a7a2a 100%);
+  box-shadow: 0 0 3px rgba(90,122,42,0.5);
+  height: 2.5px;
+}
+
+/* ── Mission checkbox ────────────────────────────────────────── */
+.mb-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--ink-brown);
+  border-radius: 2px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.2);
+  font-size: 12px;
+  position: relative;
+}
+.mb-checkbox--approved {
+  border-color: #5a7a2a;
+  background: rgba(90,122,42,0.2);
+  color: #3d5c1a;
+}
+.mb-checkbox--pending {
+  border-color: var(--ink-gold);
+  background: rgba(201,130,12,0.1);
+}
+.mb-checkbox--rejected {
+  border-color: var(--ink-red);
+  background: rgba(139,26,26,0.1);
+  color: var(--ink-red);
+}
+
+/* ── Mission body ────────────────────────────────────────────── */
+.mb-mission-body { flex: 1; min-width: 0; }
+.mb-mission-title {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 14px;
+  color: var(--ink-dark);
+  line-height: 1.3;
+  transition: opacity 0.2s;
+}
+.mb-mission-row--struck .mb-mission-title {
+  opacity: 0.55;
+}
+.mb-mission-desc {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 12px;
+  color: var(--ink-fade);
+  font-style: italic;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* ── Mission meta (right side) ───────────────────────────────── */
+.mb-mission-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.mb-reward {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-gold);
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.mb-status-badge {
+  font-family: 'IM Fell English', serif;
+  font-size: 10px;
+  font-style: italic;
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.mb-status-badge--pending  { color: #a07010; border-color: rgba(160,112,16,0.4); background: rgba(201,130,12,0.1); }
+.mb-status-badge--approved { color: #4a6e1a; border-color: rgba(74,110,26,0.4); background: rgba(90,122,42,0.1); }
+.mb-status-badge--rejected { color: #8b1a1a; border-color: rgba(139,26,26,0.4); background: rgba(139,26,26,0.1); }
+
+/* ── Request button ──────────────────────────────────────────── */
+.mb-btn-request {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-dark);
+  background: linear-gradient(135deg, #d4aa50 0%, #c9820c 50%, #b87010 100%);
+  border: 1px solid rgba(100,60,10,0.5);
+  border-radius: 2px;
+  padding: 4px 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.mb-btn-request:hover {
+  background: linear-gradient(135deg, #e0ba60 0%, #d49020 50%, #c88020 100%);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+}
+.mb-btn-request:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.mb-btn-request:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.mb-empty {
+  text-align: center;
+  padding: 32px 0 16px;
+}
+.mb-empty-icon { font-size: 40px; opacity: 0.4; margin-bottom: 8px; }
+.mb-empty-text {
+  font-family: 'IM Fell English', serif;
+  font-size: 14px;
+  color: var(--ink-fade);
+  font-style: italic;
+}
+
+/* ── Return mission notice ───────────────────────────────────── */
+.mb-return-notice {
+  background: linear-gradient(135deg, rgba(180,100,20,0.18), rgba(200,120,20,0.10));
+  border: 1px dashed rgba(180,100,20,0.5);
+  border-radius: 3px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.mb-return-notice-icon { font-size: 20px; flex-shrink: 0; }
+.mb-return-notice-text {
+  font-family: 'IM Fell English', serif;
+  font-size: 13px;
+  color: var(--ink-brown);
+  font-style: italic;
+}
+
+/* ── Guild progress bar ──────────────────────────────────────── */
+.mb-guild-progress {
+  height: 6px;
+  background: rgba(92,61,30,0.2);
+  border-radius: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(92,61,30,0.2);
+}
+.mb-guild-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.mb-guild-progress-fill--easy     { background: linear-gradient(90deg, #5a9a4a, #7ab85a); }
+.mb-guild-progress-fill--normal   { background: linear-gradient(90deg, var(--ink-gold), #e8a030); }
+.mb-guild-progress-fill--hard     { background: linear-gradient(90deg, var(--ink-red), #c04040); }
+.mb-guild-progress-fill--complete { background: linear-gradient(90deg, #4a8a3a, #6aaa4a); }
+
+.mb-guild-participants {
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  color: var(--ink-fade);
+  font-style: italic;
+  margin-top: 3px;
+}
+
+/* ── Difficulty badge ────────────────────────────────────────── */
+.mb-diff {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+.mb-diff--easy   { color: #3a6a2a; background: rgba(90,154,74,0.15); border: 1px solid rgba(90,154,74,0.3); }
+.mb-diff--normal { color: #7a5a10; background: rgba(201,130,12,0.12); border: 1px solid rgba(201,130,12,0.3); }
+.mb-diff--hard   { color: #7a1a1a; background: rgba(139,26,26,0.12); border: 1px solid rgba(139,26,26,0.3); }
+
+/* ── Scroll-in animation ─────────────────────────────────────── */
+@keyframes mb-unfurl {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.96); }
+  to   { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+.mb-mission-list .mb-mission-row {
+  animation: mb-unfurl 0.25s ease both;
+}
+.mb-mission-list .mb-mission-row:nth-child(1) { animation-delay: 0.04s; }
+.mb-mission-list .mb-mission-row:nth-child(2) { animation-delay: 0.08s; }
+.mb-mission-list .mb-mission-row:nth-child(3) { animation-delay: 0.12s; }
+.mb-mission-list .mb-mission-row:nth-child(4) { animation-delay: 0.16s; }
+.mb-mission-list .mb-mission-row:nth-child(5) { animation-delay: 0.20s; }
+.mb-mission-list .mb-mission-row:nth-child(6) { animation-delay: 0.24s; }
+.mb-mission-list .mb-mission-row:nth-child(7) { animation-delay: 0.28s; }
+.mb-mission-list .mb-mission-row:nth-child(8) { animation-delay: 0.32s; }
+
+/* ── Corner flourishes ───────────────────────────────────────── */
+.mb-corner {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 1;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--ink-brown);
+}
+.mb-corner--tl { top: 8px;  left: 8px;  transform-origin: top left; }
+.mb-corner--tr { top: 8px;  right: 8px; transform: scaleX(-1); transform-origin: top right; }
+.mb-corner--bl { bottom: 8px; left: 8px;  transform: scaleY(-1); }
+.mb-corner--br { bottom: 8px; right: 8px; transform: scale(-1, -1); }
+
+/* ── Footer quote ────────────────────────────────────────────── */
+.mb-footer-quote {
+  text-align: center;
+  padding: 8px 32px 4px;
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-fade);
+  opacity: 0.7;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Tooltip hint ────────────────────────────────────────────── */
+.mb-hover-hint {
+  text-align: center;
+  font-family: 'IM Fell English', serif;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-fade);
+  opacity: 0.6;
+  padding: 0 0 6px;
+  position: relative;
+  z-index: 1;
+}

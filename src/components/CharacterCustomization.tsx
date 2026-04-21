@@ -108,6 +108,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
   const [lore, setLore] = useState(student.lore || "");
   const [appearance, setAppearance] = useState(student.appearance || "");
   const [personality, setPersonality] = useState(student.personality || "");
+  const [schoolName, setSchoolName] = useState(student.school_name || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingAttrs, setIsSavingAttrs] = useState(false);
 
@@ -132,6 +133,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
     setLore(student.lore || "");
     setAppearance(student.appearance || "");
     setPersonality(student.personality || "");
+    setSchoolName(student.school_name || "");
     setPendingAttrs({
       attr_forca:        student.attr_forca        ?? 0,
       attr_destreza:     student.attr_destreza     ?? 0,
@@ -186,6 +188,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
           lore: lore.trim() || null,
           appearance: appearance.trim() || null,
           personality: personality || null,
+          school_name: schoolName.trim() || null,
         })
         .eq("id", student.id);
 
@@ -319,6 +322,26 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">
+              Escola
+            </label>
+            <input
+              type="text"
+              value={schoolName}
+              onChange={(e) => setSchoolName(e.target.value)}
+              placeholder="Nome da sua escola..."
+              maxLength={100}
+              className="px-4 py-3 rounded-lg text-sm transition-colors"
+              style={inputStyle}
+              onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
+              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+            />
+            <p className="text-xs text-white/25 mt-1">
+              Usado no ranking da escola
+            </p>
           </div>
         </div>
       </div>

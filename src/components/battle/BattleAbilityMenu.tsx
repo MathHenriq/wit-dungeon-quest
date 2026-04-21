@@ -6,12 +6,12 @@ import { ELEMENT_META } from '@/types/character';
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface BattleAbilityMenuProps {
-  abilities:     Ability[];
-  playerEnergy:  number;
-  phase:         BattlePhase;
-  onAbility:     (id: string) => void;
-  onItem:        () => void;
-  onFlee:        () => void;
+  abilities:  Ability[];
+  abilityPP:  Record<string, { current: number; max: number }>;
+  phase:      BattlePhase;
+  onAbility:  (id: string) => void;
+  onItem:     () => void;
+  onFlee:     () => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ function damageTypeBadge(type: string) {
 
 export function BattleAbilityMenu({
   abilities,
-  playerEnergy,
+  abilityPP,
   phase,
   onAbility,
   onItem,
@@ -48,8 +48,9 @@ export function BattleAbilityMenu({
         }}
       >
         {abilities.slice(0, 4).map((ability, i) => {
-          const canAfford = playerEnergy >= ability.energyCost;
-          const disabled  = !isPlayerTurn || !canAfford;
+          const pp        = abilityPP[ability.id];
+          const hasPP     = (pp?.current ?? 0) > 0;
+          const disabled  = !isPlayerTurn || !hasPP;
           const meta      = ELEMENT_META[ability.elementName];
           const badge     = damageTypeBadge(ability.damageType);
 
@@ -150,12 +151,12 @@ export function BattleAbilityMenu({
                 )}
                 <span
                   style={{
-                    color: playerEnergy >= ability.energyCost ? '#67e8f9' : '#f87171',
+                    color: hasPP ? '#67e8f9' : '#f87171',
                     fontWeight: 600,
                   }}
-                  title="Custo de energia"
+                  title="Power Points"
                 >
-                  ⚡ {ability.energyCost}
+                  PP {pp?.current ?? 0}/{pp?.max ?? 0}
                 </span>
                 <span style={{ color: '#94a3b8' }} title="Precisão">
                   🎯 {ability.accuracy}%

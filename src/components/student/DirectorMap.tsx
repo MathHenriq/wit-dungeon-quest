@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sword, Zap, Swords, Shield, Network,
-  Store, Package, ArrowLeftRight, Trophy, User,
+  Store, ArrowLeftRight, Trophy, User,
   LogOut, Settings
 } from 'lucide-react';
 import type { StudentTab } from './StudentNavigation';
@@ -17,7 +17,6 @@ const PLANET_CONFIG: Record<string, { file: string; glowColor: string }> = {
   guild:      { file: 'Gemini_Generated_Image_s41uhks41uhks41u-removebg-preview (1).png',  glowColor: 'rgba(75, 0, 130, 0.6)'    },
   skills:     { file: 'Gemini_Generated_Image_doqkzjdoqkzjdoqk-removebg-preview.png',     glowColor: 'rgba(255, 136, 0, 0.6)'   },
   shop:       { file: 'Gemini_Generated_Image_7bum2j7bum2j7bum-removebg-preview.png',      glowColor: 'rgba(160, 130, 109, 0.6)' },
-  inventory:  { file: 'Gemini_Generated_Image_lndtfxlndtfxlndt-removebg-preview.png',     glowColor: 'rgba(26, 35, 50, 0.6)'    },
   trading:    { file: 'Gemini_Generated_Image_dqkvgrdqkvgrdqkv-removebg-preview (1).png',  glowColor: 'rgba(64, 224, 208, 0.6)'  },
   ranking:    { file: 'Gemini_Generated_Image_vb47acvb47acvb47-removebg-preview.png',      glowColor: 'rgba(255, 215, 0, 0.6)'   },
   character:  { file: 'Gemini_Generated_Image_txwjmctxwjmctxwj-removebg-preview (1).png', glowColor: 'rgba(139, 139, 139, 0.6)' },
@@ -31,7 +30,6 @@ const PLANET_ICON: Record<string, string> = {
   guild:      '/images/Planet Icons/Guilda.png',
   skills:     '/images/Planet Icons/Arvore de Habilidades.png',
   shop:       '/images/Planet Icons/Loja.png',
-  inventory:  '/images/Planet Icons/Inventário.png',
   trading:    '/images/Planet Icons/Trocas.png',
   ranking:    '/images/Planet Icons/Ranking.png',
   character:  '/images/Planet Icons/Herói.png',
@@ -136,15 +134,6 @@ const DIRECTOR_NODES: DirectorNode[] = [
     icon: <Store size={20} />,
   },
   {
-    id: 'inventory',
-    name: 'Mochila',
-    subtitle: 'Arsenal do Herói',
-    size: 34,
-    color: '#8b693e',
-    position: { top: '58%', left: '17%' },
-    icon: <Package size={16} />,
-  },
-  {
     id: 'trading',
     name: 'Trading',
     subtitle: 'Posto de Trocas',
@@ -183,7 +172,6 @@ const CONSTELLATION_LINES = [
   { from: 'challenges', to: 'ranking' },
   { from: 'challenges', to: 'character' },
   // Secondary connections
-  { from: 'guild', to: 'inventory' },
   { from: 'pvp', to: 'trading' },
   { from: 'dungeon', to: 'trading' },
   { from: 'dungeon', to: 'character' },

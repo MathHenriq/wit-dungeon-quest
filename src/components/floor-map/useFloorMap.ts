@@ -18,6 +18,7 @@ export interface FloorMapEnemy extends MapEnemy {
   name:      string;
   level:     number;
   iconType:  string;
+  spriteUrl?: string;   // PNG from /assets/sprites/all/ — shown on map marker and in battle
   // Full battle data (forwarded to battle engine on encounter)
   hpMax:        number;
   defFisica:    number;

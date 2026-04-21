@@ -1,0 +1,1016 @@
+[
+  {
+    "floor_number": 1,
+    "name": "Cavernas do Despertar",
+    "theme": "cave",
+    "lore": {
+      "description": "As primeiras cavernas do WIT Dungeon são iluminadas por cristais azulados que pulsam suavemente. O ar é frio e úmido, mas não hostil. É aqui que todo aventureiro começa sua jornada.",
+      "history": "Dizem que estas cavernas foram criadas pelos Anciões como um teste inicial para jovens guerreiros. Os cristais absorvem conhecimento e só brilham na presença de mentes curiosas.",
+      "danger_warning": "Cuidado com as sombras que se movem entre as rochas. Nem tudo que rasteja é inofensivo."
+    },
+    "visual": {
+      "primary_color": "#6366f1",
+      "accent_color": "#818cf8",
+      "fog_color": "rgba(99,102,241,0.06)",
+      "fog_opacity": 0.06,
+      "particle_type": "dust"
+    },
+    "boss": {
+      "name": "Lorde das Sombras",
+      "title": "O Eterno",
+      "description": "Um ser ancestral que habita as profundezas desde o início dos tempos. Seus olhos brilham com conhecimento proibido, e ele testa todos que ousam entrar em seus domínios.",
+      "element": "sombra",
+      "sprite_id": "boss_000",
+      "sprite_file": "all/zombie_rat.png",
+      "hp": 130,
+      "atk": 12,
+      "def": 6,
+      "skills": [
+        {
+          "name": "Abraço das Trevas",
+          "type": "attack",
+          "element": "sombra",
+          "power": 40,
+          "description": "Envolve o inimigo em escuridão pura"
+        },
+        {
+          "name": "Véu Sombrio",
+          "type": "defense",
+          "element": "sombra",
+          "power": 30,
+          "description": "Cria uma barreira de sombras protetoras"
+        }
+      ]
+    },
+    "enemies": [
+      {
+        "name": "Sentinela das Sombras",
+        "element": "fogo",
+        "sprite_id": "enemy_000",
+        "sprite_file": "all/01.png",
+        "hp": 91,
+        "atk": 8,
+        "def": 4
+      },
+      {
+        "name": "Guardião Corrompido",
+        "element": "água",
+        "sprite_id": "enemy_001",
+        "sprite_file": "all/01b.png",
+        "hp": 91,
+        "atk": 8,
+        "def": 4
+      }
+    ],
+    "quiz": [
+      {
+        "question": "O que significa a sigla 'IA' em Inteligência Artificial?",
+        "topic": "Introdução à IA",
+        "difficulty": 1,
+        "options": {
+          "a": "Inteligência Artificial",
+          "b": "Internet Avançada",
+          "c": "Informação Automática",
+          "d": "Inovação Aplicada"
+        },
+        "correct": "a",
+        "explanation": "IA significa Inteligência Artificial, que é a capacidade de máquinas simularem comportamentos inteligentes."
+      },
+      {
+        "question": "Qual destes é um exemplo de IA no dia a dia?",
+        "topic": "IA no cotidiano",
+        "difficulty": 1,
+        "options": {
+          "a": "Uma calculadora simples",
+          "b": "Assistente virtual como Alexa ou Siri",
+          "c": "Um ventilador",
+          "d": "Uma lâmpada comum"
+        },
+        "correct": "b",
+        "explanation": "Assistentes virtuais usam IA para entender comandos de voz e responder perguntas."
+      },
+      {
+        "question": "O que é Machine Learning?",
+        "topic": "Machine Learning básico",
+        "difficulty": 1,
+        "options": {
+          "a": "Um tipo de computador",
+          "b": "Quando máquinas aprendem com dados",
+          "c": "Um jogo de videogame",
+          "d": "Uma rede social"
+        },
+        "correct": "b",
+        "explanation": "Machine Learning é quando máquinas aprendem padrões a partir de dados, sem serem programadas explicitamente para cada tarefa."
+      },
+      {
+        "question": "Qual a diferença principal entre IA e um programa tradicional?",
+        "topic": "Diferença IA vs programação",
+        "difficulty": 1,
+        "options": {
+          "a": "IA é mais colorida",
+          "b": "IA pode aprender e se adaptar",
+          "c": "Programas tradicionais são mais rápidos",
+          "d": "Não há diferença"
+        },
+        "correct": "b",
+        "explanation": "A IA pode aprender com experiências e dados, enquanto programas tradicionais seguem apenas instruções fixas."
+      },
+      {
+        "question": "O que é um chatbot?",
+        "topic": "Chatbots",
+        "difficulty": 2,
+        "options": {
+          "a": "Um robô físico que anda",
+          "b": "Um programa que conversa com humanos por texto",
+          "c": "Um tipo de vírus de computador",
+          "d": "Uma câmera de segurança"
+        },
+        "correct": "b",
+        "explanation": "Chatbots são programas que simulam conversas humanas, usados em atendimento ao cliente e assistentes virtuais."
+      },
+      {
+        "question": "Para que serve um algoritmo?",
+        "topic": "Algoritmos",
+        "difficulty": 2,
+        "options": {
+          "a": "Para fazer café",
+          "b": "Para dar uma sequência de passos para resolver um problema",
+          "c": "Para ligar o computador",
+          "d": "Para enviar e-mails automaticamente"
+        },
+        "correct": "b",
+        "explanation": "Um algoritmo é uma sequência de instruções bem definidas para resolver um problema ou realizar uma tarefa."
+      },
+      {
+        "question": "O que é um loop (laço de repetição) em programação?",
+        "topic": "Estruturas de repetição",
+        "difficulty": 2,
+        "options": {
+          "a": "Um erro no código",
+          "b": "Uma estrutura que repete comandos várias vezes",
+          "c": "Um tipo de variável",
+          "d": "Uma função matemática"
+        },
+        "correct": "b",
+        "explanation": "Loops são estruturas que permitem executar um bloco de código repetidamente, como 'for' e 'while'."
+      },
+      {
+        "question": "Qual comando é usado para repetir algo em Python?",
+        "topic": "Estruturas de repetição",
+        "difficulty": 2,
+        "options": {
+          "a": "repeat",
+          "b": "loop",
+          "c": "for",
+          "d": "again"
+        },
+        "correct": "c",
+        "explanation": "Em Python, usamos 'for' ou 'while' para criar loops de repetição."
+      },
+      {
+        "question": "O que a IA do Netflix faz quando sugere filmes pra você?",
+        "topic": "IA no cotidiano",
+        "difficulty": 3,
+        "options": {
+          "a": "Escolhe aleatoriamente",
+          "b": "Analisa o que você já assistiu para recomendar similares",
+          "c": "Mostra apenas filmes novos",
+          "d": "Pergunta para um funcionário"
+        },
+        "correct": "b",
+        "explanation": "Sistemas de recomendação usam Machine Learning para analisar seu histórico e sugerir conteúdo que você provavelmente vai gostar."
+      },
+      {
+        "question": "O que significa treinar um modelo de IA?",
+        "topic": "Machine Learning básico",
+        "difficulty": 3,
+        "options": {
+          "a": "Fazer exercícios físicos com o computador",
+          "b": "Alimentar o modelo com dados para ele aprender padrões",
+          "c": "Instalar o programa",
+          "d": "Desligar e ligar o computador"
+        },
+        "correct": "b",
+        "explanation": "Treinar um modelo significa fornecer dados de exemplo para que a IA aprenda a identificar padrões e fazer previsões."
+      }
+    ]
+  },
+  {
+    "floor_number": 2,
+    "name": "Gruta dos Ecos",
+    "theme": "cave",
+    "lore": {
+      "description": "Nesta gruta, cada som ecoa infinitamente pelas paredes de cristal negro. Os aventureiros dizem ouvir sussurros de conhecimentos antigos se ficarem em silêncio.",
+      "history": "Conta a lenda que um sábio programador se isolou aqui para criar os primeiros algoritmos. Seus pensamentos ainda ressoam nas paredes.",
+      "danger_warning": "Os ecos podem confundir sua mente. Mantenha o foco e não se deixe distrair pelos sussurros."
+    },
+    "visual": {
+      "primary_color": "#6366f1",
+      "accent_color": "#818cf8",
+      "fog_color": "rgba(99,102,241,0.06)",
+      "fog_opacity": 0.06,
+      "particle_type": "dust"
+    },
+    "boss": {
+      "name": "Colosso Ancestral",
+      "title": "Guardião dos Portões",
+      "description": "Uma criatura massiva feita de rocha viva e cristais. Cada passo seu faz tremer as cavernas. Ele guarda os segredos dos algoritmos ancestrais.",
+      "element": "terra",
+      "sprite_id": "boss_001",
+      "sprite_file": "all/zombie_rat_large.png",
+      "hp": 160,
+      "atk": 14,
+      "def": 8,
+      "skills": [
+        {
+          "name": "Tremor Devastador",
+          "type": "attack",
+          "element": "terra",
+          "power": 45,
+          "description": "Causa um terremoto localizado"
+        },
+        {
+          "name": "Pele de Pedra",
+          "type": "buff",
+          "element": "terra",
+          "power": 35,
+          "description": "Endurece sua pele rochosa"
+        }
+      ]
+    },
+    "enemies": [
+      {
+        "name": "Espectro Errante",
+        "element": "ar",
+        "sprite_id": "enemy_002",
+        "sprite_file": "all/02.png",
+        "hp": 112,
+        "atk": 10,
+        "def": 6
+      },
+      {
+        "name": "Besta Ancestral",
+        "element": "terra",
+        "sprite_id": "enemy_003",
+        "sprite_file": "all/02b.png",
+        "hp": 112,
+        "atk": 10,
+        "def": 6
+      }
+    ],
+    "quiz": [
+      {
+        "question": "O que é uma variável em programação?",
+        "topic": "Variáveis",
+        "difficulty": 1,
+        "options": {
+          "a": "Um número que nunca muda",
+          "b": "Um espaço na memória para guardar dados",
+          "c": "Um tipo de computador",
+          "d": "Uma senha"
+        },
+        "correct": "b",
+        "explanation": "Variáveis são espaços na memória do computador onde guardamos dados que podem ser usados e alterados pelo programa."
+      },
+      {
+        "question": "Qual destes é um exemplo de nome válido para variável em Python?",
+        "topic": "Variáveis",
+        "difficulty": 1,
+        "options": {
+          "a": "minha variavel",
+          "b": "1numero",
+          "c": "minha_variavel",
+          "d": "minha-variavel"
+        },
+        "correct": "c",
+        "explanation": "Em Python, nomes de variáveis não podem ter espaços ou começar com números. Usamos underscore (_) para separar palavras."
+      },
+      {
+        "question": "O que faz o comando print() em Python?",
+        "topic": "Entrada e saída",
+        "difficulty": 1,
+        "options": {
+          "a": "Imprime em uma impressora",
+          "b": "Exibe uma mensagem na tela",
+          "c": "Salva um arquivo",
+          "d": "Desliga o computador"
+        },
+        "correct": "b",
+        "explanation": "O comando print() exibe mensagens ou valores na tela do computador."
+      },
+      {
+        "question": "O que é um algoritmo?",
+        "topic": "Algoritmos",
+        "difficulty": 1,
+        "options": {
+          "a": "Um tipo de música",
+          "b": "Uma sequência de passos para resolver um problema",
+          "c": "Uma marca de computador",
+          "d": "Um jogo online"
+        },
+        "correct": "b",
+        "explanation": "Algoritmo é uma sequência finita de instruções bem definidas para resolver um problema."
+      },
+      {
+        "question": "Qual operador usamos para somar em Python?",
+        "topic": "Operadores",
+        "difficulty": 2,
+        "options": {
+          "a": "x",
+          "b": "+",
+          "c": "&",
+          "d": "soma()"
+        },
+        "correct": "b",
+        "explanation": "O operador + é usado para somar números em Python, assim como na matemática."
+      },
+      {
+        "question": "O que significa o operador == em Python?",
+        "topic": "Operadores",
+        "difficulty": 2,
+        "options": {
+          "a": "Atribuição (dar valor)",
+          "b": "Comparação (verificar se é igual)",
+          "c": "Soma",
+          "d": "Divisão"
+        },
+        "correct": "b",
+        "explanation": "== compara dois valores para ver se são iguais. Já = é usado para atribuir valores a variáveis."
+      },
+      {
+        "question": "O que é debugging?",
+        "topic": "Debugging",
+        "difficulty": 2,
+        "options": {
+          "a": "Adicionar mais bugs ao código",
+          "b": "Encontrar e corrigir erros no código",
+          "c": "Deletar o código",
+          "d": "Copiar código da internet"
+        },
+        "correct": "b",
+        "explanation": "Debugging é o processo de encontrar e corrigir erros (bugs) em um programa."
+      },
+      {
+        "question": "O que acontece se você tentar dividir por zero em Python?",
+        "topic": "Erros comuns",
+        "difficulty": 2,
+        "options": {
+          "a": "O resultado é zero",
+          "b": "O resultado é infinito",
+          "c": "Dá um erro (ZeroDivisionError)",
+          "d": "O computador desliga"
+        },
+        "correct": "c",
+        "explanation": "Dividir por zero causa um erro chamado ZeroDivisionError, pois é uma operação matematicamente impossível."
+      },
+      {
+        "question": "O que é uma string em programação?",
+        "topic": "Tipos de dados",
+        "difficulty": 3,
+        "options": {
+          "a": "Um número decimal",
+          "b": "Uma sequência de caracteres (texto)",
+          "c": "Um valor verdadeiro ou falso",
+          "d": "Uma lista de números"
+        },
+        "correct": "b",
+        "explanation": "String é um tipo de dado que representa texto - uma sequência de caracteres entre aspas."
+      },
+      {
+        "question": "Qual a diferença entre int e float em Python?",
+        "topic": "Tipos de dados",
+        "difficulty": 3,
+        "options": {
+          "a": "Não há diferença",
+          "b": "int é número inteiro, float tem casas decimais",
+          "c": "int é maior que float",
+          "d": "float é mais rápido"
+        },
+        "correct": "b",
+        "explanation": "int representa números inteiros (1, 2, 3) enquanto float representa números com casas decimais (1.5, 3.14)."
+      }
+    ]
+  },
+  {
+    "floor_number": 3,
+    "name": "Abismo Cristalino",
+    "theme": "cave",
+    "lore": {
+      "description": "Um abismo sem fim cercado por formações de cristal que brilham em tons de roxo e azul. Pontes naturais de pedra conectam as plataformas suspensas.",
+      "history": "Os cristais deste lugar são fragmentos de conhecimento solidificado. Cada um contém memórias de programadores que passaram por aqui.",
+      "danger_warning": "Não olhe diretamente para o abismo por muito tempo. Dizem que ele olha de volta."
+    },
+    "visual": {
+      "primary_color": "#6366f1",
+      "accent_color": "#818cf8",
+      "fog_color": "rgba(99,102,241,0.06)",
+      "fog_opacity": 0.06,
+      "particle_type": "dust"
+    },
+    "boss": {
+      "name": "Arquidemônio",
+      "title": "Senhor do Caos",
+      "description": "Uma entidade caótica que se alimenta de código mal escrito. Ele desafia os aventureiros com problemas de lógica e punições severas para respostas erradas.",
+      "element": "fogo",
+      "sprite_id": "boss_002",
+      "sprite_file": "all/zombie_runed.png",
+      "hp": 190,
+      "atk": 16,
+      "def": 9,
+      "skills": [
+        {
+          "name": "Chamas do Caos",
+          "type": "attack",
+          "element": "fogo",
+          "power": 50,
+          "description": "Libera fogo infernal em todas as direções"
+        },
+        {
+          "name": "Confusão Mental",
+          "type": "debuff",
+          "element": "sombra",
+          "power": 25,
+          "description": "Embaralha os pensamentos do oponente"
+        }
+      ]
+    },
+    "enemies": [
+      {
+        "name": "Criatura do Abismo",
+        "element": "normal",
+        "sprite_id": "enemy_004",
+        "sprite_file": "all/03.png",
+        "hp": 133,
+        "atk": 11,
+        "def": 7
+      },
+      {
+        "name": "Demônio Menor",
+        "element": "fogo",
+        "sprite_id": "enemy_005",
+        "sprite_file": "all/03b.png",
+        "hp": 133,
+        "atk": 11,
+        "def": 7
+      },
+      {
+        "name": "Espírito Vingativo",
+        "element": "fogo",
+        "sprite_id": "enemy_006",
+        "sprite_file": "all/04.png",
+        "hp": 133,
+        "atk": 11,
+        "def": 7
+      }
+    ],
+    "quiz": [
+      {
+        "question": "O que faz o comando 'if' em programação?",
+        "topic": "Condicionais",
+        "difficulty": 1,
+        "options": {
+          "a": "Repete um código várias vezes",
+          "b": "Executa um código somente se uma condição for verdadeira",
+          "c": "Encerra o programa",
+          "d": "Imprime na tela"
+        },
+        "correct": "b",
+        "explanation": "O 'if' verifica uma condição e só executa o código dentro dele se a condição for verdadeira."
+      },
+      {
+        "question": "Qual o resultado de: 5 > 3?",
+        "topic": "Operadores lógicos",
+        "difficulty": 1,
+        "options": {
+          "a": "True (Verdadeiro)",
+          "b": "False (Falso)",
+          "c": "5",
+          "d": "Erro"
+        },
+        "correct": "a",
+        "explanation": "5 é maior que 3, então a comparação retorna True (verdadeiro)."
+      },
+      {
+        "question": "O que significa 'else' em programação?",
+        "topic": "Condicionais",
+        "difficulty": 1,
+        "options": {
+          "a": "Senão - executa quando o if é falso",
+          "b": "Fim do programa",
+          "c": "Repete o código",
+          "d": "Imprime erro"
+        },
+        "correct": "a",
+        "explanation": "'else' significa 'senão' - o código dentro dele executa quando a condição do 'if' é falsa."
+      },
+      {
+        "question": "O que é uma função em programação?",
+        "topic": "Funções",
+        "difficulty": 1,
+        "options": {
+          "a": "Um erro no código",
+          "b": "Um bloco de código reutilizável que realiza uma tarefa",
+          "c": "Um tipo de variável",
+          "d": "Uma cor no programa"
+        },
+        "correct": "b",
+        "explanation": "Funções são blocos de código que podemos definir uma vez e usar várias vezes em diferentes partes do programa."
+      },
+      {
+        "question": "Qual operador significa 'E' (and) em lógica?",
+        "topic": "Operadores lógicos",
+        "difficulty": 2,
+        "options": {
+          "a": "&&",
+          "b": "and",
+          "c": "++",
+          "d": "||"
+        },
+        "correct": "b",
+        "explanation": "Em Python, usamos 'and' para verificar se duas condições são verdadeiras ao mesmo tempo."
+      },
+      {
+        "question": "O que retorna: True and False?",
+        "topic": "Operadores lógicos",
+        "difficulty": 2,
+        "options": {
+          "a": "True",
+          "b": "False",
+          "c": "Erro",
+          "d": "None"
+        },
+        "correct": "b",
+        "explanation": "O operador 'and' só retorna True se ambas as condições forem True. Como uma é False, o resultado é False."
+      },
+      {
+        "question": "Para que serve 'elif' em Python?",
+        "topic": "Condicionais",
+        "difficulty": 2,
+        "options": {
+          "a": "Para criar loops",
+          "b": "Para verificar outra condição se o if anterior for falso",
+          "c": "Para definir variáveis",
+          "d": "Para importar bibliotecas"
+        },
+        "correct": "b",
+        "explanation": "'elif' (else if) permite verificar múltiplas condições em sequência."
+      },
+      {
+        "question": "Como definir uma função em Python?",
+        "topic": "Funções",
+        "difficulty": 2,
+        "options": {
+          "a": "function nome():",
+          "b": "def nome():",
+          "c": "func nome():",
+          "d": "define nome():"
+        },
+        "correct": "b",
+        "explanation": "Em Python, usamos 'def' seguido do nome da função e parênteses para definir uma função."
+      },
+      {
+        "question": "O que retorna: not True?",
+        "topic": "Operadores lógicos",
+        "difficulty": 3,
+        "options": {
+          "a": "True",
+          "b": "False",
+          "c": "None",
+          "d": "Erro"
+        },
+        "correct": "b",
+        "explanation": "O operador 'not' inverte o valor lógico. O oposto de True é False."
+      },
+      {
+        "question": "O que são parâmetros de uma função?",
+        "topic": "Funções",
+        "difficulty": 3,
+        "options": {
+          "a": "Erros que a função pode ter",
+          "b": "Valores que passamos para a função usar",
+          "c": "O nome da função",
+          "d": "O resultado da função"
+        },
+        "correct": "b",
+        "explanation": "Parâmetros são valores que passamos para dentro da função para ela processar e usar em seu código."
+      }
+    ]
+  },
+  {
+    "floor_number": 4,
+    "name": "Minas Esquecidas",
+    "theme": "cave",
+    "lore": {
+      "description": "Antigas minas abandonadas onde mineradores buscavam cristais de dados. Trilhos enferrujados e carrinhos abandonados contam histórias de uma era passada.",
+      "history": "Aqui os antigos extraíam cristais de memória para alimentar os primeiros computadores. Quando as minas secaram, os trabalhadores partiram, mas seus guardiões permaneceram.",
+      "danger_warning": "Os trilhos podem desabar a qualquer momento. Cuidado com os buracos no chão."
+    },
+    "visual": {
+      "primary_color": "#6366f1",
+      "accent_color": "#818cf8",
+      "fog_color": "rgba(99,102,241,0.06)",
+      "fog_opacity": 0.06,
+      "particle_type": "dust"
+    },
+    "boss": {
+      "name": "Titã Corrompido",
+      "title": "O Imortal",
+      "description": "Um gigante de metal e carne fundidos, criado por experimentos proibidos nas minas. Ele nunca para de andar, patrulhando eternamente os túneis.",
+      "element": "elétrico",
+      "sprite_id": "boss_003",
+      "sprite_file": "all/zombie_slime.png",
+      "hp": 220,
+      "atk": 18,
+      "def": 11,
+      "skills": [
+        {
+          "name": "Descarga Elétrica",
+          "type": "attack",
+          "element": "elétrico",
+          "power": 55,
+          "description": "Libera uma onda de eletricidade devastadora"
+        },
+        {
+          "name": "Regeneração Metálica",
+          "type": "buff",
+          "element": "normal",
+          "power": 40,
+          "description": "Regenera partes do corpo com metal"
+        }
+      ]
+    },
+    "enemies": [
+      {
+        "name": "Aberração Arcana",
+        "element": "veneno",
+        "sprite_id": "enemy_007",
+        "sprite_file": "all/04b.png",
+        "hp": 154,
+        "atk": 13,
+        "def": 8
+      },
+      {
+        "name": "Servo das Trevas",
+        "element": "normal",
+        "sprite_id": "enemy_008",
+        "sprite_file": "all/05.png",
+        "hp": 154,
+        "atk": 13,
+        "def": 8
+      },
+      {
+        "name": "Entidade Caótica",
+        "element": "fogo",
+        "sprite_id": "enemy_009",
+        "sprite_file": "all/05b.png",
+        "hp": 154,
+        "atk": 13,
+        "def": 8
+      }
+    ],
+    "quiz": [
+      {
+        "question": "O que é uma lista em Python?",
+        "topic": "Listas",
+        "difficulty": 1,
+        "options": {
+          "a": "Um número muito grande",
+          "b": "Uma coleção ordenada de itens",
+          "c": "Um tipo de loop",
+          "d": "Uma função especial"
+        },
+        "correct": "b",
+        "explanation": "Lista é uma estrutura que armazena múltiplos valores em uma única variável, de forma ordenada."
+      },
+      {
+        "question": "Como criar uma lista vazia em Python?",
+        "topic": "Listas",
+        "difficulty": 1,
+        "options": {
+          "a": "lista = ()",
+          "b": "lista = []",
+          "c": "lista = {}",
+          "d": "lista = <>"
+        },
+        "correct": "b",
+        "explanation": "Listas em Python são criadas usando colchetes []. Chaves {} são para dicionários."
+      },
+      {
+        "question": "O que é um dicionário em Python?",
+        "topic": "Dicionários",
+        "difficulty": 1,
+        "options": {
+          "a": "Um livro de palavras",
+          "b": "Uma coleção de pares chave-valor",
+          "c": "Uma lista de números",
+          "d": "Um tipo de função"
+        },
+        "correct": "b",
+        "explanation": "Dicionário armazena dados em pares de chave e valor, como um dicionário real onde você busca uma palavra (chave) para encontrar seu significado (valor)."
+      },
+      {
+        "question": "Como acessar o primeiro item de uma lista chamada 'numeros'?",
+        "topic": "Listas",
+        "difficulty": 1,
+        "options": {
+          "a": "numeros[1]",
+          "b": "numeros[0]",
+          "c": "numeros.first()",
+          "d": "numeros.primeiro"
+        },
+        "correct": "b",
+        "explanation": "Em Python, a contagem começa do zero. O primeiro item está no índice 0."
+      },
+      {
+        "question": "Como adicionar um item ao final de uma lista?",
+        "topic": "Listas",
+        "difficulty": 2,
+        "options": {
+          "a": "lista.add(item)",
+          "b": "lista.append(item)",
+          "c": "lista.insert(item)",
+          "d": "lista + item"
+        },
+        "correct": "b",
+        "explanation": "O método append() adiciona um item ao final da lista."
+      },
+      {
+        "question": "O que a função len() retorna?",
+        "topic": "Funções built-in",
+        "difficulty": 2,
+        "options": {
+          "a": "O último item de uma lista",
+          "b": "A quantidade de itens em uma coleção",
+          "c": "A soma de todos os itens",
+          "d": "O tipo do dado"
+        },
+        "correct": "b",
+        "explanation": "len() retorna o tamanho (quantidade de elementos) de uma lista, string ou outra coleção."
+      },
+      {
+        "question": "Como verificar se um item existe em uma lista?",
+        "topic": "Listas",
+        "difficulty": 2,
+        "options": {
+          "a": "item existe em lista",
+          "b": "item in lista",
+          "c": "lista.contains(item)",
+          "d": "lista.has(item)"
+        },
+        "correct": "b",
+        "explanation": "Usamos 'in' para verificar se um elemento está presente em uma lista."
+      },
+      {
+        "question": "O que é input() em Python?",
+        "topic": "Entrada e saída",
+        "difficulty": 2,
+        "options": {
+          "a": "Uma função para mostrar dados na tela",
+          "b": "Uma função para receber dados do usuário",
+          "c": "Uma função para somar números",
+          "d": "Uma função para criar listas"
+        },
+        "correct": "b",
+        "explanation": "input() permite que o usuário digite dados que serão usados pelo programa."
+      },
+      {
+        "question": "Como acessar um valor em um dicionário pela chave 'nome'?",
+        "topic": "Dicionários",
+        "difficulty": 3,
+        "options": {
+          "a": "dicionario.nome",
+          "b": "dicionario['nome']",
+          "c": "dicionario(nome)",
+          "d": "dicionario->nome"
+        },
+        "correct": "b",
+        "explanation": "Acessamos valores em dicionários usando a chave entre colchetes: dicionario['chave']."
+      },
+      {
+        "question": "O que acontece se tentar acessar um índice que não existe em uma lista?",
+        "topic": "Listas",
+        "difficulty": 3,
+        "options": {
+          "a": "Retorna None",
+          "b": "Retorna 0",
+          "c": "Dá erro IndexError",
+          "d": "Retorna o último item"
+        },
+        "correct": "c",
+        "explanation": "Acessar um índice fora do tamanho da lista causa um IndexError."
+      }
+    ]
+  },
+  {
+    "floor_number": 5,
+    "name": "Câmara dos Segredos",
+    "theme": "cave",
+    "lore": {
+      "description": "Uma câmara circular imensa, com paredes cobertas de runas brilhantes. No centro, um altar antigo pulsa com energia misteriosa.",
+      "history": "Esta é a última câmara das cavernas iniciais. Os Anciões guardavam aqui os fundamentos de todo conhecimento de programação. Quem passar daqui entrará na floresta.",
+      "danger_warning": "O guardião desta câmara é o mais forte das cavernas. Prepare-se bem antes de desafiá-lo."
+    },
+    "visual": {
+      "primary_color": "#6366f1",
+      "accent_color": "#818cf8",
+      "fog_color": "rgba(99,102,241,0.06)",
+      "fog_opacity": 0.06,
+      "particle_type": "dust"
+    },
+    "boss": {
+      "name": "Dragão Abissal",
+      "title": "Destruidor de Reinos",
+      "description": "O guardião supremo das cavernas. Um dragão de escamas negras e olhos de fogo que protege a passagem para a floresta. Ele testa não apenas conhecimento, mas coragem.",
+      "element": "sombra",
+      "sprite_id": "boss_004",
+      "sprite_file": "all/zombie_small.png",
+      "hp": 250,
+      "atk": 20,
+      "def": 12,
+      "skills": [
+        {
+          "name": "Sopro das Trevas",
+          "type": "attack",
+          "element": "sombra",
+          "power": 60,
+          "description": "Libera um jato de energia sombria devastadora"
+        },
+        {
+          "name": "Rugido Aterrorizante",
+          "type": "debuff",
+          "element": "sombra",
+          "power": 30,
+          "description": "Paralisa oponentes de medo"
+        },
+        {
+          "name": "Escamas Abissais",
+          "type": "defense",
+          "element": "sombra",
+          "power": 45,
+          "description": "Fortalece suas escamas com energia das trevas"
+        }
+      ]
+    },
+    "enemies": [
+      {
+        "name": "Assombração Antiga",
+        "element": "sombra",
+        "sprite_id": "enemy_010",
+        "sprite_file": "all/06.png",
+        "hp": 175,
+        "atk": 14,
+        "def": 9
+      },
+      {
+        "name": "Predador Noturno",
+        "element": "luz",
+        "sprite_id": "enemy_011",
+        "sprite_file": "all/06b.png",
+        "hp": 175,
+        "atk": 14,
+        "def": 9
+      },
+      {
+        "name": "Manifestação Sombria",
+        "element": "gelo",
+        "sprite_id": "enemy_012",
+        "sprite_file": "all/07.png",
+        "hp": 175,
+        "atk": 14,
+        "def": 9
+      }
+    ],
+    "quiz": [
+      {
+        "question": "O que é um chatbot?",
+        "topic": "Chatbots",
+        "difficulty": 1,
+        "options": {
+          "a": "Um robô de metal",
+          "b": "Um programa que conversa automaticamente com pessoas",
+          "c": "Um tipo de rede social",
+          "d": "Uma linguagem de programação"
+        },
+        "correct": "b",
+        "explanation": "Chatbot é um programa de computador que simula conversas humanas, respondendo perguntas automaticamente."
+      },
+      {
+        "question": "O que é um bug em programação?",
+        "topic": "Debugging",
+        "difficulty": 1,
+        "options": {
+          "a": "Um inseto no computador",
+          "b": "Um erro no código",
+          "c": "Uma função especial",
+          "d": "Um tipo de variável"
+        },
+        "correct": "b",
+        "explanation": "Bug é um erro no código que faz o programa se comportar de forma inesperada."
+      },
+      {
+        "question": "Qual a primeira etapa para resolver um problema com programação?",
+        "topic": "Resolução de problemas",
+        "difficulty": 1,
+        "options": {
+          "a": "Escrever código imediatamente",
+          "b": "Entender o problema",
+          "c": "Copiar código da internet",
+          "d": "Reiniciar o computador"
+        },
+        "correct": "b",
+        "explanation": "Antes de programar, é essencial entender completamente o problema que queremos resolver."
+      },
+      {
+        "question": "O que significa testar um programa?",
+        "topic": "Testes",
+        "difficulty": 1,
+        "options": {
+          "a": "Deletar o programa",
+          "b": "Verificar se o programa funciona corretamente",
+          "c": "Instalar o programa",
+          "d": "Vender o programa"
+        },
+        "correct": "b",
+        "explanation": "Testar é executar o programa com diferentes entradas para verificar se ele produz os resultados esperados."
+      },
+      {
+        "question": "O que é pseudocódigo?",
+        "topic": "Algoritmos",
+        "difficulty": 2,
+        "options": {
+          "a": "Um código falso que não funciona",
+          "b": "Uma forma de escrever algoritmos em linguagem natural",
+          "c": "Uma linguagem de programação",
+          "d": "Um tipo de vírus"
+        },
+        "correct": "b",
+        "explanation": "Pseudocódigo é uma forma de descrever algoritmos usando linguagem natural, sem seguir sintaxe de nenhuma linguagem específica."
+      },
+      {
+        "question": "O que é Code Combat ou LightBot?",
+        "topic": "Jogos educativos",
+        "difficulty": 2,
+        "options": {
+          "a": "Redes sociais",
+          "b": "Jogos que ensinam programação",
+          "c": "Editores de texto",
+          "d": "Sistemas operacionais"
+        },
+        "correct": "b",
+        "explanation": "São jogos educativos que ensinam conceitos de programação de forma divertida e interativa."
+      },
+      {
+        "question": "O que fazer quando seu código dá erro?",
+        "topic": "Debugging",
+        "difficulty": 2,
+        "options": {
+          "a": "Desistir e começar de novo",
+          "b": "Ler a mensagem de erro e tentar entender o problema",
+          "c": "Deletar tudo",
+          "d": "Ignorar o erro"
+        },
+        "correct": "b",
+        "explanation": "As mensagens de erro contêm informações importantes sobre o que está errado e onde o problema está."
+      },
+      {
+        "question": "Por que é importante comentar o código?",
+        "topic": "Boas práticas",
+        "difficulty": 2,
+        "options": {
+          "a": "Para o código rodar mais rápido",
+          "b": "Para explicar o que o código faz e facilitar manutenção",
+          "c": "Para ocupar mais espaço",
+          "d": "Comentários são proibidos"
+        },
+        "correct": "b",
+        "explanation": "Comentários ajudam outros programadores (e você mesmo no futuro) a entender o que cada parte do código faz."
+      },
+      {
+        "question": "O que é Inteligência Artificial Forte vs Fraca?",
+        "topic": "IA forte vs fraca",
+        "difficulty": 3,
+        "options": {
+          "a": "IA Forte é mais cara, IA Fraca é mais barata",
+          "b": "IA Forte tem consciência geral, IA Fraca é especializada em tarefas específicas",
+          "c": "IA Forte usa mais eletricidade",
+          "d": "Não existe diferença"
+        },
+        "correct": "b",
+        "explanation": "IA Forte seria uma IA com consciência e inteligência geral (ainda teórica). IA Fraca são sistemas especializados em tarefas específicas, como os que usamos hoje."
+      },
+      {
+        "question": "Por que dividir um problema grande em partes menores ajuda na programação?",
+        "topic": "Resolução de problemas",
+        "difficulty": 3,
+        "options": {
+          "a": "Porque computadores são pequenos",
+          "b": "Porque partes menores são mais fáceis de resolver e testar",
+          "c": "Porque código pequeno é mais bonito",
+          "d": "Não ajuda em nada"
+        },
+        "correct": "b",
+        "explanation": "Dividir problemas complexos em partes menores (decomposição) facilita a resolução, teste e manutenção do código."
+      }
+    ]
+  }
+]

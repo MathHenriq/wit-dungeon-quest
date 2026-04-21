@@ -133,11 +133,11 @@ export function Guild({ student, onBack }: GuildProps) {
           )}
 
           {activeTab === 'missions' && (
-            <GuildMissions />
+            <GuildMissions teacherId={student.teacher_id} />
           )}
 
           {activeTab === 'ranking' && (
-            <GuildRanking currentGuildId={myGuild.id} />
+            <GuildRanking currentGuildId={myGuild.id} teacherId={student.teacher_id} />
           )}
 
           {activeTab === 'settings' && isLeader && (

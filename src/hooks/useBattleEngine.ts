@@ -46,9 +46,9 @@ export function useBattleEngine() {
     }
   }, []);
 
-  const useItem = useCallback((effect: ItemEffect, value: number) => {
+  const useItem = useCallback((effect: ItemEffect, value: number, abilityId?: string) => {
     if (!engineRef.current) return;
-    const result = engineRef.current.useItem(effect, value);
+    const result = engineRef.current.useItem(effect, value, abilityId);
     setCtx(result);
 
     if (result.phase === 'ENEMY_TURN') {

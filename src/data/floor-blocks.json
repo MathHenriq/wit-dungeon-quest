@@ -1,0 +1,166 @@
+{
+  "blocks": [
+    {
+      "id": "fundamentos",
+      "name": "Fundamentos",
+      "floors": [1, 8],
+      "theme": "cave",
+      "theme_display": "Cavernas",
+      "colors": {
+        "primary": "#6366f1",
+        "accent": "#818cf8",
+        "fog": "rgba(99,102,241,0.06)"
+      },
+      "particle_type": "dust",
+      "topics": [
+        "O que é Machine Learning",
+        "Diferença entre IA e ML",
+        "Algoritmos básicos",
+        "Estruturas de repetição (for, while)",
+        "O que é um chatbot",
+        "Exemplos de IA no dia a dia",
+        "Introdução ao WIT Dungeon",
+        "Contrato didático"
+      ],
+      "difficulty_range": [1, 2]
+    },
+    {
+      "id": "programacao",
+      "name": "Programação",
+      "floors": [9, 18],
+      "theme": "forest",
+      "theme_display": "Floresta",
+      "colors": {
+        "primary": "#22c55e",
+        "accent": "#4ade80",
+        "fog": "rgba(74,124,30,0.08)"
+      },
+      "particle_type": "spore",
+      "topics": [
+        "Variáveis e tipos de dados",
+        "Operadores lógicos (and, or, not)",
+        "Estruturas condicionais (if/else)",
+        "Funções em Python",
+        "Listas e arrays",
+        "Dicionários",
+        "Entrada e saída de dados",
+        "Calculadora com Python",
+        "Code Combat e LightBot",
+        "Debugging básico"
+      ],
+      "difficulty_range": [2, 3]
+    },
+    {
+      "id": "ia_pratica",
+      "name": "IA na Prática",
+      "floors": [19, 26],
+      "theme": "forest",
+      "theme_display": "Floresta Profunda",
+      "colors": {
+        "primary": "#16a34a",
+        "accent": "#22c55e",
+        "fog": "rgba(22,163,74,0.07)"
+      },
+      "particle_type": "spore",
+      "topics": [
+        "IA forte vs IA fraca",
+        "Chatbots com Chatfuel",
+        "Geração de imagens com IA",
+        "Ética em IA",
+        "Viés algorítmico",
+        "IA na sociedade",
+        "Aplicações de IA no cotidiano",
+        "Limitações da IA atual"
+      ],
+      "difficulty_range": [2, 3]
+    },
+    {
+      "id": "criacao_ia",
+      "name": "Criação com IA",
+      "floors": [27, 34],
+      "theme": "desert",
+      "theme_display": "Deserto",
+      "colors": {
+        "primary": "#f59e0b",
+        "accent": "#fbbf24",
+        "fog": "rgba(201,164,74,0.06)"
+      },
+      "particle_type": "dust",
+      "topics": [
+        "Geração de áudio com Suno",
+        "Criação de vídeos com HeyGen",
+        "Prompt engineering básico",
+        "ChatGPT para escrita criativa",
+        "Ferramentas de IA generativa",
+        "Direitos autorais e IA",
+        "Little Sharks - Projeto de empresa",
+        "Apresentação de ideias"
+      ],
+      "difficulty_range": [3, 4]
+    },
+    {
+      "id": "ml_intermediario",
+      "name": "ML Intermediário",
+      "floors": [35, 44],
+      "theme": "ice",
+      "theme_display": "Gelo",
+      "colors": {
+        "primary": "#06b6d4",
+        "accent": "#22d3ee",
+        "fog": "rgba(6,182,212,0.06)"
+      },
+      "particle_type": "snow",
+      "topics": [
+        "TensorFlow.js básico",
+        "O que são modelos de ML",
+        "Treinamento vs Inferência",
+        "Overfitting e underfitting",
+        "ESP32 e IoT",
+        "Reconhecimento de imagens",
+        "Prompt engineering avançado",
+        "Google AI Studio",
+        "Reconhecimento facial",
+        "ESP32-CAM"
+      ],
+      "difficulty_range": [4, 5]
+    },
+    {
+      "id": "projeto_final",
+      "name": "Projeto Final",
+      "floors": [45, 50],
+      "theme": "volcano",
+      "theme_display": "Vulcão",
+      "colors": {
+        "primary": "#ef4444",
+        "accent": "#f87171",
+        "fog": "rgba(220,38,38,0.06)"
+      },
+      "particle_type": "ember",
+      "topics": [
+        "Teachable Machine",
+        "Treinamento de modelos customizados",
+        "Deploy de modelos em web",
+        "Integração frontend + ML",
+        "Apresentação de projetos",
+        "Revisão geral do curso"
+      ],
+      "difficulty_range": [5, 5],
+      "is_final": true
+    }
+  ],
+  "elements": [
+    "fogo", "água", "terra", "ar", "luz", "sombra",
+    "elétrico", "gelo", "planta", "veneno", "normal"
+  ],
+  "balancing": {
+    "boss_hp_base": 100,
+    "boss_hp_per_floor": 30,
+    "boss_atk_base": 10,
+    "boss_atk_per_floor": 2,
+    "boss_def_base": 5,
+    "boss_def_per_floor": 1.5,
+    "enemy_stat_ratio": 0.7,
+    "enemies_base": 2,
+    "enemies_per_10_floors": 1
+  }
+}

@@ -1,0 +1,2 @@
+-- v2 superseded by 20260411000000_floor_generation_schema.sql (corrigido)
+-- Este arquivo está intencionalmente vazio.

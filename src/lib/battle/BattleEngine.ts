@@ -48,7 +48,14 @@ export interface BattleLogEntry {
 export interface BattleContext {
   player:       BattleCharacter;
   enemy:        BattleEnemy;
-  playerEnergy: number;
+  /** PP (Power Points) per ability — how many uses remain this battle */
+  abilityPP:    Record<string, { current: number; max: number }>;
+  /** True once the Recharge item has been used this battle */
+  rechargeUsed: boolean;
+  /** Times the small potion (50 HP) has been used — max 3 */
+  healSmallUses: number;
+  /** True once the large potion (150 HP) has been used */
+  healLargeUsed: boolean;
   playerStatus: ActiveStatus | null;
   enemyStatus:  ActiveStatus | null;
   turn:         number;
@@ -62,7 +69,7 @@ export interface BattleContext {
 
 // ─── Item types ───────────────────────────────────────────────────────────────
 
-export type ItemEffect = 'heal' | 'energy' | 'cure' | 'revive';
+export type ItemEffect = 'heal' | 'recharge' | 'cure' | 'revive';
 
 // ─── Engine ───────────────────────────────────────────────────────────────────
 
@@ -70,15 +77,25 @@ export class BattleEngine {
   private ctx: BattleContext;
 
   constructor(player: BattleCharacter, enemy: BattleEnemy, equippedAbilities: Ability[]) {
+    // Initialise PP for every equipped ability
+    const abilityPP: Record<string, { current: number; max: number }> = {};
+    for (const ability of equippedAbilities) {
+      const max = BattleEngine.getMaxPP(ability);
+      abilityPP[ability.id] = { current: max, max };
+    }
+
     this.ctx = {
-      player: { ...player },           // shallow copy — won't mutate original
-      enemy:  { ...enemy },
-      playerEnergy:       player.energyMax,
-      playerStatus:       null,
-      enemyStatus:        null,
-      turn:               1,
-      phase:              'STARTING',
-      log:                [],
+      player:       { ...player },      // shallow copy — won't mutate original
+      enemy:        { ...enemy },
+      abilityPP,
+      rechargeUsed:  false,
+      healSmallUses: 0,
+      healLargeUsed: false,
+      playerStatus: null,
+      enemyStatus:  null,
+      turn:         1,
+      phase:        'STARTING',
+      log:          [],
       equippedAbilities,
     };
   }
@@ -114,9 +131,10 @@ export class BattleEngine {
       return this.snapshot();
     }
 
-    // Energy check
-    if (this.ctx.playerEnergy < ability.energyCost) {
-      this.log('system', `⚡ Energia insuficiente! (${this.ctx.playerEnergy}/${ability.energyCost})`, 'info');
+    // PP check
+    const pp = this.ctx.abilityPP[ability.id];
+    if (!pp || pp.current <= 0) {
+      this.log('system', `❌ ${ability.name} sem PP! (0/${pp?.max ?? 0})`, 'info');
       return this.snapshot();
     }
 
@@ -127,8 +145,8 @@ export class BattleEngine {
       return this.snapshot();
     }
 
-    // Spend energy
-    this.ctx.playerEnergy -= ability.energyCost;
+    // Spend one PP
+    pp.current--;
 
     // Status move
     if (ability.damageType === 'Status') {
@@ -224,20 +242,40 @@ export class BattleEngine {
   }
 
   /** Player uses an item (does not consume an action in enemy turn if player turn) */
-  useItem(effect: ItemEffect, value: number): BattleContext {
+  useItem(effect: ItemEffect, value: number, abilityId?: string): BattleContext {
     if (this.ctx.phase !== 'PLAYER_TURN') return this.snapshot();
 
     switch (effect) {
       case 'heal': {
+        if (value <= 50) {
+          if (this.ctx.healSmallUses >= 3) {
+            this.log('player', '🧪 Poção esgotada!', 'info');
+            return this.snapshot();
+          }
+          this.ctx.healSmallUses++;
+        } else {
+          if (this.ctx.healLargeUsed) {
+            this.log('player', '💊 Poção Grande já foi utilizada!', 'info');
+            return this.snapshot();
+          }
+          this.ctx.healLargeUsed = true;
+        }
         const gain = Math.min(value, this.ctx.player.hpMax - this.ctx.player.hpCurrent);
         this.ctx.player.hpCurrent += gain;
         this.log('player', `🧪 Usou poção — recuperou ${gain} HP!`, 'effect', gain);
         break;
       }
-      case 'energy': {
-        const gain = Math.min(value, this.ctx.player.energyMax - this.ctx.playerEnergy);
-        this.ctx.playerEnergy += gain;
-        this.log('player', `⚡ Recuperou ${gain} de energia!`, 'effect', gain);
+      case 'recharge': {
+        if (this.ctx.rechargeUsed) {
+          this.log('player', '🔋 Recarga já foi utilizada nessa batalha!', 'info');
+          return this.snapshot();
+        }
+        const pp = abilityId ? this.ctx.abilityPP[abilityId] : null;
+        if (!pp) return this.snapshot();
+        this.ctx.rechargeUsed = true;
+        pp.current = pp.max;
+        const ability = this.ctx.equippedAbilities.find(a => a.id === abilityId);
+        this.log('player', `🔋 PP de "${ability?.name ?? 'ataque'}" restaurado!`, 'effect');
         break;
       }
       case 'cure': {
@@ -352,18 +390,6 @@ export class BattleEngine {
 
   private endTurn() {
     this.ctx.turn++;
-
-    // Regen energy (+5 per turn, +1% of max extra at higher levels)
-    const regen = 5 + Math.floor(this.ctx.player.level * 0.5);
-    this.ctx.playerEnergy = Math.min(
-      this.ctx.player.energyMax,
-      this.ctx.playerEnergy + regen,
-    );
-
-    if (regen > 5) {
-      this.log('system', `⚡ Energia regenerada: +${regen}`, 'info', regen);
-    }
-
     this.ctx.phase = 'PLAYER_TURN';
   }
 
@@ -462,6 +488,19 @@ export class BattleEngine {
     }
   }
 
+  // ─── Private: PP helper ──────────────────────────────────────────────────────
+
+  /** Returns how many uses (PP) an ability starts with, based on its tier. */
+  static getMaxPP(ability: Ability): number {
+    switch (ability.tier) {
+      case 1: return 30;
+      case 2: return 20;
+      case 3: return 10;
+      case 4: return 5;
+      default: return 20;
+    }
+  }
+
   // ─── Private: stat helpers ───────────────────────────────────────────────────
 
   private playerStats(): CombatantStats {
@@ -470,14 +509,16 @@ export class BattleEngine {
       forca:        this.ctx.player.forca,
       inteligencia: this.ctx.player.inteligencia,
       agilidade:    this.ctx.player.agilidade,
+      // Both defenses use resistencia so the stat is meaningful and scaling is symmetric
       defFisica:    Math.floor(this.ctx.player.resistencia / 2),
-      defMagica:    Math.floor(this.ctx.player.inteligencia / 2),
+      defMagica:    Math.floor(this.ctx.player.resistencia / 2),
     };
   }
 
   private enemyStats(): CombatantStats {
-    // Enemy forca/inteligencia derived from level (scalable)
-    const base = 10 + this.ctx.enemy.level * 2;
+    // Enemy forca/inteligencia scale +1 per level — mirrors player attribute growth.
+    // A small flat bonus (+2) keeps them slightly threatening without exponential gaps.
+    const base = 8 + this.ctx.enemy.level;
     return {
       level:        this.ctx.enemy.level,
       forca:        base,
@@ -514,12 +555,18 @@ export class BattleEngine {
   // ─── Snapshot (immutable copy for React state) ───────────────────────────────
 
   snapshot(): BattleContext {
+    // Deep-copy abilityPP so React detects the state change
+    const ppCopy: Record<string, { current: number; max: number }> = {};
+    for (const [id, pp] of Object.entries(this.ctx.abilityPP)) {
+      ppCopy[id] = { ...pp };
+    }
     return {
       ...this.ctx,
       player:            { ...this.ctx.player },
       enemy:             { ...this.ctx.enemy  },
       log:               [...this.ctx.log],
       equippedAbilities: [...this.ctx.equippedAbilities],
+      abilityPP:         ppCopy,
     };
   }
 

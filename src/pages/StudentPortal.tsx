@@ -18,26 +18,25 @@ import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentNavigation, type StudentTab } from "@/components/student/StudentNavigation";
 import { DirectorMap } from "@/components/student/DirectorMap";
 import { OnboardingFlow } from "@/components/student/OnboardingFlow";
-import { CharacterSheet } from "@/components/student/CharacterSheet";
+import { HeroScreen } from "@/components/student/HeroScreen";
+import { ShopScreen } from "@/components/student/ShopScreen";
 import { ProgressRanking } from "@/components/student/ProgressRanking";
+import { GlobalRanking } from "@/components/student/GlobalRanking";
 import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { Guild } from "@/components/guild/Guild";
-import { Inventory } from "@/components/inventory/Inventory";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
 import { DailyDungeon } from "@/components/student/DailyDungeon";
 import { BattleDungeonView } from "@/components/student/BattleDungeonView";
 import { BattleSkillsView } from "@/components/student/BattleSkillsView";
 import { SkillTreePage } from "@/components/student/SkillTreePage";
-import { BattleInventoryView } from "@/components/student/BattleInventoryView";
 import { BattlePvPView } from "@/components/student/BattlePvPView";
 import { useBattleCharacter } from "@/hooks/useBattleCharacter";
 import { TimeCapsule } from "@/components/student/TimeCapsule";
 import { PvPArena } from "@/components/student/PvPArena";
 import { PvpArena } from "@/components/pvp-arena/PvpArena";
 import { TradingPanel } from "@/components/student/TradingPanel";
+import { TradingScreen } from "@/components/student/TradingScreen";
 import { ClassWarBanner } from "@/components/student/ClassWarBanner";
-import { CraftPanel } from "@/components/student/CraftPanel";
-import { ChestSection } from "@/components/student/ChestSection";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
 import {
@@ -48,198 +47,14 @@ import {
   Clock,
   CalendarCheck,
   Loader2,
-  ShoppingBag,
-  Package,
   ChevronDown,
   Mail,
   Lock,
   Flame,
 } from "lucide-react";
-import { CATEGORY_META, ATTRIBUTES } from "@/types";
-import type { ShopItem, InventoryItem } from "@/types";
+import type { InventoryItem } from "@/types";
 import { toast } from "sonner";
 
-// ─────────────────────────────────────────────
-// Shop & Inventory helpers
-// ─────────────────────────────────────────────
-
-function ItemCard({ item }: { item: ShopItem }) {
-  const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
-  return (
-    <div className="w-full h-full rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
-      {item.image_url ? (
-        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-      ) : (
-        <GameIcon id={meta.iconId} size={48} />
-      )}
-    </div>
-  );
-}
-
-function AttrList({ item }: { item: ShopItem }) {
-  const active = ATTRIBUTES.filter(a => (item[a.key] ?? 0) > 0);
-  if (!active.length) return null;
-  return (
-    <div className="flex flex-wrap gap-1 mt-1">
-      {active.map(a => (
-        <span key={a.key} className="text-xs px-1.5 py-0.5 rounded text-cyan-400 font-medium flex items-center gap-1" style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.15)' }}>
-          <GameIcon id={a.iconId} size={12} /> +{item[a.key]}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function ShopSection({
-  items,
-  inventory,
-  studentCoins,
-  studentLevel,
-  onPurchase,
-}: {
-  items: ShopItem[];
-  inventory: InventoryItem[];
-  studentCoins: number;
-  studentLevel: number;
-  onPurchase: (item: ShopItem) => Promise<void>;
-}) {
-  const [buying, setBuying] = useState<string | null>(null);
-
-  const ownedItemIds = new Set(inventory.map(i => i.item_id));
-
-  if (items.length === 0) {
-    return (
-      <div className="holo-panel text-center py-10 text-white/50">
-        <ShoppingBag size={48} className="mx-auto mb-4 opacity-40" />
-        <p>Nenhum item disponível na loja ainda</p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="section-title mb-4">
-        <ShoppingBag size={14} />
-        <span>Loja de Itens</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map(item => {
-          const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
-          const isToken = item.category === "token";
-          const alreadyOwned = !isToken && ownedItemIds.has(item.id);
-          const cantAfford = studentCoins < item.cost;
-          const belowLevel = studentLevel < item.min_level;
-          const isBuying = buying === item.id;
-
-          return (
-            <div key={item.id} className="holo-panel flex flex-col gap-3">
-              {/* Image */}
-              <div className="h-36 rounded-lg overflow-hidden">
-                <ItemCard item={item} />
-              </div>
-
-              {/* Info */}
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${meta.color}`}>
-                    <GameIcon id={meta.iconId} size={12} /> {meta.label}
-                  </span>
-                  {item.min_level > 1 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full text-white/40" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                      Nv. {item.min_level}+
-                    </span>
-                  )}
-                </div>
-                {item.description && (
-                  <p className="text-sm text-white/50 mt-1">{item.description}</p>
-                )}
-                <AttrList item={item} />
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-between gap-2 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <span className="font-bold text-yellow-400 flex items-center gap-1 text-sm">
-                  <GameIcon id="coin" size={16} /> {item.cost}
-                </span>
-                {alreadyOwned ? (
-                  <span className="text-sm px-3 py-1 rounded-lg text-cyan-400 font-medium" style={{ background: 'rgba(0,229,255,0.08)' }}>
-                    Equipado
-                  </span>
-                ) : belowLevel ? (
-                  <span className="text-xs text-white/30">Nível insuficiente</span>
-                ) : (
-                  <button
-                    disabled={cantAfford || isBuying}
-                    onClick={async () => {
-                      setBuying(item.id);
-                      await onPurchase(item);
-                      setBuying(null);
-                    }}
-                    className={`btn-cyber text-xs py-1.5 px-3 ${cantAfford ? "opacity-40 cursor-not-allowed" : ""}`}
-                  >
-                    {isBuying ? <Loader2 size={14} className="animate-spin" /> : <ShoppingBag size={14} />}
-                    {cantAfford ? "Sem moedas" : "Comprar"}
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function InventorySection({ inventory }: { inventory: InventoryItem[] }) {
-  if (inventory.length === 0) {
-    return (
-      <div className="holo-panel text-center py-10 text-white/50">
-        <Package size={48} className="mx-auto mb-4 opacity-40" />
-        <p>Seu inventário está vazio</p>
-        <p className="text-sm mt-1 text-white/30">Compre itens na Loja para equipá-los aqui.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="section-title mb-4">
-        <Package size={14} />
-        <span>Meu Inventário ({inventory.length})</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {inventory.map(entry => {
-          const item = entry.item;
-          if (!item) return null;
-          const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
-          return (
-            <div key={entry.id} className="holo-panel flex flex-col gap-3">
-              <div className="h-32 rounded-lg overflow-hidden">
-                <ItemCard item={item} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{item.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${meta.color}`}>
-                    <GameIcon id={meta.iconId} size={12} /> {meta.label}
-                  </span>
-                </div>
-                {item.description && (
-                  <p className="text-sm text-white/50 mt-1">{item.description}</p>
-                )}
-                <AttrList item={item} />
-                <p className="text-xs text-white/30 mt-2">
-                  Adquirido em {new Date(entry.added_at).toLocaleDateString("pt-BR")}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────
 // Sub-screens shown before an active session
@@ -665,7 +480,6 @@ export default function StudentPortal() {
     }
     if (
       activeTab === "shop" ||
-      activeTab === "inventory" ||
       activeTab === "character" ||
       activeTab === "trading"
     ) {
@@ -804,7 +618,7 @@ export default function StudentPortal() {
   // ── TAB LABELS ──
   const TAB_LABELS: Record<string, string> = {
     challenges: 'Quests', missions: 'Missões', bosses: 'Bosses',
-    guild: 'Guilda', skills: 'Skills', shop: 'Loja', inventory: 'Mochila',
+    guild: 'Guilda', skills: 'Skills', shop: 'Loja',
     ranking: 'Ranking', character: 'Herói', capsule: 'Cápsula', pvp: 'PvP Arena', trading: 'Trading',
   };
 
@@ -884,22 +698,17 @@ export default function StudentPortal() {
     return (
       <div className="fixed inset-0">
         {sharedOverlays}
-        <PvpArena onBack={() => setActiveTab('director')} />
+        <PvpArena student={student} onBack={() => setActiveTab('director')} />
       </div>
     );
   }
 
-  // ── Inventory tab — full-screen overlay ──
-  if (activeTab === 'inventory') {
+  // ── Character / Hero tab — full-screen overlay ──
+  if (activeTab === 'character') {
     return (
-      <div className="fixed inset-0">
+      <div className="fixed inset-0 overflow-y-auto" style={{ background: '#04060a' }}>
         {sharedOverlays}
-        <Inventory
-          student={student}
-          inventory={inventory}
-          onBack={() => setActiveTab('director')}
-          onRefresh={refreshStudent}
-        />
+        <HeroScreen student={student} inventory={inventory} onUpdate={refreshStudent} onBack={() => setActiveTab('director')} />
       </div>
     );
   }
@@ -910,6 +719,70 @@ export default function StudentPortal() {
       <div className="fixed inset-0">
         {sharedOverlays}
         <Guild student={student} onBack={() => setActiveTab('director')} />
+      </div>
+    );
+  }
+
+  // ── Trading tab — full-screen SAO HUD ──
+  if (activeTab === 'trading') {
+    return (
+      <div className="fixed inset-0">
+        {sharedOverlays}
+        <TradingScreen
+          student={student}
+          inventory={inventory}
+          onBack={() => setActiveTab('director')}
+          onInventoryChanged={refreshStudent}
+        />
+      </div>
+    );
+  }
+
+  // ── Shop tab — full-screen Arcane Emporium ──
+  if (activeTab === 'shop') {
+    return (
+      <div className="fixed inset-0">
+        {sharedOverlays}
+        <ShopScreen
+          items={shopItems}
+          inventory={inventory}
+          student={student}
+          onPurchase={async (item) => {
+            const result = await purchaseItem(item.id);
+            if (!result) return;
+            if (!result.success) {
+              toast.error("Compra não realizada", { description: result.error });
+            } else {
+              toast.success(`${item.name} adquirido!`);
+            }
+          }}
+          onCoinsChanged={refreshStudent}
+          onBack={() => setActiveTab('director')}
+        />
+      </div>
+    );
+  }
+
+  // ── Missions / Challenges — full-screen parchment ──
+  if (activeTab === 'missions' || activeTab === 'challenges') {
+    return (
+      <div className="fixed inset-0 overflow-y-auto" style={{ background: '#1a0c04' }}>
+        <AincradBackground scene="quests" />
+        {sharedOverlays}
+        <MissionBoard
+          studentId={student.id}
+          teacherId={student.teacher_id}
+          missions={missions}
+          completions={missionCompletions}
+          needsReturnMission={false}
+          onCompletionRequested={refreshMissions}
+          challenges={challenges}
+          isChallengeCompleted={(id) => challenges.find(c => c.id === id)?.challenge_type === "unica" && isChallengeCompleted(id)}
+          isChallengePending={isChallengePending}
+          onChallengeRequest={handleChallengeRequest}
+          onBack={() => setActiveTab('director')}
+          initialTab={activeTab === 'challenges' ? 'desafios' : 'missoes'}
+        />
       </div>
     );
   }
@@ -1003,145 +876,38 @@ export default function StudentPortal() {
 
         {/* Missions Tab */}
         {activeTab === "missions" && (
-          <section className="holo-panel">
-            <MissionBoard
-              studentId={student.id}
-              missions={missions}
-              completions={missionCompletions}
-              needsReturnMission={false}
-              onCompletionRequested={refreshMissions}
-            />
-          </section>
+          <MissionBoard
+            studentId={student.id}
+            missions={missions}
+            completions={missionCompletions}
+            needsReturnMission={false}
+            onCompletionRequested={refreshMissions}
+            challenges={challenges}
+            isChallengeCompleted={(id) => challenges.find(c => c.id === id)?.challenge_type === "unica" && isChallengeCompleted(id)}
+            isChallengePending={isChallengePending}
+            onChallengeRequest={handleChallengeRequest}
+            initialTab="missoes"
+          />
         )}
 
         {/* Challenges Tab */}
         {activeTab === "challenges" && (
-          <section>
-            <div className="section-title">
-              <span>Desafios da Semana</span>
-            </div>
-            {challenges.length === 0 ? (
-              <div className="holo-panel text-center py-8 text-white/40">
-                <Sword size={48} className="mx-auto mb-4 opacity-30" />
-                <p>Nenhum desafio disponível no momento</p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {challenges.map(challenge => {
-                  const isCompletedUnique =
-                    challenge.challenge_type === "unica" && isChallengeCompleted(challenge.id);
-                  const isPending = isChallengePending(challenge.id);
-                  return (
-                    <div key={challenge.id} className="holo-panel relative overflow-hidden">
-                      {(isPending || isCompletedUnique) && (
-                        <div className="absolute top-3 right-3">
-                          <div
-                            className={`flex items-center gap-1 text-sm font-semibold px-2 py-1 rounded-full ${
-                              isCompletedUnique
-                                ? "text-cyan-400 bg-cyan-400/10"
-                                : "text-green-400 bg-green-400/10"
-                            }`}
-                          >
-                            {isCompletedUnique ? (
-                              <><CheckCircle size={14} /><span>Concluído</span></>
-                            ) : (
-                              <><Clock size={14} /><span>Aguardando</span></>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.15)' }}>
-                          <GameIcon id="sword" size={28} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-bold text-lg text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                              {challenge.title}
-                            </h3>
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded-full ${
-                                challenge.challenge_type === "unica"
-                                  ? "bg-amber-500/20 text-amber-400"
-                                  : "bg-cyan-500/20 text-cyan-400"
-                              }`}
-                            >
-                              {challenge.challenge_type === "unica" ? "Única" : "Repetível"}
-                            </span>
-                          </div>
-                          {challenge.description && (
-                            <p className="text-white/50 text-sm mb-3">{challenge.description}</p>
-                          )}
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5 text-yellow-400 font-semibold text-sm">
-                              <GameIcon id="coin" size={16} />
-                              <span>+{challenge.reward}</span>
-                            </div>
-                            {isCompletedUnique ? (
-                              <button disabled className="btn-cyber opacity-60 cursor-not-allowed">
-                                <CheckCircle size={14} /> Concluído
-                              </button>
-                            ) : isPending ? (
-                              <button disabled className="btn-cyber opacity-60 cursor-not-allowed">
-                                <Clock size={14} /> Aguardando
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleChallengeRequest(challenge.id)}
-                                className="btn-cyber"
-                              >
-                                Concluir desafio
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+          <MissionBoard
+            studentId={student.id}
+            missions={missions}
+            completions={missionCompletions}
+            needsReturnMission={false}
+            onCompletionRequested={refreshMissions}
+            challenges={challenges}
+            isChallengeCompleted={(id) => challenges.find(c => c.id === id)?.challenge_type === "unica" && isChallengeCompleted(id)}
+            isChallengePending={isChallengePending}
+            onChallengeRequest={handleChallengeRequest}
+            initialTab="desafios"
+          />
         )}
 
-        {/* Shop Tab */}
-        {activeTab === "shop" && (
-          <>
-            <ChestSection student={student} onCoinsChanged={refreshStudent} />
-            <ShopSection
-              items={shopItems}
-              inventory={inventory}
-              studentCoins={student.coins}
-              studentLevel={student.level}
-              onPurchase={async (item) => {
-                const result = await purchaseItem(item.id);
-                if (!result) return;
-                if (!result.success) {
-                  toast.error("Compra não realizada", { description: result.error });
-                } else {
-                  toast.success(`${item.name} adquirido!`);
-                }
-              }}
-            />
-            <div className="mt-6">
-              <CraftPanel studentId={student.id} teacherId={student.teacher_id} onCoinsChanged={refreshStudent} />
-            </div>
-          </>
-        )}
-
-        {/* Inventory Tab */}
-        {activeTab === "inventory" && (
-          <div className="space-y-6">
-            <InventorySection inventory={inventory} />
-            {battleCharacter && (
-              <div className="border-t border-white/10 pt-6">
-                <h3 className="text-xl font-bold mb-4">⚔️ Itens de Batalha</h3>
-                <BattleInventoryView characterId={battleCharacter.id} />
-              </div>
-            )}
-          </div>
-        )}
+        {/* Shop Tab — handled as full-screen ShopScreen overlay above */}
+        {/* Inventory Tab — now embedded in HeroScreen (MOCHILA button) */}
 
         {activeTab === "bosses" && (
           <BossBattleTab key={bossTabKey} student={student} onStartBoss={setActiveBossId} />
@@ -1151,12 +917,7 @@ export default function StudentPortal() {
 
         {/* Ranking Tab */}
         {activeTab === "ranking" && (
-          <ProgressRanking student={student} classId={student.class_id} showClassicToggle />
-        )}
-
-        {/* Character Tab */}
-        {activeTab === "character" && (
-          <CharacterSheet student={student} inventory={inventory} onUpdate={refreshStudent} />
+          <GlobalRanking student={student} />
         )}
 
         {/* Time Capsule Tab */}
@@ -1181,16 +942,7 @@ export default function StudentPortal() {
           )
         )}
 
-        {/* Trading Tab */}
-        {activeTab === "trading" && (
-          <div className="max-w-lg mx-auto">
-            <TradingPanel
-              student={student}
-              inventory={inventory}
-              onInventoryChanged={refreshStudent}
-            />
-          </div>
-        )}
+        {/* Trading Tab — handled as full-screen TradingScreen overlay above */}
 
         <div className="mt-8 text-center text-xs text-white/20">
           <p>Todas as solicitações são validadas pelo professor</p>

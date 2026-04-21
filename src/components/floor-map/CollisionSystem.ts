@@ -36,7 +36,7 @@ export function checkPathForCollisions(
     const cpy = pxY(cy, mapH);
 
     for (const e of enemies) {
-      if (e.defeated) continue;
+      // Defeated enemies can still be re-battled — only skip boss if not all normals are done
       if (e.isBoss && !allNormalDefeated) continue;
 
       const ex  = pxX(e.positionX, mapW);

@@ -9,7 +9,7 @@ interface InventoryTabsProps {
 const TABS: { id: ItemCategory; label: string }[] = [
   { id: 'equipment',  label: 'Equipamentos' },
   { id: 'consumable', label: 'Consumiveis'  },
-  { id: 'cosmetic',   label: 'Cosmeticos'   },
+  { id: 'cosmetic',   label: 'Coleção'      },
 ];
 
 export function InventoryTabs({ active, onChange }: InventoryTabsProps) {

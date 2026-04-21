@@ -23,6 +23,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [isLoading]);
 
+  // When the teacher's tab returns to foreground, probe getSession() so the SDK refreshes
+  // the token if it expired while the tab was backgrounded. TOKEN_REFRESHED is handled by
+  // the onAuthStateChange guard (no re-render). SIGNED_OUT goes through normally.
+  // We do NOT change state here to avoid false sign-outs during mid-refresh races.
+  useEffect(() => {
+    const onVisible = async () => {
+      if (document.hidden) return;
+      if (!teacherRef.current) return;
+      console.log("[AuthContext] tab visible — probing session");
+      try {
+        await supabase.auth.getSession();
+      } catch (err) {
+        console.error("[AuthContext] visibility session probe failed:", err);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {

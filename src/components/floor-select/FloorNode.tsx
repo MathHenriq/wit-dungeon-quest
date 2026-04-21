@@ -74,14 +74,18 @@ export function FloorNode({ floor, expanded, onToggle, onPlay }: FloorNodeProps)
     s === 'current'   ? 'rgba(201,164,74,0.65)'  :
                         'rgba(255,255,255,0.12)';
 
-  const numLabel  = s === 'locked' ? '?' : String(floor_number);
-  const nameLabel = s === 'locked' ? '???' : name;
+  const isVirtual  = String(floor.id).startsWith('virtual_');
+  const numLabel   = (s === 'locked' && isVirtual) ? '?' : String(floor_number);
+  const nameLabel  = (s === 'locked' && isVirtual) ? '???' : name;
   const themeMap: Record<string, string> = {
     forest: 'Floresta', desert: 'Deserto', cave: 'Caverna',
     castle: 'Castelo', ice: 'Gelo', volcano: 'Vulcao',
+    fire: 'Fogo', swamp: 'Pântano', tower: 'Torre',
+    labyrinth: 'Labirinto', ruins: 'Ruínas', temple: 'Templo',
+    citadel: 'Cidadela', plains: 'Planícies', fortress: 'Fortaleza',
   };
-  const themeLabel = s === 'locked' ? '???' : (themeMap[theme] ?? theme);
-  const bossName   = s === 'locked' || !boss ? '???' : boss.name;
+  const themeLabel = (s === 'locked' && isVirtual) ? '???' : (themeMap[theme] ?? theme);
+  const bossName   = (s === 'locked' && isVirtual) || !boss ? '???' : boss.name;
   const bossIcon   = boss?.icon ?? 'default';
 
   return (

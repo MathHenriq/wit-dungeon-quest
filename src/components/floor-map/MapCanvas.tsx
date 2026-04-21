@@ -202,6 +202,7 @@ export function MapCanvas({
             y={e.positionY}
             name={e.name}
             iconType={e.iconType}
+            spriteUrl={e.spriteUrl}
             defeated={e.defeated}
             level={e.level}
           />

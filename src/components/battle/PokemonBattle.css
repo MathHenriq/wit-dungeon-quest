@@ -99,7 +99,9 @@
   width: 170px;
   height: 210px;
   right: 14%;
-  top: 4%;
+  /* Alinha os pés do sprite com a superfície da plataforma:
+     plataforma em top: 44%, sprite tem 210px de altura → top = 44% - 185px */
+  top: calc(44% - 185px);
 }
 
 .poke-sprite-player {

@@ -470,7 +470,60 @@ function Step3({
   );
 }
 
-// ─── Step 4 ───────────────────────────────────────────────────────────────────
+// ─── Step 4 — School name ────────────────────────────────────────────────────
+
+function Step4School({
+  schoolName,
+  onChange,
+  onNext,
+  onBack,
+}: {
+  schoolName: string;
+  onChange: (v: string) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-6">
+      <ProgressBar step={4} />
+      <h2
+        className="text-2xl font-bold text-white mb-2 text-center"
+        style={{ fontFamily: "Rajdhani, sans-serif", letterSpacing: "3px" }}
+      >
+        De qual escola você vem?
+      </h2>
+      <p className="text-white/40 text-sm mb-8 text-center max-w-xs">
+        Isso permite que você compita no ranking da sua escola.
+      </p>
+
+      <div className="w-full max-w-sm mb-6">
+        <input
+          type="text"
+          value={schoolName}
+          onChange={e => onChange(e.target.value)}
+          placeholder="Nome da sua escola..."
+          maxLength={80}
+          className="w-full px-4 py-3 rounded-lg text-white text-center text-lg outline-none"
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(0,229,255,0.3)",
+            fontFamily: "Rajdhani, sans-serif",
+            letterSpacing: "1px",
+          }}
+          onKeyDown={e => { if (e.key === "Enter" && schoolName.trim().length >= 2) onNext(); }}
+          autoFocus
+        />
+        <p className="text-white/20 text-xs mt-2 text-center">
+          Pode pular — você poderá preencher depois no seu perfil.
+        </p>
+      </div>
+
+      <NavButtons onBack={onBack} onNext={onNext} nextDisabled={false} />
+    </div>
+  );
+}
+
+// ─── Step 5 — Motivation (old step 4) ────────────────────────────────────────
 
 function Step4({
   selectedMotivation,
@@ -489,7 +542,7 @@ function Step4({
 }) {
   return (
     <div className="flex flex-col items-center min-h-screen p-6 pt-8">
-      <ProgressBar step={4} />
+      <ProgressBar step={5} />
       <h2
         className="text-2xl font-bold text-white mb-2 text-center"
         style={{ fontFamily: "Rajdhani, sans-serif", letterSpacing: "3px" }}
@@ -644,11 +697,11 @@ function Step5({
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function ProgressBar({ step }: { step: number }) {
-  const pct = Math.round(((step - 1) / 4) * 100);
+  const pct = Math.round(((step - 1) / 5) * 100);
   return (
     <div className="w-full max-w-sm mb-8">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-white/40 text-xs">Passo {step - 1} de 4</span>
+        <span className="text-white/40 text-xs">Passo {step - 1} de 5</span>
         <span className="text-white/40 text-xs">{pct}%</span>
       </div>
       <div className="cyber-progress">
@@ -703,6 +756,7 @@ export function OnboardingFlow({ student, onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState(1);
   const [characterName, setCharacterName] = useState("");
   const [selectedClass, setSelectedClass] = useState<ClassDef | null>(null);
+  const [schoolName, setSchoolName] = useState("");
   const [selectedMotivation, setSelectedMotivation] = useState("");
   const [customMotivation, setCustomMotivation] = useState("");
   const [saving, setSaving] = useState(false);
@@ -723,6 +777,7 @@ export function OnboardingFlow({ student, onComplete }: OnboardingFlowProps) {
         character_name: characterName.trim(),
         character_class: selectedClass.id,
         motivation: customMotivation.trim() || selectedMotivation || null,
+        school_name: schoolName.trim() || null,
         [selectedClass.bonusKey]:
           ((student[selectedClass.bonusKey as keyof Student] as number) ?? 0) +
           selectedClass.bonusValue,
@@ -757,20 +812,28 @@ export function OnboardingFlow({ student, onComplete }: OnboardingFlowProps) {
           />
         )}
         {step === 4 && (
-          <Step4
-            selectedMotivation={selectedMotivation}
-            customMotivation={customMotivation}
-            onSelectMotivation={setSelectedMotivation}
-            onCustomChange={setCustomMotivation}
+          <Step4School
+            schoolName={schoolName}
+            onChange={setSchoolName}
             onNext={() => setStep(5)}
             onBack={() => setStep(3)}
           />
         )}
         {step === 5 && (
+          <Step4
+            selectedMotivation={selectedMotivation}
+            customMotivation={customMotivation}
+            onSelectMotivation={setSelectedMotivation}
+            onCustomChange={setCustomMotivation}
+            onNext={() => setStep(6)}
+            onBack={() => setStep(4)}
+          />
+        )}
+        {step === 6 && (
           <Step5
             characterName={characterName}
             selectedClass={selectedClass}
-            onBack={() => setStep(4)}
+            onBack={() => setStep(5)}
             onSeal={handleSeal}
             saving={saving}
             sealDone={sealDone}

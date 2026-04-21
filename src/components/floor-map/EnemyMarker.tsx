@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { FALLBACK_SPRITE_URL } from '@/lib/sprites/getEnemySprite';
 
 // ─── Icons (white/red tones) ──────────────────────────────────────────────────
 
@@ -97,32 +98,62 @@ interface EnemyMarkerProps {
   y: number;
   name: string;
   iconType: string;
+  spriteUrl?: string;
   defeated: boolean;
   level: number;
 }
 
-export function EnemyMarker({ x, y, name, iconType, defeated, level }: EnemyMarkerProps) {
+export function EnemyMarker({ x, y, name, iconType, spriteUrl, defeated, level }: EnemyMarkerProps) {
+  const [imgError, setImgError] = useState(false);
+  const showSprite = !!spriteUrl && !imgError;
+
   return (
     <div
       className={`fm-enemy${defeated ? ' fm-enemy--defeated' : ''}`}
       style={{ left: `${x}%`, top: `${y}%` }}
       aria-hidden
     >
-      <div className="fm-enemy__circle" style={{ position: 'relative' }}>
-        <IconSVG type={iconType} defeated={defeated} />
+      {/* ✓ OK badge — floats above the circle when the enemy has been defeated */}
+      {defeated && (
+        <div style={{
+          position: 'absolute',
+          top: '-20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(34, 197, 94, 0.92)',
+          color: '#fff',
+          borderRadius: '4px',
+          padding: '1px 6px',
+          fontSize: '0.48rem',
+          fontWeight: 700,
+          letterSpacing: 1,
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.45)',
+          fontFamily: 'Rajdhani, sans-serif',
+          zIndex: 2,
+        }}>
+          ✓ OK
+        </div>
+      )}
 
-        {defeated && (
-          <div className="fm-enemy__check">
-            <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-              <path
-                d="M1.5 4.5 L3.5 6.5 L7.5 2.5"
-                stroke="white"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+      <div className="fm-enemy__circle" style={{ position: 'relative', overflow: 'hidden' }}>
+        {showSprite ? (
+          <img
+            src={spriteUrl}
+            alt={name}
+            onError={() => setImgError(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              imageRendering: 'pixelated',
+              opacity: defeated ? 0.65 : 1,
+              filter: defeated ? 'grayscale(40%)' : 'none',
+            }}
+          />
+        ) : (
+          <IconSVG type={iconType} defeated={defeated} />
         )}
       </div>
 

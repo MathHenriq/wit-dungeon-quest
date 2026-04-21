@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import type { BattleCharacter } from '@/types/character';
-import { getPointsForLevelUp } from '@/lib/progression/xpCalculator';
+import { getPointsForLevelUp, getTotalXPForLevel } from '@/lib/progression/xpCalculator';
 
 function rowToCharacter(row: any): BattleCharacter {
   return {
@@ -40,6 +40,23 @@ function rowToCharacter(row: any): BattleCharacter {
   };
 }
 
+// ─── Stat scaling helpers ─────────────────────────────────────────────────────
+
+/** hp_max = 100 + 10 per level above 1  (lv1→100, lv5→140, lv10→190) */
+function hpMaxAtLevel(level: number): number {
+  return 100 + Math.max(0, level - 1) * 10;
+}
+
+/** energy_max = 100 + 5 per level above 1  (lv1→100, lv5→120, lv10→145) */
+function energyMaxAtLevel(level: number): number {
+  return 100 + Math.max(0, level - 1) * 5;
+}
+
+/** Base attribute (forca/int/etc.) = 10 + 1 per level above 1 */
+function baseStatAtLevel(current: number, levelsGained: number): number {
+  return current + levelsGained;
+}
+
 /**
  * Fetches (or auto-creates) the battle character for the authenticated student.
  * Uses supabaseStudent so the student's auth token is used.
@@ -76,28 +93,68 @@ export function useBattleCharacter(userId: string | undefined) {
         // Sync level up if student academic level is higher than battle level
         if (academicLevel > (data.level ?? 1)) {
           const levelsGained = academicLevel - (data.level ?? 1);
-          const bonuses = getPointsForLevelUp(levelsGained);
+          const bonuses      = getPointsForLevelUp(levelsGained);
+
+          // Compute every updated value so the returned object is accurate —
+          // returning { ...data, level } was wrong because data still carried old stats.
+          const newForca        = baseStatAtLevel(data.forca        ?? 10, bonuses.attributePoints);
+          const newInteligencia = baseStatAtLevel(data.inteligencia ?? 10, bonuses.attributePoints);
+          const newDestreza     = baseStatAtLevel(data.destreza     ?? 10, bonuses.attributePoints);
+          const newCarisma      = baseStatAtLevel(data.carisma      ?? 10, bonuses.attributePoints);
+          const newAgilidade    = baseStatAtLevel(data.agilidade    ?? 10, bonuses.attributePoints);
+          const newResistencia  = baseStatAtLevel(data.resistencia  ?? 10, bonuses.attributePoints);
+          const newHpMax        = Math.max(hpMaxAtLevel(academicLevel), data.hp_max ?? 100);
+          const newEnergyMax    = Math.max(energyMaxAtLevel(academicLevel), data.energy_max ?? 100);
+          const newFreePoints   = (data.free_points ?? 0) + bonuses.freePoints;
+          // Ensure xp is cumulative base for the new level
+          const newXp           = Math.max(data.xp ?? 0, getTotalXPForLevel(academicLevel));
+
           await supabaseStudent
             .from('characters')
             .update({
               level:         academicLevel,
-              free_points:   (data.free_points  ?? 0)  + bonuses.freePoints,
-              forca:         (data.forca        ?? 10) + bonuses.attributePoints,
-              inteligencia:  (data.inteligencia ?? 10) + bonuses.attributePoints,
-              destreza:      (data.destreza     ?? 10) + bonuses.attributePoints,
-              carisma:       (data.carisma      ?? 10) + bonuses.attributePoints,
-              agilidade:     (data.agilidade    ?? 10) + bonuses.attributePoints,
-              resistencia:   (data.resistencia  ?? 10) + bonuses.attributePoints,
-              hp_current:    data.hp_max ?? 100,
+              xp:            newXp,
+              free_points:   newFreePoints,
+              forca:         newForca,
+              inteligencia:  newInteligencia,
+              destreza:      newDestreza,
+              carisma:       newCarisma,
+              agilidade:     newAgilidade,
+              resistencia:   newResistencia,
+              hp_max:        newHpMax,
+              hp_current:    newHpMax,    // full HP on level-up
+              energy_max:    newEnergyMax,
               updated_at:    new Date().toISOString(),
             })
             .eq('id', data.id);
-          return rowToCharacter({ ...data, level: academicLevel });
+
+          return rowToCharacter({
+            ...data,
+            level:        academicLevel,
+            xp:           newXp,
+            free_points:  newFreePoints,
+            forca:        newForca,
+            inteligencia: newInteligencia,
+            destreza:     newDestreza,
+            carisma:      newCarisma,
+            agilidade:    newAgilidade,
+            resistencia:  newResistencia,
+            hp_max:       newHpMax,
+            hp_current:   newHpMax,
+            energy_max:   newEnergyMax,
+          });
         }
         return rowToCharacter(data);
       }
 
-      // 3. Auto-create if none exists (use academic level from the start)
+      // 3. Auto-create — apply correct scaled stats from the start so a student
+      //    whose teacher already advanced them to level 5 doesn't start with lv1 stats.
+      const levelsAboveOne  = Math.max(0, academicLevel - 1);
+      const startStat       = 10 + levelsAboveOne;          // +1 per level
+      const startHpMax      = hpMaxAtLevel(academicLevel);
+      const startEnergyMax  = energyMaxAtLevel(academicLevel);
+      const startFreePoints = levelsAboveOne * 3;            // same as getPointsForLevelUp
+
       const { data: newChar, error: createError } = await supabaseStudent
         .from('characters')
         .insert({
@@ -105,17 +162,17 @@ export function useBattleCharacter(userId: string | undefined) {
           name:         'Aventureiro',
           class:        'Guerreiro',
           level:        academicLevel,
-          xp:           0,
-          hp_current:   100,
-          hp_max:       100,
-          energy_max:   100,
-          forca:        10,
-          inteligencia: 10,
-          destreza:     10,
-          carisma:      10,
-          agilidade:    10,
-          resistencia:  10,
-          free_points:  0,
+          xp:           getTotalXPForLevel(academicLevel),
+          hp_current:   startHpMax,
+          hp_max:       startHpMax,
+          energy_max:   startEnergyMax,
+          forca:        startStat,
+          inteligencia: startStat,
+          destreza:     startStat,
+          carisma:      startStat,
+          agilidade:    startStat,
+          resistencia:  startStat,
+          free_points:  startFreePoints,
           coins:        0,
           diamonds:     0,
         })

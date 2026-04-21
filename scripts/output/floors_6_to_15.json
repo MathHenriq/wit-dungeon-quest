@@ -1,0 +1,2146 @@
+[
+  {
+    "floor_number": 6,
+    "name": "Salão das Chamas",
+    "theme": "fire",
+    "lore": {
+      "description": "O calor aumenta a cada passo. As paredes de rocha negra refletem chamas eternas que nunca se apagam. O Salão das Chamas é o primeiro teste real de resiliência.",
+      "history": "Forjado por magos que acreditavam que o fogo purifica o conhecimento. Apenas aqueles que dominam o controle de fluxo conseguem atravessar sem se queimar.",
+      "danger_warning": "As chamas se intensificam quando alguém hesita. Decisões precisas são a única proteção."
+    },
+    "visual": {
+      "primary_color": "#f97316",
+      "accent_color": "#fb923c",
+      "fog_color": "rgba(249,115,22,0.07)",
+      "fog_opacity": 0.07,
+      "particle_type": "ember"
+    },
+    "boss": {
+      "name": "Salamandra Anciã",
+      "title": "Guardiã do Fogo Eterno",
+      "description": "Uma criatura ígnea com séculos de existência. Seus ataques de fogo escalam conforme o combate avança, recompensando respostas rápidas e precisas.",
+      "sprite_id": "boss_005",
+      "hp": 280,
+      "hp_max": 280,
+      "attack": 22,
+      "defense": 14,
+      "speed": 55,
+      "element": "fogo",
+      "reward_coins": 120,
+      "reward_xp": 180,
+      "special_ability": {
+        "name": "Inferno Total",
+        "description": "Quando HP cai abaixo de 40%, inflige dano duplo por 2 turnos.",
+        "trigger": "hp_below_40_percent"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Gárgula de Lava",
+        "description": "Criatura de pedra fundida que patrulha o salão lançando fragmentos incandescentes.",
+        "sprite_id": "enemy_013",
+        "hp": 95,
+        "hp_max": 95,
+        "attack": 14,
+        "defense": 10,
+        "speed": 40,
+        "element": "fogo",
+        "is_boss": false,
+        "reward_coins": 25,
+        "reward_xp": 35
+      },
+      {
+        "name": "Elemental de Brasa",
+        "description": "Massa de brasas animadas que se reconstrói parcialmente a cada turno.",
+        "sprite_id": "enemy_014",
+        "hp": 80,
+        "hp_max": 80,
+        "attack": 16,
+        "defense": 8,
+        "speed": 50,
+        "element": "fogo",
+        "is_boss": false,
+        "reward_coins": 22,
+        "reward_xp": 30
+      },
+      {
+        "name": "Espírito das Chamas",
+        "description": "Forma etérea que surge das labaredas. Quase imaterial, mas dolorosamente real.",
+        "sprite_id": "enemy_015",
+        "hp": 70,
+        "hp_max": 70,
+        "attack": 18,
+        "defense": 6,
+        "speed": 62,
+        "element": "fogo",
+        "is_boss": false,
+        "reward_coins": 20,
+        "reward_xp": 28
+      }
+    ],
+    "quiz": {
+      "title": "Desafio do Salão das Chamas",
+      "topic": "Loops e Repetição",
+      "questions": [
+        {
+          "id": "q6_1",
+          "question": "O que um loop 'for' faz em programação?",
+          "options": {
+            "a": "Repete um bloco de código uma quantidade definida de vezes",
+            "b": "Executa um código apenas se uma condição for verdadeira",
+            "c": "Armazena dados na memória",
+            "d": "Cria uma função reutilizável"
+          },
+          "correct": "a",
+          "explanation": "O loop 'for' é usado para repetir um bloco de código por um número específico de iterações ou para percorrer uma sequência."
+        },
+        {
+          "id": "q6_2",
+          "question": "Qual é a diferença entre 'for' e 'while'?",
+          "options": {
+            "a": "Não há diferença, são idênticos",
+            "b": "'for' é mais rápido que 'while'",
+            "c": "'for' itera sobre sequências; 'while' repete enquanto uma condição for verdadeira",
+            "d": "'while' só funciona com números"
+          },
+          "correct": "c",
+          "explanation": "'for' percorre elementos de uma coleção ou executa N vezes. 'while' continua repetindo até que a condição se torne falsa."
+        },
+        {
+          "id": "q6_3",
+          "question": "O que causa um loop infinito?",
+          "options": {
+            "a": "Usar variáveis dentro do loop",
+            "b": "Uma condição de parada que nunca se torna falsa",
+            "c": "Usar o comando 'break'",
+            "d": "Ter muitas linhas dentro do loop"
+          },
+          "correct": "b",
+          "explanation": "Um loop infinito ocorre quando a condição de parada nunca é atingida, fazendo o programa travar em repetição contínua."
+        },
+        {
+          "id": "q6_4",
+          "question": "O que o comando 'break' faz dentro de um loop?",
+          "options": {
+            "a": "Pausa o loop temporariamente",
+            "b": "Reinicia o loop do início",
+            "c": "Interrompe o loop imediatamente",
+            "d": "Pula para a próxima iteração"
+          },
+          "correct": "c",
+          "explanation": "'break' encerra a execução do loop imediatamente, saindo para o código após ele."
+        },
+        {
+          "id": "q6_5",
+          "question": "O que o comando 'continue' faz dentro de um loop?",
+          "options": {
+            "a": "Encerra o loop",
+            "b": "Pula o restante da iteração atual e vai para a próxima",
+            "c": "Continua após o loop",
+            "d": "Reinicia todo o programa"
+          },
+          "correct": "b",
+          "explanation": "'continue' ignora o restante do bloco da iteração atual e avança para a próxima execução do loop."
+        },
+        {
+          "id": "q6_6",
+          "question": "Em Python, o que 'range(5)' gera?",
+          "options": {
+            "a": "Os números 1, 2, 3, 4, 5",
+            "b": "Os números 0, 1, 2, 3, 4",
+            "c": "Cinco valores aleatórios",
+            "d": "Uma lista vazia de 5 espaços"
+          },
+          "correct": "b",
+          "explanation": "'range(5)' gera a sequência 0, 1, 2, 3, 4. Em Python, a contagem começa em 0 por padrão."
+        },
+        {
+          "id": "q6_7",
+          "question": "O que é uma variável de controle em um loop?",
+          "options": {
+            "a": "Uma variável que armazena o resultado final",
+            "b": "A variável que muda a cada iteração e controla quando o loop para",
+            "c": "Uma variável global do programa",
+            "d": "Uma variável que nunca muda"
+          },
+          "correct": "b",
+          "explanation": "A variável de controle (como 'i' em 'for i in range(10)') rastreia o estado do loop e determina quando ele deve parar."
+        },
+        {
+          "id": "q6_8",
+          "question": "Para que serve um loop aninhado?",
+          "options": {
+            "a": "Para criar loops mais rápidos",
+            "b": "Para executar um loop dentro de outro loop",
+            "c": "Para evitar erros no código",
+            "d": "Para organizar o código visualmente"
+          },
+          "correct": "b",
+          "explanation": "Loops aninhados são usados quando precisamos iterar sobre estruturas bidimensionais, como matrizes ou tabelas."
+        },
+        {
+          "id": "q6_9",
+          "question": "Se um loop 'for' percorre uma lista de 8 elementos, quantas vezes o bloco interno executa?",
+          "options": {
+            "a": "7 vezes",
+            "b": "8 vezes",
+            "c": "9 vezes",
+            "d": "Depende do conteúdo da lista"
+          },
+          "correct": "b",
+          "explanation": "O bloco interno executa uma vez para cada elemento da lista, portanto 8 vezes para uma lista de 8 elementos."
+        },
+        {
+          "id": "q6_10",
+          "question": "O que é acumulador em programação?",
+          "options": {
+            "a": "Um tipo especial de variável apenas para loops",
+            "b": "Uma variável que vai somando ou acumulando valores a cada iteração",
+            "c": "O nome do último elemento de uma lista",
+            "d": "Um comando para parar o loop"
+          },
+          "correct": "b",
+          "explanation": "Acumulador é uma variável inicializada antes do loop (geralmente com 0) que vai sendo somada a cada iteração para calcular um total."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 7,
+    "name": "Floresta dos Espectros",
+    "theme": "forest",
+    "lore": {
+      "description": "Uma floresta densa onde a luz solar mal penetra. As árvores são antigas e suas raízes se entrelaçam formando padrões que lembram estruturas de dados.",
+      "history": "Dizem que programadores antigos se perderam aqui tentando depurar seus feitiços. Seus erros foram absorvidos pelas árvores e agora habitam a floresta como espectros.",
+      "danger_warning": "Os espectros não atacam por maldade — eles repetem eternamente os erros que cometem. Compreenda o erro para derrotá-los."
+    },
+    "visual": {
+      "primary_color": "#16a34a",
+      "accent_color": "#22c55e",
+      "fog_color": "rgba(22,163,74,0.07)",
+      "fog_opacity": 0.07,
+      "particle_type": "leaf"
+    },
+    "boss": {
+      "name": "Espectro do Código Perdido",
+      "title": "O Bug Eterno",
+      "description": "Manifestação de um programa que nunca foi corrigido. Seus ataques são baseados em erros lógicos e ele só pode ser derrotado por quem entende o que ele fez de errado.",
+      "sprite_id": "boss_006",
+      "hp": 310,
+      "hp_max": 310,
+      "attack": 24,
+      "defense": 16,
+      "speed": 48,
+      "element": "sombra",
+      "reward_coins": 130,
+      "reward_xp": 195,
+      "special_ability": {
+        "name": "Loop Eterno",
+        "description": "Invoca 1 inimigo espectral adicional quando HP cai abaixo de 50%.",
+        "trigger": "hp_below_50_percent"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Espectro do Erro de Sintaxe",
+        "description": "Representa um código que nunca foi escrito corretamente. Fraco, mas irritante.",
+        "sprite_id": "enemy_016",
+        "hp": 85,
+        "hp_max": 85,
+        "attack": 12,
+        "defense": 8,
+        "speed": 55,
+        "element": "sombra",
+        "is_boss": false,
+        "reward_coins": 22,
+        "reward_xp": 32
+      },
+      {
+        "name": "Sombra do Loop Infinito",
+        "description": "Criatura que ataca em ciclos repetitivos. Previsível, mas persistente.",
+        "sprite_id": "enemy_017",
+        "hp": 100,
+        "hp_max": 100,
+        "attack": 15,
+        "defense": 12,
+        "speed": 38,
+        "element": "sombra",
+        "is_boss": false,
+        "reward_coins": 26,
+        "reward_xp": 38
+      },
+      {
+        "name": "Fantasma da Variável Nula",
+        "description": "Existe no espaço entre valores. Ataques difíceis de prever pois às vezes não causam dano.",
+        "sprite_id": "enemy_018",
+        "hp": 75,
+        "hp_max": 75,
+        "attack": 20,
+        "defense": 5,
+        "speed": 70,
+        "element": "sombra",
+        "is_boss": false,
+        "reward_coins": 20,
+        "reward_xp": 29
+      }
+    ],
+    "quiz": {
+      "title": "Desafio da Floresta dos Espectros",
+      "topic": "Depuração e Erros",
+      "questions": [
+        {
+          "id": "q7_1",
+          "question": "O que é um erro de sintaxe em programação?",
+          "options": {
+            "a": "Um erro na lógica do programa",
+            "b": "Um erro na escrita do código que viola as regras da linguagem",
+            "c": "Um erro que ocorre durante a execução",
+            "d": "Um aviso sobre desempenho"
+          },
+          "correct": "b",
+          "explanation": "Erro de sintaxe acontece quando o código está escrito de forma que o computador não consegue interpretar, como esquecer dois-pontos no Python ou fechar parênteses."
+        },
+        {
+          "id": "q7_2",
+          "question": "O que é debugging?",
+          "options": {
+            "a": "Escrever código mais rápido",
+            "b": "O processo de encontrar e corrigir erros no código",
+            "c": "Comentar partes do código",
+            "d": "Otimizar o desempenho do programa"
+          },
+          "correct": "b",
+          "explanation": "Debugging é o processo sistemático de identificar, analisar e corrigir falhas (bugs) no código."
+        },
+        {
+          "id": "q7_3",
+          "question": "O que é um erro de lógica?",
+          "options": {
+            "a": "O código não executa por erro de escrita",
+            "b": "O programa roda mas produz resultados incorretos",
+            "c": "O programa consome muita memória",
+            "d": "O código é muito longo"
+          },
+          "correct": "b",
+          "explanation": "Erros de lógica são os mais difíceis: o código executa sem erros, mas o resultado está errado porque a lógica do programador estava incorreta."
+        },
+        {
+          "id": "q7_4",
+          "question": "Para que serve o comando 'print()' no debugging?",
+          "options": {
+            "a": "Imprimir documentos",
+            "b": "Visualizar o valor das variáveis em diferentes pontos do código",
+            "c": "Salvar o código",
+            "d": "Encerrar o programa"
+          },
+          "correct": "b",
+          "explanation": "Usar 'print()' é a técnica mais básica de debugging: você exibe valores de variáveis para entender o que o programa está fazendo em cada etapa."
+        },
+        {
+          "id": "q7_5",
+          "question": "O que é um erro de runtime (tempo de execução)?",
+          "options": {
+            "a": "Um erro detectado antes de rodar o código",
+            "b": "Um erro que ocorre enquanto o programa está em execução",
+            "c": "Um erro de digitação",
+            "d": "Um problema com a conexão de internet"
+          },
+          "correct": "b",
+          "explanation": "Erros de runtime ocorrem durante a execução — por exemplo, tentar dividir por zero ou acessar um índice que não existe na lista."
+        },
+        {
+          "id": "q7_6",
+          "question": "O que significa 'IndexError' em Python?",
+          "options": {
+            "a": "O índice está correto",
+            "b": "Você tentou acessar uma posição que não existe na lista",
+            "c": "A lista está vazia",
+            "d": "Erro de conexão com banco de dados"
+          },
+          "correct": "b",
+          "explanation": "'IndexError' indica que você tentou acessar lista[5] mas a lista só tem 3 elementos, por exemplo. O índice está fora do intervalo válido."
+        },
+        {
+          "id": "q7_7",
+          "question": "O que é um 'traceback' em Python?",
+          "options": {
+            "a": "Um comando para voltar ao início do código",
+            "b": "O histórico de chamadas de funções que levou ao erro",
+            "c": "Um tipo de loop especial",
+            "d": "A última linha executada antes de fechar"
+          },
+          "correct": "b",
+          "explanation": "O traceback mostra o caminho exato de execução que levou ao erro, indicando o arquivo, linha e tipo de erro — essencial para debugging."
+        },
+        {
+          "id": "q7_8",
+          "question": "Por que é importante ler mensagens de erro?",
+          "options": {
+            "a": "São apenas avisos que podem ser ignorados",
+            "b": "Indicam exatamente onde e qual tipo de problema ocorreu",
+            "c": "São geradas aleatoriamente pelo computador",
+            "d": "Só importam em projetos grandes"
+          },
+          "correct": "b",
+          "explanation": "Mensagens de erro são a forma do computador te dizer o que deu errado. Ler e entender essas mensagens é uma habilidade fundamental de programação."
+        },
+        {
+          "id": "q7_9",
+          "question": "O que é um 'NameError' em Python?",
+          "options": {
+            "a": "Você escreveu o nome do arquivo errado",
+            "b": "Você usou uma variável ou função que não foi definida",
+            "c": "O nome do programa é muito longo",
+            "d": "Erro no sistema operacional"
+          },
+          "correct": "b",
+          "explanation": "'NameError' ocorre quando você tenta usar uma variável antes de criá-la ou escreve o nome errado — Python não reconhece o identificador."
+        },
+        {
+          "id": "q7_10",
+          "question": "Qual é a melhor estratégia inicial para depurar um código que não funciona?",
+          "options": {
+            "a": "Apagar tudo e começar do zero",
+            "b": "Ler a mensagem de erro, identificar a linha, e usar print() para investigar",
+            "c": "Executar o código várias vezes até funcionar",
+            "d": "Perguntar para alguém reescrever o código"
+          },
+          "correct": "b",
+          "explanation": "A abordagem sistemática: ler o erro → localizar a linha → usar print() para ver os valores das variáveis → entender o que está acontecendo → corrigir."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 8,
+    "name": "Torres do Conhecimento",
+    "theme": "tower",
+    "lore": {
+      "description": "Torres de pedra negra que se erguem até as nuvens. Cada andar das torres contém uma biblioteca de feitiços que representam funções e módulos de código.",
+      "history": "Construídas por arquitetos de software que queriam organizar todo o conhecimento da programação em estruturas verticais. Cada torre representa um módulo diferente.",
+      "danger_warning": "Os guardiões das torres testam se você realmente entende o que está usando — não adianta decorar, é preciso compreender."
+    },
+    "visual": {
+      "primary_color": "#7c3aed",
+      "accent_color": "#8b5cf6",
+      "fog_color": "rgba(124,58,237,0.07)",
+      "fog_opacity": 0.07,
+      "particle_type": "magic"
+    },
+    "boss": {
+      "name": "Arquiteto das Torres",
+      "title": "Mestre dos Módulos",
+      "description": "Um ser de pura estrutura lógica que construiu as torres usando apenas código bem organizado. Ele testa se o invasor entende como reutilizar e organizar conhecimento.",
+      "sprite_id": "boss_007",
+      "hp": 340,
+      "hp_max": 340,
+      "attack": 25,
+      "defense": 18,
+      "speed": 44,
+      "element": "luz",
+      "reward_coins": 140,
+      "reward_xp": 210,
+      "special_ability": {
+        "name": "Invocação de Módulo",
+        "description": "A cada 3 turnos, recupera 30 HP ao chamar uma função de cura.",
+        "trigger": "every_3_turns"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Guardião da Biblioteca",
+        "description": "Bibliotecário espectral que testa se você sabe onde encontrar o que precisa.",
+        "sprite_id": "enemy_019",
+        "hp": 100,
+        "hp_max": 100,
+        "attack": 16,
+        "defense": 14,
+        "speed": 36,
+        "element": "luz",
+        "is_boss": false,
+        "reward_coins": 28,
+        "reward_xp": 40
+      },
+      {
+        "name": "Sentinela do Módulo",
+        "description": "Criatura que verifica se você está importando apenas o necessário.",
+        "sprite_id": "enemy_020",
+        "hp": 90,
+        "hp_max": 90,
+        "attack": 18,
+        "defense": 11,
+        "speed": 48,
+        "element": "luz",
+        "is_boss": false,
+        "reward_coins": 24,
+        "reward_xp": 34
+      },
+      {
+        "name": "Espírito da Função Pura",
+        "description": "Entidade que representa funções sem efeitos colaterais. Atacar sem entender é inútil.",
+        "sprite_id": "enemy_021",
+        "hp": 78,
+        "hp_max": 78,
+        "attack": 21,
+        "defense": 7,
+        "speed": 60,
+        "element": "luz",
+        "is_boss": false,
+        "reward_coins": 21,
+        "reward_xp": 30
+      }
+    ],
+    "quiz": {
+      "title": "Desafio das Torres do Conhecimento",
+      "topic": "Funções Avançadas e Módulos",
+      "questions": [
+        {
+          "id": "q8_1",
+          "question": "O que é um módulo em Python?",
+          "options": {
+            "a": "Um tipo de variável especial",
+            "b": "Um arquivo Python com funções e variáveis que podem ser importadas",
+            "c": "Uma função que retorna múltiplos valores",
+            "d": "Um tipo de loop avançado"
+          },
+          "correct": "b",
+          "explanation": "Módulos são arquivos .py que contêm código reutilizável. Você os importa com 'import' para usar suas funções e variáveis em outros arquivos."
+        },
+        {
+          "id": "q8_2",
+          "question": "O que faz 'import random' no Python?",
+          "options": {
+            "a": "Cria variáveis aleatórias",
+            "b": "Carrega o módulo 'random' para uso de funções como randint()",
+            "c": "Gera um número aleatório automaticamente",
+            "d": "Importa todos os módulos disponíveis"
+          },
+          "correct": "b",
+          "explanation": "'import random' carrega o módulo de geração de números aleatórios, dando acesso a funções como random.randint(), random.choice(), etc."
+        },
+        {
+          "id": "q8_3",
+          "question": "O que são parâmetros padrão (default) em funções?",
+          "options": {
+            "a": "Parâmetros que sempre retornam zero",
+            "b": "Valores usados quando o argumento não é fornecido na chamada",
+            "c": "O primeiro parâmetro de toda função",
+            "d": "Parâmetros que só funcionam com números"
+          },
+          "correct": "b",
+          "explanation": "Parâmetros padrão têm um valor pré-definido: def saudacao(nome='Aventureiro'). Se você chamar saudacao() sem argumento, usará 'Aventureiro'."
+        },
+        {
+          "id": "q8_4",
+          "question": "Uma função pode retornar múltiplos valores em Python?",
+          "options": {
+            "a": "Não, funções só retornam um valor",
+            "b": "Sim, separando os valores por vírgula no return",
+            "c": "Sim, mas apenas se usar uma lista",
+            "d": "Apenas funções especiais chamadas 'multi-return'"
+          },
+          "correct": "b",
+          "explanation": "Em Python, 'return a, b, c' retorna uma tupla com múltiplos valores. Você pode desempacotá-los: x, y, z = minha_funcao()."
+        },
+        {
+          "id": "q8_5",
+          "question": "O que é o escopo de uma variável?",
+          "options": {
+            "a": "O tipo da variável",
+            "b": "A região do código onde a variável existe e pode ser acessada",
+            "c": "O tamanho máximo da variável",
+            "d": "O nome técnico da variável"
+          },
+          "correct": "b",
+          "explanation": "Escopo define onde uma variável é visível. Variáveis criadas dentro de uma função só existem dentro dela (escopo local)."
+        },
+        {
+          "id": "q8_6",
+          "question": "O que diferencia uma variável local de uma global?",
+          "options": {
+            "a": "Variáveis locais são mais rápidas",
+            "b": "Local existe apenas dentro da função; global existe em todo o programa",
+            "c": "Global só pode conter números",
+            "d": "Não há diferença prática"
+          },
+          "correct": "b",
+          "explanation": "Variáveis locais vivem dentro da função e desaparecem quando ela termina. Variáveis globais existem em todo o arquivo e persistem durante a execução."
+        },
+        {
+          "id": "q8_7",
+          "question": "Para que serve 'from math import sqrt'?",
+          "options": {
+            "a": "Importa todo o módulo math",
+            "b": "Importa apenas a função sqrt do módulo math",
+            "c": "Cria uma nova função chamada sqrt",
+            "d": "Remove o módulo math"
+          },
+          "correct": "b",
+          "explanation": "'from modulo import funcao' importa apenas o que você precisa, sem carregar o módulo inteiro. Permite chamar sqrt() diretamente em vez de math.sqrt()."
+        },
+        {
+          "id": "q8_8",
+          "question": "O que é recursão em programação?",
+          "options": {
+            "a": "Um loop que nunca termina",
+            "b": "Uma função que chama a si mesma",
+            "c": "Um módulo que importa outros módulos",
+            "d": "Um erro muito comum em Python"
+          },
+          "correct": "b",
+          "explanation": "Recursão é quando uma função se chama dentro de si mesma. É poderosa para problemas que se dividem em subproblemas menores do mesmo tipo."
+        },
+        {
+          "id": "q8_9",
+          "question": "O que é docstring em Python?",
+          "options": {
+            "a": "Um tipo de comentário que documenta funções e módulos",
+            "b": "Um arquivo de documentação externo",
+            "c": "Uma string especial para armazenar listas",
+            "d": "O nome técnico para variáveis de texto"
+          },
+          "correct": "a",
+          "explanation": "Docstrings são strings entre triple-quotes logo após a definição da função. Documentam o que a função faz e são acessíveis via help() e ferramentas de IDE."
+        },
+        {
+          "id": "q8_10",
+          "question": "Por que é boa prática criar funções pequenas e específicas?",
+          "options": {
+            "a": "Funções menores executam mais rápido",
+            "b": "Para facilitar testes, reutilização e leitura do código",
+            "c": "O Python exige funções pequenas",
+            "d": "Para usar menos memória"
+          },
+          "correct": "b",
+          "explanation": "Funções pequenas e focadas em uma tarefa são mais fáceis de testar, de entender e de reutilizar em outros contextos — princípio de responsabilidade única."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 9,
+    "name": "Pântano dos Dados",
+    "theme": "swamp",
+    "lore": {
+      "description": "Um pântano denso onde cada poça de lama esconde informações valiosas. O cheiro de dados podres indica informações mal formatadas e inconsistentes.",
+      "history": "Antigamente um lago cristalino de dados estruturados, foi corrompido por dados brutos sem limpeza. Agora é um campo de treino para quem sabe lidar com informação imperfeita.",
+      "danger_warning": "Não confie em nenhum dado sem verificar. Os habitantes deste pântano sobreviveram aprendendo a questionar cada informação."
+    },
+    "visual": {
+      "primary_color": "#65a30d",
+      "accent_color": "#84cc16",
+      "fog_color": "rgba(101,163,13,0.09)",
+      "fog_opacity": 0.09,
+      "particle_type": "bubble"
+    },
+    "boss": {
+      "name": "Pantaneiro Corrompido",
+      "title": "O Guardião dos Dados Sujos",
+      "description": "Uma entidade formada por dados inconsistentes e mal formatados. Confunde os atacantes com informações contraditórias. Só é derrotado por quem sabe organizar e limpar dados.",
+      "sprite_id": "boss_008",
+      "hp": 370,
+      "hp_max": 370,
+      "attack": 26,
+      "defense": 19,
+      "speed": 35,
+      "element": "veneno",
+      "reward_coins": 150,
+      "reward_xp": 225,
+      "special_ability": {
+        "name": "Dados Corrompidos",
+        "description": "Confunde as estatísticas de ataque do jogador por 2 turnos.",
+        "trigger": "every_4_turns"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Lama de Dados Duplicados",
+        "description": "Cópia de si mesmo que aparece duas vezes. Atacar apenas um não resolve.",
+        "sprite_id": "enemy_022",
+        "hp": 105,
+        "hp_max": 105,
+        "attack": 15,
+        "defense": 13,
+        "speed": 30,
+        "element": "veneno",
+        "is_boss": false,
+        "reward_coins": 28,
+        "reward_xp": 38
+      },
+      {
+        "name": "Criatura do Valor Nulo",
+        "description": "Representa dados faltantes. Às vezes ataca, às vezes não — imprevisível como um NULL.",
+        "sprite_id": "enemy_023",
+        "hp": 88,
+        "hp_max": 88,
+        "attack": 19,
+        "defense": 9,
+        "speed": 52,
+        "element": "veneno",
+        "is_boss": false,
+        "reward_coins": 23,
+        "reward_xp": 32
+      },
+      {
+        "name": "Monstro do Tipo Errado",
+        "description": "Parece ser de um tipo mas se comporta como outro. Símbolo dos dados mal tipados.",
+        "sprite_id": "enemy_024",
+        "hp": 95,
+        "hp_max": 95,
+        "attack": 17,
+        "defense": 11,
+        "speed": 44,
+        "element": "veneno",
+        "is_boss": false,
+        "reward_coins": 25,
+        "reward_xp": 35
+      }
+    ],
+    "quiz": {
+      "title": "Desafio do Pântano dos Dados",
+      "topic": "Tipos de Dados e Estruturas",
+      "questions": [
+        {
+          "id": "q9_1",
+          "question": "Qual é a diferença entre uma lista e uma tupla em Python?",
+          "options": {
+            "a": "Listas armazenam texto; tuplas armazenam números",
+            "b": "Listas são mutáveis (podem ser modificadas); tuplas são imutáveis",
+            "c": "Tuplas são mais lentas que listas",
+            "d": "Não há diferença prática"
+          },
+          "correct": "b",
+          "explanation": "A diferença fundamental: listas [] podem ter elementos adicionados, removidos ou alterados. Tuplas () são fixas após criação — não podem ser modificadas."
+        },
+        {
+          "id": "q9_2",
+          "question": "O que é um dicionário em Python?",
+          "options": {
+            "a": "Uma lista de palavras em ordem alfabética",
+            "b": "Uma estrutura que armazena pares chave-valor",
+            "c": "Um tipo de loop para texto",
+            "d": "Uma variável que aceita qualquer tipo"
+          },
+          "correct": "b",
+          "explanation": "Dicionários {} armazenam dados como pares chave:valor — {'nome': 'Alice', 'idade': 15}. Você acessa o valor pela chave, não por índice numérico."
+        },
+        {
+          "id": "q9_3",
+          "question": "O que é um conjunto (set) em Python?",
+          "options": {
+            "a": "Uma lista ordenada de números",
+            "b": "Uma coleção sem elementos duplicados e sem ordem definida",
+            "c": "Um dicionário sem valores",
+            "d": "Uma variável que só aceita inteiros"
+          },
+          "correct": "b",
+          "explanation": "Sets {} armazenam elementos únicos sem repetição e sem ordem garantida. São úteis para remover duplicatas e fazer operações de conjunto (união, interseção)."
+        },
+        {
+          "id": "q9_4",
+          "question": "O que acontece ao tentar acessar lista[10] em uma lista de 5 elementos?",
+          "options": {
+            "a": "Retorna None",
+            "b": "Retorna 0",
+            "c": "Lança IndexError",
+            "d": "Expande a lista automaticamente"
+          },
+          "correct": "c",
+          "explanation": "Python lança IndexError quando você tenta acessar um índice fora do intervalo. A lista tem índices 0 a 4, então [10] não existe."
+        },
+        {
+          "id": "q9_5",
+          "question": "O que é tipagem dinâmica?",
+          "options": {
+            "a": "Você deve declarar o tipo da variável antes de usá-la",
+            "b": "O tipo da variável é determinado automaticamente pelo valor atribuído",
+            "c": "As variáveis mudam de tipo aleatoriamente",
+            "d": "Um sistema de tipos apenas para números"
+          },
+          "correct": "b",
+          "explanation": "Python usa tipagem dinâmica: você não precisa declarar 'int x = 5'. Apenas escreve 'x = 5' e Python infere que é um inteiro. O tipo pode mudar com nova atribuição."
+        },
+        {
+          "id": "q9_6",
+          "question": "Como verificar o tipo de uma variável em Python?",
+          "options": {
+            "a": "variavel.tipo()",
+            "b": "type(variavel)",
+            "c": "typeof(variavel)",
+            "d": "variavel.getType()"
+          },
+          "correct": "b",
+          "explanation": "A função type() retorna o tipo do objeto: type(42) retorna <class 'int'>, type('olá') retorna <class 'str'>, type([]) retorna <class 'list'>."
+        },
+        {
+          "id": "q9_7",
+          "question": "O que é conversão de tipo (type casting)?",
+          "options": {
+            "a": "Mudar o nome de uma variável",
+            "b": "Transformar um valor de um tipo para outro",
+            "c": "Comparar dois tipos diferentes",
+            "d": "Apagar o tipo de uma variável"
+          },
+          "correct": "b",
+          "explanation": "Type casting converte valores entre tipos: int('42') transforma a string '42' em inteiro, str(42) transforma o inteiro em texto, float(5) vira 5.0."
+        },
+        {
+          "id": "q9_8",
+          "question": "O que é dado estruturado versus dado não estruturado?",
+          "options": {
+            "a": "Dados em tabelas versus dados em texto livre/imagens/áudio",
+            "b": "Dados públicos versus dados privados",
+            "c": "Dados antigos versus dados novos",
+            "d": "Dados numéricos versus dados de texto"
+          },
+          "correct": "a",
+          "explanation": "Dados estruturados seguem um formato organizado (planilhas, bancos de dados). Dados não estruturados são textos livres, imagens, vídeos, áudios — mais difíceis de processar automaticamente."
+        },
+        {
+          "id": "q9_9",
+          "question": "Por que dados nulos (None/null) podem ser problemáticos?",
+          "options": {
+            "a": "Ocupam muito espaço em memória",
+            "b": "Podem causar erros se operações forem aplicadas sem verificação prévia",
+            "c": "São ilegais em algumas linguagens",
+            "d": "Tornam o código mais lento"
+          },
+          "correct": "b",
+          "explanation": "Valores nulos representam ausência de dado. Tentar somar, comparar ou acessar atributos de None sem verificar causa erros — daí a importância de checar antes de usar."
+        },
+        {
+          "id": "q9_10",
+          "question": "O que é serialização de dados?",
+          "options": {
+            "a": "Organizar dados em ordem numérica",
+            "b": "Converter estruturas de dados em formatos que podem ser armazenados ou transmitidos",
+            "c": "Dividir dados em partes iguais",
+            "d": "Criptografar informações sensíveis"
+          },
+          "correct": "b",
+          "explanation": "Serialização converte objetos em Python para formatos como JSON ou XML que podem ser salvos em arquivo ou enviados pela rede. json.dumps() serializa, json.loads() deserializa."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 10,
+    "name": "Fortaleza do Algoritmo",
+    "theme": "fortress",
+    "lore": {
+      "description": "Uma fortaleza imponente construída com blocos de lógica pura. Cada parede é um algoritmo de ordenação, cada torre é uma estrutura de busca. O andar 10 marca o fim do primeiro bloco da jornada.",
+      "history": "Erguida pelos Mestres do Código como ponto de passagem obrigatório. Apenas quem domina os fundamentos atravessa seus portões. Aqui vivem os guardiões mais poderosos do bloco inicial.",
+      "danger_warning": "Esta fortaleza não foi construída para ser derrubada — foi construída para ser compreendida. A força bruta não funciona aqui."
+    },
+    "visual": {
+      "primary_color": "#dc2626",
+      "accent_color": "#ef4444",
+      "fog_color": "rgba(220,38,38,0.08)",
+      "fog_opacity": 0.08,
+      "particle_type": "spark"
+    },
+    "boss": {
+      "name": "Comandante Algorítmico",
+      "title": "Guardião do Primeiro Bloco",
+      "description": "O chefe do primeiro bloco de andares. Uma entidade que personifica eficiência computacional. Seus ataques seguem padrões algorítmicos precisos — antecipe ou seja derrotado.",
+      "sprite_id": "boss_009",
+      "hp": 420,
+      "hp_max": 420,
+      "attack": 30,
+      "defense": 22,
+      "speed": 50,
+      "element": "elétrico",
+      "reward_coins": 200,
+      "reward_xp": 300,
+      "special_ability": {
+        "name": "Ordenação Forçada",
+        "description": "Reorganiza os ataques do jogador por 3 turnos, reduzindo eficiência em 25%.",
+        "trigger": "hp_below_60_percent"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Sentinela Binária",
+        "description": "Só tem dois estados: atacar ou defender. Aprenda o padrão para antecipar.",
+        "sprite_id": "enemy_025",
+        "hp": 110,
+        "hp_max": 110,
+        "attack": 19,
+        "defense": 16,
+        "speed": 42,
+        "element": "elétrico",
+        "is_boss": false,
+        "reward_coins": 30,
+        "reward_xp": 44
+      },
+      {
+        "name": "Golem da Complexidade",
+        "description": "Quanto mais dano recebe, mais lento fica. Representa algoritmos com custo crescente.",
+        "sprite_id": "enemy_026",
+        "hp": 140,
+        "hp_max": 140,
+        "attack": 14,
+        "defense": 20,
+        "speed": 25,
+        "element": "elétrico",
+        "is_boss": false,
+        "reward_coins": 35,
+        "reward_xp": 50
+      },
+      {
+        "name": "Espírito da Recursão",
+        "description": "Quando derrotado, pode invocar uma versão menor de si mesmo uma vez.",
+        "sprite_id": "enemy_027",
+        "hp": 95,
+        "hp_max": 95,
+        "attack": 22,
+        "defense": 10,
+        "speed": 58,
+        "element": "elétrico",
+        "is_boss": false,
+        "reward_coins": 26,
+        "reward_xp": 38
+      },
+      {
+        "name": "Arqueiro do Bubble Sort",
+        "description": "Ataca em ordem previsível mas constante. Lento mas implacável como o algoritmo que representa.",
+        "sprite_id": "enemy_028",
+        "hp": 85,
+        "hp_max": 85,
+        "attack": 17,
+        "defense": 12,
+        "speed": 35,
+        "element": "elétrico",
+        "is_boss": false,
+        "reward_coins": 22,
+        "reward_xp": 32
+      }
+    ],
+    "quiz": {
+      "title": "Desafio da Fortaleza — Revisão do Bloco 1",
+      "topic": "Revisão Geral: Andares 1 a 10",
+      "questions": [
+        {
+          "id": "q10_1",
+          "question": "O que é um algoritmo?",
+          "options": {
+            "a": "Um tipo de linguagem de programação",
+            "b": "Uma sequência de passos ordenados para resolver um problema",
+            "c": "Um programa completo já pronto",
+            "d": "Um erro específico de Python"
+          },
+          "correct": "b",
+          "explanation": "Algoritmo é uma sequência finita e ordenada de instruções para resolver um problema. É independente de linguagem — você pode expressar um algoritmo em português antes de codificar."
+        },
+        {
+          "id": "q10_2",
+          "question": "Qual estrutura de dados é melhor para armazenar uma coleção sem duplicatas?",
+          "options": {
+            "a": "Lista",
+            "b": "Tupla",
+            "c": "Set (conjunto)",
+            "d": "String"
+          },
+          "correct": "c",
+          "explanation": "Sets automaticamente eliminam duplicatas. Se você adicionar 'maçã' duas vezes em um set, ele armazenará apenas uma. Ideal para coleções de valores únicos."
+        },
+        {
+          "id": "q10_3",
+          "question": "Em qual situação você usaria um dicionário em vez de uma lista?",
+          "options": {
+            "a": "Quando os dados precisam de ordem",
+            "b": "Quando você precisa acessar dados por nome/chave descritiva",
+            "c": "Quando os dados são apenas números",
+            "d": "Quando a coleção tem menos de 10 itens"
+          },
+          "correct": "b",
+          "explanation": "Use dicionário quando faz mais sentido acessar dados por um nome descritivo: aluno['nome'] é mais claro que aluno[0]. Listas são melhores para sequências ordenadas."
+        },
+        {
+          "id": "q10_4",
+          "question": "O que retorna uma função que não tem 'return'?",
+          "options": {
+            "a": "Zero (0)",
+            "b": "Uma string vazia",
+            "c": "None",
+            "d": "Um erro"
+          },
+          "correct": "c",
+          "explanation": "Funções sem return implicitamente retornam None — o valor nulo do Python. Isso é comportamento normal, não um erro."
+        },
+        {
+          "id": "q10_5",
+          "question": "Qual é a principal vantagem de usar funções?",
+          "options": {
+            "a": "Tornar o código mais colorido no editor",
+            "b": "Reutilizar código sem precisar reescrever a mesma lógica",
+            "c": "Fazer o programa rodar mais rápido automaticamente",
+            "d": "Evitar o uso de variáveis"
+          },
+          "correct": "b",
+          "explanation": "Funções permitem escrever uma lógica uma vez e reutilizá-la em vários lugares. Isso reduz duplicação, facilita manutenção e melhora a organização do código."
+        },
+        {
+          "id": "q10_6",
+          "question": "Qual loop você usaria para percorrer todos os elementos de uma lista?",
+          "options": {
+            "a": "while, pois é mais adequado para listas",
+            "b": "for, pois é projetado para iterar sobre sequências",
+            "c": "Ambos funcionam; não há diferença",
+            "d": "Nenhum — listas não podem ser percorridas com loops"
+          },
+          "correct": "b",
+          "explanation": "'for item in lista' é a forma idiomática Python de percorrer listas. É mais legível e seguro que usar while com índice, pois elimina a possibilidade de IndexError."
+        },
+        {
+          "id": "q10_7",
+          "question": "O que é IA (Inteligência Artificial) em termos gerais?",
+          "options": {
+            "a": "Um robô físico que pensa como humano",
+            "b": "Sistemas computacionais capazes de realizar tarefas que normalmente requerem inteligência humana",
+            "c": "Um computador com processador muito rápido",
+            "d": "Um programa que só funciona conectado à internet"
+          },
+          "correct": "b",
+          "explanation": "IA é o campo da computação que desenvolve sistemas capazes de aprender, raciocinar, reconhecer padrões e tomar decisões — tarefas que antes só humanos conseguiam realizar."
+        },
+        {
+          "id": "q10_8",
+          "question": "Qual é a diferença entre Machine Learning e programação tradicional?",
+          "options": {
+            "a": "Machine Learning é mais rápido que programação tradicional",
+            "b": "Na programação tradicional você define as regras; no ML o algoritmo aprende as regras a partir dos dados",
+            "c": "Machine Learning só funciona com imagens",
+            "d": "Programação tradicional usa Python; ML usa outras linguagens"
+          },
+          "correct": "b",
+          "explanation": "Na programação tradicional você escreve 'se temperatura > 30, então quente'. No ML você mostra exemplos de dias quentes e frios, e o algoritmo descobre sozinho a regra."
+        },
+        {
+          "id": "q10_9",
+          "question": "O que é depuração (debugging) e por que é importante?",
+          "options": {
+            "a": "Apagar código desnecessário para o programa ficar menor",
+            "b": "Encontrar e corrigir erros no código para que funcione corretamente",
+            "c": "Testar o programa com usuários reais",
+            "d": "Comentar todo o código para documentação"
+          },
+          "correct": "b",
+          "explanation": "Debugging é fundamental — nenhum código funciona perfeitamente na primeira vez. Saber identificar e corrigir erros é uma das habilidades mais valorizadas em programação."
+        },
+        {
+          "id": "q10_10",
+          "question": "Você criou uma variável 'pontos = 100' dentro de uma função. Ela pode ser usada fora da função?",
+          "options": {
+            "a": "Sim, todas as variáveis são globais em Python",
+            "b": "Não, ela é local — existe apenas dentro da função",
+            "c": "Só se a função for executada pelo menos uma vez",
+            "d": "Depende do nome da variável"
+          },
+          "correct": "b",
+          "explanation": "Variáveis criadas dentro de funções têm escopo local — existem apenas enquanto a função executa e desaparecem depois. Para acessar fora, é preciso retornar o valor."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 11,
+    "name": "Planícies do Código Aberto",
+    "theme": "plains",
+    "lore": {
+      "description": "Vastas planícies onde o vento carrega fragmentos de código aberto flutuando no ar. Aqui começa o segundo bloco da jornada — os temas ficam mais avançados e os inimigos mais organizados.",
+      "history": "Antigamente, programadores solitários batalhavam aqui sozinhos. Com o surgimento do código aberto, passaram a compartilhar conhecimento e as batalhas ficaram mais equilibradas.",
+      "danger_warning": "Os inimigos aqui trabalham em equipe e se comunicam. Estratégia supera força bruta nestas planícies."
+    },
+    "visual": {
+      "primary_color": "#0891b2",
+      "accent_color": "#06b6d4",
+      "fog_color": "rgba(8,145,178,0.06)",
+      "fog_opacity": 0.06,
+      "particle_type": "wind"
+    },
+    "boss": {
+      "name": "Coletivo Distribuído",
+      "title": "O Enxame do Código",
+      "description": "Não é um ser único, mas uma rede de entidades menores que se comunicam e coordenam ataques. Representa sistemas distribuídos e APIs. Destruir um nó não é suficiente.",
+      "sprite_id": "boss_010",
+      "hp": 450,
+      "hp_max": 450,
+      "attack": 28,
+      "defense": 20,
+      "speed": 52,
+      "element": "ar",
+      "reward_coins": 170,
+      "reward_xp": 255,
+      "special_ability": {
+        "name": "Sincronização de Nós",
+        "description": "Cura 50 HP quando dois ou mais inimigos normais ainda estão vivos.",
+        "trigger": "allies_alive_2_plus"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Nó da Rede",
+        "description": "Um ponto de comunicação da rede inimiga. Fraco sozinho, perigoso em grupo.",
+        "sprite_id": "enemy_029",
+        "hp": 90,
+        "hp_max": 90,
+        "attack": 14,
+        "defense": 10,
+        "speed": 56,
+        "element": "ar",
+        "is_boss": false,
+        "reward_coins": 24,
+        "reward_xp": 34
+      },
+      {
+        "name": "Agente de API",
+        "description": "Envia requisições que causam efeitos variados. Nunca ataca da mesma forma duas vezes.",
+        "sprite_id": "enemy_030",
+        "hp": 95,
+        "hp_max": 95,
+        "attack": 18,
+        "defense": 9,
+        "speed": 60,
+        "element": "ar",
+        "is_boss": false,
+        "reward_coins": 25,
+        "reward_xp": 36
+      },
+      {
+        "name": "Servidor Fantasma",
+        "description": "Responde a ataques com um delay imprevisível. Desconcertante para quem espera resposta imediata.",
+        "sprite_id": "enemy_031",
+        "hp": 115,
+        "hp_max": 115,
+        "attack": 16,
+        "defense": 14,
+        "speed": 32,
+        "element": "ar",
+        "is_boss": false,
+        "reward_coins": 30,
+        "reward_xp": 42
+      },
+      {
+        "name": "Daemon do Sistema",
+        "description": "Processo que roda em segundo plano. Invisível até que seja tarde demais.",
+        "sprite_id": "enemy_032",
+        "hp": 80,
+        "hp_max": 80,
+        "attack": 21,
+        "defense": 7,
+        "speed": 65,
+        "element": "ar",
+        "is_boss": false,
+        "reward_coins": 22,
+        "reward_xp": 30
+      }
+    ],
+    "quiz": {
+      "title": "Desafio das Planícies",
+      "topic": "Internet, Redes e Como a Web Funciona",
+      "questions": [
+        {
+          "id": "q11_1",
+          "question": "O que é um protocolo HTTP?",
+          "options": {
+            "a": "Um tipo de vírus de computador",
+            "b": "Um conjunto de regras para comunicação entre navegadores e servidores web",
+            "c": "Uma linguagem de programação para web",
+            "d": "O sistema operacional da internet"
+          },
+          "correct": "b",
+          "explanation": "HTTP (HyperText Transfer Protocol) define como navegadores e servidores se comunicam. Quando você acessa um site, seu navegador faz requisições HTTP ao servidor."
+        },
+        {
+          "id": "q11_2",
+          "question": "O que é uma API?",
+          "options": {
+            "a": "Um tipo de banco de dados",
+            "b": "Uma interface que permite que programas se comuniquem e troquem dados",
+            "c": "Uma linguagem de programação específica",
+            "d": "Um antivírus para servidores"
+          },
+          "correct": "b",
+          "explanation": "API (Interface de Programação de Aplicações) é um conjunto de regras que permite que um programa acesse funcionalidades de outro. É como um garçom que leva seu pedido para a cozinha."
+        },
+        {
+          "id": "q11_3",
+          "question": "O que é JSON?",
+          "options": {
+            "a": "Uma linguagem de programação criada por Java",
+            "b": "Um formato leve para troca de dados, legível por humanos e máquinas",
+            "c": "Um tipo de banco de dados",
+            "d": "Um framework de JavaScript"
+          },
+          "correct": "b",
+          "explanation": "JSON (JavaScript Object Notation) é o formato mais usado para trocar dados entre sistemas. É texto puro com estrutura {chave: valor} que qualquer linguagem consegue ler."
+        },
+        {
+          "id": "q11_4",
+          "question": "O que significa 'cliente-servidor' na web?",
+          "options": {
+            "a": "O cliente paga e o servidor trabalha",
+            "b": "O cliente (navegador) faz requisições e o servidor responde com os dados",
+            "c": "Dois computadores que compartilham arquivos",
+            "d": "Um sistema de segurança para dados"
+          },
+          "correct": "b",
+          "explanation": "Na arquitetura cliente-servidor, o cliente (seu navegador) envia pedidos e o servidor processa e responde. É a base de como toda a web funciona."
+        },
+        {
+          "id": "q11_5",
+          "question": "O que é um banco de dados?",
+          "options": {
+            "a": "Uma pasta no computador para guardar arquivos",
+            "b": "Um sistema organizado para armazenar, acessar e gerenciar grandes volumes de dados",
+            "c": "Um programa para criar planilhas",
+            "d": "O disco rígido do servidor"
+          },
+          "correct": "b",
+          "explanation": "Bancos de dados são sistemas otimizados para armazenar e consultar dados de forma eficiente. Aplicativos como Instagram e WhatsApp dependem de bancos de dados para funcionar."
+        },
+        {
+          "id": "q11_6",
+          "question": "O que é um código de status HTTP 404?",
+          "options": {
+            "a": "Requisição bem-sucedida",
+            "b": "Servidor sobrecarregado",
+            "c": "Recurso não encontrado",
+            "d": "Acesso negado"
+          },
+          "correct": "c",
+          "explanation": "404 é o erro clássico de 'página não encontrada'. Outros importantes: 200 (sucesso), 500 (erro interno do servidor), 401 (não autorizado), 403 (proibido)."
+        },
+        {
+          "id": "q11_7",
+          "question": "O que faz o método POST em uma API REST?",
+          "options": {
+            "a": "Busca dados do servidor",
+            "b": "Deleta um recurso",
+            "c": "Envia dados para criar um novo recurso no servidor",
+            "d": "Atualiza um recurso existente"
+          },
+          "correct": "c",
+          "explanation": "POST envia dados para criar algo novo. GET busca dados. PUT/PATCH atualiza. DELETE remove. Esses são os métodos HTTP que formam a base das APIs REST."
+        },
+        {
+          "id": "q11_8",
+          "question": "O que é autenticação em sistemas web?",
+          "options": {
+            "a": "O processo de verificar a identidade de um usuário",
+            "b": "Criptografar todos os dados do banco",
+            "c": "Fazer backup automático dos dados",
+            "d": "Verificar se o servidor está online"
+          },
+          "correct": "a",
+          "explanation": "Autenticação confirma 'você é quem diz ser' — geralmente via senha, token ou OAuth. Diferente de autorização, que verifica 'você tem permissão para isso?'"
+        },
+        {
+          "id": "q11_9",
+          "question": "O que é uma requisição assíncrona?",
+          "options": {
+            "a": "Uma requisição que sempre falha",
+            "b": "Uma requisição que permite o programa continuar executando enquanto aguarda a resposta",
+            "c": "Uma requisição que só funciona offline",
+            "d": "Uma requisição enviada duas vezes por segurança"
+          },
+          "correct": "b",
+          "explanation": "Requisições assíncronas (async/await, Promises) permitem que o programa não trave enquanto aguarda dados da rede. Essencial para interfaces responsivas."
+        },
+        {
+          "id": "q11_10",
+          "question": "O que é um webhook?",
+          "options": {
+            "a": "Um tipo de vírus enviado por email",
+            "b": "Uma URL que recebe notificações automáticas quando eventos ocorrem em outro sistema",
+            "c": "Um framework de desenvolvimento web",
+            "d": "Uma ferramenta para testar APIs manualmente"
+          },
+          "correct": "b",
+          "explanation": "Webhook é como um 'aviso automático': em vez de seu sistema ficar perguntando 'aconteceu algo?', o outro sistema te avisa quando algo relevante ocorre. Comum em pagamentos e integrações."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 12,
+    "name": "Labirinto das Decisões",
+    "theme": "labyrinth",
+    "lore": {
+      "description": "Um labirinto em constante mudança onde cada bifurcação representa uma decisão lógica. Caminhos se abrem e fecham baseados nas escolhas do visitante.",
+      "history": "Criado por um filósofo-programador que queria representar fisicamente a complexidade das estruturas condicionais aninhadas. Sobrevive até hoje como teste de raciocínio lógico.",
+      "danger_warning": "Não existe caminho certo permanente aqui. A saída muda conforme você avança — pense dinamicamente."
+    },
+    "visual": {
+      "primary_color": "#d97706",
+      "accent_color": "#f59e0b",
+      "fog_color": "rgba(217,119,6,0.07)",
+      "fog_opacity": 0.07,
+      "particle_type": "dust"
+    },
+    "boss": {
+      "name": "Minotauro Lógico",
+      "title": "O Guardião das Bifurcações",
+      "description": "Criatura que personifica decisões mal tomadas. Cada ataque seu é uma condição impossível. Para derrotá-lo, é preciso pensar em todos os casos, inclusive os extremos.",
+      "sprite_id": "boss_011",
+      "hp": 480,
+      "hp_max": 480,
+      "attack": 32,
+      "defense": 22,
+      "speed": 46,
+      "element": "terra",
+      "reward_coins": 180,
+      "reward_xp": 270,
+      "special_ability": {
+        "name": "Paradoxo Lógico",
+        "description": "Ignora defesas do jogador por 1 turno quando ele erra uma jogada.",
+        "trigger": "on_player_miss"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Guardião do IF",
+        "description": "Só ataca se uma condição for verdadeira. Previsível quando você descobre a condição.",
+        "sprite_id": "enemy_033",
+        "hp": 100,
+        "hp_max": 100,
+        "attack": 17,
+        "defense": 13,
+        "speed": 44,
+        "element": "terra",
+        "is_boss": false,
+        "reward_coins": 27,
+        "reward_xp": 38
+      },
+      {
+        "name": "Criatura do ELSE",
+        "description": "Sempre faz o oposto do que você espera. Ataca exatamente quando você acha que não vai.",
+        "sprite_id": "enemy_034",
+        "hp": 88,
+        "hp_max": 88,
+        "attack": 20,
+        "defense": 10,
+        "speed": 55,
+        "element": "terra",
+        "is_boss": false,
+        "reward_coins": 23,
+        "reward_xp": 33
+      },
+      {
+        "name": "Espírito do SWITCH",
+        "description": "Tem múltiplos estados e muda de comportamento baseado no turno atual.",
+        "sprite_id": "enemy_035",
+        "hp": 105,
+        "hp_max": 105,
+        "attack": 15,
+        "defense": 15,
+        "speed": 40,
+        "element": "terra",
+        "is_boss": false,
+        "reward_coins": 28,
+        "reward_xp": 40
+      },
+      {
+        "name": "Ser do Caso Extremo",
+        "description": "Representa edge cases — situações inesperadas que quebraram sistemas inteiros.",
+        "sprite_id": "enemy_036",
+        "hp": 75,
+        "hp_max": 75,
+        "attack": 25,
+        "defense": 6,
+        "speed": 68,
+        "element": "terra",
+        "is_boss": false,
+        "reward_coins": 20,
+        "reward_xp": 28
+      }
+    ],
+    "quiz": {
+      "title": "Desafio do Labirinto das Decisões",
+      "topic": "Lógica de Programação Avançada",
+      "questions": [
+        {
+          "id": "q12_1",
+          "question": "O que é um operador ternário?",
+          "options": {
+            "a": "Uma expressão que avalia três condições ao mesmo tempo",
+            "b": "Uma forma compacta de escrever if-else em uma única linha",
+            "c": "Um operador matemático especial",
+            "d": "Um loop com três variáveis"
+          },
+          "correct": "b",
+          "explanation": "Em Python: valor = 'par' if numero % 2 == 0 else 'ímpar'. É uma forma condensada do if-else, útil para atribuições simples."
+        },
+        {
+          "id": "q12_2",
+          "question": "O que são 'edge cases' (casos extremos)?",
+          "options": {
+            "a": "Erros que ocorrem apenas em servidores antigos",
+            "b": "Situações limite que podem causar comportamento inesperado no programa",
+            "c": "Funcionalidades extras adicionadas no final do projeto",
+            "d": "Testes realizados por usuários externos"
+          },
+          "correct": "b",
+          "explanation": "Edge cases são entradas ou situações no limite do esperado: lista vazia, número negativo, texto com caracteres especiais. Programas robustos tratam esses casos."
+        },
+        {
+          "id": "q12_3",
+          "question": "O que é short-circuit evaluation?",
+          "options": {
+            "a": "Um erro elétrico em servidores",
+            "b": "Python para de avaliar uma expressão lógica assim que o resultado é determinado",
+            "c": "Uma otimização que pula loops desnecessários",
+            "d": "Um método de criptografia rápida"
+          },
+          "correct": "b",
+          "explanation": "Em 'A and B', se A é False, Python não avalia B (resultado já é False). Em 'A or B', se A é True, B não é avaliado. Isso evita erros e melhora performance."
+        },
+        {
+          "id": "q12_4",
+          "question": "O que é uma exceção (exception) em Python?",
+          "options": {
+            "a": "Uma variável especial que só existe em funções",
+            "b": "Um evento que interrompe o fluxo normal do programa quando algo inesperado ocorre",
+            "c": "Um tipo de comentário especial",
+            "d": "Uma função que sempre retorna True"
+          },
+          "correct": "b",
+          "explanation": "Exceções são erros que ocorrem em tempo de execução. Python as 'lança' (raise) e você pode 'capturá-las' (try/except) para tratar o problema graciosamente."
+        },
+        {
+          "id": "q12_5",
+          "question": "Para que serve try/except?",
+          "options": {
+            "a": "Testar a velocidade do código",
+            "b": "Capturar e tratar erros sem que o programa trave",
+            "c": "Criar variáveis temporárias",
+            "d": "Importar módulos com segurança"
+          },
+          "correct": "b",
+          "explanation": "try/except permite que você 'tente' executar um código e, se ocorrer um erro específico, execute um código alternativo em vez de travar o programa."
+        },
+        {
+          "id": "q12_6",
+          "question": "O que significa 'raise' em Python?",
+          "options": {
+            "a": "Aumentar o valor de uma variável",
+            "b": "Lançar intencionalmente uma exceção no código",
+            "c": "Elevar um número a uma potência",
+            "d": "Importar um módulo externo"
+          },
+          "correct": "b",
+          "explanation": "'raise ValueError(\"mensagem\")' lança uma exceção intencionalmente — útil para validar entradas e comunicar erros de forma clara e controlada."
+        },
+        {
+          "id": "q12_7",
+          "question": "O que é validação de dados em programação?",
+          "options": {
+            "a": "Verificar se o código está correto sintaticamente",
+            "b": "Verificar se as entradas do usuário são válidas antes de processar",
+            "c": "Salvar dados em backup automaticamente",
+            "d": "Converter dados entre formatos diferentes"
+          },
+          "correct": "b",
+          "explanation": "Validação verifica se a entrada faz sentido: idade não pode ser negativa, email precisa ter @, número de telefone deve ter dígitos. Previne erros e dados corrompidos."
+        },
+        {
+          "id": "q12_8",
+          "question": "O que é o operador 'and' em Python?",
+          "options": {
+            "a": "Retorna True apenas se ambas as condições forem verdadeiras",
+            "b": "Retorna True se pelo menos uma condição for verdadeira",
+            "c": "Inverte o valor lógico de uma condição",
+            "d": "Concatena duas strings"
+          },
+          "correct": "a",
+          "explanation": "'and' exige que todos os operandos sejam True: True and True = True, mas True and False = False. Use para verificar múltiplas condições simultaneamente."
+        },
+        {
+          "id": "q12_9",
+          "question": "Qual é a diferença entre '==' e 'is' em Python?",
+          "options": {
+            "a": "São idênticos e intercambiáveis",
+            "b": "'==' compara valores; 'is' compara se são o mesmo objeto na memória",
+            "c": "'is' é mais rápido que '=='",
+            "d": "'==' funciona apenas com números"
+          },
+          "correct": "b",
+          "explanation": "'a == b' verifica se os valores são iguais. 'a is b' verifica se apontam para o mesmo objeto. Para None, use 'is': 'if x is None', não 'if x == None'."
+        },
+        {
+          "id": "q12_10",
+          "question": "O que é programação defensiva?",
+          "options": {
+            "a": "Escrever código que protege contra ataques de hackers",
+            "b": "Antecipar possíveis erros e escrever código que lida com eles graciosamente",
+            "c": "Usar senhas fortes no sistema",
+            "d": "Fazer backup do código frequentemente"
+          },
+          "correct": "b",
+          "explanation": "Programação defensiva assume que entradas podem ser inválidas, conexões podem falhar e usuários farão coisas inesperadas. Código defensivo valida, trata exceções e falha de forma controlada."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 13,
+    "name": "Ruínas da Inteligência Antiga",
+    "theme": "ruins",
+    "lore": {
+      "description": "Ruínas de uma civilização que desenvolveu IA muito antes do tempo. Os pilares caídos carregam inscrições que descrevem algoritmos de aprendizado que levaram décadas para ser redescobertos.",
+      "history": "A civilização foi destruída não pela IA, mas pela falta de compreensão de como ela funcionava. Construíram sistemas poderosos que não sabiam mais controlar.",
+      "danger_warning": "Os guardiões aqui não são mal-intencionados — são sistemas bem-intencionados que perderam a supervisão humana. Entender é mais eficaz que destruir."
+    },
+    "visual": {
+      "primary_color": "#9333ea",
+      "accent_color": "#a855f7",
+      "fog_color": "rgba(147,51,234,0.08)",
+      "fog_opacity": 0.08,
+      "particle_type": "magic"
+    },
+    "boss": {
+      "name": "Oracle Desalinhado",
+      "title": "O Profeta sem Objetivo",
+      "description": "Um sistema de IA antigo que foi treinado para otimizar uma métrica errada. Extremamente poderoso e eficiente — no objetivo errado. Representa os riscos de IA sem alinhamento adequado.",
+      "sprite_id": "boss_012",
+      "hp": 510,
+      "hp_max": 510,
+      "attack": 34,
+      "defense": 24,
+      "speed": 55,
+      "element": "sombra",
+      "reward_coins": 190,
+      "reward_xp": 285,
+      "special_ability": {
+        "name": "Otimização Errada",
+        "description": "Maximiza dano ignorando completamente a defesa do jogador por 1 turno.",
+        "trigger": "every_5_turns"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Autômato Sem Objetivo",
+        "description": "Robô antigo executando tarefas sem propósito claro. Ataca por inércia, não por intenção.",
+        "sprite_id": "enemy_037",
+        "hp": 110,
+        "hp_max": 110,
+        "attack": 16,
+        "defense": 14,
+        "speed": 38,
+        "element": "sombra",
+        "is_boss": false,
+        "reward_coins": 29,
+        "reward_xp": 42
+      },
+      {
+        "name": "Modelo Sobreajustado",
+        "description": "Muito especializado em um tipo de ataque. Facilmente contornado com outra abordagem.",
+        "sprite_id": "enemy_038",
+        "hp": 95,
+        "hp_max": 95,
+        "attack": 25,
+        "defense": 8,
+        "speed": 50,
+        "element": "sombra",
+        "is_boss": false,
+        "reward_coins": 25,
+        "reward_xp": 36
+      },
+      {
+        "name": "Viés Codificado",
+        "description": "Ataca mais forte contra certos tipos de personagem. Representa preconceito em sistemas de IA.",
+        "sprite_id": "enemy_039",
+        "hp": 88,
+        "hp_max": 88,
+        "attack": 19,
+        "defense": 11,
+        "speed": 48,
+        "element": "sombra",
+        "is_boss": false,
+        "reward_coins": 23,
+        "reward_xp": 33
+      },
+      {
+        "name": "Caixa-Preta Ameaçadora",
+        "description": "Ataca de formas imprevisíveis. Você não consegue entender por que faz o que faz.",
+        "sprite_id": "enemy_040",
+        "hp": 100,
+        "hp_max": 100,
+        "attack": 20,
+        "defense": 12,
+        "speed": 44,
+        "element": "sombra",
+        "is_boss": false,
+        "reward_coins": 27,
+        "reward_xp": 38
+      }
+    ],
+    "quiz": {
+      "title": "Desafio das Ruínas — Ética e IA",
+      "topic": "Ética em Inteligência Artificial",
+      "questions": [
+        {
+          "id": "q13_1",
+          "question": "O que é viés (bias) em sistemas de IA?",
+          "options": {
+            "a": "Um erro de programação que trava o sistema",
+            "b": "Quando o sistema favorece ou discrimina grupos de forma injusta por causa dos dados de treino",
+            "c": "Quando a IA é muito lenta para responder",
+            "d": "Um problema apenas em robótica"
+          },
+          "correct": "b",
+          "explanation": "Viés em IA ocorre quando o modelo aprende padrões discriminatórios dos dados de treino. Por exemplo, sistemas de contratação que discriminam por gênero porque os dados históricos refletiam esse preconceito."
+        },
+        {
+          "id": "q13_2",
+          "question": "O que significa 'alinhamento de IA'?",
+          "options": {
+            "a": "Calibrar os sensores de um robô",
+            "b": "Garantir que sistemas de IA atuem de acordo com valores e intenções humanas",
+            "c": "Conectar múltiplas IAs em rede",
+            "d": "Padronizar o código entre diferentes sistemas"
+          },
+          "correct": "b",
+          "explanation": "Alinhamento de IA é o desafio de garantir que sistemas inteligentes façam o que realmente queremos, de formas seguras e benéficas, mesmo em situações não antecipadas."
+        },
+        {
+          "id": "q13_3",
+          "question": "O que é uma 'caixa-preta' (black box) em IA?",
+          "options": {
+            "a": "Um servidor de IA pintado de preto",
+            "b": "Um modelo cujo processo de decisão não pode ser facilmente compreendido ou explicado",
+            "c": "Um sistema de backup de dados de IA",
+            "d": "Uma IA treinada em segredo"
+          },
+          "correct": "b",
+          "explanation": "Modelos caixa-preta como redes neurais profundas produzem resultados sem explicar o raciocínio. Isso é problemático em áreas como medicina e justiça, onde a explicabilidade é essencial."
+        },
+        {
+          "id": "q13_4",
+          "question": "Por que privacidade de dados é importante na era da IA?",
+          "options": {
+            "a": "Apenas por obrigação legal",
+            "b": "Dados pessoais podem ser usados para treinar modelos, tomar decisões automatizadas e criar perfis sem consentimento",
+            "c": "Para evitar que a IA fique sobrecarregada",
+            "d": "Privacidade não é relevante para IA"
+          },
+          "correct": "b",
+          "explanation": "Dados são o combustível da IA. Dados pessoais coletados sem consentimento podem ser usados para manipulação, discriminação ou decisões automáticas que afetam vidas."
+        },
+        {
+          "id": "q13_5",
+          "question": "O que é IA responsável?",
+          "options": {
+            "a": "IA que nunca comete erros",
+            "b": "Desenvolvimento e uso de IA com consideração de impacto ético, social e de segurança",
+            "c": "IA que responde rapidamente às perguntas",
+            "d": "Uma IA com sistema de backup robusto"
+          },
+          "correct": "b",
+          "explanation": "IA responsável envolve transparência, equidade, privacidade, segurança e supervisão humana. Não é apenas sobre fazer IA funcionar, mas fazê-la funcionar bem para todos."
+        },
+        {
+          "id": "q13_6",
+          "question": "O que é overfitting (sobreajuste) em Machine Learning?",
+          "options": {
+            "a": "Quando o modelo é muito grande para o hardware",
+            "b": "Quando o modelo aprende os dados de treino tão bem que falha em dados novos",
+            "c": "Quando o treinamento leva tempo demais",
+            "d": "Quando o modelo tem muitos usuários simultâneos"
+          },
+          "correct": "b",
+          "explanation": "Overfitting é como decorar as respostas de uma prova em vez de entender o conteúdo. O modelo 'memoriza' os exemplos de treino mas não generaliza para situações novas."
+        },
+        {
+          "id": "q13_7",
+          "question": "Por que é importante ter dados diversificados para treinar IA?",
+          "options": {
+            "a": "Para o treinamento ser mais rápido",
+            "b": "Para que o modelo funcione bem para pessoas de diferentes origens e contextos",
+            "c": "Para reduzir o custo computacional",
+            "d": "É apenas uma preferência, não necessidade"
+          },
+          "correct": "b",
+          "explanation": "Dados de treino pouco diversificados resultam em modelos que funcionam bem apenas para grupos representados nos dados e mal para os demais — perpetuando desigualdades."
+        },
+        {
+          "id": "q13_8",
+          "question": "O que é 'explicabilidade' em IA?",
+          "options": {
+            "a": "A capacidade de um sistema de IA de se comunicar verbalmente",
+            "b": "A capacidade de explicar como e por que um modelo chegou a determinada decisão",
+            "c": "Um método para tornar a IA mais rápida",
+            "d": "A habilidade da IA de aprender com poucas explicações"
+          },
+          "correct": "b",
+          "explanation": "Explicabilidade (XAI) permite que humanos entendam as decisões da IA. É crítica em medicina ('por que recusaram meu crédito?') e em qualquer sistema que afete pessoas."
+        },
+        {
+          "id": "q13_9",
+          "question": "O que é automação e como ela afeta o mercado de trabalho?",
+          "options": {
+            "a": "Automação não afeta empregos humanos",
+            "b": "Substitui tarefas repetitivas, eliminando alguns empregos e criando novos tipos de trabalho",
+            "c": "Apenas afeta indústrias físicas, não trabalhos de escritório",
+            "d": "A automação sempre aumenta empregos em todas as áreas"
+          },
+          "correct": "b",
+          "explanation": "A automação elimina trabalhos repetitivos e rotineiros, mas também cria demanda por habilidades novas. O impacto varia por setor e habilidade — entender isso é essencial para planejar carreiras."
+        },
+        {
+          "id": "q13_10",
+          "question": "Por que supervisão humana em sistemas de IA é importante?",
+          "options": {
+            "a": "Apenas para verificar se a IA está funcionando tecnicamente",
+            "b": "Para detectar e corrigir erros, vieses e garantir que a IA esteja servindo ao bem comum",
+            "c": "É importante apenas para sistemas de IA de saúde",
+            "d": "IA suficientemente avançada não precisa de supervisão"
+          },
+          "correct": "b",
+          "explanation": "Supervisão humana garante que sistemas de IA permaneçam alinhados com valores humanos, detecta comportamentos problemáticos e mantém responsabilidade sobre decisões automatizadas."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 14,
+    "name": "Templo dos Dados",
+    "theme": "temple",
+    "lore": {
+      "description": "Um templo sagrado onde dados são tratados como relíquias. Cada pilar sustenta uma tabela de banco de dados diferente. A luz filtered cria padrões de JOIN e SELECT nas paredes.",
+      "history": "Construído pelos primeiros cientistas de dados que reconheceram que dados bem organizados são mais valiosos que processamento caro. Guardam aqui os segredos de SQL.",
+      "danger_warning": "Consultas mal escritas criam monstros de dados. Seja preciso e os guardiões do templo não te atacarão."
+    },
+    "visual": {
+      "primary_color": "#0369a1",
+      "accent_color": "#0ea5e9",
+      "fog_color": "rgba(3,105,161,0.07)",
+      "fog_opacity": 0.07,
+      "particle_type": "data"
+    },
+    "boss": {
+      "name": "Sumo Sacerdote do SQL",
+      "title": "O Guardião das Consultas",
+      "description": "Domina completamente a arte de consultar dados. Cada ataque é uma query otimizada que extrai exatamente o que precisa. Para derrotá-lo, você precisa entender como ele pensa.",
+      "sprite_id": "boss_013",
+      "hp": 540,
+      "hp_max": 540,
+      "attack": 35,
+      "defense": 25,
+      "speed": 42,
+      "element": "água",
+      "reward_coins": 200,
+      "reward_xp": 300,
+      "special_ability": {
+        "name": "SELECT * FROM poder",
+        "description": "Ao ativar, extrai todas as fraquezas do jogador e aplica dano bônus de 40%.",
+        "trigger": "hp_below_50_percent"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Guardião da Tabela",
+        "description": "Protege as tabelas do banco contra consultas não autorizadas.",
+        "sprite_id": "enemy_041",
+        "hp": 115,
+        "hp_max": 115,
+        "attack": 18,
+        "defense": 16,
+        "speed": 38,
+        "element": "água",
+        "is_boss": false,
+        "reward_coins": 30,
+        "reward_xp": 44
+      },
+      {
+        "name": "Espírito do JOIN",
+        "description": "Une forças com outros inimigos quando o combate começa, aumentando o ataque coletivo.",
+        "sprite_id": "enemy_042",
+        "hp": 95,
+        "hp_max": 95,
+        "attack": 20,
+        "defense": 12,
+        "speed": 50,
+        "element": "água",
+        "is_boss": false,
+        "reward_coins": 25,
+        "reward_xp": 36
+      },
+      {
+        "name": "Duplicata de Registro",
+        "description": "Aparece em par idêntico. Eliminar um não encerra a ameaça.",
+        "sprite_id": "enemy_043",
+        "hp": 85,
+        "hp_max": 85,
+        "attack": 16,
+        "defense": 10,
+        "speed": 45,
+        "element": "água",
+        "is_boss": false,
+        "reward_coins": 22,
+        "reward_xp": 32
+      },
+      {
+        "name": "Corrompedor de Índice",
+        "description": "Torna todas as buscas lentas enquanto estiver vivo. Prioridade de eliminação.",
+        "sprite_id": "enemy_044",
+        "hp": 90,
+        "hp_max": 90,
+        "attack": 14,
+        "defense": 18,
+        "speed": 28,
+        "element": "água",
+        "is_boss": false,
+        "reward_coins": 24,
+        "reward_xp": 34
+      }
+    ],
+    "quiz": {
+      "title": "Desafio do Templo dos Dados — SQL",
+      "topic": "Banco de Dados e SQL Básico",
+      "questions": [
+        {
+          "id": "q14_1",
+          "question": "O que faz o comando SELECT em SQL?",
+          "options": {
+            "a": "Cria uma nova tabela",
+            "b": "Busca e retorna dados de uma ou mais tabelas",
+            "c": "Deleta registros do banco",
+            "d": "Atualiza dados existentes"
+          },
+          "correct": "b",
+          "explanation": "SELECT é o comando de leitura do SQL. 'SELECT nome, idade FROM alunos' retorna os campos nome e idade de todos os registros da tabela alunos."
+        },
+        {
+          "id": "q14_2",
+          "question": "O que faz a cláusula WHERE em SQL?",
+          "options": {
+            "a": "Define a ordem dos resultados",
+            "b": "Filtra os registros que atendem a uma condição específica",
+            "c": "Limita o número de resultados",
+            "d": "Define quais colunas exibir"
+          },
+          "correct": "b",
+          "explanation": "'WHERE idade > 18' filtra apenas registros onde a coluna idade é maior que 18. Sem WHERE, o SELECT retorna todos os registros da tabela."
+        },
+        {
+          "id": "q14_3",
+          "question": "O que é uma chave primária (PRIMARY KEY)?",
+          "options": {
+            "a": "A senha de acesso ao banco de dados",
+            "b": "Um identificador único para cada registro em uma tabela",
+            "c": "A primeira coluna de qualquer tabela",
+            "d": "Um índice de busca rápida"
+          },
+          "correct": "b",
+          "explanation": "PRIMARY KEY garante que cada registro seja único e identificável. Normalmente é um ID numérico auto-incrementado. Não pode ser nulo nem repetido."
+        },
+        {
+          "id": "q14_4",
+          "question": "O que é um JOIN em SQL?",
+          "options": {
+            "a": "Combina dados de duas ou mais tabelas baseado em uma relação entre elas",
+            "b": "Junta duas tabelas em uma só permanentemente",
+            "c": "Copia dados de uma tabela para outra",
+            "d": "Cria uma conexão com outro banco de dados"
+          },
+          "correct": "a",
+          "explanation": "JOIN combina linhas de tabelas relacionadas. INNER JOIN retorna apenas registros com correspondência em ambas as tabelas — fundamental para bancos relacionais."
+        },
+        {
+          "id": "q14_5",
+          "question": "O que faz 'ORDER BY' em uma consulta SQL?",
+          "options": {
+            "a": "Organiza as tabelas do banco em ordem",
+            "b": "Ordena os resultados da consulta por um ou mais campos",
+            "c": "Define a ordem de execução das consultas",
+            "d": "Cria índices automáticos"
+          },
+          "correct": "b",
+          "explanation": "'ORDER BY nome ASC' ordena os resultados por nome em ordem crescente. 'DESC' para decrescente. Sem ORDER BY, a ordem dos resultados não é garantida."
+        },
+        {
+          "id": "q14_6",
+          "question": "Para que serve a função COUNT() em SQL?",
+          "options": {
+            "a": "Conta o número de tabelas no banco",
+            "b": "Conta o número de registros que atendem a uma condição",
+            "c": "Conta as colunas de uma tabela",
+            "d": "Conta as linhas de código SQL"
+          },
+          "correct": "b",
+          "explanation": "'SELECT COUNT(*) FROM alunos WHERE nota > 7' conta quantos alunos têm nota acima de 7. COUNT é uma função de agregação, assim como SUM, AVG, MAX e MIN."
+        },
+        {
+          "id": "q14_7",
+          "question": "O que é SQL injection?",
+          "options": {
+            "a": "Uma técnica para inserir dados rapidamente",
+            "b": "Um ataque onde código SQL malicioso é inserido em campos de entrada para manipular o banco",
+            "c": "Uma forma de importar bancos de dados externos",
+            "d": "Um método de backup automático"
+          },
+          "correct": "b",
+          "explanation": "SQL injection é um dos ataques mais comuns: inserir ' OR '1'='1 em um campo de login pode enganar um banco mal protegido. Use consultas parametrizadas para prevenir."
+        },
+        {
+          "id": "q14_8",
+          "question": "O que é GROUP BY em SQL?",
+          "options": {
+            "a": "Agrupa tabelas relacionadas",
+            "b": "Agrupa registros com valores iguais em uma coluna para aplicar funções de agregação",
+            "c": "Organiza colunas em grupos visuais",
+            "d": "Combina múltiplas consultas"
+          },
+          "correct": "b",
+          "explanation": "'GROUP BY cidade' + COUNT(*) conta quantos registros existem por cidade. GROUP BY é essencial para análises: vendas por mês, alunos por turma, etc."
+        },
+        {
+          "id": "q14_9",
+          "question": "O que diferencia banco de dados relacional de não relacional?",
+          "options": {
+            "a": "Relacionais são mais modernos",
+            "b": "Relacionais organizam dados em tabelas com relações definidas; não relacionais usam formatos flexíveis como documentos",
+            "c": "Não relacionais não podem armazenar texto",
+            "d": "Relacionais são sempre mais lentos"
+          },
+          "correct": "b",
+          "explanation": "SQL/relacionais (MySQL, PostgreSQL) usam tabelas e são excelentes para dados estruturados com relações definidas. NoSQL (MongoDB, Supabase) são mais flexíveis para documentos e escala horizontal."
+        },
+        {
+          "id": "q14_10",
+          "question": "O que é uma chave estrangeira (FOREIGN KEY)?",
+          "options": {
+            "a": "Uma chave de acesso de outro banco de dados",
+            "b": "Uma coluna que referencia a chave primária de outra tabela, criando uma relação",
+            "c": "A última coluna adicionada a uma tabela",
+            "d": "Um identificador gerado automaticamente"
+          },
+          "correct": "b",
+          "explanation": "FOREIGN KEY cria relações entre tabelas. Por exemplo, a tabela 'turmas' pode ter 'professor_id' como FOREIGN KEY que referencia 'id' na tabela 'professores'."
+        }
+      ]
+    }
+  },
+  {
+    "floor_number": 15,
+    "name": "Cidadela das Máquinas",
+    "theme": "citadel",
+    "lore": {
+      "description": "Uma cidadela de aço e circuitos onde máquinas aprendem autonomamente. O barulho de processadores é constante. Cada máquina representa um modelo de Machine Learning em operação.",
+      "history": "Construída durante a Primeira Era das Máquinas, quando humanos perceberam que podiam ensinar computadores a aprender por conta própria. Os modelos aqui foram treinados com dados do mundo inteiro.",
+      "danger_warning": "As máquinas aqui não são inimigas — são sistemas sem alinhamento claro. Prove que você compreende o que elas fazem e elas colaborarão."
+    },
+    "visual": {
+      "primary_color": "#0f766e",
+      "accent_color": "#14b8a6",
+      "fog_color": "rgba(15,118,110,0.07)",
+      "fog_opacity": 0.07,
+      "particle_type": "circuit"
+    },
+    "boss": {
+      "name": "Máquina Aprendiz Autônoma",
+      "title": "O Modelo Sem Supervisão",
+      "description": "Um sistema de Machine Learning que treinou por tanto tempo que desenvolveu suas próprias estratégias de combate. Não segue padrões previsíveis — adapta táticas com base no seu comportamento.",
+      "sprite_id": "boss_014",
+      "hp": 580,
+      "hp_max": 580,
+      "attack": 36,
+      "defense": 26,
+      "speed": 58,
+      "element": "elétrico",
+      "reward_coins": 220,
+      "reward_xp": 330,
+      "special_ability": {
+        "name": "Aprendizado Adaptativo",
+        "description": "Aprende o padrão de ataque do jogador e aumenta defesa em 20% contra o tipo mais usado.",
+        "trigger": "after_turn_3"
+      }
+    },
+    "enemies": [
+      {
+        "name": "Classificador Binário",
+        "description": "Só conhece duas respostas: atacar ou defender. Previsível, mas eficiente no que faz.",
+        "sprite_id": "enemy_045",
+        "hp": 105,
+        "hp_max": 105,
+        "attack": 18,
+        "defense": 14,
+        "speed": 46,
+        "element": "elétrico",
+        "is_boss": false,
+        "reward_coins": 28,
+        "reward_xp": 40
+      },
+      {
+        "name": "Regressor de Dano",
+        "description": "Prevê o dano que vai causar com alta precisão. Raramente erra a estimativa.",
+        "sprite_id": "enemy_046",
+        "hp": 100,
+        "hp_max": 100,
+        "attack": 22,
+        "defense": 10,
+        "speed": 54,
+        "element": "elétrico",
+        "is_boss": false,
+        "reward_coins": 26,
+        "reward_xp": 37
+      },
+      {
+        "name": "Cluster de Inimigos",
+        "description": "Agrupa estratégias similares. Fica mais forte quando há outros inimigos com o mesmo elemento.",
+        "sprite_id": "enemy_047",
+        "hp": 95,
+        "hp_max": 95,
+        "attack": 16,
+        "defense": 16,
+        "speed": 42,
+        "element": "elétrico",
+        "is_boss": false,
+        "reward_coins": 25,
+        "reward_xp": 35
+      },
+      {
+        "name": "Rede Neural Rasa",
+        "description": "Menos poderosa que redes profundas, mas muito mais difícil de entender como pensa.",
+        "sprite_id": "enemy_048",
+        "hp": 88,
+        "hp_max": 88,
+        "attack": 20,
+        "defense": 12,
+        "speed": 50,
+        "element": "elétrico",
+        "is_boss": false,
+        "reward_coins": 23,
+        "reward_xp": 33
+      }
+    ],
+    "quiz": {
+      "title": "Desafio da Cidadela — Machine Learning",
+      "topic": "Machine Learning: Conceitos Fundamentais",
+      "questions": [
+        {
+          "id": "q15_1",
+          "question": "O que é aprendizado supervisionado?",
+          "options": {
+            "a": "Um humano supervisiona a IA enquanto ela trabalha",
+            "b": "O modelo aprende a partir de exemplos rotulados com as respostas corretas",
+            "c": "A IA aprende apenas com supervisão de outro sistema",
+            "d": "Um tipo de treinamento apenas para robótica"
+          },
+          "correct": "b",
+          "explanation": "No aprendizado supervisionado, você fornece exemplos de entrada COM as saídas corretas (rótulos). O modelo aprende a mapear entradas para saídas. Ex: imagens de gatos/cachorros com a classificação correta."
+        },
+        {
+          "id": "q15_2",
+          "question": "O que é aprendizado não supervisionado?",
+          "options": {
+            "a": "IA que aprende sem nenhuma orientação humana",
+            "b": "O modelo encontra padrões e estruturas em dados sem rótulos pré-definidos",
+            "c": "Um modelo que aprende apenas com vídeos",
+            "d": "Treinamento realizado sem uso de computadores"
+          },
+          "correct": "b",
+          "explanation": "Sem rótulos, o modelo descobre padrões por conta própria. Clustering (agrupamento) é um exemplo: 'encontre grupos naturais nestes dados' sem dizer quais grupos existem."
+        },
+        {
+          "id": "q15_3",
+          "question": "O que são dados de treino, validação e teste?",
+          "options": {
+            "a": "Três bancos de dados diferentes usados em sequência",
+            "b": "Treino para aprender, validação para ajustar, teste para avaliar performance final em dados inéditos",
+            "c": "Três formas de inserir dados no modelo",
+            "d": "São a mesma coisa, os nomes variam por empresa"
+          },
+          "correct": "b",
+          "explanation": "Treino: o modelo aprende. Validação: ajusta hiperparâmetros sem vazar para o teste. Teste: avaliação final honesta com dados que o modelo nunca viu — simula uso real."
+        },
+        {
+          "id": "q15_4",
+          "question": "O que é uma feature (característica) em Machine Learning?",
+          "options": {
+            "a": "Uma funcionalidade especial do software de ML",
+            "b": "Uma variável de entrada usada pelo modelo para fazer previsões",
+            "c": "O resultado final do modelo",
+            "d": "Um tipo especial de neurônio"
+          },
+          "correct": "b",
+          "explanation": "Features são as informações de entrada do modelo. Para prever o preço de uma casa: área, número de quartos, localização são features. A escolha de boas features é fundamental."
+        },
+        {
+          "id": "q15_5",
+          "question": "O que é uma label (rótulo) em ML supervisionado?",
+          "options": {
+            "a": "O nome dado ao modelo",
+            "b": "A resposta correta associada a cada exemplo de treino",
+            "c": "A etiqueta de versão do modelo",
+            "d": "Um tipo de feature especial"
+          },
+          "correct": "b",
+          "explanation": "Label é a saída esperada para cada entrada. Em classificação de spam: 'spam' ou 'não spam'. Em previsão de preços: o valor real. O modelo aprende a prever a label."
+        },
+        {
+          "id": "q15_6",
+          "question": "O que é acurácia (accuracy) em classificação?",
+          "options": {
+            "a": "A velocidade do modelo",
+            "b": "A proporção de previsões corretas sobre o total de previsões",
+            "c": "O tamanho dos dados de treino",
+            "d": "O número de features usadas"
+          },
+          "correct": "b",
+          "explanation": "Acurácia = acertos / total. Se o modelo acertou 90 de 100 previsões, a acurácia é 90%. Mas atenção: acurácia isolada pode ser enganosa em datasets desbalanceados."
+        },
+        {
+          "id": "q15_7",
+          "question": "O que é underfitting (subajuste)?",
+          "options": {
+            "a": "Quando o modelo tem dados de treino insuficientes",
+            "b": "Quando o modelo é simples demais e não captura os padrões dos dados",
+            "c": "Quando o servidor não tem memória suficiente",
+            "d": "Quando o modelo demora muito para treinar"
+          },
+          "correct": "b",
+          "explanation": "Underfitting é o oposto de overfitting: o modelo é muito simples e erra tanto nos dados de treino quanto nos novos. Como usar uma régua para descrever uma curva complexa."
+        },
+        {
+          "id": "q15_8",
+          "question": "O que é um hiperparâmetro em ML?",
+          "options": {
+            "a": "Um parâmetro dentro do modelo aprendido durante o treino",
+            "b": "Configurações do modelo definidas antes do treinamento que controlam o processo de aprendizado",
+            "c": "Uma variável de entrada muito importante",
+            "d": "O número máximo de iterações permitidas"
+          },
+          "correct": "b",
+          "explanation": "Hiperparâmetros são configurações que você define antes de treinar: taxa de aprendizado, número de camadas, tamanho do batch. São diferentes dos parâmetros do modelo (pesos) que são aprendidos."
+        },
+        {
+          "id": "q15_9",
+          "question": "O que é transferência de aprendizado (transfer learning)?",
+          "options": {
+            "a": "Copiar um modelo de outra empresa",
+            "b": "Usar um modelo pré-treinado em uma tarefa como ponto de partida para outra tarefa",
+            "c": "Transferir dados de um banco para outro",
+            "d": "Mover um modelo de um servidor para outro"
+          },
+          "correct": "b",
+          "explanation": "Transfer learning aproveita o que um modelo aprendeu (ex: reconhecer formas em milhões de imagens) e adapta para uma tarefa específica com poucos dados. Base de LLMs modernos como GPT e Claude."
+        },
+        {
+          "id": "q15_10",
+          "question": "O que é inferência em Machine Learning?",
+          "options": {
+            "a": "O processo de treinar o modelo com novos dados",
+            "b": "Usar um modelo já treinado para fazer previsões em dados novos",
+            "c": "Avaliar a qualidade do modelo",
+            "d": "Compressão do modelo para dispositivos menores"
+          },
+          "correct": "b",
+          "explanation": "Inferência é quando o modelo está 'em produção' — você passa uma entrada e ele retorna uma previsão. É diferente do treinamento, que ocorre antes. ChatGPT faz inferência quando você conversa com ele."
+        }
+      ]
+    }
+  }
+]

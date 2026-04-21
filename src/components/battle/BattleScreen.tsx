@@ -4,6 +4,7 @@ import type { BattleCharacter, Ability } from '@/types/character';
 import type { BattleEnemy } from '@/lib/battle';
 import { ELEMENT_META } from '@/types/character';
 import { useBattleEngine } from '@/hooks/useBattleEngine';
+import { FALLBACK_SPRITE_URL } from '@/lib/sprites/getEnemySprite';
 import './PokemonBattle.css';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -20,10 +21,10 @@ interface BattleScreenProps {
 // ─── Items ────────────────────────────────────────────────────────────────────
 
 const ITEMS = [
-  { label: 'Poção (+50 HP)',         effect: 'heal'   as const, value: 50,  icon: '🧪' },
-  { label: 'Poção Grande (+150 HP)', effect: 'heal'   as const, value: 150, icon: '💊' },
-  { label: 'Éter (+30 Energia)',     effect: 'energy' as const, value: 30,  icon: '⚡' },
-  { label: 'Antídoto (cura status)', effect: 'cure'   as const, value: 0,   icon: '🌿' },
+  { label: 'Poção (+50 HP)',         effect: 'heal'     as const, value: 50, icon: '🧪' },
+  { label: 'Poção Grande (+150 HP)', effect: 'heal'     as const, value: 150, icon: '💊' },
+  { label: 'Recarga de Ataques',     effect: 'recharge' as const, value: 0, icon: '🔋' },
+  { label: 'Antídoto (cura status)', effect: 'cure'     as const, value: 0, icon: '🌿' },
 ];
 
 const STATUS_ICONS: Record<string, string> = {
@@ -111,6 +112,7 @@ export function BattleScreen({
 
   // Item modal
   const [showItems, setShowItems] = useState(false);
+  const [showRechargeSelect, setShowRechargeSelect] = useState(false);
 
   // ── Start battle ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -238,9 +240,6 @@ export function BattleScreen({
 
   const enemyHpPct  = Math.max(0, Math.min(1, ctx.enemy.hpCurrent / ctx.enemy.hpMax));
   const playerHpPct = Math.max(0, Math.min(1, ctx.player.hpCurrent / ctx.player.hpMax));
-  const energyPct   = ctx.player.energyMax
-    ? Math.max(0, Math.min(1, ctx.playerEnergy / ctx.player.energyMax))
-    : 0;
 
   // Current player sprite (back or attack)
   const playerSprite = showAttackSprite && ctx.player.spritePixelAttack
@@ -334,17 +333,18 @@ export function BattleScreen({
         transition={{ duration: 0.35 }}
         style={{ position: 'absolute' }}
       >
-        {ctx.enemy.spriteUrl ? (
-          <img
-            src={ctx.enemy.spriteUrl}
-            alt={ctx.enemy.name}
-            className="poke-sprite-img"
-          />
-        ) : (
-          <div className="poke-sprite-placeholder poke-sprite-placeholder--enemy">
-            <span>{ctx.enemy.isBoss ? '👾' : enemyMeta?.icon ?? '👹'}</span>
-          </div>
-        )}
+        <img
+          src={ctx.enemy.spriteUrl ?? FALLBACK_SPRITE_URL}
+          alt={ctx.enemy.name}
+          className="poke-sprite-img"
+          onError={(e) => {
+            // If the chosen sprite 404s, fall back to the first sprite in the list
+            const img = e.currentTarget;
+            if (img.src !== window.location.origin + FALLBACK_SPRITE_URL) {
+              img.src = FALLBACK_SPRITE_URL;
+            }
+          }}
+        />
         {/* Hit flash overlay */}
         <AnimatePresence>
           {attackEffect?.active && attackEffect.target === 'enemy' && (
@@ -432,21 +432,6 @@ export function BattleScreen({
         <div className="poke-hpbar-nums">
           {Math.floor(ctx.player.hpCurrent)} / {ctx.player.hpMax}
         </div>
-        {/* Energy bar */}
-        <div className="poke-energy-row">
-          <span className="poke-energy-label">EN</span>
-          <div className="poke-energy-track">
-            <motion.div
-              className="poke-energy-fill"
-              initial={false}
-              animate={{ width: `${energyPct * 100}%` }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-            />
-          </div>
-          <span style={{ fontSize: '0.38rem', color: 'rgba(0,229,255,0.6)', fontFamily: "'Press Start 2P', monospace" }}>
-            {ctx.playerEnergy}/{ctx.player.energyMax}
-          </span>
-        </div>
       </div>
 
       {/* ── Bottom: Dialog + Actions ─────────────────────────────────────────── */}
@@ -509,13 +494,14 @@ export function BattleScreen({
               transition={{ duration: 0.15 }}
             >
               {ctx.equippedAbilities.slice(0, 4).map((ability) => {
-                const meta      = ELEMENT_META[ability.elementName];
-                const canAfford = ctx.playerEnergy >= ability.energyCost;
+                const meta    = ELEMENT_META[ability.elementName];
+                const pp      = ctx.abilityPP[ability.id];
+                const hasPP   = (pp?.current ?? 0) > 0;
                 return (
                   <button
                     key={ability.id}
                     className="poke-skill-btn"
-                    disabled={!canAfford}
+                    disabled={!hasPP}
                     style={{ '--el-color': meta?.color ?? 'rgba(0,229,255,0.5)' } as React.CSSProperties}
                     onClick={() => {
                       lastUsedAbilityRef.current = ability;
@@ -538,7 +524,9 @@ export function BattleScreen({
                       >
                         {meta?.icon} {ability.elementName}
                       </span>
-                      <span className="poke-skill-cost">⚡{ability.energyCost}</span>
+                      <span className="poke-skill-cost">
+                        PP {pp?.current ?? 0}/{pp?.max ?? 0}
+                      </span>
                     </div>
                   </button>
                 );
@@ -636,7 +624,7 @@ export function BattleScreen({
 
       {/* ── Item Modal ───────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {showItems && (
+        {showItems && !showRechargeSelect && (
           <>
             <motion.div
               className="poke-item-modal-overlay"
@@ -650,21 +638,98 @@ export function BattleScreen({
               exit={{ opacity: 0, scale: 0.92, y: 16 }}
             >
               <div className="poke-item-title">🧪 Usar Item</div>
-              {ITEMS.map(item => (
-                <button
-                  key={item.label}
-                  className="poke-item-btn"
-                  onClick={() => { useItem(item.effect, item.value); setShowItems(false); setMenu('main'); }}
-                >
-                  <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
+              {ITEMS.map(item => {
+                const isRechargeUsed  = item.effect === 'recharge' && ctx.rechargeUsed;
+                const isHealSmallDone = item.effect === 'heal' && item.value <= 50  && ctx.healSmallUses >= 3;
+                const isHealLargeDone = item.effect === 'heal' && item.value > 50   && ctx.healLargeUsed;
+                const disabled = isRechargeUsed || isHealSmallDone || isHealLargeDone;
+
+                let suffix = '';
+                if (isRechargeUsed)  suffix = ' (usada)';
+                else if (isHealSmallDone) suffix = ' (esgotada)';
+                else if (isHealLargeDone) suffix = ' (usada)';
+                else if (item.effect === 'heal' && item.value <= 50) suffix = ` (${3 - ctx.healSmallUses}/3)`;
+                else if (item.effect === 'heal' && item.value > 50)  suffix = ' (1×)';
+
+                return (
+                  <button
+                    key={item.label}
+                    className="poke-item-btn"
+                    disabled={disabled}
+                    style={disabled ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                    onClick={() => {
+                      if (item.effect === 'recharge') {
+                        setShowRechargeSelect(true);
+                      } else {
+                        useItem(item.effect, item.value);
+                        setShowItems(false);
+                        setMenu('main');
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
+                    <span>{item.label}{suffix}</span>
+                  </button>
+                );
+              })}
               <button
                 className="poke-cancel-btn"
                 onClick={() => { setShowItems(false); setMenu('main'); }}
               >
                 Cancelar
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Recharge — choose which attack to restore ────────────────────────── */}
+      <AnimatePresence>
+        {showRechargeSelect && ctx && (
+          <>
+            <motion.div
+              className="poke-item-modal-overlay"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowRechargeSelect(false)}
+            />
+            <motion.div
+              className="poke-item-modal"
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 16 }}
+            >
+              <div className="poke-item-title">🔋 Qual ataque recarregar?</div>
+              {ctx.equippedAbilities.map(ability => {
+                const pp = ctx.abilityPP[ability.id];
+                const full = pp && pp.current === pp.max;
+                return (
+                  <button
+                    key={ability.id}
+                    className="poke-item-btn"
+                    disabled={!!full}
+                    style={full ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                    onClick={() => {
+                      useItem('recharge', 0, ability.id);
+                      setShowRechargeSelect(false);
+                      setShowItems(false);
+                      setMenu('main');
+                    }}
+                  >
+                    <span style={{ fontSize: '1.2rem' }}>⚔️</span>
+                    <span>
+                      {ability.name}
+                      <span style={{ opacity: 0.6, marginLeft: 6 }}>
+                        ({pp?.current ?? 0}/{pp?.max ?? 0} PP)
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+              <button
+                className="poke-cancel-btn"
+                onClick={() => setShowRechargeSelect(false)}
+              >
+                Voltar
               </button>
             </motion.div>
           </>

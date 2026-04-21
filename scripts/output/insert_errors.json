@@ -1,0 +1,42 @@
+[
+  {
+    "floor": 6,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 7,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 8,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 9,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 10,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 11,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 12,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 13,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 14,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  },
+  {
+    "floor": 15,
+    "error": "BossBattle: insert or update on table \"boss_battles\" violates foreign key constraint \"boss_battles_teacher_id_fkey\""
+  }
+]

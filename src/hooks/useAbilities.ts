@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseAnon } from '@/integrations/supabase/anonClient';
+import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { toast } from 'sonner';
 import type { Ability, BattleCharacter, ElementType } from '@/types/character';
 import { canUseAbility } from '@/types/character';
@@ -16,7 +17,7 @@ export function useAbilities() {
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,
     queryFn: async (): Promise<Ability[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAnon
         .from('abilities')
         .select(`
           *,
@@ -67,7 +68,7 @@ export function useAbilitiesByElement(element: ElementType | null) {
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,
     queryFn: async (): Promise<Ability[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAnon
         .from('abilities')
         .select(`*, elements:element_id (name, icon_url, color_hex)`)
         .eq('elements.name', element)
@@ -107,7 +108,7 @@ export function useEquippedAbilities(characterId: string | null) {
     refetchIntervalInBackground: false,
     refetchOnReconnect: false,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseStudent
         .from('character_abilities')
         .select('ability_id, slot')
         .eq('character_id', characterId!)
@@ -127,7 +128,7 @@ export function useEquipAbility(characterId: string) {
   return useMutation({
     mutationFn: async ({ abilityId, slot }: { abilityId: string; slot: 1 | 2 | 3 | 4 }) => {
       // Upsert into the slot (replaces whatever was there)
-      const { data, error } = await supabase
+      const { data, error } = await supabaseStudent
         .from('character_abilities')
         .upsert({ character_id: characterId, ability_id: abilityId, slot }, { onConflict: 'character_id,slot' })
         .select();
@@ -152,7 +153,7 @@ export function useUnequipAbility(characterId: string) {
 
   return useMutation({
     mutationFn: async (slot: 1 | 2 | 3 | 4) => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseStudent
         .from('character_abilities')
         .delete()
         .eq('character_id', characterId)

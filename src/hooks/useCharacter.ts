@@ -3,6 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { toast } from 'sonner';
 import type { BattleCharacter, ElementType } from '@/types/character';
+import {
+  processXPGain,
+  getTotalXPForLevel,
+  getPointsForLevelUp,
+  type XPReward,
+} from '@/lib/progression/xpCalculator';
 
 // ─── Row → domain ─────────────────────────────────────────────────────────────
 
@@ -151,59 +157,127 @@ export function useDistributePoints(characterId: string) {
   });
 }
 
-// ─── Apply battle rewards (coins + XP, with level-up handling) ───────────────
+// ─── Apply battle rewards — XP, coins, and automatic level-up ────────────────
 
 export function useApplyBattleRewards(characterId: string) {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ xp, coins }: { xp: number; coins: number }) => {
-      // Fetch current character state (user_id needed to update students table)
+    mutationFn: async ({ xp, coins }: { xp: number; coins: number }): Promise<XPReward> => {
+      // Fetch full character row (need stats + xp + level for level-up calc)
       const { data: char, error: fetchErr } = await supabaseStudent
         .from('characters')
-        .select('xp, coins, user_id')
+        .select(
+          'id, user_id, level, xp, coins, free_points, ' +
+          'forca, inteligencia, destreza, carisma, agilidade, resistencia, ' +
+          'hp_max, hp_current, energy_max',
+        )
         .eq('id', characterId)
         .single();
 
       if (fetchErr) throw fetchErr;
 
-      // Update characters: accumulate raw XP and coins only.
-      // Level-up is exclusively managed by the academic sync in useBattleCharacter
-      // (teacher controls level via students.level — battle XP is a metric, not a level gate).
-      const { error: updateErr } = await supabaseStudent
-        .from('characters')
-        .update({
-          xp:         (char.xp    ?? 0) + xp,
-          coins:      (char.coins ?? 0) + coins,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', characterId);
+      const currentLevel  = char.level ?? 1;
+      // Synced/new characters start with xp=0 even at high levels; ensure cumulative base
+      const xpBase        = Math.max(char.xp ?? 0, getTotalXPForLevel(currentLevel));
+      const newTotalXP    = xpBase + xp;
+      const newTotalCoins = (char.coins  ?? 0) + coins;
 
-      if (updateErr) throw updateErr;
+      // XP within the current level (cumulative total minus XP already spent on past levels)
+      const spentOnPastLevels = getTotalXPForLevel(currentLevel);
+      const currentLevelXP    = Math.max(0, xpBase - spentOnPastLevels);
+      const xpResult          = processXPGain(currentLevel, currentLevelXP, xp);
 
-      // Mirror coins + XP to students table (unified economy — portal HUD uses this)
-      if (char.user_id) {
-        const { data: studentData } = await supabaseStudent
-          .from('students')
-          .select('coins, xp')
-          .eq('user_id', char.user_id)
-          .maybeSingle();
+      if (xpResult.leveledUp && xpResult.newLevel) {
+        // ── Level-up path ──────────────────────────────────────────────────────
+        const newLevel     = xpResult.newLevel;
+        const levelsGained = xpResult.levelsGained ?? 1;
+        const bonuses      = getPointsForLevelUp(levelsGained);
 
-        if (studentData) {
-          await supabaseStudent
+        // Scale stats (+1 per level for every attribute, HP/energy recalculate)
+        const newForca        = (char.forca        ?? 10) + bonuses.attributePoints;
+        const newInteligencia = (char.inteligencia ?? 10) + bonuses.attributePoints;
+        const newDestreza     = (char.destreza     ?? 10) + bonuses.attributePoints;
+        const newCarisma      = (char.carisma      ?? 10) + bonuses.attributePoints;
+        const newAgilidade    = (char.agilidade    ?? 10) + bonuses.attributePoints;
+        const newResistencia  = (char.resistencia  ?? 10) + bonuses.attributePoints;
+        const newHpMax        = Math.max(100 + Math.max(0, newLevel - 1) * 10, char.hp_max    ?? 100);
+        const newEnergyMax    = Math.max(100 + Math.max(0, newLevel - 1) * 5,  char.energy_max ?? 100);
+        const newFreePoints   = (char.free_points ?? 0) + bonuses.freePoints;
+
+        await supabaseStudent
+          .from('characters')
+          .update({
+            level:        newLevel,
+            xp:           newTotalXP,
+            coins:        newTotalCoins,
+            forca:        newForca,
+            inteligencia: newInteligencia,
+            destreza:     newDestreza,
+            carisma:      newCarisma,
+            agilidade:    newAgilidade,
+            resistencia:  newResistencia,
+            hp_max:       newHpMax,
+            hp_current:   newHpMax,   // full HP restore on level-up
+            energy_max:   newEnergyMax,
+            free_points:  newFreePoints,
+            updated_at:   new Date().toISOString(),
+          })
+          .eq('id', characterId);
+
+        // Mirror to students table (level + XP + coins)
+        if (char.user_id) {
+          const { data: studentData } = await supabaseStudent
             .from('students')
-            .update({
-              coins: (studentData.coins ?? 0) + coins,
-              xp:    (studentData.xp    ?? 0) + xp,
-            })
-            .eq('user_id', char.user_id);
+            .select('coins, xp')
+            .eq('user_id', char.user_id)
+            .maybeSingle();
+
+          if (studentData) {
+            await supabaseStudent
+              .from('students')
+              .update({
+                level:  newLevel,
+                coins:  (studentData.coins ?? 0) + coins,
+                xp:     (studentData.xp    ?? 0) + xp,
+              })
+              .eq('user_id', char.user_id);
+          }
+        }
+      } else {
+        // ── No level-up: accumulate XP + coins only ────────────────────────────
+        await supabaseStudent
+          .from('characters')
+          .update({
+            xp:         newTotalXP,
+            coins:      newTotalCoins,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', characterId);
+
+        if (char.user_id) {
+          const { data: studentData } = await supabaseStudent
+            .from('students')
+            .select('coins, xp')
+            .eq('user_id', char.user_id)
+            .maybeSingle();
+
+          if (studentData) {
+            await supabaseStudent
+              .from('students')
+              .update({
+                coins: (studentData.coins ?? 0) + coins,
+                xp:    (studentData.xp    ?? 0) + xp,
+              })
+              .eq('user_id', char.user_id);
+          }
         }
       }
+
+      return xpResult;
     },
     onSuccess: () => {
-      // 'battle-character' is the key used by useBattleCharacter (StudentPortal)
       qc.invalidateQueries({ queryKey: ['battle-character'] });
-      // Also invalidate the teacher-side character queries just in case
       qc.invalidateQueries({ queryKey: ['battle', 'character-by-id', characterId] });
       qc.invalidateQueries({ queryKey: ['battle', 'character'] });
     },
