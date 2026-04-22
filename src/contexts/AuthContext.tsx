@@ -79,9 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq("user_id", session.user.id)
             .maybeSingle();
 
-          // First Google login: auto-create teacher record from Google profile
-          if (!teacherData && session.user.app_metadata?.provider === "google") {
-            const googleName =
+          // First login (any provider): auto-create teacher record if not found
+          if (!teacherData) {
+            const displayName =
               session.user.user_metadata?.full_name ||
               session.user.user_metadata?.name ||
               session.user.email?.split("@")[0] ||
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             const { data: created } = await supabase
               .from("teachers")
-              .insert({ name: googleName, user_id: session.user.id })
+              .insert({ name: displayName, user_id: session.user.id })
               .select()
               .maybeSingle();
 
