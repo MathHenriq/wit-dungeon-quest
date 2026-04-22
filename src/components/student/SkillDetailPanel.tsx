@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Swords, Zap, Target, Shield, Sparkles, Lock, Check } from 'lucide-react';
 import type { Ability, BattleCharacter } from '@/types/character';
 import { ELEMENT_META, TIER_LABELS, getElementPoints } from '@/types/character';
+import type { ElementType } from '@/types/character';
 
 /* ── Damage type config ────────────────────────────────────────────── */
 const DAMAGE_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
@@ -20,6 +21,7 @@ interface SkillDetailPanelProps {
   onEquip: (abilityId: string, slot: 1 | 2 | 3 | 4) => void;
   onUnequip: (slot: 1 | 2 | 3 | 4) => void;
   onClose: () => void;
+  onDistribute?: (element: ElementType, amount: number) => void;
 }
 
 export function SkillDetailPanel({
@@ -31,6 +33,7 @@ export function SkillDetailPanel({
   onEquip,
   onUnequip,
   onClose,
+  onDistribute,
 }: SkillDetailPanelProps) {
   return (
     <AnimatePresence mode="wait">
@@ -52,6 +55,7 @@ export function SkillDetailPanel({
             onEquip={onEquip}
             onUnequip={onUnequip}
             onClose={onClose}
+            onDistribute={onDistribute}
           />
         </motion.div>
       )}
@@ -69,6 +73,7 @@ function PanelContent({
   onEquip,
   onUnequip,
   onClose,
+  onDistribute,
 }: {
   ability: Ability;
   character: BattleCharacter;
@@ -78,6 +83,7 @@ function PanelContent({
   onEquip: (abilityId: string, slot: 1 | 2 | 3 | 4) => void;
   onUnequip: (slot: 1 | 2 | 3 | 4) => void;
   onClose: () => void;
+  onDistribute?: (element: ElementType, amount: number) => void;
 }) {
   const meta = ELEMENT_META[ability.elementName];
   const currentPts = getElementPoints(character, ability.elementName);
@@ -291,18 +297,34 @@ function PanelContent({
       {/* ── Action button ──────────────────────────── */}
       <div className="st-animate-fade-up" style={{ animationDelay: '0.3s' }}>
         {isLocked ? (
-          <button
-            disabled
-            className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.25)',
-            }}
-          >
-            <Lock size={14} />
-            Bloqueado
-          </button>
+          onDistribute && character.freePoints > 0 ? (
+            <button
+              onClick={() => onDistribute(ability.elementName, Math.min(character.freePoints, missing))}
+              className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:brightness-110"
+              style={{
+                background: `linear-gradient(135deg, ${meta.color}25, ${meta.color}10)`,
+                border: `1px solid ${meta.color}50`,
+                color: meta.color,
+                boxShadow: `0 4px 16px ${meta.color}18`,
+              }}
+            >
+              <Sparkles size={14} />
+              Gastar {Math.min(character.freePoints, missing)} ponto(s) em {ability.elementName}
+            </button>
+          ) : (
+            <button
+              disabled
+              className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.25)',
+              }}
+            >
+              <Lock size={14} />
+              Bloqueado — sem pontos livres
+            </button>
+          )
         ) : isEquipped ? (
           <button
             onClick={handleUnequip}

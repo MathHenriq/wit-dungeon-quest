@@ -135,7 +135,7 @@ export function useDistributePoints(characterId: string) {
       if (amount <= 0) throw new Error('Informe um valor maior que 0.');
 
       const col = ELEMENT_COL[element];
-      const { error } = await supabase
+      const { error } = await supabaseStudent
         .from('characters')
         .update({
           [col]: currentElementPoints + amount,

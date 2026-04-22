@@ -158,8 +158,8 @@ export function SkillTreePage({ character, onBack }: SkillTreePageProps) {
             <span className="text-sm font-bold text-yellow-400">
               {character.freePoints} ponto(s) para distribuir
             </span>
-            <div className="flex gap-1.5 ml-2">
-              {elements.slice(0, 6).map(el => {
+            <div className="flex flex-wrap gap-1.5 ml-2">
+              {elements.map(el => {
                 const meta = ELEMENT_META[el];
                 return (
                   <button
@@ -238,6 +238,7 @@ export function SkillTreePage({ character, onBack }: SkillTreePageProps) {
         onEquip={handleEquip}
         onUnequip={handleUnequip}
         onClose={() => setSelectedAbility(null)}
+        onDistribute={handleDistribute}
       />
 
       {/* ── Equip bar (bottom) ─────────────────────────────────── */}
