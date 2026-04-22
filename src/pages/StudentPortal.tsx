@@ -29,11 +29,10 @@ import { DailyDungeon } from "@/components/student/DailyDungeon";
 import { BattleDungeonView } from "@/components/student/BattleDungeonView";
 import { BattleSkillsView } from "@/components/student/BattleSkillsView";
 import { SkillTreePage } from "@/components/student/SkillTreePage";
-import { BattlePvPView } from "@/components/student/BattlePvPView";
 import { useBattleCharacter } from "@/hooks/useBattleCharacter";
 import { TimeCapsule } from "@/components/student/TimeCapsule";
-import { PvPArena } from "@/components/student/PvPArena";
 import { PvpArena } from "@/components/pvp-arena/PvpArena";
+import { PvpChallengeProvider } from "@/contexts/PvpChallengeContext";
 import { TradingPanel } from "@/components/student/TradingPanel";
 import { TradingScreen } from "@/components/student/TradingScreen";
 import { ClassWarBanner } from "@/components/student/ClassWarBanner";
@@ -526,57 +525,12 @@ export default function StudentPortal() {
   const isDirector = activeTab === 'director';
   const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'bosses' ? 'quests' : activeTab === 'skills' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : activeTab === 'guild' ? 'home' : 'home';
 
-  // ── Director Map (fullscreen, replaces sidebar+content) ──
-  if (isDirector) {
-    return (
-      <div className="relative min-h-screen">
-        {/* BattleScreen renders at root level */}
-        {activeBossId && student && (
-          <BattleScreen
-            key={battleKey}
-            bossId={activeBossId}
-            student={student}
-            onExit={() => { setActiveBossId(null); setBossTabKey(k => k + 1); }}
-            onRetry={() => setBattleKey(k => k + 1)}
-          />
-        )}
-
-        {/* Dungeon Entrance animation */}
-        {showEntrance && !entranceDone && (
-          <DungeonEntrance
-            studentId={student.id}
-            studentName={student.character_name || student.name}
-            level={student.level}
-            characterClass={student.character_class}
-            onComplete={() => {
-              setShowEntrance(false);
-              setEntranceDone(true);
-            }}
-          />
-        )}
-
-        <DirectorMap
-          student={student}
-          onNavigate={handleTabChange}
-          onLogout={async () => { setIsLoggingOut(true); await logout(); }}
-          onOpenAccessibility={() => setShowAccessibility(true)}
-        />
-
-        {showAccessibility && (
-          <AccessibilitySettings onClose={() => setShowAccessibility(false)} />
-        )}
-      </div>
-    );
-  }
-
-  // ── TAB LABELS ──
   const TAB_LABELS: Record<string, string> = {
     challenges: 'Quests', missions: 'Missões', bosses: 'Bosses',
     guild: 'Guilda', skills: 'Skills', shop: 'Loja',
     ranking: 'Ranking', character: 'Herói', capsule: 'Cápsula', pvp: 'PvP Arena', trading: 'Trading',
   };
 
-  // ── Shared overlays (boss battle + entrance + accessibility) ──
   const sharedOverlays = (
     <>
       {activeBossId && student && (
@@ -603,146 +557,153 @@ export default function StudentPortal() {
     </>
   );
 
-  // ── Dungeon tab — BattleDungeonView is fully full-screen ──
-  if (activeTab === 'dungeon') {
-    return (
-      <div className="fixed inset-0 bg-[#020611]">
-        {sharedOverlays}
-        {isLoadingCharacter ? (
-          <div className="flex items-center justify-center h-full text-white/60">
-            <Loader2 className="animate-spin mr-3" size={24} /> Carregando personagem...
-          </div>
-        ) : battleCharacter ? (
-          <BattleDungeonView
-            character={battleCharacter}
-            onRewardApplied={refreshStudent}
+  function getTabContent(): JSX.Element {
+    if (isDirector) {
+      return (
+        <div className="relative min-h-screen">
+          {sharedOverlays}
+          <DirectorMap
+            student={student}
+            onNavigate={handleTabChange}
+            onLogout={async () => { setIsLoggingOut(true); await logout(); }}
+            onOpenAccessibility={() => setShowAccessibility(true)}
+          />
+        </div>
+      );
+    }
+
+    if (activeTab === 'dungeon') {
+      return (
+        <div className="fixed inset-0 bg-[#020611]">
+          {sharedOverlays}
+          {isLoadingCharacter ? (
+            <div className="flex items-center justify-center h-full text-white/60">
+              <Loader2 className="animate-spin mr-3" size={24} /> Carregando personagem...
+            </div>
+          ) : battleCharacter ? (
+            <BattleDungeonView
+              character={battleCharacter}
+              onRewardApplied={refreshStudent}
+              onBack={() => setActiveTab('director')}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-white/60">
+              <p>Não foi possível carregar o personagem. Tente recarregar a página.</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (activeTab === 'skills') {
+      return (
+        <div className="fixed inset-0">
+          {sharedOverlays}
+          {isLoadingCharacter ? (
+            <div className="flex items-center justify-center h-full text-white/60 bg-[#020611]">
+              <Loader2 className="animate-spin mr-3" size={24} /> Carregando habilidades...
+            </div>
+          ) : battleCharacter ? (
+            <SkillTreePage character={battleCharacter} onBack={() => setActiveTab('director')} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-white/60 bg-[#020611]">
+              <p>Erro ao carregar sistema de habilidades</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (activeTab === 'pvp') {
+      return (
+        <div className="fixed inset-0">
+          {sharedOverlays}
+          <PvpArena student={student} onBack={() => setActiveTab('director')} />
+        </div>
+      );
+    }
+
+    if (activeTab === 'character') {
+      return (
+        <div className="fixed inset-0 overflow-y-auto" style={{ background: '#04060a' }}>
+          {sharedOverlays}
+          <HeroScreen student={student} inventory={inventory} onUpdate={refreshStudent} onBack={() => setActiveTab('director')} />
+        </div>
+      );
+    }
+
+    if (activeTab === 'guild') {
+      return (
+        <div className="fixed inset-0">
+          {sharedOverlays}
+          <Guild student={student} onBack={() => setActiveTab('director')} />
+        </div>
+      );
+    }
+
+    if (activeTab === 'trading') {
+      return (
+        <div className="fixed inset-0">
+          {sharedOverlays}
+          <TradingScreen
+            student={student}
+            inventory={inventory}
+            onBack={() => setActiveTab('director')}
+            onInventoryChanged={refreshStudent}
+          />
+        </div>
+      );
+    }
+
+    if (activeTab === 'shop') {
+      return (
+        <div className="fixed inset-0">
+          {sharedOverlays}
+          <ShopScreen
+            items={shopItems}
+            inventory={inventory}
+            student={student}
+            onPurchase={async (item) => {
+              const result = await purchaseItem(item.id);
+              if (!result) return;
+              if (!result.success) {
+                toast.error("Compra não realizada", { description: result.error });
+              } else {
+                toast.success(`${item.name} adquirido!`);
+              }
+            }}
+            onCoinsChanged={refreshStudent}
             onBack={() => setActiveTab('director')}
           />
-        ) : (
-          <div className="flex items-center justify-center h-full text-white/60">
-            <p>Não foi possível carregar o personagem. Tente recarregar a página.</p>
-          </div>
-        )}
-      </div>
-    );
-  }
+        </div>
+      );
+    }
 
-  // ── Skills tab — full-screen Yggdrasil tree ──
-  if (activeTab === 'skills') {
+    if (activeTab === 'missions' || activeTab === 'challenges') {
+      return (
+        <div className="fixed inset-0 overflow-y-auto" style={{ background: '#1a0c04' }}>
+          <AincradBackground scene="quests" />
+          {sharedOverlays}
+          <MissionBoard
+            studentId={student.id}
+            teacherId={student.teacher_id}
+            missions={missions}
+            completions={missionCompletions}
+            needsReturnMission={false}
+            onCompletionRequested={refreshMissions}
+            challenges={challenges}
+            isChallengeCompleted={(id) => challenges.find(c => c.id === id)?.challenge_type === "unica" && isChallengeCompleted(id)}
+            isChallengePending={isChallengePending}
+            onChallengeRequest={handleChallengeRequest}
+            onBack={() => setActiveTab('director')}
+            initialTab={activeTab === 'challenges' ? 'desafios' : 'missoes'}
+          />
+        </div>
+      );
+    }
+
+    // ── All other tabs — full-screen with top bar ──
     return (
-      <div className="fixed inset-0">
-        {sharedOverlays}
-        {isLoadingCharacter ? (
-          <div className="flex items-center justify-center h-full text-white/60 bg-[#020611]">
-            <Loader2 className="animate-spin mr-3" size={24} /> Carregando habilidades...
-          </div>
-        ) : battleCharacter ? (
-          <SkillTreePage character={battleCharacter} onBack={() => setActiveTab('director')} />
-        ) : (
-          <div className="flex items-center justify-center h-full text-white/60 bg-[#020611]">
-            <p>Erro ao carregar sistema de habilidades</p>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ── PvP Arena tab — full-screen overlay ──
-  if (activeTab === 'pvp') {
-    return (
-      <div className="fixed inset-0">
-        {sharedOverlays}
-        <PvpArena student={student} onBack={() => setActiveTab('director')} />
-      </div>
-    );
-  }
-
-  // ── Character / Hero tab — full-screen overlay ──
-  if (activeTab === 'character') {
-    return (
-      <div className="fixed inset-0 overflow-y-auto" style={{ background: '#04060a' }}>
-        {sharedOverlays}
-        <HeroScreen student={student} inventory={inventory} onUpdate={refreshStudent} onBack={() => setActiveTab('director')} />
-      </div>
-    );
-  }
-
-  // ── Guild tab — full-screen overlay ──
-  if (activeTab === 'guild') {
-    return (
-      <div className="fixed inset-0">
-        {sharedOverlays}
-        <Guild student={student} onBack={() => setActiveTab('director')} />
-      </div>
-    );
-  }
-
-  // ── Trading tab — full-screen SAO HUD ──
-  if (activeTab === 'trading') {
-    return (
-      <div className="fixed inset-0">
-        {sharedOverlays}
-        <TradingScreen
-          student={student}
-          inventory={inventory}
-          onBack={() => setActiveTab('director')}
-          onInventoryChanged={refreshStudent}
-        />
-      </div>
-    );
-  }
-
-  // ── Shop tab — full-screen Arcane Emporium ──
-  if (activeTab === 'shop') {
-    return (
-      <div className="fixed inset-0">
-        {sharedOverlays}
-        <ShopScreen
-          items={shopItems}
-          inventory={inventory}
-          student={student}
-          onPurchase={async (item) => {
-            const result = await purchaseItem(item.id);
-            if (!result) return;
-            if (!result.success) {
-              toast.error("Compra não realizada", { description: result.error });
-            } else {
-              toast.success(`${item.name} adquirido!`);
-            }
-          }}
-          onCoinsChanged={refreshStudent}
-          onBack={() => setActiveTab('director')}
-        />
-      </div>
-    );
-  }
-
-  // ── Missions / Challenges — full-screen parchment ──
-  if (activeTab === 'missions' || activeTab === 'challenges') {
-    return (
-      <div className="fixed inset-0 overflow-y-auto" style={{ background: '#1a0c04' }}>
-        <AincradBackground scene="quests" />
-        {sharedOverlays}
-        <MissionBoard
-          studentId={student.id}
-          teacherId={student.teacher_id}
-          missions={missions}
-          completions={missionCompletions}
-          needsReturnMission={false}
-          onCompletionRequested={refreshMissions}
-          challenges={challenges}
-          isChallengeCompleted={(id) => challenges.find(c => c.id === id)?.challenge_type === "unica" && isChallengeCompleted(id)}
-          isChallengePending={isChallengePending}
-          onChallengeRequest={handleChallengeRequest}
-          onBack={() => setActiveTab('director')}
-          initialTab={activeTab === 'challenges' ? 'desafios' : 'missoes'}
-        />
-      </div>
-    );
-  }
-
-  // ── All other tabs — full-screen with top bar ──
-  return (
     <div className="fixed inset-0 bg-[#020611] z-30 overflow-hidden">
       <AincradBackground scene={bgScene} />
       {sharedOverlays}
@@ -881,21 +842,6 @@ export default function StudentPortal() {
           </div>
         )}
 
-        {/* PvP Arena Tab */}
-        {activeTab === "pvp" && (
-          isLoadingCharacter ? (
-            <div className="flex items-center justify-center h-64 text-white/60">
-              <span className="animate-spin mr-3">⏳</span> Carregando arena PvP...
-            </div>
-          ) : battleCharacter ? (
-            <BattlePvPView character={battleCharacter} />
-          ) : (
-            <div className="holo-panel text-center py-12 text-white/60">
-              <p>Erro ao carregar arena PvP</p>
-            </div>
-          )
-        )}
-
         {/* Trading Tab — handled as full-screen TradingScreen overlay above */}
 
         <div className="mt-8 text-center text-xs text-white/20">
@@ -905,5 +851,12 @@ export default function StudentPortal() {
         </div>
       </div>
     </div>
+    );
+  } // end getTabContent
+
+  return (
+    <PvpChallengeProvider student={student} isInBattle={!!activeBossId}>
+      {getTabContent()}
+    </PvpChallengeProvider>
   );
 }

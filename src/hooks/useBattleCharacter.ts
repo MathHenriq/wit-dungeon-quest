@@ -163,7 +163,7 @@ export function useBattleCharacter(userId: string | undefined) {
       const startStat       = 10 + levelsAboveOne;          // +1 per level
       const startHpMax      = hpMaxAtLevel(academicLevel);
       const startEnergyMax  = energyMaxAtLevel(academicLevel);
-      const startFreePoints = levelsAboveOne * 3;            // same as getPointsForLevelUp
+      const startFreePoints = levelsAboveOne * 3 + 10;       // 10 bonus points to pick a starting skill
 
       const { data: newChar, error: createError } = await supabaseStudent
         .from('characters')
