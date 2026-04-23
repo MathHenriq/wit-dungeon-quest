@@ -21,6 +21,8 @@ interface BattleScreenProps {
   engineOverride?:   PvPBattleEngineControls;
   /** PvP: called when the player picks an ability (so wrapper can broadcast it) */
   onPlayerAttack?:   (abilityId: string) => void;
+  /** PvP: called when the player clicks the surrender button */
+  onSurrender?:      () => void;
   /** PvP: replaces "TURNO DO INIMIGO" label and hides flee/items */
   pvpMode?:          boolean;
 }
@@ -80,6 +82,7 @@ export function BattleScreen({
   onFled,
   engineOverride,
   onPlayerAttack,
+  onSurrender,
   pvpMode = false,
 }: BattleScreenProps) {
   const internalEngine = useBattleEngine();
@@ -87,6 +90,7 @@ export function BattleScreen({
 
   // Menu state
   const [menu, setMenu] = useState<'main' | 'fight' | 'item'>('main');
+  const [confirmSurrender, setConfirmSurrender] = useState(false);
 
   // Shake states
   const [shakePlayer, setShakePlayer] = useState(false);
@@ -754,6 +758,62 @@ export function BattleScreen({
           </>
         )}
       </AnimatePresence>
+
+      {/* ── PvP Surrender Button ─────────────────────────────────────────────── */}
+      {pvpMode && !isEnded && onSurrender && (
+        <div style={{
+          position: 'absolute', bottom: 8, right: 8, zIndex: 20,
+          display: 'flex', gap: 6, alignItems: 'center',
+        }}>
+          {confirmSurrender ? (
+            <>
+              <span style={{
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: '0.55rem', color: 'rgba(248,113,113,0.8)', letterSpacing: 1,
+              }}>
+                Desistir?
+              </span>
+              <button
+                onClick={() => { setConfirmSurrender(false); onSurrender(); }}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: '0.55rem',
+                  fontFamily: "'Orbitron', sans-serif", letterSpacing: 1,
+                  border: '1px solid rgba(248,113,113,0.6)',
+                  background: 'rgba(248,113,113,0.15)', color: '#f87171',
+                  cursor: 'pointer',
+                }}
+              >
+                SIM
+              </button>
+              <button
+                onClick={() => setConfirmSurrender(false)}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: '0.55rem',
+                  fontFamily: "'Orbitron', sans-serif", letterSpacing: 1,
+                  border: '1px solid rgba(100,116,139,0.4)',
+                  background: 'rgba(100,116,139,0.1)', color: '#94a3b8',
+                  cursor: 'pointer',
+                }}
+              >
+                NÃO
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setConfirmSurrender(true)}
+              style={{
+                padding: '4px 12px', borderRadius: 6, fontSize: '0.55rem',
+                fontFamily: "'Orbitron', sans-serif", letterSpacing: 1,
+                border: '1px solid rgba(248,113,113,0.3)',
+                background: 'rgba(248,113,113,0.08)', color: 'rgba(248,113,113,0.7)',
+                cursor: 'pointer',
+              }}
+            >
+              🏳 DESISTIR
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

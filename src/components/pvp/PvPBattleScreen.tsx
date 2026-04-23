@@ -18,7 +18,9 @@ interface PvPBattleScreenProps {
   onFinish:      (won: boolean) => void;
 }
 
-type BroadcastAction = { type: 'ATTACK'; abilityId: string };
+type BroadcastAction =
+  | { type: 'ATTACK'; abilityId: string }
+  | { type: 'SURRENDER' };
 
 // ─── Character → BattleEnemy conversion ──────────────────────────────────────
 
@@ -73,6 +75,8 @@ export function PvPBattleScreen({
       .on('broadcast', { event: 'pvp_action' }, ({ payload }: { payload: BroadcastAction }) => {
         if (payload.type === 'ATTACK') {
           engine.applyEnemyAction(payload.abilityId);
+        } else if (payload.type === 'SURRENDER') {
+          onFinish(true); // opponent surrendered → I win
         }
       })
       .subscribe();
@@ -81,13 +85,21 @@ export function PvPBattleScreen({
     return () => { supabaseStudent.removeChannel(channel); };
   }, [matchId]); // eslint-disable-line
 
-  // Called by BattleScreen when the local player picks an ability
   function handlePlayerAttack(abilityId: string) {
     channelRef.current?.send({
       type:    'broadcast',
       event:   'pvp_action',
       payload: { type: 'ATTACK', abilityId } satisfies BroadcastAction,
     });
+  }
+
+  function handleSurrender() {
+    channelRef.current?.send({
+      type:    'broadcast',
+      event:   'pvp_action',
+      payload: { type: 'SURRENDER' } satisfies BroadcastAction,
+    });
+    onFinish(false); // I surrendered → I lose
   }
 
   if (!engine.ctx) {
@@ -113,6 +125,7 @@ export function PvPBattleScreen({
         equippedAbilities={myAbilities}
         engineOverride={engine}
         onPlayerAttack={handlePlayerAttack}
+        onSurrender={handleSurrender}
         pvpMode
         onVictory={() => onFinish(true)}
         onDefeat={() => onFinish(false)}
