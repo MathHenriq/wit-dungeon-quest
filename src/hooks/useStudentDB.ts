@@ -248,8 +248,9 @@ export function useStudentDB() {
     }
 
     if (typedStudent.status === "rejected") {
+      // Keep the record in state so registerStudent can detect it and UPDATE instead of INSERT
       setStudent(typedStudent);
-      setAuthState("pending"); // show "pending" screen with rejection message
+      setAuthState("needs_registration");
       return;
     }
 
@@ -437,20 +438,34 @@ export function useStudentDB() {
   const registerStudent = async (name: string, teacherId: string, classId: string) => {
     if (!authUser) return { success: false, error: "Não autenticado." };
 
-    const { error } = await supabaseStudent.from("students").insert({
-      name: name.trim(),
-      teacher_id: teacherId,
-      class_id: classId,
-      user_id: authUser.id,
-      status: "pending",
-      coins: 0,
-      level: 1,
-      presencas_consecutivas: 0,
-    });
+    // Rejected students already have a record with this user_id (UNIQUE constraint).
+    // UPDATE it back to pending instead of trying to INSERT a duplicate.
+    if (student?.status === "rejected") {
+      const { error } = await supabaseStudent
+        .from("students")
+        .update({ name: name.trim(), teacher_id: teacherId, class_id: classId, status: "pending" })
+        .eq("id", student.id);
 
-    if (error) {
-      console.error("[useStudentDB] registerStudent:", error);
-      return { success: false, error: error.message };
+      if (error) {
+        console.error("[useStudentDB] registerStudent (re-register):", error);
+        return { success: false, error: error.message };
+      }
+    } else {
+      const { error } = await supabaseStudent.from("students").insert({
+        name: name.trim(),
+        teacher_id: teacherId,
+        class_id: classId,
+        user_id: authUser.id,
+        status: "pending",
+        coins: 0,
+        level: 1,
+        presencas_consecutivas: 0,
+      });
+
+      if (error) {
+        console.error("[useStudentDB] registerStudent:", error);
+        return { success: false, error: error.message };
+      }
     }
 
     // Re-resolve to enter "pending" state
