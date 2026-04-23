@@ -149,26 +149,13 @@ export function TeacherPendingStudentsPanel({
   };
 
   const handleMerge = async (pending: Student, existingId: string) => {
-    // 1. Link user_id and activate the existing (manual) student record
-    const { error: updateErr } = await supabase
-      .from("students")
-      .update({ user_id: pending.user_id, status: "active" })
-      .eq("id", existingId);
+    const { error } = await supabase.rpc("merge_student", {
+      p_pending_id: pending.id,
+      p_existing_id: existingId,
+    });
 
-    if (updateErr) {
-      toast.error("Erro ao mesclar aluno", { description: updateErr.message });
-      setMergeTarget(null);
-      return;
-    }
-
-    // 2. Delete the new pending record
-    const { error: deleteErr } = await supabase
-      .from("students")
-      .delete()
-      .eq("id", pending.id);
-
-    if (deleteErr) {
-      toast.error("Conta vinculada, mas erro ao remover registro pendente", { description: deleteErr.message });
+    if (error) {
+      toast.error("Erro ao mesclar aluno", { description: error.message });
     } else {
       toast.success("Conta mesclada com sucesso! Aluno tem acesso agora.");
     }
