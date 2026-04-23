@@ -4,6 +4,8 @@ import React, {
 import type { Student } from '@/types';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { calculateEloChange } from '@/components/pvp-arena/pvp-types';
+import { PvPBattleScreen } from '@/components/pvp/PvPBattleScreen';
+import type { BattleCharacter, Ability } from '@/types/character';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,12 +47,17 @@ interface PvpMyStats {
 }
 
 export interface PvpBattleData {
-  matchId: string;
-  opponent: PvpOpponentInfo & Partial<BattleStats>;
+  matchId:       string;
+  opponent:      PvpOpponentInfo & Partial<BattleStats>;
   myBattleStats: BattleStats;
-  myLevel: number;
-  myStats: PvpMyStats;
+  myLevel:       number;
+  myStats:       PvpMyStats;
   iAmChallenger: boolean;
+  /** Full character + abilities for real PvP battle (null while loading) */
+  myChar?:       BattleCharacter;
+  myAbilities?:  Ability[];
+  oppChar?:      BattleCharacter;
+  oppAbilities?: Ability[];
 }
 
 interface PvpChallengeContextValue {
@@ -124,6 +131,74 @@ async function fetchMyStats(studentId: string): Promise<PvpMyStats> {
     .eq('student_id', studentId)
     .maybeSingle();
   return (data as PvpMyStats | null) ?? { rating: 1000, wins: 0, losses: 0, win_streak: 0 };
+}
+
+function rowToCharacter(row: any): BattleCharacter {
+  return {
+    id:           row.id,
+    userId:       row.user_id,
+    name:         row.name         ?? 'Aventureiro',
+    class:        row.class        ?? 'Guerreiro',
+    level:        row.level        ?? 1,
+    xp:           row.xp           ?? 0,
+    hpCurrent:    row.hp_max       ?? 100,  // start at full HP for PvP
+    hpMax:        row.hp_max       ?? 100,
+    energyMax:    row.energy_max   ?? 100,
+    forca:        row.forca        ?? 10,
+    inteligencia: row.inteligencia ?? 10,
+    destreza:     row.destreza     ?? 10,
+    carisma:      row.carisma      ?? 10,
+    agilidade:    row.agilidade    ?? 10,
+    resistencia:  row.resistencia  ?? 10,
+    ptsFire:      row.pts_fire     ?? 0,
+    ptsWater:     row.pts_water    ?? 0,
+    ptsElectric:  row.pts_electric ?? 0,
+    ptsGrass:     row.pts_grass    ?? 0,
+    ptsIce:       row.pts_ice      ?? 0,
+    ptsGround:    row.pts_ground   ?? 0,
+    ptsFighting:  row.pts_fighting ?? 0,
+    ptsSteel:     row.pts_steel    ?? 0,
+    ptsPoison:    row.pts_poison   ?? 0,
+    ptsDark:      row.pts_dark     ?? 0,
+    ptsGhost:     row.pts_ghost    ?? 0,
+    ptsFlying:    row.pts_flying   ?? 0,
+    freePoints:   row.free_points  ?? 0,
+    spriteNormal:      row.sprite_normal       ?? null,
+    spritePixelFront:  row.sprite_pixel_front  ?? null,
+    spritePixelBack:   row.sprite_pixel_back   ?? null,
+    spritePixelAttack: row.sprite_pixel_attack ?? null,
+  };
+}
+
+async function fetchFullBattleData(studentId: string): Promise<{ char: BattleCharacter; abilities: Ability[] } | null> {
+  const { data, error } = await supabaseStudent.rpc('get_pvp_opponent_data' as never, {
+    p_student_id: studentId,
+  });
+  if (error || !data) return null;
+
+  const raw = data as any;
+  if (!raw.character) return null;
+
+  const char = rowToCharacter(raw.character);
+  const abilities: Ability[] = (raw.abilities ?? []).map((a: any) => ({
+    id:           a.id,
+    name:         a.name,
+    elementId:    a.elementId,
+    elementName:  a.elementName,
+    tier:         a.tier,
+    damageType:   a.damageType,
+    baseDamage:   a.baseDamage  ?? 0,
+    energyCost:   a.energyCost  ?? 0,
+    accuracy:     a.accuracy    ?? 100,
+    requirement:  a.requirement ?? 0,
+    effectType:   a.effectType,
+    effectChance: a.effectChance,
+    effectValue:  a.effectValue,
+    description:  a.description ?? '',
+    elementColor: a.elementColor,
+  }));
+
+  return { char, abilities };
 }
 
 function statsFromStudent(student: Student): BattleStats {
@@ -597,10 +672,12 @@ export function PvpChallengeProvider({
         if (match.status === 'accepted') {
           setOutgoingChallenge(null);
           const opp = pendingOppRef.current ?? await fetchOpponentInfo(match.opponent_id);
-          const [myChar, oppChar, myStats] = await Promise.all([
+          const [myChar, oppChar, myStats, myFull, oppFull] = await Promise.all([
             fetchCharacterStats(student.id),
             fetchCharacterStats(match.opponent_id),
             fetchMyStats(student.id),
+            fetchFullBattleData(student.id),
+            fetchFullBattleData(match.opponent_id),
           ]);
           setBattleData({
             matchId: match.id,
@@ -609,6 +686,10 @@ export function PvpChallengeProvider({
             myLevel: student.level,
             myStats,
             iAmChallenger: true,
+            myChar:       myFull?.char,
+            myAbilities:  myFull?.abilities,
+            oppChar:      oppFull?.char,
+            oppAbilities: oppFull?.abilities,
           });
         } else if (match.status === 'declined') {
           setOutgoingChallenge(null);
@@ -655,20 +736,26 @@ export function PvpChallengeProvider({
       .eq('id', incomingChallenge.id);
 
     const challenger = pendingOppRef.current ?? await fetchOpponentInfo(incomingChallenge.challenger_id);
-    const [myChar, oppChar, myStats] = await Promise.all([
+    const [myChar, oppChar, myStats, myFull, oppFull] = await Promise.all([
       fetchCharacterStats(student.id),
       fetchCharacterStats(incomingChallenge.challenger_id),
       fetchMyStats(student.id),
+      fetchFullBattleData(student.id),
+      fetchFullBattleData(incomingChallenge.challenger_id),
     ]);
 
     setIncomingChallenge(null);
     setBattleData({
-      matchId:      incomingChallenge.id,
-      opponent:     { ...challenger, ...(oppChar ?? {}) },
+      matchId:       incomingChallenge.id,
+      opponent:      { ...challenger, ...(oppChar ?? {}) },
       myBattleStats: myChar ?? statsFromStudent(student),
-      myLevel:      student.level,
+      myLevel:       student.level,
       myStats,
       iAmChallenger: false,
+      myChar:        myFull?.char,
+      myAbilities:   myFull?.abilities,
+      oppChar:       oppFull?.char,
+      oppAbilities:  oppFull?.abilities,
     });
   }, [incomingChallenge, student]);
 
@@ -752,7 +839,24 @@ export function PvpChallengeProvider({
         />
       )}
 
-      {battleData && (
+      {battleData && battleData.myChar && battleData.oppChar && (
+        <PvPBattleScreen
+          matchId={battleData.matchId}
+          myChar={battleData.myChar}
+          myAbilities={battleData.myAbilities ?? []}
+          oppChar={battleData.oppChar}
+          oppAbilities={battleData.oppAbilities ?? []}
+          iAmChallenger={battleData.iAmChallenger}
+          onFinish={(won) => handleFinishBattle(
+            won,
+            won ? 3 : 2,
+            won ? 2 : 3,
+          )}
+        />
+      )}
+
+      {/* Fallback: character data not loaded yet — keep old overlay to avoid blank screen */}
+      {battleData && (!battleData.myChar || !battleData.oppChar) && (
         <PvpBattleOverlay
           student={student}
           battleData={battleData}

@@ -329,6 +329,76 @@ export class BattleEngine {
     return this.snapshot();
   }
 
+  // ─── PvP: enemy turn driven by opponent's choice ─────────────────────────────
+
+  /** Like enemyTurn() but uses a specific ability chosen by the opponent player. */
+  enemyAttackWith(abilityId: string): BattleContext {
+    if (this.ctx.phase !== 'ENEMY_TURN') return this.snapshot();
+
+    this.ctx.phase = 'PROCESSING';
+
+    const blocked = this.tickEnemyStatus();
+    if (!blocked) {
+      this.enemyAttackWithAbility(abilityId);
+    }
+
+    if (this.ctx.player.hpCurrent <= 0) {
+      this.ctx.player.hpCurrent = 0;
+      this.ctx.phase = 'DEFEAT';
+      this.log('system', '💀 Você foi derrotado!', 'info');
+      return this.snapshot();
+    }
+
+    this.endTurn();
+    return this.snapshot();
+  }
+
+  private enemyAttackWithAbility(abilityId: string) {
+    const ability = this.ctx.enemy.abilities.find(a => a.id === abilityId);
+    if (!ability) {
+      this.log('enemy', `${this.ctx.enemy.name} não encontrou a habilidade!`, 'info');
+      return;
+    }
+
+    const atkMod = getAttackModifier(this.ctx.enemyStatus);
+    const attacker: CombatantStats = {
+      ...this.enemyStats(),
+      forca:        Math.floor(this.enemyStats().forca        * atkMod),
+      inteligencia: Math.floor(this.enemyStats().inteligencia * atkMod),
+    };
+
+    if (ability.damageType === 'Status') {
+      this.log('enemy', `${this.ctx.enemy.name} usou ${ability.name}!`, 'action');
+      this.applyAbilityEffect('player', ability);
+      return;
+    }
+
+    const result = calculateDamage(attacker, this.playerStats(), ability);
+
+    this.log('enemy', `${this.ctx.enemy.name} usou ${ability.name}!`, 'action');
+
+    if (result.isMiss || result.isEvaded) {
+      this.log('enemy', result.isEvaded ? 'Você desviou!' : 'Errou!', 'info');
+    } else if (result.effectiveness === 0) {
+      this.log('enemy', '🛡️ Imune! Sem efeito.', 'effect');
+    } else {
+      this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - result.damage);
+
+      if (result.isCritical)         this.log('enemy', '💥 Acerto crítico!', 'effect');
+      if (result.effectivenessLabel) this.log('enemy', result.effectivenessLabel, 'effect');
+      this.log('enemy', `Você sofreu ${result.damage} de dano!`, 'damage', result.damage);
+
+      if (
+        ability.effectType &&
+        !STAT_MODIFIERS.has(ability.effectType as StatusEffect) &&
+        ability.effectChance &&
+        Math.random() < ability.effectChance
+      ) {
+        this.applyEffect('player', ability.effectType as StatusEffect);
+      }
+    }
+  }
+
   // ─── Private: enemy AI ───────────────────────────────────────────────────────
 
   private enemyChooseAndAttack() {

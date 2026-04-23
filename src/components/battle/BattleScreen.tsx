@@ -4,6 +4,7 @@ import type { BattleCharacter, Ability } from '@/types/character';
 import type { BattleEnemy } from '@/lib/battle';
 import { ELEMENT_META } from '@/types/character';
 import { useBattleEngine } from '@/hooks/useBattleEngine';
+import type { PvPBattleEngineControls } from '@/hooks/usePvPBattleEngine';
 import { FALLBACK_SPRITE_URL } from '@/lib/sprites/getEnemySprite';
 import './PokemonBattle.css';
 
@@ -16,6 +17,12 @@ interface BattleScreenProps {
   onVictory:         (xp: number, coins: number) => void;
   onDefeat:          () => void;
   onFled?:           () => void;
+  /** PvP: pass external engine so auto-enemy-turns are disabled */
+  engineOverride?:   PvPBattleEngineControls;
+  /** PvP: called when the player picks an ability (so wrapper can broadcast it) */
+  onPlayerAttack?:   (abilityId: string) => void;
+  /** PvP: replaces "TURNO DO INIMIGO" label and hides flee/items */
+  pvpMode?:          boolean;
 }
 
 // ─── Items ────────────────────────────────────────────────────────────────────
@@ -71,8 +78,12 @@ export function BattleScreen({
   onVictory,
   onDefeat,
   onFled,
+  engineOverride,
+  onPlayerAttack,
+  pvpMode = false,
 }: BattleScreenProps) {
-  const { ctx, startBattle, playerAttack, useItem, flee } = useBattleEngine();
+  const internalEngine = useBattleEngine();
+  const { ctx, startBattle, playerAttack, useItem, flee } = engineOverride ?? internalEngine;
 
   // Menu state
   const [menu, setMenu] = useState<'main' | 'fight' | 'item'>('main');
@@ -114,9 +125,11 @@ export function BattleScreen({
   const [showItems, setShowItems] = useState(false);
   const [showRechargeSelect, setShowRechargeSelect] = useState(false);
 
-  // ── Start battle ────────────────────────────────────────────────────────────
+  // ── Start battle (only when using the internal engine) ─────────────────────
   useEffect(() => {
-    startBattle(player, enemy, equippedAbilities);
+    if (!engineOverride) {
+      startBattle(player, enemy, equippedAbilities);
+    }
   }, []); // eslint-disable-line
 
   // ── Dialog logic + log + attack animations ──────────────────────────────────
@@ -266,7 +279,7 @@ export function BattleScreen({
         <span style={{
           color: isPlayerTurn ? '#4ade80' : ctx.phase === 'VICTORY' ? '#fbbf24' : ctx.phase === 'DEFEAT' ? '#f87171' : 'rgba(255,255,255,0.4)',
         }}>
-          {isPlayerTurn ? 'SEU TURNO' : ctx.phase === 'ENEMY_TURN' || ctx.phase === 'PROCESSING' ? 'TURNO DO INIMIGO' : ctx.phase}
+          {isPlayerTurn ? 'SEU TURNO' : ctx.phase === 'ENEMY_TURN' || ctx.phase === 'PROCESSING' ? (pvpMode ? 'TURNO DO OPONENTE' : 'TURNO DO INIMIGO') : ctx.phase}
         </span>
       </div>
 
@@ -472,15 +485,21 @@ export function BattleScreen({
               <button className="poke-action-btn" onClick={() => setMenu('fight')}>
                 ⚔ LUTA
               </button>
-              <button className="poke-action-btn" onClick={() => { setMenu('item'); setShowItems(true); }}>
-                🧪 ITEM
-              </button>
-              <button className="poke-action-btn" disabled>
-                🎒 MOCHILA
-              </button>
-              <button className="poke-action-btn" onClick={flee}>
-                🏃 FUGIR
-              </button>
+              {!pvpMode && (
+                <button className="poke-action-btn" onClick={() => { setMenu('item'); setShowItems(true); }}>
+                  🧪 ITEM
+                </button>
+              )}
+              {!pvpMode && (
+                <button className="poke-action-btn" disabled>
+                  🎒 MOCHILA
+                </button>
+              )}
+              {!pvpMode && (
+                <button className="poke-action-btn" onClick={flee}>
+                  🏃 FUGIR
+                </button>
+              )}
             </motion.div>
           )}
 
@@ -505,7 +524,6 @@ export function BattleScreen({
                     style={{ '--el-color': meta?.color ?? 'rgba(0,229,255,0.5)' } as React.CSSProperties}
                     onClick={() => {
                       lastUsedAbilityRef.current = ability;
-                      // Trigger elemental overlay effect
                       if (elementTimerRef.current) clearTimeout(elementTimerRef.current);
                       setActiveElement('');
                       requestAnimationFrame(() => {
@@ -513,6 +531,7 @@ export function BattleScreen({
                         elementTimerRef.current = setTimeout(() => setActiveElement(''), 1500);
                       });
                       playerAttack(ability.id);
+                      onPlayerAttack?.(ability.id);
                       setMenu('main');
                     }}
                   >
