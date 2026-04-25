@@ -22,15 +22,23 @@ const MAX_ATTR = 25;
 
 // ─── CharacterSilhouette ──────────────────────────────────────────────────────
 
+const CLASS_COLORS: Record<string, string> = {
+  "Guerreiro":  "#ff6b35",
+  "Mago":       "#b388ff",
+  "Arqueiro":   "#4caf50",
+  "Curandeiro": "#00e5ff",
+  "Engenheiro": "#78909c",
+  "Alquimista": "#ffca28",
+  "Bardo":      "#f48fb1",
+  "Espião":     "#26c6da",
+  "Monge":      "#80cbc4",
+  "Necromante": "#7e57c2",
+  "Paladino":   "#ffd54f",
+  "Druida":     "#66bb6a",
+};
+
 function CharacterSilhouette({ characterClass }: { characterClass: string | null }) {
-  const color =
-    characterClass === "Mago"
-      ? "#b388ff"
-      : characterClass === "Arqueiro"
-      ? "#4caf50"
-      : characterClass === "Curandeiro"
-      ? "#00e5ff"
-      : "#ff6b35";
+  const color = (characterClass && CLASS_COLORS[characterClass]) ?? "#ff6b35";
 
   return (
     <svg
