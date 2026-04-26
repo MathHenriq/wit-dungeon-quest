@@ -85,6 +85,22 @@
     font-weight: 600;
     letter-spacing: 0.5px;
   }
+
+  /* ── Native <select> options: force dark bg + light text on the OS-rendered
+     dropdown list, otherwise the system paints it white and our white text
+     becomes invisible until hovered. */
+  select option,
+  select optgroup {
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+  }
+  select option:disabled {
+    color: hsl(var(--muted-foreground));
+  }
+  select option:checked {
+    background-color: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
+  }
 }
 
 @layer components {
