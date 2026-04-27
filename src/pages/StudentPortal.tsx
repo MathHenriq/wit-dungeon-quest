@@ -181,11 +181,13 @@ function ClassSelectionScreen({
   classes,
   onTeacherChange,
   onRegister,
+  onBack,
 }: {
   teachers: { id: string; name: string }[];
   classes: { id: string; name: string; teacher_id?: string }[];
   onTeacherChange: (teacherId: string) => void;
   onRegister: (name: string, teacherId: string, classId: string) => Promise<void>;
+  onBack: () => void;
 }) {
   const [name, setName] = useState("");
   const [teacherId, setTeacherId] = useState("");
@@ -299,6 +301,17 @@ function ClassSelectionScreen({
         <p className="text-center text-xs text-white/25 mt-4">
           Sua solicitação será analisada pelo professor antes de liberar o acesso.
         </p>
+
+        <div className="text-center mt-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-xs text-white/35 hover:text-white/60 transition-colors underline underline-offset-2"
+            style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '1px' }}
+          >
+            ← Voltar para o login
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -478,6 +491,7 @@ export default function StudentPortal() {
             toast.success("Solicitação enviada! Aguarde a aprovação do professor.");
           }
         }}
+        onBack={logout}
       />
     );
   }

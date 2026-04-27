@@ -92,8 +92,8 @@ export function GuildPanel({ student }: GuildPanelProps) {
           <div className="space-y-2">
             {members.map(m => (
               <div key={m.id} className="flex items-center gap-3 py-1.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: m.role === 'leader' ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${m.role === 'leader' ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
-                  {m.role === 'leader' ? <Crown size={16} className="text-yellow-400" /> : <Shield size={14} className="text-white/30" />}
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: m.role === 'lider' ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${m.role === 'lider' ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+                  {m.role === 'lider' ? <Crown size={16} className="text-yellow-400" /> : <Shield size={14} className="text-white/30" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>

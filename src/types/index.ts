@@ -205,6 +205,7 @@ export interface Guild {
   teacher_id: string;
   name: string;
   emblem: string;
+  emblem_color: string;
   description: string | null;
   level: number;
   xp: number;
@@ -213,11 +214,13 @@ export interface Guild {
   member_count?: number;
 }
 
+export type GuildRole = 'lider' | 'vice_lider' | 'capitao' | 'major' | 'tenente' | 'soldado';
+
 export interface GuildMember {
   id: string;
   guild_id: string;
   student_id: string;
-  role: 'leader' | 'officer' | 'member';
+  role: GuildRole;
   joined_at: string;
   student?: Student;
 }
