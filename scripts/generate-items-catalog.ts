@@ -262,17 +262,22 @@ const files = fs.readdirSync(ITEMS_DIR)
   .filter(file => fs.statSync(path.join(ITEMS_DIR, file)).isFile())
   .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
+import { LORE_DESCRIPTIONS } from './lore-descriptions';
+
 const items = files.map(file => {
   const name = displayName(stripExtension(file));
   const rarity = rarityFor(name);
   const category = categoryFor(name);
   const pricing = RARITY_COST[rarity];
   const ability = abilityFor(name, rarity, category);
+  
+  const animeName = sourceFor(name);
+  const fallbackLore = `Poderoso artefato originário das lendas de ${animeName}, famoso por sua influência e potencial. Adaptado das profundezas do WIT Dungeon, este item canaliza uma fração de seu antigo esplendor sob a forma de feitiços singulares.`;
 
   return {
     slug: slugify(name),
     name,
-    source_anime: sourceFor(name),
+    source_anime: animeName,
     rarity,
     category,
     cost: pricing.coins,
@@ -280,7 +285,7 @@ const items = files.map(file => {
     min_level: pricing.minLevel,
     icon: iconFor(category),
     image_url: `/images/Itens/${encodeURIComponent(file)}`,
-    description: `${name} canaliza uma tecnica de ${sourceFor(name)} adaptada para o WIT Dungeon.`,
+    description: LORE_DESCRIPTIONS[name] || fallbackLore,
     attr_forca: category === 'armamento' ? Math.ceil(pricing.minLevel / 2) : 0,
     attr_destreza: /kunai|shuriken|gear|yo-yo|cards|shot|vision/i.test(name) ? Math.ceil(pricing.minLevel / 2) : 0,
     attr_inteligencia: category === 'habilidade' ? Math.ceil(pricing.minLevel / 2) : 0,

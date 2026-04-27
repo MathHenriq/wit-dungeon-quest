@@ -334,13 +334,28 @@ function ItemDetailSheet({
                   className="shop-rune"
                   width="100" height="100"
                   viewBox="0 0 100 100"
+                  background: `radial-gradient(circle at 50% 60%, ${r.bg} 0%, rgba(8,5,14,0.6) 100%)`,
+                  border: `1px solid ${r.color}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  overflow: 'hidden',
+                  boxShadow: `0 0 30px ${r.glow}`,
+                  position: 'relative',
+                }}
+              >
+                {/* Rune ring */}
+                <svg
+                  className="shop-rune"
+                  width="100" height="100"
+                  viewBox="0 0 100 100"
                   style={{ position: 'absolute', opacity: 0.18 }}
                 >
                   <circle cx="50" cy="50" r="44" fill="none" stroke={r.color} strokeWidth="0.8" strokeDasharray="4 6" />
                   <circle cx="50" cy="50" r="36" fill="none" stroke={r.color} strokeWidth="0.5" strokeDasharray="2 8" />
                 </svg>
                 {item.image_url ? (
-                  <img src={item.image_url} alt={item.name} style={{ width: 132, height: 132, objectFit: 'contain', position: 'relative', zIndex: 1 }} />
+                  <div style={{ position: 'relative', zIndex: 1, width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={item.image_url} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.6))', borderRadius: 8 }} />
+                  </div>
                 ) : (
                   <div style={{ position: 'relative', zIndex: 1 }}>
                     <GameIcon id={meta.iconId} size={52} />
@@ -584,23 +599,6 @@ function ItemCard({
       }}>
         {/* Rune circle (shows on hover via opacity) */}
         <svg width="118" height="118" viewBox="0 0 80 80"
-          style={{ position: 'absolute', opacity: 0.1 }}
-          className="shop-rune"
-        >
-          <circle cx="40" cy="40" r="35" fill="none" stroke={r.color} strokeWidth="0.8" strokeDasharray="3 5" />
-          <circle cx="40" cy="40" r="26" fill="none" stroke={r.color} strokeWidth="0.5" strokeDasharray="2 7" />
-        </svg>
-
-        {item.image_url ? (
-          <img src={item.image_url} alt={item.name}
-            style={{ width: 122, height: 122, objectFit: 'contain', position: 'relative', zIndex: 1 }}
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-        ) : (
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <GameIcon id={meta.iconId} size={44} />
-          </div>
-        )}
 
         {/* Owned overlay */}
         {owned && item.category !== 'token' && (
