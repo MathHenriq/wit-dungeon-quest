@@ -178,7 +178,8 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
     }
   };
 
-  // Reset de HABILIDADE — devolve pontos elementais para free_points no personagem de batalha
+  // Reset de HABILIDADE — via RPC SECURITY DEFINER porque authenticated
+  // não tem GRANT direto na tabela characters
   const handleResetSkillPoints = async () => {
     if (!student.user_id) {
       toast.error("Aluno sem conta vinculada no jogo de batalha.", {
@@ -188,40 +189,26 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
     }
     setIsResettingSkills(true);
     try {
-      const { data: char, error: fetchErr } = await supabase
-        .from("characters")
-        .select("id, free_points, pts_fire, pts_water, pts_electric, pts_grass, pts_ice, pts_ground, pts_fighting, pts_steel, pts_poison, pts_dark, pts_ghost, pts_flying")
-        .eq("user_id", student.user_id)
-        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("teacher_reset_skill_points", {
+        p_student_user_id: student.user_id,
+      });
 
-      if (fetchErr) throw fetchErr;
-      if (!char) {
-        toast.error("Personagem de batalha não encontrado.", {
-          description: "O aluno ainda não acessou o sistema de batalha para criar um personagem.",
-        });
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; points_returned?: number };
+      if (!result.success) {
+        if (result.error === "character_not_found") {
+          toast.error("Personagem de batalha não encontrado.", {
+            description: "O aluno ainda não acessou o sistema de batalha para criar um personagem.",
+          });
+        } else {
+          toast.error("Erro ao resetar pontos de habilidade", { description: result.error });
+        }
         return;
       }
 
-      const totalAllocated =
-        (char.pts_fire     ?? 0) + (char.pts_water    ?? 0) + (char.pts_electric ?? 0) +
-        (char.pts_grass    ?? 0) + (char.pts_ice       ?? 0) + (char.pts_ground   ?? 0) +
-        (char.pts_fighting ?? 0) + (char.pts_steel     ?? 0) + (char.pts_poison   ?? 0) +
-        (char.pts_dark     ?? 0) + (char.pts_ghost     ?? 0) + (char.pts_flying   ?? 0);
-
-      const { error: updateErr } = await supabase
-        .from("characters")
-        .update({
-          free_points:  (char.free_points ?? 0) + totalAllocated,
-          pts_fire: 0, pts_water: 0, pts_electric: 0, pts_grass: 0,
-          pts_ice: 0,  pts_ground: 0, pts_fighting: 0, pts_steel: 0,
-          pts_poison: 0, pts_dark: 0, pts_ghost: 0, pts_flying: 0,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", char.id);
-
-      if (updateErr) throw updateErr;
-
-      toast.success(`Pontos de habilidade resetados! ${totalAllocated} ponto(s) devolvido(s).`);
+      toast.success(`Pontos de habilidade resetados! ${result.points_returned ?? 0} ponto(s) devolvido(s).`);
       setResetSkillsConfirm(false);
     } catch (err: any) {
       toast.error("Erro ao resetar pontos de habilidade", { description: err.message });
