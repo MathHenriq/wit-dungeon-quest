@@ -1,10 +1,50 @@
 import { BattleRewards, LootDrop } from '@/lib/loot/lootGenerator';
 import { XPReward, getPointsForLevelUp } from '@/lib/progression/xpCalculator';
+import type { DropResult, DropRarity } from '@/lib/drops/dropTypes';
+import { RARITY_LABEL } from '@/lib/drops/dropTypes';
 
 interface VictoryScreenProps {
   rewards: BattleRewards;
   xpReward: XPReward;
+  drops?: DropResult[];
   onContinue: () => void;
+}
+
+const DROP_RARITY_STYLE: Record<DropRarity, { dot: string; text: string; border: string; bg: string }> = {
+  comum:    { dot: '#94a3b8', text: 'text-slate-300',   border: 'border-slate-500/40',   bg: 'bg-slate-900/40'   },
+  incomum:  { dot: '#22c55e', text: 'text-green-300',   border: 'border-green-500/40',   bg: 'bg-green-950/40'   },
+  raro:     { dot: '#3b82f6', text: 'text-blue-300',    border: 'border-blue-500/40',    bg: 'bg-blue-950/40'    },
+  epico:    { dot: '#a855f7', text: 'text-purple-300',  border: 'border-purple-500/40',  bg: 'bg-purple-950/40'  },
+  lendario: { dot: '#f59e0b', text: 'text-amber-300',   border: 'border-amber-500/40',   bg: 'bg-amber-950/40'   },
+  mitico:   { dot: '#ef4444', text: 'text-red-300',     border: 'border-red-500/40',     bg: 'bg-red-950/40'     },
+  '???':    { dot: 'transparent', text: 'text-fuchsia-200', border: 'border-fuchsia-500/40', bg: 'bg-fuchsia-950/40' },
+};
+
+function DropTag({ drop }: { drop: DropResult }) {
+  const style = DROP_RARITY_STYLE[drop.rarity];
+  const isMystery = drop.rarity === '???';
+  return (
+    <div className={`flex items-center justify-between border ${style.border} ${style.bg} rounded-lg px-3 py-2`}>
+      <div className="flex items-center gap-2 min-w-0">
+        <span
+          aria-hidden
+          className="w-2.5 h-2.5 rounded-full shrink-0"
+          style={
+            isMystery
+              ? { background: 'linear-gradient(135deg,#ec4899,#8b5cf6,#22d3ee)' }
+              : { backgroundColor: style.dot }
+          }
+        />
+        <span className={`font-semibold uppercase tracking-wider text-sm truncate ${style.text}`}>
+          {drop.name}
+        </span>
+        <span className={`text-[10px] uppercase tracking-[0.2em] opacity-70 ${style.text}`}>
+          {RARITY_LABEL[drop.rarity]}
+        </span>
+      </div>
+      <span className="text-white/80 font-bold text-sm shrink-0 ml-2">×{drop.quantity}</span>
+    </div>
+  );
 }
 
 const RARITY_COLORS: Record<string, string> = {
@@ -35,7 +75,7 @@ function ItemDrop({ item }: { item: LootDrop }) {
   );
 }
 
-export function VictoryScreen({ rewards, xpReward, onContinue }: VictoryScreenProps) {
+export function VictoryScreen({ rewards, xpReward, drops, onContinue }: VictoryScreenProps) {
   const levelUpPoints = xpReward.leveledUp && xpReward.levelsGained
     ? getPointsForLevelUp(xpReward.levelsGained)
     : null;
@@ -90,6 +130,18 @@ export function VictoryScreen({ rewards, xpReward, onContinue }: VictoryScreenPr
               </div>
             )}
           </div>
+
+          {/* Drops temáticos do inimigo */}
+          {drops && drops.length > 0 && (
+            <div>
+              <h3 className="font-black text-white/80 mb-2 uppercase tracking-[0.25em] text-xs">
+                Drops Obtidos
+              </h3>
+              <div className="space-y-2">
+                {drops.map((d) => <DropTag key={d.dropItemId} drop={d} />)}
+              </div>
+            </div>
+          )}
 
           {/* Itens dropados */}
           {rewards.items.length > 0 && (

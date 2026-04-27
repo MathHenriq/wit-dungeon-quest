@@ -597,6 +597,7 @@ export default function StudentPortal() {
           ) : battleCharacter ? (
             <BattleDungeonView
               character={battleCharacter}
+              studentId={student.id}
               onRewardApplied={refreshStudent}
               onBack={() => setActiveTab('director')}
             />

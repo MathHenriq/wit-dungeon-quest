@@ -19,6 +19,8 @@ import {
 import { useEquippedAbilities, useAbilities } from '@/hooks/useAbilities';
 import { useApplyBattleRewards } from '@/hooks/useCharacter';
 import type { BattleRewards } from '@/lib/loot/lootGenerator';
+import { applyBattleDrops } from '@/lib/drops/applyBattleDrops';
+import type { DropResult } from '@/lib/drops/dropTypes';
 import {
   processXPGain,
   getTotalXPForLevel,
@@ -83,20 +85,21 @@ type DungeonPhase =
   | { type: 'select' }
   | { type: 'map';     floor: Floor }
   | { type: 'battle';  floor: Floor; enemy: FloorMapEnemy }
-  | { type: 'victory'; floor: Floor; enemy: FloorMapEnemy; xp: number; coins: number }
+  | { type: 'victory'; floor: Floor; enemy: FloorMapEnemy; xp: number; coins: number; drops: DropResult[] }
   | { type: 'defeat';  floor: Floor; enemy: FloorMapEnemy };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface BattleDungeonViewProps {
   character:         BattleCharacter;
+  studentId?:        string;
   onRewardApplied?:  () => void;
   onBack?:           () => void;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function BattleDungeonView({ character, onRewardApplied, onBack }: BattleDungeonViewProps) {
+export function BattleDungeonView({ character, studentId, onRewardApplied, onBack }: BattleDungeonViewProps) {
   const [phase, setPhase] = useState<DungeonPhase>({ type: 'select' });
 
   // XP reward computed at battle-end, shown in the VictoryScreen
@@ -289,7 +292,16 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
           recordDefeatById.mutate({ characterId: character.id, enemyId: phase.enemy.id });
           recordDefeat.mutate({ characterId: character.id, floorId: phase.floor.id, isBoss: phase.enemy.isBoss });
           applyRewards.mutate({ xp, coins }, { onSuccess: () => onRewardApplied?.() });
-          setPhase({ type: 'victory', floor: phase.floor, enemy: phase.enemy, xp, coins });
+
+          // Roll drops via RPC (no-op if studentId is missing)
+          const enemyId = phase.enemy.id;
+          const dropsPromise = studentId
+            ? applyBattleDrops(studentId, enemyId)
+            : Promise.resolve<DropResult[]>([]);
+
+          dropsPromise.then((drops) => {
+            setPhase({ type: 'victory', floor: phase.floor, enemy: phase.enemy, xp, coins, drops });
+          });
         }}
         onDefeat={() => setPhase({ type: 'defeat', floor: phase.floor, enemy: phase.enemy })}
         onFled={() => setPhase({ type: 'defeat', floor: phase.floor, enemy: phase.enemy })}
@@ -314,6 +326,7 @@ export function BattleDungeonView({ character, onRewardApplied, onBack }: Battle
       <VictoryScreen
         rewards={rewards}
         xpReward={xpReward}
+        drops={phase.drops}
         onContinue={() => {
           setPendingXPReward(null);
           mapHandle.current?.markDefeated(phase.enemy.id);
