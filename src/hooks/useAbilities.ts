@@ -51,7 +51,6 @@ export function useAbilities() {
         elementIcon:  row.elements?.icon_url,
       }));
     },
-    staleTime: 10 * 60_000, // abilities rarely change
   });
 }
 
