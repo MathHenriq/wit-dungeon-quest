@@ -17,6 +17,7 @@ const EMPTY_FORM = {
   description: "",
   category: "colecao" as ItemCategory,
   cost: 10,
+  diamond_cost: 0,
   min_level: 1,
   icon: "⭐",
   image_url: "",
@@ -110,6 +111,7 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
         description: form.description.trim() || null,
         category: form.category,
         cost: form.cost,
+        diamond_cost: form.diamond_cost,
         min_level: form.min_level,
         icon: form.icon || CATEGORY_META[form.category].iconId,
         image_url: form.image_url.trim() || null,
@@ -215,16 +217,27 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
             />
           </div>
 
-          {/* Cost + Min Level + Icon */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Cost + Diamond Cost + Min Level + Icon */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
-              <label className="text-sm font-medium block mb-1">Preço (moedas) *</label>
+              <label className="text-sm font-medium block mb-1">🪙 Preço (moedas) *</label>
               <input
                 type="number"
                 min="1"
                 value={form.cost}
                 onChange={e => set("cost", Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg bg-background border border-border"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">💎 Preço (diamantes)</label>
+              <input
+                type="number"
+                min="0"
+                value={form.diamond_cost}
+                onChange={e => set("diamond_cost", Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-lg bg-background border border-border"
+                placeholder="0 = desativado"
               />
             </div>
             <div>
@@ -425,6 +438,9 @@ function ItemCard({
         )}
         <div className="flex items-center gap-3 mt-1">
           <span className="text-sm font-semibold text-gold-dark">🪙 {item.cost}</span>
+          {(item.diamond_cost ?? 0) > 0 && (
+            <span className="text-sm font-semibold" style={{ color: '#63b3ed' }}>💎 {item.diamond_cost}</span>
+          )}
           <AttrBadges item={item} />
         </div>
       </div>

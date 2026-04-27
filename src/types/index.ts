@@ -29,6 +29,7 @@ export interface Student {
   name: string;
   character_name: string | null;
   coins: number;
+  diamonds?: number;
   level: number;
   class_id: string;
   teacher_id: string;
@@ -64,6 +65,7 @@ export interface ShopItem {
   description: string | null;
   category: ItemCategory;
   cost: number;
+  diamond_cost: number;
   min_level: number;
   icon: string;
   image_url: string | null;

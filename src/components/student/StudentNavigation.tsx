@@ -401,6 +401,37 @@ export function StudentNavigation({
             )}
           </div>
 
+          {/* Diamonds */}
+          {((student.diamonds ?? 0) > 0 || true) && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: collapsed ? "6px" : "5px 8px",
+                borderRadius: 6,
+                background: "rgba(99,179,237,0.07)",
+                border: "1px solid rgba(99,179,237,0.25)",
+                flexShrink: 0,
+              }}
+              title={`${(student.diamonds ?? 0).toLocaleString()} diamantes`}
+            >
+              <GameIcon id="gem" size={14} />
+              {!collapsed && (
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#63b3ed",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {student.diamonds ?? 0}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Streak */}
           {student.presencas_consecutivas > 0 && (
             <div

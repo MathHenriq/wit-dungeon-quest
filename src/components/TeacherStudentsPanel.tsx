@@ -385,9 +385,23 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
       .eq("id", studentId);
 
     if (error) {
-      toast.error("Erro ao atualizar recompensas");
+      toast.error("Erro ao atualizar moedas");
     } else {
-      toast.success("Recompensas atualizadas!");
+      toast.success("Moedas atualizadas!");
+      onDataChanged();
+    }
+  };
+
+  const updateDiamonds = async (studentId: string, newDiamonds: number) => {
+    const { error } = await supabase
+      .from("students")
+      .update({ diamonds: Math.max(0, newDiamonds) })
+      .eq("id", studentId);
+
+    if (error) {
+      toast.error("Erro ao atualizar diamantes");
+    } else {
+      toast.success("Diamantes atualizados!");
       onDataChanged();
     }
   };
@@ -496,6 +510,17 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
                     onChange={e => updateCoins(student.id, parseInt(e.target.value) || 0)}
                     className="w-16 text-center text-sm font-bold text-yellow-400 bg-transparent outline-none"
                     style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(99,179,237,0.06)', border: '1px solid rgba(99,179,237,0.25)' }} title="Diamantes (ganhos em sala de aula)">
+                  <GameIcon id="gem" size={14} />
+                  <input
+                    type="number"
+                    value={student.diamonds ?? 0}
+                    onChange={e => updateDiamonds(student.id, parseInt(e.target.value) || 0)}
+                    className="w-14 text-center text-sm font-bold bg-transparent outline-none"
+                    style={{ fontFamily: 'Rajdhani, sans-serif', color: '#63b3ed' }}
+                    min={0}
                   />
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)' }}>

@@ -686,6 +686,15 @@ export default function StudentPortal() {
                 toast.success(`${item.name} adquirido!`);
               }
             }}
+            onPurchaseWithDiamonds={async (item) => {
+              const result = await purchaseItem(item.id, true);
+              if (!result) return;
+              if (!result.success) {
+                toast.error("Compra não realizada", { description: result.error });
+              } else {
+                toast.success(`${item.name} adquirido com diamantes!`);
+              }
+            }}
             onCoinsChanged={refreshStudent}
             onBack={() => setActiveTab('director')}
           />

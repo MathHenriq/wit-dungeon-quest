@@ -217,6 +217,7 @@ interface ShopScreenProps {
   inventory: InventoryItem[];
   student: Student;
   onPurchase: (item: ShopItem) => Promise<void>;
+  onPurchaseWithDiamonds: (item: ShopItem) => Promise<void>;
   onCoinsChanged: () => void;
   onBack: () => void;
 }
@@ -227,17 +228,23 @@ function ItemDetailSheet({
   item,
   owned,
   cantAfford,
+  cantAffordDiamonds,
   belowLevel,
   buying,
+  buyingWithDiamonds,
   onBuy,
+  onBuyWithDiamonds,
   onClose,
 }: {
   item: ShopItem;
   owned: boolean;
   cantAfford: boolean;
+  cantAffordDiamonds: boolean;
   belowLevel: boolean;
   buying: boolean;
+  buyingWithDiamonds: boolean;
   onBuy: () => void;
+  onBuyWithDiamonds: () => void;
   onClose: () => void;
 }) {
   const rarity = getRarity(item);
@@ -245,6 +252,7 @@ function ItemDetailSheet({
   const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
   const activeAttrs = ATTRIBUTES.filter(a => (item[a.key] ?? 0) > 0);
   const locked = belowLevel || (owned && item.category !== 'token');
+  const hasDiamondOption = (item.diamond_cost ?? 0) > 0;
 
   return (
     <>
@@ -385,67 +393,103 @@ function ItemDetailSheet({
                 </div>
               )}
 
-              {/* Footer: price + button */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+              {/* Footer: price + buttons */}
+              {owned && item.category !== 'token' ? (
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  fontFamily: "'Share Tech Mono', monospace", fontSize: 22, fontWeight: 700,
-                  color: '#f59e0b',
+                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
+                  padding: '10px 20px', borderRadius: 10,
+                  background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)',
+                  fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 700,
+                  color: '#67e8f9', letterSpacing: '0.06em', alignSelf: 'flex-start',
                 }}>
-                  <GameIcon id="coin" size={20} />
-                  {item.cost.toLocaleString()}
+                  <CheckCircle size={15} /> Adquirido
                 </div>
+              ) : belowLevel ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
+                  padding: '10px 20px', borderRadius: 10,
+                  background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                  fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 600,
+                  color: 'rgba(239,68,68,0.7)', alignSelf: 'flex-start',
+                }}>
+                  <Lock size={13} /> Nível {item.min_level} necessário
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                  {/* Coins button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      fontFamily: "'Share Tech Mono', monospace", fontSize: 20, fontWeight: 700,
+                      color: '#f59e0b', minWidth: 90,
+                    }}>
+                      <GameIcon id="coin" size={18} />
+                      {item.cost.toLocaleString()}
+                    </div>
+                    <button
+                      className="shop-buy-btn"
+                      disabled={cantAfford || buying || buyingWithDiamonds}
+                      onClick={onBuy}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '9px 20px', borderRadius: 10, cursor: cantAfford ? 'not-allowed' : 'pointer',
+                        background: cantAfford ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${r.color}22, ${r.color}40)`,
+                        border: `1px solid ${cantAfford ? 'rgba(255,255,255,0.08)' : r.color + '60'}`,
+                        boxShadow: cantAfford ? 'none' : `0 0 20px ${r.glow}`,
+                        fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 800,
+                        letterSpacing: '0.1em', textTransform: 'uppercase',
+                        color: cantAfford ? 'rgba(255,255,255,0.2)' : r.color,
+                        transition: 'all 0.2s ease', opacity: cantAfford ? 0.5 : 1,
+                      }}
+                    >
+                      {buying ? (
+                        <><Loader2 size={14} className="animate-spin" /> Comprando...</>
+                      ) : cantAfford ? (
+                        <>Moedas insuficientes</>
+                      ) : (
+                        <><Zap size={14} /> Comprar</>
+                      )}
+                    </button>
+                  </div>
 
-                {owned && item.category !== 'token' ? (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '10px 20px', borderRadius: 10,
-                    background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)',
-                    fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 700,
-                    color: '#67e8f9', letterSpacing: '0.06em',
-                  }}>
-                    <CheckCircle size={15} /> Adquirido
-                  </div>
-                ) : belowLevel ? (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '10px 20px', borderRadius: 10,
-                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-                    fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 600,
-                    color: 'rgba(239,68,68,0.7)',
-                  }}>
-                    <Lock size={13} /> Nível {item.min_level} necessário
-                  </div>
-                ) : (
-                  <button
-                    className="shop-buy-btn"
-                    disabled={cantAfford || buying}
-                    onClick={onBuy}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '10px 24px', borderRadius: 10, border: 'none', cursor: cantAfford ? 'not-allowed' : 'pointer',
-                      background: cantAfford
-                        ? 'rgba(255,255,255,0.04)'
-                        : `linear-gradient(135deg, ${r.color}22, ${r.color}40)`,
-                      border: `1px solid ${cantAfford ? 'rgba(255,255,255,0.08)' : r.color + '60'}`,
-                      boxShadow: cantAfford ? 'none' : `0 0 20px ${r.glow}`,
-                      fontFamily: "'Exo 2', sans-serif", fontSize: 14, fontWeight: 800,
-                      letterSpacing: '0.1em', textTransform: 'uppercase',
-                      color: cantAfford ? 'rgba(255,255,255,0.2)' : r.color,
-                      transition: 'all 0.2s ease',
-                      opacity: cantAfford ? 0.5 : 1,
-                    }}
-                  >
-                    {buying ? (
-                      <><Loader2 size={15} className="animate-spin" /> Comprando...</>
-                    ) : cantAfford ? (
-                      <><GameIcon id="coin" size={15} /> Moedas insuficientes</>
-                    ) : (
-                      <><Zap size={15} /> Adquirir</>
-                    )}
-                  </button>
-                )}
-              </div>
+                  {/* Diamond button (only if item has diamond price) */}
+                  {hasDiamondOption && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        fontFamily: "'Share Tech Mono', monospace", fontSize: 20, fontWeight: 700,
+                        color: '#63b3ed', minWidth: 90,
+                      }}>
+                        <GameIcon id="gem" size={18} />
+                        {item.diamond_cost}
+                      </div>
+                      <button
+                        disabled={cantAffordDiamonds || buyingWithDiamonds || buying}
+                        onClick={onBuyWithDiamonds}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '9px 20px', borderRadius: 10, cursor: cantAffordDiamonds ? 'not-allowed' : 'pointer',
+                          background: cantAffordDiamonds ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(99,179,237,0.15), rgba(99,179,237,0.3))',
+                          border: `1px solid ${cantAffordDiamonds ? 'rgba(255,255,255,0.08)' : 'rgba(99,179,237,0.5)'}`,
+                          boxShadow: cantAffordDiamonds ? 'none' : '0 0 20px rgba(99,179,237,0.3)',
+                          fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 800,
+                          letterSpacing: '0.1em', textTransform: 'uppercase',
+                          color: cantAffordDiamonds ? 'rgba(255,255,255,0.2)' : '#63b3ed',
+                          transition: 'all 0.2s ease', opacity: cantAffordDiamonds ? 0.5 : 1,
+                        }}
+                      >
+                        {buyingWithDiamonds ? (
+                          <><Loader2 size={14} className="animate-spin" /> Comprando...</>
+                        ) : cantAffordDiamonds ? (
+                          <>Diamantes insuficientes</>
+                        ) : (
+                          <><GameIcon id="gem" size={14} /> Comprar com diamantes</>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -613,12 +657,23 @@ function ItemCard({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8,
         }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700,
-            color: '#f59e0b',
-          }}>
-            <GameIcon id="coin" size={14} /> {item.cost}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700,
+              color: '#f59e0b',
+            }}>
+              <GameIcon id="coin" size={14} /> {item.cost}
+            </div>
+            {(item.diamond_cost ?? 0) > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700,
+                color: '#63b3ed',
+              }}>
+                <GameIcon id="gem" size={12} /> {item.diamond_cost}
+              </div>
+            )}
           </div>
 
           {statusLabel ? (
@@ -646,11 +701,12 @@ function ItemCard({
 
 // ─── Main ShopScreen ──────────────────────────────────────────────────────────
 
-export function ShopScreen({ items, inventory, student, onPurchase, onCoinsChanged, onBack }: ShopScreenProps) {
+export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWithDiamonds, onCoinsChanged, onBack }: ShopScreenProps) {
   const [activeTab, setActiveTab] = useState<ShopTab>('loja');
   const [activeCategory, setActiveCategory] = useState<ItemCategory | 'all'>('all');
   const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
   const [buying, setBuying] = useState(false);
+  const [buyingWithDiamonds, setBuyingWithDiamonds] = useState(false);
 
   const ownedItemIds = new Set(inventory.map(i => i.item_id));
 
@@ -668,6 +724,17 @@ export function ShopScreen({ items, inventory, student, onPurchase, onCoinsChang
       setBuying(false);
     }
   }, [selectedItem, onPurchase]);
+
+  const handleBuyWithDiamonds = useCallback(async () => {
+    if (!selectedItem) return;
+    setBuyingWithDiamonds(true);
+    try {
+      await onPurchaseWithDiamonds(selectedItem);
+      setSelectedItem(null);
+    } finally {
+      setBuyingWithDiamonds(false);
+    }
+  }, [selectedItem, onPurchaseWithDiamonds]);
 
   // Close detail on Escape
   useEffect(() => {
@@ -804,6 +871,22 @@ export function ShopScreen({ items, inventory, student, onPurchase, onCoinsChang
             {student.coins >= 1000 ? `${(student.coins / 1000).toFixed(1)}k` : student.coins}
           </span>
         </div>
+
+        {/* Diamonds */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          background: 'rgba(99,179,237,0.08)',
+          border: '1px solid rgba(99,179,237,0.25)',
+          borderRadius: 10, padding: '6px 14px',
+        }} title="Diamantes — conquistados em sala de aula">
+          <GameIcon id="gem" size={16} />
+          <span style={{
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: 16, fontWeight: 700, color: '#63b3ed',
+          }}>
+            {student.diamonds ?? 0}
+          </span>
+        </div>
       </div>
 
       {/* ── Tab bar ── */}
@@ -937,15 +1020,19 @@ export function ShopScreen({ items, inventory, student, onPurchase, onCoinsChang
       {selectedItem && (() => {
         const owned = ownedItemIds.has(selectedItem.id);
         const cantAfford = student.coins < selectedItem.cost;
+        const cantAffordDiamonds = (student.diamonds ?? 0) < (selectedItem.diamond_cost ?? 0);
         const belowLevel = student.level < selectedItem.min_level;
         return (
           <ItemDetailSheet
             item={selectedItem}
             owned={owned}
             cantAfford={cantAfford}
+            cantAffordDiamonds={cantAffordDiamonds}
             belowLevel={belowLevel}
             buying={buying}
+            buyingWithDiamonds={buyingWithDiamonds}
             onBuy={handleBuy}
+            onBuyWithDiamonds={handleBuyWithDiamonds}
             onClose={() => setSelectedItem(null)}
           />
         );

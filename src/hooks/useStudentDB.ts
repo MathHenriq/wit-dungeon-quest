@@ -494,40 +494,45 @@ export function useStudentDB() {
 
   // ── Student actions ─────────────────────────────────────────────────────────
 
-  const purchaseItem = async (itemId: string) => {
+  const purchaseItem = async (itemId: string, useDiamonds = false) => {
     if (!student) return { success: false, error: "Sem sessão" };
 
     const item = shopItems.find(i => i.id === itemId);
 
-    // Optimistic: deduct cost immediately so the UI reflects the change at 0ms
-    const revertCoins = item
-      ? applyOptimistic(setStudent, prev => prev ? { ...prev, coins: prev.coins - item.cost } : prev)
+    // Optimistic: deduct currency immediately so UI reflects at 0ms
+    const revert = item
+      ? applyOptimistic(setStudent, prev => {
+          if (!prev) return prev;
+          if (useDiamonds) return { ...prev, diamonds: (prev.diamonds ?? 0) - (item.diamond_cost ?? 0) };
+          return { ...prev, coins: prev.coins - item.cost };
+        })
       : () => {};
 
     const { data, error } = await supabaseStudent.rpc("purchase_item", {
       p_student_id: student.id,
       p_item_id: itemId,
+      p_use_diamonds: useDiamonds,
     });
 
     if (error) {
-      revertCoins();
+      revert();
       console.error("[useStudentDB] purchaseItem:", error);
       return { success: false, error: error.message };
     }
 
     const result = data as { success: boolean; error?: string };
     if (!result.success) {
-      revertCoins();
+      revert();
       return { success: false, error: result.error ?? "Erro desconhecido" };
     }
 
-    // Fire-and-forget tracking — find item name for event_data
+    // Fire-and-forget tracking
     void trackShopPurchase(
       student.teacher_id, student.id, student.class_id,
-      itemId, item?.cost ?? 0, item?.name ?? ""
+      itemId, useDiamonds ? (item?.diamond_cost ?? 0) : (item?.cost ?? 0), item?.name ?? ""
     );
 
-    // Coins already updated optimistically — only reload inventory
+    // Currency already updated optimistically — only reload inventory
     await loadInventory(student.id);
     return { success: true };
   };
