@@ -3,6 +3,8 @@
 export type TitleType = "helper_of_week" | "presence_guardian" | "attitude_example";
 
 export type ItemCategory = "armamento" | "armadura" | "utilizavel" | "colecao" | "habilidade" | "token";
+export type ItemRarity = "common" | "uncommon" | "rare" | "epic" | "legendary" | "mythic" | "unknown";
+export type ItemAbilityMode = "combo" | "unique";
 
 export const CATEGORY_META: Record<ItemCategory, { label: string; iconId: string; color: string }> = {
   armamento:  { label: "Armamento",  iconId: "sword",   color: "bg-orange-500/20 text-orange-400" },
@@ -67,9 +69,16 @@ export interface ShopItem {
   cost: number;
   diamond_cost: number;
   min_level: number;
+  rarity?: ItemRarity;
   icon: string;
   image_url: string | null;
   is_active: boolean;
+  source_anime?: string | null;
+  ability_mode?: ItemAbilityMode;
+  ability_key?: string | null;
+  ability_name?: string | null;
+  ability_description?: string | null;
+  ability_config?: Record<string, unknown> | null;
   created_at?: string;
   attr_forca: number;
   attr_destreza: number;

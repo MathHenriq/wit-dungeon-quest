@@ -56,7 +56,7 @@ export function ConsumablesTab({ items, selectedId, onSelect }: ConsumablesTabPr
 function ConsumableCard({ inv, selected, onSelect }: { inv: InventoryItemEx; selected: boolean; onSelect: (i: InventoryItemEx) => void }) {
   const shopItem = inv.item;
   if (!shopItem) return null;
-  const rarity   = getRarity(shopItem.category);
+  const rarity   = getRarity(shopItem);
   const iconPath = getIconPath(shopItem.category);
   // quantity derived from the icon field used as quantity in old schema,
   // or default 1 if not set

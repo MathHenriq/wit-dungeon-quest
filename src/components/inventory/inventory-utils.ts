@@ -1,4 +1,4 @@
-import type { ItemCategory } from '@/types';
+import type { ItemCategory, ShopItem, ItemRarity } from '@/types';
 import type { EquipSlotType } from './inventory-types';
 
 // ── Rarity config ─────────────────────────────────────────────────────────────
@@ -14,6 +14,16 @@ export interface RarityConfig {
 }
 
 // Map category → rarity styling
+export const ITEM_RARITY: Record<ItemRarity, RarityConfig> = {
+  common:    { name: 'Comum',    color: 'rgba(180,180,180,0.70)', border: 'rgba(180,180,180,0.18)', bg: 'rgba(180,180,180,0.04)', sellMultiplier: 1 },
+  uncommon:  { name: 'Incomum',  color: 'rgba(100,220,140,0.82)', border: 'rgba(100,220,140,0.24)', bg: 'rgba(100,220,140,0.06)', sellMultiplier: 1.2 },
+  rare:      { name: 'Raro',     color: 'rgba(80,180,255,0.85)',  border: 'rgba(80,180,255,0.26)',  bg: 'rgba(80,180,255,0.06)',  sellMultiplier: 1.5 },
+  epic:      { name: 'Epico',    color: 'rgba(180,130,255,0.88)', border: 'rgba(180,130,255,0.28)', bg: 'rgba(180,130,255,0.07)', sellMultiplier: 2 },
+  legendary: { name: 'Lendario', color: 'rgba(201,164,74,0.85)',  border: 'rgba(201,164,74,0.28)',  bg: 'rgba(201,164,74,0.07)',  sellMultiplier: 3 },
+  mythic:    { name: 'Mitico',   color: 'rgba(251,113,133,0.90)', border: 'rgba(251,113,133,0.34)', bg: 'rgba(251,113,133,0.08)', sellMultiplier: 4 },
+  unknown:   { name: '???',      color: 'rgba(245,245,245,0.96)', border: 'rgba(255,255,255,0.42)', bg: 'rgba(255,255,255,0.10)', sellMultiplier: 5 },
+};
+
 export const CATEGORY_RARITY: Record<string, RarityConfig> = {
   armamento: {
     name: 'Armamento',
@@ -67,8 +77,16 @@ const FALLBACK_RARITY: RarityConfig = {
   sellMultiplier: 1,
 };
 
-export function getRarity(category: string): RarityConfig {
-  return CATEGORY_RARITY[category] ?? FALLBACK_RARITY;
+export function getRarity(itemOrCategory: string | Pick<ShopItem, 'category' | 'rarity'>): RarityConfig {
+  if (typeof itemOrCategory === 'string') {
+    return CATEGORY_RARITY[itemOrCategory] ?? FALLBACK_RARITY;
+  }
+
+  if (itemOrCategory.rarity && ITEM_RARITY[itemOrCategory.rarity]) {
+    return ITEM_RARITY[itemOrCategory.rarity];
+  }
+
+  return CATEGORY_RARITY[itemOrCategory.category] ?? FALLBACK_RARITY;
 }
 
 // ── SVG icon fallback paths ───────────────────────────────────────────────────

@@ -23,7 +23,7 @@ export function ItemCard({ inv, selected, isEquipped, onClick }: ItemCardProps) 
   const shopItem = inv.item;
   if (!shopItem) return null;
 
-  const rarity    = getRarity(shopItem.category);
+  const rarity    = getRarity(shopItem);
   const iconPath  = getIconPath(shopItem.category);
   const attrs     = formatAttrs(shopItem as unknown as Record<string, unknown>);
   const label     = CATEGORY_LABELS[shopItem.category] ?? shopItem.category;

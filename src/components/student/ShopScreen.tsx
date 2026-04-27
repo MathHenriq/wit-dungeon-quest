@@ -4,12 +4,13 @@ import { GameIcon } from "@/components/icons/GameIcon";
 import { ChestSection } from "@/components/student/ChestSection";
 import { CraftPanel } from "@/components/student/CraftPanel";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
-import type { ShopItem, InventoryItem, Student, ItemCategory } from "@/types";
+import type { ShopItem, InventoryItem, Student, ItemCategory, ItemRarity } from "@/types";
 import { toast } from "sonner";
 
 // ─── Rarity ──────────────────────────────────────────────────────────────────
 
-function getRarity(item: ShopItem): keyof typeof RARITY {
+function getRarity(item: ShopItem): ItemRarity {
+  if (item.rarity && item.rarity in RARITY) return item.rarity;
   if (item.cost >= 500) return "legendary";
   if (item.cost >= 300) return "epic";
   if (item.cost >= 150) return "rare";
@@ -23,6 +24,8 @@ const RARITY = {
   rare:      { label: "Rara",     color: "#38bdf8", glow: "rgba(56,189,248,0.45)", bg: "rgba(56,189,248,0.06)",  bar: "#38bdf8" },
   epic:      { label: "Épica",    color: "#c084fc", glow: "rgba(192,132,252,0.5)", bg: "rgba(192,132,252,0.07)", bar: "#c084fc" },
   legendary: { label: "Lendária", color: "#f59e0b", glow: "rgba(245,158,11,0.6)",  bg: "rgba(245,158,11,0.08)",  bar: "#f59e0b" },
+  mythic:    { label: "Mitica",    color: "#fb7185", glow: "rgba(251,113,133,0.7)", bg: "rgba(251,113,133,0.09)", bar: "#fb7185" },
+  unknown:   { label: "???",       color: "#e5e7eb", glow: "rgba(255,255,255,0.85)", bg: "rgba(255,255,255,0.10)", bar: "#e5e7eb" },
 } as const;
 
 // ─── Injected CSS ─────────────────────────────────────────────────────────────

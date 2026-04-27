@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
-import type { ShopItem, ItemCategory } from "@/types";
+import type { ShopItem, ItemCategory, ItemRarity } from "@/types";
 
 interface TeacherShopPanelProps {
   teacherId: string;
@@ -16,6 +16,7 @@ const EMPTY_FORM = {
   name: "",
   description: "",
   category: "colecao" as ItemCategory,
+  rarity: "common" as ItemRarity,
   cost: 10,
   diamond_cost: 0,
   min_level: 1,
@@ -27,6 +28,16 @@ const EMPTY_FORM = {
   attr_carisma: 0,
   attr_agilidade: 0,
   attr_resistencia: 0,
+};
+
+const RARITY_LABELS: Record<ItemRarity, string> = {
+  common: "Comum",
+  uncommon: "Incomum",
+  rare: "Rara",
+  epic: "Epica",
+  legendary: "Lendaria",
+  mythic: "Mitica",
+  unknown: "???",
 };
 
 function ItemImage({ item, size = "md" }: { item: ShopItem; size?: "sm" | "md" | "lg" }) {
@@ -110,6 +121,7 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
         name: form.name.trim(),
         description: form.description.trim() || null,
         category: form.category,
+        rarity: form.rarity,
         cost: form.cost,
         diamond_cost: form.diamond_cost,
         min_level: form.min_level,
@@ -177,7 +189,7 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
           </h3>
 
           {/* Name + Category row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-sm font-medium block mb-1">Nome *</label>
               <input
@@ -199,6 +211,20 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
                 {(Object.keys(CATEGORY_META) as ItemCategory[]).map(cat => (
                   <option key={cat} value={cat}>
                     {CATEGORY_META[cat].iconId} {CATEGORY_META[cat].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">Raridade *</label>
+              <select
+                value={form.rarity}
+                onChange={e => set("rarity", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-background border border-border"
+              >
+                {(Object.keys(RARITY_LABELS) as ItemRarity[]).map(rarity => (
+                  <option key={rarity} value={rarity}>
+                    {RARITY_LABELS[rarity]}
                   </option>
                 ))}
               </select>

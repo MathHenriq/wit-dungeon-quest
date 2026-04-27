@@ -11,7 +11,7 @@ interface SellConfirmModalProps {
 export function SellConfirmModal({ inv, onConfirm, onCancel }: SellConfirmModalProps) {
   const shopItem  = inv.item;
   if (!shopItem) return null;
-  const rarity    = getRarity(shopItem.category);
+  const rarity    = getRarity(shopItem);
   const iconPath  = getIconPath(shopItem.category);
   const sellPrice = getSellPrice(shopItem.cost);
 

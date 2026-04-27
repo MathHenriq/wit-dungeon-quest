@@ -12,6 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "sprites:scan": "npx ts-node --esm scripts/scan-sprites.ts",
+    "items:generate": "npx ts-node --esm scripts/generate-items-catalog.ts",
+    "items:import": "npx ts-node --esm scripts/import-anime-items.ts",
     "floors:generate": "npx ts-node --esm scripts/generate-floors.ts",
     "floors:insert": "npx ts-node --esm scripts/insert-floors.ts",
     "db:migrate": "supabase db push"

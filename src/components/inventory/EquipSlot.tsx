@@ -13,7 +13,7 @@ export function EquipSlot({ slotType, equippedItem, onClick, animDelay = 0 }: Eq
   const cfg     = SLOT_CONFIG[slotType];
   const hasItem = !!equippedItem?.item;
   const shopItem = equippedItem?.item;
-  const rarity  = hasItem ? getRarity(shopItem!.category) : null;
+  const rarity  = hasItem ? getRarity(shopItem!) : null;
 
   const iconPath   = getIconPath(hasItem ? shopItem!.category : cfg.fallbackIcon);
   const iconBorder = hasItem ? rarity!.border : 'rgba(255,255,255,0.09)';

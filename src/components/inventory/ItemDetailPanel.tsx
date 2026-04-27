@@ -27,7 +27,7 @@ export function ItemDetailPanel({ inv, isEquipped, equippedSlot, onEquip, onUneq
   const shopItem  = inv.item;
   if (!shopItem) return null;
 
-  const rarity    = getRarity(shopItem.category);
+  const rarity    = getRarity(shopItem);
   const iconPath  = getIconPath(shopItem.category);
   const sellPrice = getSellPrice(shopItem.cost);
   const canEquip  = shopItem.category === 'armamento' || shopItem.category === 'armadura';

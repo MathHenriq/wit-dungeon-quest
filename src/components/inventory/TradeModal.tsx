@@ -28,7 +28,7 @@ export function TradeModal({ item, classmates, onConfirm, onCancel }: TradeModal
   const shopItem = item.item;
   if (!shopItem) return null;
 
-  const rarity   = getRarity(shopItem.category);
+  const rarity   = getRarity(shopItem);
   const iconPath = getIconPath(shopItem.category);
 
   return (
