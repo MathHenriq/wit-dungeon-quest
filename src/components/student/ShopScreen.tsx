@@ -202,6 +202,7 @@ const EMBERS = Array.from({ length: 14 }, (_, i) => ({
 // ─── Category config ──────────────────────────────────────────────────────────
 
 type ShopTab = 'loja' | 'baus' | 'forja';
+type RarityFilter = ItemRarity | 'all';
 
 const CATEGORIES: { key: ItemCategory | 'all'; label: string; iconId: string }[] = [
   { key: 'all',        label: 'Todos',      iconId: 'store'  },
@@ -212,6 +213,21 @@ const CATEGORIES: { key: ItemCategory | 'all'; label: string; iconId: string }[]
   { key: 'habilidade', label: 'Habilidade', iconId: 'wand'   },
   { key: 'token',      label: 'Token',      iconId: 'scroll' },
 ];
+
+const RARITY_FILTERS: { key: RarityFilter; label: string }[] = [
+  { key: 'all',       label: 'Todas' },
+  { key: 'common',    label: 'Comum' },
+  { key: 'uncommon',  label: 'Incomum' },
+  { key: 'rare',      label: 'Rara' },
+  { key: 'epic',      label: 'Epica' },
+  { key: 'legendary', label: 'Lendaria' },
+  { key: 'mythic',    label: 'Mitica' },
+  { key: 'unknown',   label: '???' },
+];
+
+function formatPrice(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -298,13 +314,13 @@ function ItemDetailSheet({
             <X size={13} /> Fechar
           </button>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 20, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 22, alignItems: 'start' }}>
             {/* Left: Image */}
             <div>
               <div
                 className="shop-float"
                 style={{
-                  width: 120, height: 120, borderRadius: 16,
+                  width: 150, height: 150, borderRadius: 16,
                   background: `radial-gradient(circle at 50% 60%, ${r.bg} 0%, rgba(8,5,14,0.6) 100%)`,
                   border: `1px solid ${r.color}40`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -324,7 +340,7 @@ function ItemDetailSheet({
                   <circle cx="50" cy="50" r="36" fill="none" stroke={r.color} strokeWidth="0.5" strokeDasharray="2 8" />
                 </svg>
                 {item.image_url ? (
-                  <img src={item.image_url} alt={item.name} style={{ width: 80, height: 80, objectFit: 'contain', position: 'relative', zIndex: 1 }} />
+                  <img src={item.image_url} alt={item.name} style={{ width: 132, height: 132, objectFit: 'contain', position: 'relative', zIndex: 1 }} />
                 ) : (
                   <div style={{ position: 'relative', zIndex: 1 }}>
                     <GameIcon id={meta.iconId} size={52} />
@@ -464,7 +480,7 @@ function ItemDetailSheet({
                         color: '#63b3ed', minWidth: 90,
                       }}>
                         <GameIcon id="gem" size={18} />
-                        {item.diamond_cost}
+                        {formatPrice(item.diamond_cost)}
                       </div>
                       <button
                         disabled={cantAffordDiamonds || buyingWithDiamonds || buying}
@@ -561,13 +577,13 @@ function ItemCard({
 
       {/* Image area */}
       <div style={{
-        height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: 156, display: 'flex', alignItems: 'center', justifyContent: 'center',
         position: 'relative', overflow: 'hidden',
         background: `radial-gradient(ellipse at 50% 80%, ${r.color}12 0%, transparent 70%)`,
         borderRadius: '14px 14px 0 0',
       }}>
         {/* Rune circle (shows on hover via opacity) */}
-        <svg width="80" height="80" viewBox="0 0 80 80"
+        <svg width="118" height="118" viewBox="0 0 80 80"
           style={{ position: 'absolute', opacity: 0.1 }}
           className="shop-rune"
         >
@@ -577,7 +593,7 @@ function ItemCard({
 
         {item.image_url ? (
           <img src={item.image_url} alt={item.name}
-            style={{ width: 72, height: 72, objectFit: 'contain', position: 'relative', zIndex: 1 }}
+            style={{ width: 122, height: 122, objectFit: 'contain', position: 'relative', zIndex: 1 }}
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         ) : (
@@ -674,7 +690,7 @@ function ItemCard({
                 fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700,
                 color: '#63b3ed',
               }}>
-                <GameIcon id="gem" size={12} /> {item.diamond_cost}
+                <GameIcon id="gem" size={12} /> {formatPrice(item.diamond_cost)}
               </div>
             )}
           </div>
@@ -707,15 +723,18 @@ function ItemCard({
 export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWithDiamonds, onCoinsChanged, onBack }: ShopScreenProps) {
   const [activeTab, setActiveTab] = useState<ShopTab>('loja');
   const [activeCategory, setActiveCategory] = useState<ItemCategory | 'all'>('all');
+  const [activeRarity, setActiveRarity] = useState<RarityFilter>('all');
   const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
   const [buying, setBuying] = useState(false);
   const [buyingWithDiamonds, setBuyingWithDiamonds] = useState(false);
 
   const ownedItemIds = new Set(inventory.map(i => i.item_id));
 
-  const filteredItems = activeCategory === 'all'
-    ? items
-    : items.filter(i => i.category === activeCategory);
+  const filteredItems = items.filter(item => {
+    const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
+    const matchesRarity = activeRarity === 'all' || getRarity(item) === activeRarity;
+    return matchesCategory && matchesRarity;
+  });
 
   const handleBuy = useCallback(async () => {
     if (!selectedItem) return;
@@ -887,7 +906,7 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
             fontFamily: "'Share Tech Mono', monospace",
             fontSize: 16, fontWeight: 700, color: '#63b3ed',
           }}>
-            {student.diamonds ?? 0}
+            {formatPrice(student.diamonds ?? 0)}
           </span>
         </div>
       </div>
@@ -960,6 +979,49 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
               })}
             </div>
 
+            {/* Rarity filter */}
+            <div style={{
+              display: 'flex', gap: 8, padding: '10px 20px 12px',
+              overflowX: 'auto', flexShrink: 0,
+              background: 'rgba(6,3,9,0.58)',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              position: 'sticky', top: 52, zIndex: 3,
+              backdropFilter: 'blur(12px)',
+            }}>
+              {RARITY_FILTERS.map(filter => {
+                const count = items.filter(item => {
+                  const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
+                  const matchesRarity = filter.key === 'all' || getRarity(item) === filter.key;
+                  return matchesCategory && matchesRarity;
+                }).length;
+                if (count === 0 && filter.key !== 'all') return null;
+                const active = activeRarity === filter.key;
+                const tone = filter.key === 'all' ? '#f59e0b' : RARITY[filter.key].color;
+                return (
+                  <button
+                    key={filter.key}
+                    className={`shop-cat-btn ${active ? 'active' : ''}`}
+                    onClick={() => setActiveRarity(filter.key)}
+                    style={{
+                      borderColor: active ? `${tone}80` : undefined,
+                      color: active ? tone : undefined,
+                    }}
+                  >
+                    {filter.label}
+                    <span style={{
+                      minWidth: 18, height: 18, borderRadius: 9,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: active ? `${tone}25` : 'rgba(255,255,255,0.06)',
+                      fontSize: 10, fontWeight: 700, fontFamily: "'Share Tech Mono', monospace",
+                      color: active ? tone : 'rgba(255,255,255,0.3)',
+                    }}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Item grid */}
             <div style={{ padding: '20px 20px 80px' }}>
               {filteredItems.length === 0 ? (
@@ -979,7 +1041,7 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
               ) : (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))',
                   gap: 16,
                 }}>
                   {filteredItems.map((item, idx) => {

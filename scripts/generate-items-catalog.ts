@@ -8,13 +8,13 @@ const ITEMS_DIR = 'public/images/Itens';
 const OUTPUT = 'src/data/anime-items-catalog.json';
 
 const RARITY_COST: Record<ItemRarity, { coins: number; diamonds: number; minLevel: number }> = {
-  common:    { coins: 35,   diamonds: 0,  minLevel: 1 },
-  uncommon:  { coins: 85,   diamonds: 0,  minLevel: 2 },
-  rare:      { coins: 180,  diamonds: 0,  minLevel: 4 },
-  epic:      { coins: 360,  diamonds: 2,  minLevel: 7 },
-  legendary: { coins: 650,  diamonds: 5,  minLevel: 10 },
-  mythic:    { coins: 1000, diamonds: 10, minLevel: 14 },
-  unknown:   { coins: 1500, diamonds: 20, minLevel: 18 },
+  common:    { coins: 50,   diamonds: 5,   minLevel: 1 },
+  uncommon:  { coins: 125,  diamonds: 12.5, minLevel: 2 },
+  rare:      { coins: 200,  diamonds: 20,  minLevel: 4 },
+  epic:      { coins: 400,  diamonds: 40,  minLevel: 7 },
+  legendary: { coins: 700,  diamonds: 70,  minLevel: 10 },
+  mythic:    { coins: 1000, diamonds: 100, minLevel: 14 },
+  unknown:   { coins: 1500, diamonds: 150, minLevel: 18 },
 };
 
 function normalize(value: string) {
