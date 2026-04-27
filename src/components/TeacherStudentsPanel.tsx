@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Coins, TrendingUp, Package, X, Loader2, Swords, Link2, Copy, Check } from "lucide-react";
+import { Plus, Trash2, Coins, TrendingUp, Package, X, Loader2, Swords, Link2, Copy, Check, RotateCcw } from "lucide-react";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,6 +120,8 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
   });
   const [pontos, setPontos] = useState(student.pontos_disponiveis ?? 0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -137,6 +139,53 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleResetSkillPoints = async () => {
+    if (!student.user_id) {
+      toast.error("Aluno sem conta vinculada — impossível resetar pontos de habilidade.");
+      return;
+    }
+    setIsResetting(true);
+    try {
+      const { data: char, error: fetchErr } = await supabase
+        .from("characters")
+        .select("id, free_points, pts_fire, pts_water, pts_electric, pts_grass, pts_ice, pts_ground, pts_fighting, pts_steel, pts_poison, pts_dark, pts_ghost, pts_flying")
+        .eq("user_id", student.user_id)
+        .maybeSingle();
+
+      if (fetchErr) throw fetchErr;
+      if (!char) {
+        toast.error("Personagem não encontrado para este aluno.");
+        return;
+      }
+
+      const totalAllocated =
+        (char.pts_fire     ?? 0) + (char.pts_water    ?? 0) + (char.pts_electric ?? 0) +
+        (char.pts_grass    ?? 0) + (char.pts_ice       ?? 0) + (char.pts_ground   ?? 0) +
+        (char.pts_fighting ?? 0) + (char.pts_steel     ?? 0) + (char.pts_poison   ?? 0) +
+        (char.pts_dark     ?? 0) + (char.pts_ghost     ?? 0) + (char.pts_flying   ?? 0);
+
+      const { error: updateErr } = await supabase
+        .from("characters")
+        .update({
+          free_points:  (char.free_points ?? 0) + totalAllocated,
+          pts_fire: 0, pts_water: 0, pts_electric: 0, pts_grass: 0,
+          pts_ice: 0,  pts_ground: 0, pts_fighting: 0, pts_steel: 0,
+          pts_poison: 0, pts_dark: 0, pts_ghost: 0, pts_flying: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", char.id);
+
+      if (updateErr) throw updateErr;
+
+      toast.success(`Pontos de habilidade resetados! ${totalAllocated} ponto(s) devolvido(s).`);
+      setResetConfirm(false);
+    } catch (err: any) {
+      toast.error("Erro ao resetar pontos de habilidade", { description: err.message });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -190,12 +239,43 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-border hover:bg-secondary text-sm">Cancelar</button>
-          <button onClick={handleSave} disabled={isSaving} className="btn-fantasy flex items-center gap-2 text-sm disabled:opacity-50">
-            {isSaving ? <Loader2 size={14} className="animate-spin" /> : null}
-            {isSaving ? "Salvando..." : "Salvar"}
-          </button>
+        <div className="p-4 border-t border-border space-y-2">
+          {/* Reset skill points */}
+          {resetConfirm ? (
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-red-500/10 border border-red-500/30">
+              <span className="flex-1 text-xs text-red-400">Isso zerará todos os pontos de elemento e os devolverá como pontos livres. Confirmar?</span>
+              <button
+                onClick={() => setResetConfirm(false)}
+                className="px-3 py-1 rounded text-xs border border-border hover:bg-secondary"
+              >
+                Não
+              </button>
+              <button
+                onClick={handleResetSkillPoints}
+                disabled={isResetting}
+                className="px-3 py-1 rounded text-xs bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30 flex items-center gap-1 disabled:opacity-50"
+              >
+                {isResetting ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                {isResetting ? "Resetando..." : "Confirmar reset"}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setResetConfirm(true)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs text-orange-400 border border-orange-500/30 bg-orange-500/8 hover:bg-orange-500/15 transition-colors"
+            >
+              <RotateCcw size={13} />
+              Resetar pontos de habilidade
+            </button>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-lg border border-border hover:bg-secondary text-sm">Cancelar</button>
+            <button onClick={handleSave} disabled={isSaving} className="btn-fantasy flex items-center gap-2 text-sm disabled:opacity-50">
+              {isSaving ? <Loader2 size={14} className="animate-spin" /> : null}
+              {isSaving ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
