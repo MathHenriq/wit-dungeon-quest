@@ -1,44 +1,40 @@
 import React from 'react';
 import type { GuildMember, Student } from '@/types';
+import { ROLE_COLORS, ROLE_LABELS, canKickMember, type GuildRole } from './guild-types';
 
 interface GuildMemberCardProps {
-  member: GuildMember;
-  isSelf: boolean;
+  member:  GuildMember;
+  isSelf:  boolean;
+  myRole:  GuildRole | null;
+  onKick?: (memberId: string) => void;
 }
 
 function initials(name: string) {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  leader:  'rgba(255,215,0,0.6)',
-  officer: 'rgba(130,90,219,0.7)',
-  member:  'rgba(255,255,255,0.25)',
-};
-
-const ROLE_LABELS: Record<string, string> = {
-  leader:  'Líder',
-  officer: 'Oficial',
-  member:  'Membro',
-};
-
-export function GuildMemberCard({ member, isSelf }: GuildMemberCardProps) {
-  const s = member.student as Student | undefined;
+export function GuildMemberCard({ member, isSelf, myRole, onKick }: GuildMemberCardProps) {
+  const s           = member.student as Student | undefined;
   const displayName = s?.character_name || s?.name || '?';
   const charClass   = s?.character_class ?? '';
   const level       = s?.level ?? '?';
   const abbr        = initials(displayName);
-  const roleColor   = ROLE_COLORS[member.role] ?? ROLE_COLORS.member;
-  const roleLabel   = ROLE_LABELS[member.role] ?? 'Membro';
+
+  const role      = member.role as GuildRole;
+  const roleColor = ROLE_COLORS[role] ?? ROLE_COLORS.soldado;
+  const roleLabel = ROLE_LABELS[role] ?? 'Soldado';
+  const isLeader  = role === 'lider';
+
+  const showKick = !isSelf && myRole !== null && canKickMember(myRole, role);
 
   return (
-    <div className={`guild-member-card${member.role === 'leader' ? ' guild-member-card--leader' : ''}`}>
+    <div className={`guild-member-card${isLeader ? ' guild-member-card--leader' : ''}`}>
       <div
         className="guild-member-card__avatar"
         style={{
-          background: `${roleColor.replace('0.', '0.0')}`,
-          border: `1px solid ${roleColor}`,
-          color: roleColor,
+          background: roleColor.replace(/[\d.]+\)$/, '0.08)'),
+          border:     `1px solid ${roleColor}`,
+          color:      roleColor,
         }}
       >
         {abbr}
@@ -59,11 +55,24 @@ export function GuildMemberCard({ member, isSelf }: GuildMemberCardProps) {
       </div>
 
       <div className="guild-member-card__right">
-        <span className={`guild-member-card__role guild-member-card__role--${member.role}`}>
+        <span
+          className={`guild-member-card__role guild-member-card__role--${role}`}
+          style={{ color: roleColor, borderColor: roleColor.replace(/[\d.]+\)$/, '0.3)') }}
+        >
           {roleLabel}
         </span>
         <span className="guild-member-card__level">Nv. {level}</span>
       </div>
+
+      {showKick && onKick && (
+        <button
+          className="guild-member-card__kick"
+          onClick={() => onKick(member.id)}
+          title={`Expulsar ${displayName}`}
+        >
+          ✕
+        </button>
+      )}
     </div>
   );
 }

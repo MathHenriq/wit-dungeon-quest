@@ -1,19 +1,84 @@
-// ── Guild UI types & mock data ──────────────────────────────────────────────
+// ── Guild UI types & constants ────────────────────────────────────────────────
 
-export type GuildTab = 'chat' | 'members' | 'missions' | 'ranking' | 'settings';
+export type GuildTab = 'chat' | 'members' | 'missions' | 'ranking' | 'development' | 'settings';
+
+// ── Role hierarchy ────────────────────────────────────────────────────────────
+
+export type GuildRole =
+  | 'lider'
+  | 'vice_lider'
+  | 'capitao'
+  | 'major'
+  | 'tenente'
+  | 'soldado';
+
+export const ROLE_RANK: Record<GuildRole, number> = {
+  lider:      1,
+  vice_lider: 2,
+  capitao:    3,
+  major:      4,
+  tenente:    5,
+  soldado:    6,
+};
+
+export const ROLE_LABELS: Record<GuildRole, string> = {
+  lider:      'Líder',
+  vice_lider: 'Vice-Líder',
+  capitao:    'Capitão',
+  major:      'Major',
+  tenente:    'Tenente',
+  soldado:    'Soldado',
+};
+
+export const ROLE_COLORS: Record<GuildRole, string> = {
+  lider:      'rgba(255,215,0,0.90)',
+  vice_lider: 'rgba(255,165,0,0.85)',
+  capitao:    'rgba(130,90,219,0.90)',
+  major:      'rgba(90,173,184,0.85)',
+  tenente:    'rgba(90,219,139,0.80)',
+  soldado:    'rgba(255,255,255,0.35)',
+};
+
+/** Returns true if `actor` is allowed to kick `target` */
+export function canKickMember(actor: GuildRole, target: GuildRole): boolean {
+  if (actor !== 'lider' && actor !== 'vice_lider') return false;
+  return ROLE_RANK[actor] < ROLE_RANK[target];
+}
+
+// ── Emblems ───────────────────────────────────────────────────────────────────
 
 export const EMBLEM_SYMBOLS = [
-  'shield', 'sword', 'crown', 'dragon', 'wolf', 'phoenix', 'star', 'rune',
+  'shield', 'sword', 'crown', 'dragon',
+  'wolf',   'phoenix', 'star', 'rune',
+  'axe',    'bow',    'fire', 'lightning',
+  'skull',  'eye',    'hammer', 'chalice',
 ] as const;
 export type EmblemSymbol = typeof EMBLEM_SYMBOLS[number];
 
 export const EMBLEM_COLORS = [
   '#825ADB', '#DB5A5A', '#5ADB8B', '#DBA55A',
   '#5AADB8', '#DB5AA0', '#A0DB5A', '#B8905A',
+  '#5A7ADB', '#E8A040', '#40E8C8', '#E84080',
 ] as const;
 export type EmblemColor = typeof EMBLEM_COLORS[number];
 
-// ── Mock missions ────────────────────────────────────────────────────────────
+// ── Ranking entry ─────────────────────────────────────────────────────────────
+
+export interface GuildRankEntry {
+  id: string;
+  name: string;
+  emblem: EmblemSymbol;
+  emblem_color: EmblemColor | string;
+  level: number;
+  xp: number;
+  member_count: number;
+  total_pvp_wins: number;
+  total_member_xp: number;
+  avg_member_level: number;
+  score: number;
+}
+
+// ── Mission types (for UI) ────────────────────────────────────────────────────
 
 export interface GuildMission {
   id: string;
@@ -22,10 +87,10 @@ export interface GuildMission {
   reward_xp: number;
   reward_coins: number;
   difficulty: 'easy' | 'normal' | 'hard';
-  progress: number;   // 0–100
-  required: number;   // total participants needed
-  current: number;    // participants so far
-  deadline: string;   // display string
+  progress: number;
+  required: number;
+  current: number;
+  deadline: string;
   completed: boolean;
 }
 
@@ -60,25 +125,4 @@ export const MOCK_MISSIONS: GuildMission[] = [
     deadline: 'Concluída',
     completed: true,
   },
-];
-
-// ── Mock ranking (guild leaderboard within the class) ────────────────────────
-
-export interface GuildRankEntry {
-  id: string;
-  name: string;
-  emblem: EmblemSymbol;
-  emblem_color: EmblemColor;
-  level: number;
-  xp: number;
-  member_count: number;
-  wins: number;
-}
-
-export const MOCK_RANKING: GuildRankEntry[] = [
-  { id: 'g1', name: 'ORDEM DO DRAGÃO',  emblem: 'dragon',  emblem_color: '#DB5A5A', level: 8,  xp: 2400, member_count: 5, wins: 22 },
-  { id: 'g2', name: 'ESCUDO DE PRATA',  emblem: 'shield',  emblem_color: '#5AADB8', level: 7,  xp: 2150, member_count: 6, wins: 18 },
-  { id: 'g3', name: 'LÂMINAS DO VENTO', emblem: 'sword',   emblem_color: '#5ADB8B', level: 6,  xp: 1900, member_count: 4, wins: 14 },
-  { id: 'g4', name: 'COROA DO SOL',     emblem: 'crown',   emblem_color: '#DBA55A', level: 5,  xp: 1600, member_count: 5, wins: 11 },
-  { id: 'g5', name: 'ALCATEIA SOMBRIA', emblem: 'wolf',    emblem_color: '#825ADB', level: 4,  xp: 1200, member_count: 3, wins: 7  },
 ];

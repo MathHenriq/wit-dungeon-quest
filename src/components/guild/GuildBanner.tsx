@@ -1,25 +1,28 @@
 import React from 'react';
 import { GuildEmblem } from './GuildEmblem';
-import type { Guild } from '@/types';
+import type { Guild, GuildRole } from '@/types';
+import { ROLE_LABELS, ROLE_COLORS } from './guild-types';
 
 interface GuildBannerProps {
-  guild: Guild;
+  guild:       Guild;
   memberCount: number;
-  myRole: string | null;
+  myRole:      GuildRole | null;
 }
 
 const XP_PER_LEVEL = 300;
 
 export function GuildBanner({ guild, memberCount, myRole }: GuildBannerProps) {
   const xpInLevel = guild.xp % XP_PER_LEVEL;
-  const xpPct = Math.min((xpInLevel / XP_PER_LEVEL) * 100, 100);
+  const xpPct     = Math.min((xpInLevel / XP_PER_LEVEL) * 100, 100);
+  const roleLabel = myRole ? ROLE_LABELS[myRole] : null;
+  const roleColor = myRole ? ROLE_COLORS[myRole] : 'rgba(130,90,219,0.85)';
 
   return (
     <div className="guild-banner guild-animate">
       <div className="guild-banner__top">
         <GuildEmblem
-          symbol="shield"
-          color="#825ADB"
+          symbol={guild.emblem as Parameters<typeof GuildEmblem>[0]['symbol']}
+          color={guild.emblem_color ?? '#825ADB'}
           size="lg"
         />
 
@@ -41,10 +44,10 @@ export function GuildBanner({ guild, memberCount, myRole }: GuildBannerProps) {
               <span className="guild-banner__meta-value">{guild.xp}</span>
               <span className="guild-banner__meta-label">XP Total</span>
             </div>
-            {myRole && (
+            {roleLabel && (
               <div className="guild-banner__meta-item">
-                <span className="guild-banner__meta-value" style={{ color: myRole === 'leader' ? 'rgba(255,215,0,0.85)' : 'rgba(130,90,219,0.85)' }}>
-                  {myRole === 'leader' ? 'Líder' : myRole === 'officer' ? 'Oficial' : 'Membro'}
+                <span className="guild-banner__meta-value" style={{ color: roleColor }}>
+                  {roleLabel}
                 </span>
                 <span className="guild-banner__meta-label">Cargo</span>
               </div>

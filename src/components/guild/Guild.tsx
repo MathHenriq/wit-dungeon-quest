@@ -1,22 +1,24 @@
 import React, { useState } from 'react';
 import './guild.css';
-import { GuildBackground }  from './GuildBackground';
-import { GuildBanner }      from './GuildBanner';
-import { GuildTabs }        from './GuildTabs';
-import { GuildChat }        from './GuildChat';
-import { GuildMembers }     from './GuildMembers';
-import { GuildMissions }    from './GuildMissions';
-import { GuildRanking }     from './GuildRanking';
-import { GuildCreate }      from './GuildCreate';
-import { GuildSearch }      from './GuildSearch';
-import { GuildSettings }    from './GuildSettings';
-import { useGuild }         from '@/hooks/useGuild';
-import type { Student }     from '@/types';
-import type { GuildTab }    from './guild-types';
+import { GuildBackground }   from './GuildBackground';
+import { GuildBanner }       from './GuildBanner';
+import { GuildTabs }         from './GuildTabs';
+import { GuildChat }         from './GuildChat';
+import { GuildMembers }      from './GuildMembers';
+import { GuildMissions }     from './GuildMissions';
+import { GuildRanking }      from './GuildRanking';
+import { GuildDevelopment }  from './GuildDevelopment';
+import { GuildCreate }       from './GuildCreate';
+import { GuildSearch }       from './GuildSearch';
+import { GuildSettings }     from './GuildSettings';
+import { useGuild }          from '@/hooks/useGuild';
+import type { Student }      from '@/types';
+import type { GuildTab }     from './guild-types';
+import { toast }             from 'sonner';
 
 interface GuildProps {
   student: Student;
-  onBack: () => void;
+  onBack:  () => void;
 }
 
 type OnboardStep = 'menu' | 'create';
@@ -24,11 +26,11 @@ type OnboardStep = 'menu' | 'create';
 export function Guild({ student, onBack }: GuildProps) {
   const {
     myGuild, members, posts, availableGuilds, myRole, isLoading,
-    createGuild, joinGuild, leaveGuild, sendPost,
+    createGuild, joinGuild, leaveGuild, kickMember, sendPost,
   } = useGuild(student.id, student.teacher_id);
 
   const [activeTab, setActiveTab] = useState<GuildTab>('chat');
-  const [onboard, setOnboard]     = useState<OnboardStep>('menu');
+  const [onboard,   setOnboard]   = useState<OnboardStep>('menu');
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -48,7 +50,7 @@ export function Guild({ student, onBack }: GuildProps) {
     );
   }
 
-  // ── HUD bar (shared) ───────────────────────────────────────────────────────
+  // ── HUD bar ────────────────────────────────────────────────────────────────
   const hud = (
     <div className="guild-hud">
       <button className="guild-hud__back" onClick={onBack}>← Voltar</button>
@@ -73,7 +75,6 @@ export function Guild({ student, onBack }: GuildProps) {
       <div className="guild-root">
         <GuildBackground />
         {hud}
-
         <div className="guild-body">
           <div className="guild-content">
             {onboard === 'menu' ? (
@@ -95,7 +96,20 @@ export function Guild({ student, onBack }: GuildProps) {
   }
 
   // ── IN a guild ─────────────────────────────────────────────────────────────
-  const isLeader = myRole === 'leader';
+  const isLeader   = myRole === 'lider';
+
+  const handleKick = async (guildMemberId: string) => {
+    const target = members.find(m => m.id === guildMemberId);
+    const name   = (target?.student as { character_name?: string; name?: string } | undefined)
+      ?.character_name ?? (target?.student as { name?: string } | undefined)?.name ?? 'membro';
+    if (!confirm(`Expulsar ${name} da guilda?`)) return;
+    try {
+      await kickMember(guildMemberId);
+      toast.success(`${name} foi expulso da guilda`);
+    } catch {
+      toast.error('Erro ao expulsar membro');
+    }
+  };
 
   return (
     <div className="guild-root">
@@ -129,6 +143,8 @@ export function Guild({ student, onBack }: GuildProps) {
             <GuildMembers
               members={members}
               studentId={student.id}
+              myRole={myRole}
+              onKick={handleKick}
             />
           )}
 
@@ -136,8 +152,12 @@ export function Guild({ student, onBack }: GuildProps) {
             <GuildMissions teacherId={student.teacher_id} />
           )}
 
+          {activeTab === 'development' && (
+            <GuildDevelopment guildId={myGuild.id} />
+          )}
+
           {activeTab === 'ranking' && (
-            <GuildRanking currentGuildId={myGuild.id} teacherId={student.teacher_id} />
+            <GuildRanking currentGuildId={myGuild.id} />
           )}
 
           {activeTab === 'settings' && isLeader && (

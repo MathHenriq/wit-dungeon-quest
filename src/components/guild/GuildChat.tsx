@@ -56,7 +56,7 @@ export function GuildChat({ posts, members, studentId, onSend }: GuildChatProps)
         ) : (
           ordered.map(post => {
             const isSelf = post.student_id === studentId;
-            const role = memberRole(post.student_id) ?? 'member';
+            const role = memberRole(post.student_id) ?? 'soldado';
             return (
               <GuildChatMessage
                 key={post.id}

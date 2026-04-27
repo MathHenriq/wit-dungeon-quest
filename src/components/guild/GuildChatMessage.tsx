@@ -1,10 +1,12 @@
 import React from 'react';
 import type { GuildPost } from '@/types';
 
+import type { GuildRole } from './guild-types';
+
 interface GuildChatMessageProps {
-  post: GuildPost;
+  post:   GuildPost;
   isSelf: boolean;
-  role?: 'leader' | 'officer' | 'member';
+  role?:  GuildRole;
 }
 
 function formatTime(iso: string) {
@@ -18,7 +20,9 @@ function formatTime(iso: string) {
 
 export function GuildChatMessage({ post, isSelf, role }: GuildChatMessageProps) {
   const authorName = post.student?.character_name || post.student?.name || '?';
-  const authorClass = `guild-msg__author${role === 'leader' ? ' guild-msg__author--leader' : role === 'officer' ? ' guild-msg__author--officer' : ''}`;
+  const isHighRank = role === 'lider' || role === 'vice_lider';
+  const isOfficer  = role === 'capitao' || role === 'major';
+  const authorClass = `guild-msg__author${isHighRank ? ' guild-msg__author--leader' : isOfficer ? ' guild-msg__author--officer' : ''}`;
 
   return (
     <div className={`guild-msg ${isSelf ? 'guild-msg--self' : 'guild-msg--other'}`}>
