@@ -106,4 +106,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION purchase_item TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION purchase_item(UUID, UUID, BOOLEAN) TO anon, authenticated;
