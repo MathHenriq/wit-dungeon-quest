@@ -120,8 +120,10 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
   });
   const [pontos, setPontos] = useState(student.pontos_disponiveis ?? 0);
   const [isSaving, setIsSaving] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const [resetConfirm, setResetConfirm] = useState(false);
+  const [isResettingAttrs, setIsResettingAttrs] = useState(false);
+  const [resetAttrsConfirm, setResetAttrsConfirm] = useState(false);
+  const [isResettingSkills, setIsResettingSkills] = useState(false);
+  const [resetSkillsConfirm, setResetSkillsConfirm] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -142,12 +144,49 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
     }
   };
 
+  // Reset de ATRIBUTOS — devolve pontos gastos nos 6 atributos para pontos_disponiveis
+  const handleResetAttrs = async () => {
+    setIsResettingAttrs(true);
+    try {
+      const totalGasto =
+        (attrs.attr_forca ?? 0) + (attrs.attr_destreza ?? 0) +
+        (attrs.attr_inteligencia ?? 0) + (attrs.attr_carisma ?? 0) +
+        (attrs.attr_agilidade ?? 0) + (attrs.attr_resistencia ?? 0);
+
+      const novosPontos = pontos + totalGasto;
+      const zerados: Record<AttrKey, number> = {
+        attr_forca: 0, attr_destreza: 0, attr_inteligencia: 0,
+        attr_carisma: 0, attr_agilidade: 0, attr_resistencia: 0,
+      };
+
+      const { error } = await supabase
+        .from("students")
+        .update({ ...zerados, pontos_disponiveis: novosPontos })
+        .eq("id", student.id);
+
+      if (error) throw error;
+
+      setAttrs(zerados);
+      setPontos(novosPontos);
+      toast.success(`Pontos de atributo resetados! ${totalGasto} ponto(s) devolvido(s).`);
+      setResetAttrsConfirm(false);
+      onSaved();
+    } catch (err: any) {
+      toast.error("Erro ao resetar pontos de atributo", { description: err.message });
+    } finally {
+      setIsResettingAttrs(false);
+    }
+  };
+
+  // Reset de HABILIDADE — devolve pontos elementais para free_points no personagem de batalha
   const handleResetSkillPoints = async () => {
     if (!student.user_id) {
-      toast.error("Aluno sem conta vinculada — impossível resetar pontos de habilidade.");
+      toast.error("Aluno sem conta vinculada no jogo de batalha.", {
+        description: "Somente alunos que fizeram login com Google possuem personagem de batalha.",
+      });
       return;
     }
-    setIsResetting(true);
+    setIsResettingSkills(true);
     try {
       const { data: char, error: fetchErr } = await supabase
         .from("characters")
@@ -157,7 +196,9 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
 
       if (fetchErr) throw fetchErr;
       if (!char) {
-        toast.error("Personagem não encontrado para este aluno.");
+        toast.error("Personagem de batalha não encontrado.", {
+          description: "O aluno ainda não acessou o sistema de batalha para criar um personagem.",
+        });
         return;
       }
 
@@ -181,11 +222,11 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
       if (updateErr) throw updateErr;
 
       toast.success(`Pontos de habilidade resetados! ${totalAllocated} ponto(s) devolvido(s).`);
-      setResetConfirm(false);
+      setResetSkillsConfirm(false);
     } catch (err: any) {
       toast.error("Erro ao resetar pontos de habilidade", { description: err.message });
     } finally {
-      setIsResetting(false);
+      setIsResettingSkills(false);
     }
   };
 
@@ -240,32 +281,52 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
 
         {/* Footer */}
         <div className="p-4 border-t border-border space-y-2">
-          {/* Reset skill points */}
-          {resetConfirm ? (
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-red-500/10 border border-red-500/30">
-              <span className="flex-1 text-xs text-red-400">Isso zerará todos os pontos de elemento e os devolverá como pontos livres. Confirmar?</span>
+
+          {/* Reset pontos de ATRIBUTO */}
+          {resetAttrsConfirm ? (
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <span className="flex-1 text-xs text-amber-400">Zera os 6 atributos e devolve os pontos gastos como pontos disponíveis. Confirmar?</span>
+              <button onClick={() => setResetAttrsConfirm(false)} className="px-3 py-1 rounded text-xs border border-border hover:bg-secondary">Não</button>
               <button
-                onClick={() => setResetConfirm(false)}
-                className="px-3 py-1 rounded text-xs border border-border hover:bg-secondary"
+                onClick={handleResetAttrs}
+                disabled={isResettingAttrs}
+                className="px-3 py-1 rounded text-xs bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1 disabled:opacity-50"
               >
-                Não
-              </button>
-              <button
-                onClick={handleResetSkillPoints}
-                disabled={isResetting}
-                className="px-3 py-1 rounded text-xs bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30 flex items-center gap-1 disabled:opacity-50"
-              >
-                {isResetting ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
-                {isResetting ? "Resetando..." : "Confirmar reset"}
+                {isResettingAttrs ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                {isResettingAttrs ? "Resetando..." : "Confirmar"}
               </button>
             </div>
           ) : (
             <button
-              onClick={() => setResetConfirm(true)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs text-orange-400 border border-orange-500/30 bg-orange-500/8 hover:bg-orange-500/15 transition-colors"
+              onClick={() => setResetAttrsConfirm(true)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs text-amber-400 border border-amber-500/30 hover:bg-amber-500/10 transition-colors"
             >
               <RotateCcw size={13} />
-              Resetar pontos de habilidade
+              Resetar pontos de atributo
+            </button>
+          )}
+
+          {/* Reset pontos de HABILIDADE (personagem de batalha) */}
+          {resetSkillsConfirm ? (
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-red-500/10 border border-red-500/30">
+              <span className="flex-1 text-xs text-red-400">Zera os pontos elementais e os devolve como pontos livres no personagem de batalha. Confirmar?</span>
+              <button onClick={() => setResetSkillsConfirm(false)} className="px-3 py-1 rounded text-xs border border-border hover:bg-secondary">Não</button>
+              <button
+                onClick={handleResetSkillPoints}
+                disabled={isResettingSkills}
+                className="px-3 py-1 rounded text-xs bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30 flex items-center gap-1 disabled:opacity-50"
+              >
+                {isResettingSkills ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                {isResettingSkills ? "Resetando..." : "Confirmar"}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setResetSkillsConfirm(true)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs text-orange-400 border border-orange-500/30 hover:bg-orange-500/10 transition-colors"
+            >
+              <RotateCcw size={13} />
+              Resetar pontos de habilidade (batalha)
             </button>
           )}
 
