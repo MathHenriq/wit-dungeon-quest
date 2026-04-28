@@ -38,6 +38,7 @@ import { TradingScreen } from "@/components/student/TradingScreen";
 import { ClassWarBanner } from "@/components/student/ClassWarBanner";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
+import { describeLoginError, describeSignUpError, validateEmail, validatePassword } from "@/lib/authErrors";
 import {
   Sword,
   Shield,
@@ -59,11 +60,9 @@ import { toast } from "sonner";
 // ─────────────────────────────────────────────
 
 function LoginScreen({
-  onGoogleLogin,
   onEmailLogin,
   onEmailSignUp,
 }: {
-  onGoogleLogin: () => void;
   onEmailLogin: (email: string, password: string) => Promise<{ error: unknown }>;
   onEmailSignUp: (email: string, password: string) => Promise<{ error: unknown }>;
 }) {
@@ -74,17 +73,23 @@ function LoginScreen({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const emailError = validateEmail(email);
+    if (emailError) { toast.error(emailError); return; }
+    const passwordError = validatePassword(password);
+    if (passwordError) { toast.error(passwordError); return; }
+
     setIsSubmitting(true);
     try {
       if (isLogin) {
         const { error } = await onEmailLogin(email, password);
-        if (error) toast.error("Email ou senha incorretos");
+        if (error) toast.error(describeLoginError(error as Parameters<typeof describeLoginError>[0]));
       } else {
         const { error } = await onEmailSignUp(email, password);
         if (error) {
-          toast.error("Erro ao criar conta", { description: (error as { message?: string }).message });
+          toast.error(describeSignUpError(error as Parameters<typeof describeSignUpError>[0]));
         } else {
-          toast.success("Conta criada! Agora selecione sua turma.");
+          toast.success("Conta criada! Agora escolha sua turma.");
         }
       }
     } finally {
@@ -383,7 +388,6 @@ export default function StudentPortal() {
     isLoading,
     error,
     clearError,
-    loginWithGoogle,
     loginWithEmail,
     signUpWithEmail,
     registerStudent,
@@ -474,7 +478,7 @@ export default function StudentPortal() {
 
   // ── Pre-session screens ────────────────────
   if (authState === "unauthenticated") {
-    return <LoginScreen onGoogleLogin={loginWithGoogle} onEmailLogin={loginWithEmail} onEmailSignUp={signUpWithEmail} />;
+    return <LoginScreen onEmailLogin={loginWithEmail} onEmailSignUp={signUpWithEmail} />;
   }
 
   if (authState === "needs_registration") {

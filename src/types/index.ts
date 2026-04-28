@@ -45,7 +45,7 @@ export interface Student {
   profile_photo_url: string | null;
   /** School the student attends — used for the "escola" ranking scope. */
   school_name?: string | null;
-  /** Set when the student self-registered via Google OAuth. */
+  /** Auth user id for students who self-registered via email/password. Null for imported students. */
   user_id?: string | null;
   /** 'pending' = awaiting teacher approval, 'active' = full access. */
   status?: "pending" | "active" | "rejected";

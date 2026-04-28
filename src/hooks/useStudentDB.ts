@@ -10,8 +10,8 @@ import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, Missi
 
 // Auth state machine:
 //   loading           → determining if there's an active session
-//   unauthenticated   → no Google session; show sign-in button
-//   needs_registration → Google auth ok but no student record yet; show class-selection form
+//   unauthenticated   → no session; show login / signup form
+//   needs_registration → email/password auth ok but no student record yet; show class-selection form
 //   pending           → student record exists but teacher hasn't approved yet
 //   active            → full access
 export type StudentAuthState =
@@ -269,7 +269,7 @@ export function useStudentDB() {
     void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: typedStudent.id, p_xp: 3 });
   }, []);
 
-  // Subscribe to auth changes (handles initial session + OAuth redirect)
+  // Subscribe to auth changes (handles initial session restore + email/password sign-in/out)
   useEffect(() => {
     loadTeachers();
 
@@ -305,8 +305,7 @@ export function useStudentDB() {
       }
     );
 
-    // Safety net: if onAuthStateChange never fires (e.g. client stuck on
-    // code exchange with wrong verifier), bail out after 8 s.
+    // Safety net: if onAuthStateChange never fires, bail out after 8 s so we don't sit on "loading" forever.
     const bailout = setTimeout(() => {
       setAuthState(prev => (prev === "loading" ? "unauthenticated" : prev));
     }, 8000);
@@ -413,25 +412,19 @@ export function useStudentDB() {
 
   // ── Auth actions ────────────────────────────────────────────────────────────
 
-  const loginWithGoogle = async () => {
-    const { error } = await supabaseStudent.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin + "/login",
-      },
-    });
-    if (error) {
-      setError("Não foi possível iniciar o login com Google.");
-    }
-  };
-
   const loginWithEmail = async (email: string, password: string) => {
-    const { error } = await supabaseStudent.auth.signInWithPassword({ email, password });
+    const { error } = await supabaseStudent.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
     return { error };
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
-    const { error } = await supabaseStudent.auth.signUp({ email, password });
+    const { error } = await supabaseStudent.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+    });
     return { error };
   };
 
@@ -448,7 +441,7 @@ export function useStudentDB() {
 
       if (error) {
         console.error("[useStudentDB] registerStudent (re-register):", error);
-        return { success: false, error: error.message };
+        return { success: false, error: "Não foi possível atualizar sua solicitação. Tente novamente." };
       }
     } else {
       const { error } = await supabaseStudent.from("students").insert({
@@ -463,8 +456,21 @@ export function useStudentDB() {
       });
 
       if (error) {
-        console.error("[useStudentDB] registerStudent:", error);
-        return { success: false, error: error.message };
+        // 23505 = unique_violation. If a row for this user_id already exists (e.g. user
+        // refreshed the page mid-flow), recover by updating that row instead of failing.
+        if (error.code === "23505") {
+          const { error: updateError } = await supabaseStudent
+            .from("students")
+            .update({ name: name.trim(), teacher_id: teacherId, class_id: classId, status: "pending" })
+            .eq("user_id", authUser.id);
+          if (updateError) {
+            console.error("[useStudentDB] registerStudent (recover):", updateError);
+            return { success: false, error: "Não conseguimos finalizar seu cadastro. Tente recarregar a página." };
+          }
+        } else {
+          console.error("[useStudentDB] registerStudent:", error);
+          return { success: false, error: "Não foi possível enviar a solicitação. Verifique sua conexão e tente novamente." };
+        }
       }
     }
 
@@ -672,7 +678,6 @@ export function useStudentDB() {
     isLoading,
     error,
     clearError,
-    loginWithGoogle,
     loginWithEmail,
     signUpWithEmail,
     registerStudent,
