@@ -152,6 +152,7 @@ const SOURCE_RULES: Array<[RegExp, string]> = [
   [/requiem|stand arrow|stone mask|steel balls|ora barrage|time stop|hamon/i, 'JoJo'],
   [/lostvayne|rhitta|gideon|chastiefol|full counter|cruel sun|disaster/i, 'Seven Deadly Sins'],
   [/murasame/i, 'Akame ga Kill'],
+  [/quinque|kagune|kakuja/i, 'Tokyo Ghoul'],
   [/death scythe|soul resonance|ragnarok/i, 'Soul Eater'],
   [/millennium|dark magician/i, 'Yu-Gi-Oh!'],
   [/sekki/i, 'Noragami'],
@@ -262,7 +263,7 @@ const files = fs.readdirSync(ITEMS_DIR)
   .filter(file => fs.statSync(path.join(ITEMS_DIR, file)).isFile())
   .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-import { LORE_DESCRIPTIONS } from './lore-descriptions';
+import { LORE_DESCRIPTIONS } from './lore-descriptions.ts';
 
 const items = files.map(file => {
   const name = displayName(stripExtension(file));
