@@ -21,7 +21,7 @@ interface GuildEntry {
   name: string;
   emblem_color: string;
   level: number;
-  xp: number;
+  score: number;
   member_count: number;
   wins: number;
 }
@@ -740,9 +740,9 @@ function GuildLeaderRow({ entry, rank, isMe }: { entry: GuildEntry; rank: number
           fontFamily: "'Bebas Neue', sans-serif", fontSize: 16,
           color: isMe ? realm.primary : "rgba(255,255,255,0.45)",
         }}>
-          {entry.xp}
+          {entry.score}
         </p>
-        <p style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.08em" }}>XP</p>
+        <p style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.08em" }}>SCORE</p>
       </div>
     </div>
   );
@@ -809,9 +809,9 @@ function GuildChampionCard({ entry, rank, isFirst }: { entry: GuildEntry; rank: 
           fontFamily: "'Bebas Neue', sans-serif", fontSize: isFirst ? 22 : 18,
           color: p.color, letterSpacing: "0.04em",
         }}>
-          {entry.xp}
+          {entry.score}
         </span>
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginLeft: 3, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>XP</span>
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginLeft: 3, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Score</span>
       </div>
     </div>
   );
@@ -916,13 +916,20 @@ function Divider({ color }: { color: string }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+// Test admin account — hidden from all rankings (see migration
+// 20260429010000_create_admin_test_student.sql).
+const ADMIN_STUDENT_NAME = "Conta ADM Teste";
+
 export function GlobalRanking({ student }: GlobalRankingProps) {
   const [activeScope, setActiveScope] = useState<RankScope>("sala");
   const [classEntries,  setClassEntries]  = useState<RankEntry[]>([]);
   const [worldEntries,  setWorldEntries]  = useState<RankEntry[]>([]);
   const [guildEntries,  setGuildEntries]  = useState<GuildEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const loadedRef = useRef({ class: false, world: false, guild: false });
+  const [loadedClass, setLoadedClass] = useState(false);
+  const [loadedWorld, setLoadedWorld] = useState(false);
+  const [loadedGuild, setLoadedGuild] = useState(false);
+  const [myGuildId, setMyGuildId] = useState<string | null>(null);
+  const loadedRef = useRef({ class: false, world: false, guild: false, myGuild: false });
 
   const SELECT = "id, name, character_name, character_class, profile_photo_url, level, coins, presencas_consecutivas";
 
@@ -931,35 +938,92 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
     loadedRef.current.class = true;
     supabaseStudent.from("students").select(SELECT)
       .eq("class_id", student.class_id).eq("status", "active")
-      .then(({ data }) => { setClassEntries((data || []) as RankEntry[]); setLoading(false); });
+      .neq("name", ADMIN_STUDENT_NAME)
+      .order("level", { ascending: false })
+      .then(({ data }) => {
+        setClassEntries((data || []) as RankEntry[]);
+        setLoadedClass(true);
+      });
   }, [student.class_id]);
 
   useEffect(() => {
     if (loadedRef.current.world) return;
     loadedRef.current.world = true;
     supabaseStudent.from("students").select(SELECT)
-      .eq("status", "active").limit(100)
-      .then(({ data }) => setWorldEntries((data || []) as RankEntry[]));
+      .eq("status", "active")
+      .neq("name", ADMIN_STUDENT_NAME)
+      .order("level", { ascending: false })
+      .limit(100)
+      .then(({ data, error }) => {
+        if (error) console.error("[GlobalRanking] world query failed:", error);
+        setWorldEntries((data || []) as RankEntry[]);
+        setLoadedWorld(true);
+      });
   }, []);
 
   useEffect(() => {
     if (loadedRef.current.guild) return;
     loadedRef.current.guild = true;
-    supabaseStudent.from("guilds")
-      .select("id, name, emblem_color, level, xp, member_count, wins")
-      .eq("teacher_id", student.teacher_id).limit(50)
-      .then(({ data, error }) => {
-        setGuildEntries(!error && data ? (data as GuildEntry[]) : []);
-      });
+
+    (async () => {
+      // Resolve guilds the ADM belongs to so we can exclude them.
+      const { data: adminRows } = await supabaseStudent
+        .from("students").select("id").eq("name", ADMIN_STUDENT_NAME).limit(1);
+      const adminId = adminRows?.[0]?.id ?? null;
+
+      let excludedGuildIds: string[] = [];
+      if (adminId) {
+        const { data: adminMemberships } = await supabaseStudent
+          .from("guild_members").select("guild_id").eq("student_id", adminId);
+        excludedGuildIds = (adminMemberships || []).map((r: { guild_id: string }) => r.guild_id);
+      }
+
+      // Use the guild_ranking_global view (it has member_count, total_pvp_wins,
+      // etc.). The raw `guilds` table doesn't expose those columns, which was
+      // why the previous query failed silently and the spinner never stopped.
+      const { data, error } = await supabaseStudent
+        .from("guild_ranking_global")
+        .select("id, name, emblem_color, level, score, member_count, total_pvp_wins, teacher_id")
+        .order("score", { ascending: false })
+        .limit(100);
+
+      if (error) console.error("[GlobalRanking] guild query failed:", error);
+
+      const rows = (data || []) as Array<{
+        id: string; name: string; emblem_color: string | null;
+        level: number | null; score: number | null;
+        member_count: number | null; total_pvp_wins: number | null;
+      }>;
+
+      const filtered: GuildEntry[] = rows
+        .filter(g => !excludedGuildIds.includes(g.id))
+        .map(g => ({
+          id:           g.id,
+          name:         g.name,
+          emblem_color: g.emblem_color ?? "#f87171",
+          level:        g.level ?? 1,
+          score:        g.score ?? 0,
+          member_count: g.member_count ?? 0,
+          wins:         g.total_pvp_wins ?? 0,
+        }));
+
+      setGuildEntries(filtered);
+      setLoadedGuild(true);
+    })();
   }, [student.teacher_id]);
 
-  // Switch loading state on tab change
   useEffect(() => {
-    const map: Record<RankScope, RankEntry[] | GuildEntry[]> = {
-      sala: classEntries, mundial: worldEntries, guildas: guildEntries,
-    };
-    setLoading(map[activeScope].length === 0);
-  }, [activeScope, classEntries, worldEntries, guildEntries]);
+    if (loadedRef.current.myGuild) return;
+    loadedRef.current.myGuild = true;
+    supabaseStudent
+      .from("guild_members").select("guild_id").eq("student_id", student.id).limit(1)
+      .then(({ data }) => setMyGuildId(data?.[0]?.guild_id ?? null));
+  }, [student.id]);
+
+  const loading =
+    activeScope === "sala"    ? !loadedClass :
+    activeScope === "mundial" ? !loadedWorld :
+                                !loadedGuild;
 
   const realm = REALMS[activeScope];
 
@@ -970,10 +1034,14 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
   };
 
   const sortedEntries = [...activeEntries()].sort((a, b) => b.level - a.level);
-  const sortedGuilds  = [...guildEntries].sort((a, b) => b.xp - a.xp);
+  const sortedGuilds  = [...guildEntries].sort((a, b) => b.score - a.score);
 
   const myRank = sortedEntries.findIndex(s => s.id === student.id) + 1;
   const me = sortedEntries.find(s => s.id === student.id);
+
+  const myGuildRank = myGuildId ? sortedGuilds.findIndex(g => g.id === myGuildId) + 1 : 0;
+  const myGuild = myGuildId ? sortedGuilds.find(g => g.id === myGuildId) ?? null : null;
+  const guildAhead = myGuildRank > 1 ? sortedGuilds[myGuildRank - 2] : null;
 
   return (
     <div className="gr-root" style={{ paddingBottom: 80, position: "relative" }}>
@@ -1223,6 +1291,49 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
                     </div>
                   </>
                 )
+              )}
+
+              {/* ── My guild footer ─── */}
+              {activeScope === "guildas" && myGuild && (
+                <div style={{
+                  marginTop: 16, padding: "11px 14px", borderRadius: 12,
+                  background: realm.dim, border: `1px solid ${realm.border}`,
+                  display: "flex", flexDirection: "column", gap: 6,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontSize: 11, color: "rgba(255,255,255,0.45)",
+                    }}>
+                      Sua guilda · {myGuild.name}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                      <span style={{
+                        fontFamily: "'Bebas Neue', sans-serif", fontSize: 20,
+                        color: realm.primary, letterSpacing: "0.04em",
+                      }}>
+                        {myGuildRank}º
+                      </span>
+                      <span style={{
+                        fontFamily: "'Bebas Neue', sans-serif", fontSize: 13,
+                        color: `${realm.primary}80`,
+                      }}>
+                        · {myGuild.score} Score
+                      </span>
+                    </div>
+                  </div>
+                  {guildAhead && (
+                    <p style={{
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontSize: 10, color: "rgba(255,255,255,0.35)",
+                      letterSpacing: "0.04em",
+                    }}>
+                      Faltam <b style={{ color: realm.primary }}>
+                        {(guildAhead.score - myGuild.score).toLocaleString("pt-BR")}
+                      </b> de Score para alcançar <b style={{ color: "rgba(255,255,255,0.6)" }}>{guildAhead.name}</b>
+                    </p>
+                  )}
+                </div>
               )}
 
               {/* ── My position footer ─── */}

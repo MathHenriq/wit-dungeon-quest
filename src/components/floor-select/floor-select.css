@@ -416,3 +416,24 @@
 .fs-panel__reward--coin { color: rgba(201,164,74,0.6); }
 .fs-panel__reward--xp   { color: rgba(100,220,180,0.55); }
 .fs-panel__reward--item { color: rgba(180,130,255,0.55); }
+
+.fs-panel__replay {
+  align-self: center;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: rgba(100,220,180,0.85);
+  background: rgba(100,220,180,0.06);
+  border: 1px solid rgba(100,220,180,0.35);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.fs-panel__replay:hover {
+  background: rgba(100,220,180,0.14);
+  border-color: rgba(100,220,180,0.6);
+  color: rgba(140,240,200,1);
+}

@@ -25,9 +25,10 @@ function BossIcon({ icon, size = 28, color }: { icon: string; size?: number; col
 interface BossDetailPanelProps {
   boss: FloorBoss;
   open: boolean;
+  onPlay?: () => void;
 }
 
-export function BossDetailPanel({ boss, open }: BossDetailPanelProps) {
+export function BossDetailPanel({ boss, open, onPlay }: BossDetailPanelProps) {
   return (
     <div className={`fs-panel${open ? ' fs-panel--open' : ''}`}>
       <div className="fs-panel__inner">
@@ -62,6 +63,16 @@ export function BossDetailPanel({ boss, open }: BossDetailPanelProps) {
             )}
           </div>
         </div>
+
+        {onPlay && (
+          <button
+            type="button"
+            className="fs-panel__replay"
+            onClick={(e) => { e.stopPropagation(); onPlay(); }}
+          >
+            Jogar Novamente
+          </button>
+        )}
       </div>
     </div>
   );

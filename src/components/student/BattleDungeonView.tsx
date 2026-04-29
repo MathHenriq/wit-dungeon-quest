@@ -213,7 +213,14 @@ export function BattleDungeonView({ character, studentId, onRewardApplied, onBac
       );
     }
 
-    const mapEnemies: FloorMapEnemy[] = floorEnemies.map(fe => toFloorMapEnemy(fe, defeatedIds));
+    let mapEnemies: FloorMapEnemy[] = floorEnemies.map(fe => toFloorMapEnemy(fe, defeatedIds));
+    // Replay support: when the floor is fully cleared (every enemy + boss
+    // already in defeatedIds), reset the local defeat flags so the player
+    // can walk and fight again. The DB history stays intact; further defeat
+    // upserts are idempotent.
+    if (mapEnemies.length > 0 && mapEnemies.every(e => e.defeated)) {
+      mapEnemies = mapEnemies.map(e => ({ ...e, defeated: false }));
+    }
 
     const floorData: FloorData = {
       id:          String(phase.floor.id),

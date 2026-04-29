@@ -110,6 +110,22 @@ export function useGoogleClassroom(teacherId: string | undefined) {
     setLinkedActivities((data ?? []) as ActivityLink[]);
   }, [teacherId]);
 
+  const scanImportedCourses = useCallback(async () => {
+    if (!teacherId) return;
+    const { data } = await supabase
+      .from("classes")
+      .select("description")
+      .eq("teacher_id", teacherId)
+      .like("description", "Importada do Google Classroom (ID: %)");
+
+    if (data) {
+      const ids = data
+        .map(c => c.description?.match(/ID: ([^)]+)/)?.[1])
+        .filter((id): id is string => !!id);
+      setImportedCourseIds(new Set(ids));
+    }
+  }, [teacherId]);
+
   // Check if the token has Classroom scopes by attempting a lightweight API call
   const checkConnection = useCallback(async () => {
     setIsLoading(true);
@@ -123,6 +139,7 @@ export function useGoogleClassroom(teacherId: string | undefined) {
       // Persist the working token so it survives re-logins
       void persistToken(token);
       void loadLinkedActivities();
+      void scanImportedCourses();
     } catch {
       setIsConnected(false);
     } finally {
@@ -216,21 +233,37 @@ export function useGoogleClassroom(teacherId: string | undefined) {
       onStudentsStep?.();
       const students = await fetchStudents(course.id);
 
-      // 3. Insert students into WIT Dungeon
+      // 3. Insert students into WIT Dungeon (filtering existing ones)
+      let studentsImported = 0;
       if (students.length > 0) {
-        const records = students.map((s) => ({
-          name: s.fullName,
-          class_id: newClass.id,
-          teacher_id: teacherId,
-          status: "active",
-          coins: 50,
-          level: 1,
-          presencas_consecutivas: 0,
-          classroom_user_id: s.userId,
-          classroom_email: s.emailAddress,
-        }));
-        const { error: studentsError } = await supabase.from("students").insert(records);
-        if (studentsError) throw studentsError;
+        const { data: existingStudents } = await supabase
+          .from("students")
+          .select("classroom_user_id, name")
+          .eq("class_id", newClass.id);
+
+        const existingUserIds = new Set(existingStudents?.map(s => s.classroom_user_id).filter(Boolean));
+        const existingNames = new Set(existingStudents?.map(s => s.name));
+
+        const newStudents = students.filter(s =>
+          !existingUserIds.has(s.userId) && !existingNames.has(s.fullName)
+        );
+
+        if (newStudents.length > 0) {
+          const records = newStudents.map((s) => ({
+            name: s.fullName,
+            class_id: newClass.id,
+            teacher_id: teacherId,
+            status: "active",
+            coins: 50,
+            level: 1,
+            presencas_consecutivas: 0,
+            classroom_user_id: s.userId,
+            classroom_email: s.emailAddress,
+          }));
+          const { error: studentsError } = await supabase.from("students").insert(records);
+          if (studentsError) throw studentsError;
+          studentsImported = newStudents.length;
+        }
       }
 
       // 4. Update last_sync_at in connection table
@@ -238,7 +271,7 @@ export function useGoogleClassroom(teacherId: string | undefined) {
 
       setImportedCourseIds((prev) => new Set([...prev, course.id]));
 
-      return { className, studentsImported: students.length };
+      return { className, studentsImported };
     } finally {
       setIsSyncing(false);
     }

@@ -79,11 +79,18 @@ export function useFloorMapEnemies(
     },
   });
 
-  // Merge defeat state
-  const enemies: FloorMapEnemy[] = (enemiesQuery.data ?? []).map(e => ({
+  // Merge defeat state. If the floor is *fully* cleared (every enemy and the
+  // boss already in floor_enemy_defeats), treat the entry as a replay and
+  // reset the local defeat flags so the player can walk and fight again.
+  // Partial progress (some enemies defeated, boss alive) is preserved.
+  const merged: FloorMapEnemy[] = (enemiesQuery.data ?? []).map(e => ({
     ...e,
     defeated: defeatsQuery.data?.has(e.id) ?? false,
   }));
+  const allCleared = merged.length > 0 && merged.every(e => e.defeated);
+  const enemies: FloorMapEnemy[] = allCleared
+    ? merged.map(e => ({ ...e, defeated: false }))
+    : merged;
 
   return {
     enemies,

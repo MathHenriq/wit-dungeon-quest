@@ -64,8 +64,13 @@ export function FloorNode({ floor, expanded, onToggle, onPlay }: FloorNodeProps)
 
   function handleClick() {
     if (s === 'locked') return;
-    if (s === 'current') onPlay();
-    if (s === 'completed') onToggle();
+    if (s === 'current')   onPlay();
+    if (s === 'completed') {
+      // If we have boss detail data, expand the panel (which has its own
+      // "Jogar Novamente" button). Otherwise enter the floor directly.
+      if (boss) onToggle();
+      else      onPlay();
+    }
   }
 
   // Boss icon color
@@ -133,7 +138,7 @@ export function FloorNode({ floor, expanded, onToggle, onPlay }: FloorNodeProps)
 
       {/* Expandable boss detail panel (completed only) */}
       {s === 'completed' && boss && (
-        <BossDetailPanel boss={boss} open={expanded} />
+        <BossDetailPanel boss={boss} open={expanded} onPlay={onPlay} />
       )}
     </div>
   );
