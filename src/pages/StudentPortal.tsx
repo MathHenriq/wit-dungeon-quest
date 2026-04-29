@@ -647,7 +647,7 @@ export default function StudentPortal() {
       return (
         <div className="fixed inset-0 overflow-y-auto" style={{ background: '#04060a' }}>
           {sharedOverlays}
-          <HeroScreen student={student} inventory={inventory} onUpdate={refreshInventory} onBack={() => setActiveTab('director')} />
+          <HeroScreen student={student} inventory={inventory} onUpdate={async () => { await Promise.all([refreshStudent(), refreshInventory()]); }} onBack={() => setActiveTab('director')} />
         </div>
       );
     }
