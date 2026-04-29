@@ -185,7 +185,7 @@ export function BattleDungeonView({ character, studentId, onRewardApplied, onBac
       name:         floor.name || floor.theme,
       theme:        floor.theme,
       boss:         null,
-      status:       fNum <= 5 ? 'current' : getFloorStatus(fNum, bossDefeatedSet, lowestAvailableFloorNumber),
+      status:       getFloorStatus(fNum, bossDefeatedSet, lowestAvailableFloorNumber),
     };
   });
 

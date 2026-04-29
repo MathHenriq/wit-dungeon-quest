@@ -63,9 +63,7 @@ export function getFloorStatus(
 ): FloorStatus {
   if (bossDefeatedSet.has(floorNumber)) return 'completed';
 
-  // Liberado para testes: andares do 1 ao 5 sempre disponiveis
-  if (floorNumber <= 5) return 'current';
-
+  // Floor 1 is always available; subsequent floors unlock when previous boss is defeated
   const prevCompleted =
     floorNumber === 1 ||
     floorNumber === lowestAvailableFloorNumber ||
