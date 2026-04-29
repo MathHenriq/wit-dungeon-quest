@@ -76,13 +76,12 @@ const ATTR_META: { key: keyof Student; label: string; iconId: string; color: str
 ];
 
 const SLOT_DEFS: { category: string; label: string; iconId: string; col: number; row: number; isCartaEspecial?: boolean }[] = [
-  { category: "armamento",      label: "Armamento",     iconId: "sword",  col: 1, row: 1 },
-  { category: "armadura",       label: "Armadura",      iconId: "shield", col: 2, row: 1 },
-  { category: "carta_especial", label: "Carta Especial", iconId: "star",  col: 1, row: 2, isCartaEspecial: true },
+  { category: "carta_especial", label: "Carta Especial", iconId: "star", col: 1, row: 1, isCartaEspecial: true },
 ];
 
-/** Categories whose items count as "carta especial" for equipping purposes */
-const CARTA_ESPECIAL_CATS = new Set(["colecao", "habilidade", "token", "utilizavel"]);
+function isCartaEspecialItem(inv: InventoryItemX | null | undefined): boolean {
+  return !!(inv?.item as (ShopItemX & { ability_key?: string }) | undefined)?.ability_key;
+}
 
 const TITLE_LABELS: Record<string, string> = {
   helper_of_week:    "AUXILIAR DA SEMANA",
@@ -389,9 +388,7 @@ function EquipActionPanel({
             {slotDef.label.toUpperCase()} · VAZIO
           </div>
           <div style={{ fontFamily: FONT_RAJ, fontSize: 13, color: "rgba(120,150,190,0.5)" }}>
-            {slotDef.isCartaEspecial
-              ? "Escolha sua carta especial de batalha"
-              : "Selecione um item abaixo para equipar"}
+            Escolha a carta especial ativa na batalha.
           </div>
         </div>
       )}
@@ -400,7 +397,7 @@ function EquipActionPanel({
       {otherItems.length > 0 && (
         <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "10px 16px 6px", fontFamily: FONT_MON, fontSize: 8, color: T.textMuted, letterSpacing: "1.5px", flexShrink: 0 }}>
-            DISPONÍVEIS NESTE SLOT ({otherItems.length})
+            CARTAS DISPONIVEIS ({otherItems.length})
           </div>
           <div style={{ flex: 1, overflowY: "auto", padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 6, pointerEvents: "all" }}>
             {otherItems.map(oi => {
@@ -478,16 +475,13 @@ function EquipmentPanel({
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Build equipped-by-category map
-  // For carta_especial: any equipped item with ability_key from special categories
+  // For carta_especial: any equipped item with ability_key.
   const equippedByCategory = new Map<string, InventoryItemX>();
   for (const inv of inventory) {
     if (!inv.is_equipped || !inv.item) continue;
-    const cat = inv.item.category as string;
-    // Map special categories → virtual "carta_especial" slot
-    if (CARTA_ESPECIAL_CATS.has(cat) && (inv.item as ShopItemX & { ability_key?: string }).ability_key) {
+    // Map any battle ability item to the virtual "carta_especial" slot.
+    if (isCartaEspecialItem(inv)) {
       if (!equippedByCategory.has("carta_especial")) equippedByCategory.set("carta_especial", inv);
-    } else if (!equippedByCategory.has(cat)) {
-      equippedByCategory.set(cat, inv);
     }
   }
 
@@ -495,12 +489,8 @@ function EquipmentPanel({
   const inventoryByCategory = new Map<string, InventoryItemX[]>();
   for (const inv of inventory) {
     if (!inv.item) continue;
-    const cat = inv.item.category as string;
-    const shopItem = inv.item as ShopItemX & { ability_key?: string };
-    // Items with ability_key from special categories go into carta_especial picker
-    const virtualCat = CARTA_ESPECIAL_CATS.has(cat) && shopItem.ability_key
-      ? "carta_especial"
-      : cat;
+    if (!isCartaEspecialItem(inv)) continue;
+    const virtualCat = "carta_especial";
     if (!inventoryByCategory.has(virtualCat)) inventoryByCategory.set(virtualCat, []);
     if (inv.is_equipped) inventoryByCategory.get(virtualCat)!.unshift(inv);
     else inventoryByCategory.get(virtualCat)!.push(inv);
@@ -523,41 +513,26 @@ function EquipmentPanel({
   // Equip any specific item (handles swapping)
   const handleEquipItem = useCallback(async (inv: InventoryItemX) => {
     if (!inv.item) return;
-    const realCat = inv.item.category as string;
-    const shopItem = inv.item as ShopItemX & { ability_key?: string };
-    const isSpecialCard = CARTA_ESPECIAL_CATS.has(realCat) && !!shopItem.ability_key;
-    const virtualCat = isSpecialCard ? "carta_especial" : realCat;
+    if (!isCartaEspecialItem(inv)) return;
+    const virtualCat = "carta_especial";
 
     setTogglingCat(virtualCat);
     try {
       const nowEquipped = !inv.is_equipped;
       if (nowEquipped) {
-        if (isSpecialCard) {
-          // Unequip ALL currently equipped items in any special-card slot
-          const specialEquipped = inventory.filter(i =>
-            i.is_equipped && i.item &&
-            (CARTA_ESPECIAL_CATS.has(i.item.category as string) ||
-             i.equipped_slot === "carta_especial") &&
-            i.id !== inv.id
-          );
-          for (const old of specialEquipped) {
-            await supabaseAnon
-              .from("student_inventory" as never)
-              .update({ is_equipped: false, equipped_slot: null } as never)
-              .eq("id", old.id).eq("student_id", studentId);
-          }
-        } else {
-          // Unequip the currently equipped item in the same normal slot
-          const current = equippedByCategory.get(virtualCat);
-          if (current && current.id !== inv.id) {
-            await supabaseAnon
-              .from("student_inventory" as never)
-              .update({ is_equipped: false, equipped_slot: null } as never)
-              .eq("id", current.id).eq("student_id", studentId);
-          }
+        const specialEquipped = inventory.filter(i =>
+          i.is_equipped &&
+          (isCartaEspecialItem(i) || i.equipped_slot === "carta_especial") &&
+          i.id !== inv.id
+        );
+        for (const old of specialEquipped) {
+          await supabaseAnon
+            .from("student_inventory" as never)
+            .update({ is_equipped: false, equipped_slot: null } as never)
+            .eq("id", old.id).eq("student_id", studentId);
         }
       }
-      const slot = nowEquipped ? (isSpecialCard ? "carta_especial" : realCat) : null;
+      const slot = nowEquipped ? "carta_especial" : null;
       const { error: updateErr } = await supabaseAnon
         .from("student_inventory" as never)
         .update({ is_equipped: nowEquipped, equipped_slot: slot } as never)
@@ -568,7 +543,7 @@ function EquipmentPanel({
         toast.error(`Erro ao equipar: ${updateErr.message}`);
         return;
       }
-      toast.success(nowEquipped ? `${inv.item.name} equipado!` : `${inv.item.name} desequipado`);
+      toast.success(nowEquipped ? `${inv.item.name} definido como carta especial!` : `${inv.item.name} removido da carta especial`);
       onRefresh();
     } catch (err) {
       console.error(err);
@@ -602,7 +577,7 @@ function EquipmentPanel({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 3, height: 18, background: `linear-gradient(180deg, ${classColor}, transparent)`, borderRadius: 1.5 }} />
           <span style={{ fontFamily: FONT_ORB, fontSize: 10, letterSpacing: "3px", color: T.textSecondary, fontWeight: 700 }}>
-            EQUIPAMENTO
+            CARTA ESPECIAL
           </span>
         </div>
         <div style={{
@@ -619,8 +594,8 @@ function EquipmentPanel({
       <div style={{ flex: 1, padding: "12px 12px", overflow: "hidden" }}>
         <div style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gridTemplateRows: "1fr 1fr",
+          gridTemplateColumns: "1fr",
+          gridTemplateRows: "1fr",
           gap: 8,
           height: "100%",
         }}>
@@ -780,9 +755,9 @@ function EquipmentPanel({
                         }}>
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.42)" }}>
                             <GameIcon id={slotDef.iconId} size={11} />
-                            {(shopItem as any).category === 'habilidade' ? 'HABILIDADE' : slotDef.label}
+                            CARTA ESPECIAL
                           </span>
-                          <span style={{ color: ar.color, fontWeight: 800 }}>EQUIPADA</span>
+                          <span style={{ color: ar.color, fontWeight: 800 }}>ATIVA</span>
                         </div>
                       </div>
                     </>
@@ -794,7 +769,7 @@ function EquipmentPanel({
                       </div>
                       <div>
                         <div style={{ fontFamily: FONT_MON, fontSize: 9, color: T.gold, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 3 }}>CARTA ESPECIAL</div>
-                        <div style={{ fontFamily: FONT_RAJ, fontSize: 14, color: "rgba(212,168,83,0.4)", fontWeight: 600 }}>Nenhuma equipada</div>
+                        <div style={{ fontFamily: FONT_RAJ, fontSize: 14, color: "rgba(212,168,83,0.4)", fontWeight: 600 }}>Nenhuma carta ativa</div>
                         <div style={{ fontFamily: FONT_MON, fontSize: 8, color: T.textMuted, marginTop: 2 }}>Passe o mouse para escolher</div>
                       </div>
                     </div>
