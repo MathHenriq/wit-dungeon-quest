@@ -1,9 +1,14 @@
 import type { BattleCharacter, Ability, ElementType } from '@/types/character';
+import type { ShopItem } from '@/types';
+import {
+  getEquipmentAbilityHandler,
+  type BattleActionResult,
+} from './equipmentAbilityRegistry';
 import { calculateDamage, estimateDamage, type CombatantStats } from './damageCalculator';
 import {
   tickStatus, canAct, getAccuracyModifier, getAttackModifier, getDefenseModifier,
   defaultDuration, STAT_MODIFIERS,
-  type ActiveStatus, type StatusEffect,
+  type ActiveStatus, type StatusEffect, type EquipStatus,
 } from './statusEffects';
 
 // ─── Battle-specific types ────────────────────────────────────────────────────
@@ -58,11 +63,20 @@ export interface BattleContext {
   healLargeUsed: boolean;
   playerStatus: ActiveStatus | null;
   enemyStatus:  ActiveStatus | null;
+  /** Equipment-ability statuses — multiple can stack simultaneously */
+  playerStatuses: EquipStatus[];
+  enemyStatuses:  EquipStatus[];
   turn:         number;
   phase:        BattlePhase;
   log:          BattleLogEntry[];
   /** Abilities the player has equipped for this fight */
   equippedAbilities: Ability[];
+  /** Equipped item that grants an in-battle ability (null if none) */
+  equippedItem: ShopItem | null;
+  /** Player turns the equipment ability is on cooldown for (0 = ready). */
+  equipmentCooldown: number;
+  /** True when an item flagged once_per_battle has already been spent. */
+  equipmentUsed: boolean;
   /** XP / rewards after VICTORY */
   rewards?: { xp: number; coins?: number };
 }
@@ -76,7 +90,12 @@ export type ItemEffect = 'heal' | 'recharge' | 'cure' | 'revive';
 export class BattleEngine {
   private ctx: BattleContext;
 
-  constructor(player: BattleCharacter, enemy: BattleEnemy, equippedAbilities: Ability[]) {
+  constructor(
+    player: BattleCharacter,
+    enemy: BattleEnemy,
+    equippedAbilities: Ability[],
+    equippedItem: ShopItem | null = null,
+  ) {
     // Initialise PP for every equipped ability
     const abilityPP: Record<string, { current: number; max: number }> = {};
     for (const ability of equippedAbilities) {
@@ -91,12 +110,17 @@ export class BattleEngine {
       rechargeUsed:  false,
       healSmallUses: 0,
       healLargeUsed: false,
-      playerStatus: null,
-      enemyStatus:  null,
+      playerStatus:   null,
+      enemyStatus:    null,
+      playerStatuses: [],
+      enemyStatuses:  [],
       turn:         1,
       phase:        'STARTING',
       log:          [],
       equippedAbilities,
+      equippedItem,
+      equipmentCooldown: 0,
+      equipmentUsed:     false,
     };
   }
 
@@ -169,13 +193,17 @@ export class BattleEngine {
       defFisica:    0,
       defMagica:    0,
     };
+    // Apply defense_down from equip statuses to enemy defender stats
+    const defDown = this.ctx.enemyStatuses
+      .filter(s => s.type === 'defense_down')
+      .reduce((acc, s) => acc + (s.value ?? 0), 0);
     const defender: CombatantStats = {
       level:        this.ctx.enemy.level,
       forca:        0,
       inteligencia: 0,
       agilidade:    this.ctx.enemy.velocidade,
-      defFisica:    this.ctx.enemy.defFisica,
-      defMagica:    this.ctx.enemy.defMagica,
+      defFisica:    Math.max(0, this.ctx.enemy.defFisica - defDown),
+      defMagica:    Math.max(0, this.ctx.enemy.defMagica - defDown),
       elementType:  this.ctx.enemy.elementType,
     };
 
@@ -190,8 +218,10 @@ export class BattleEngine {
     } else if (result.effectiveness === 0) {
       this.log('player', '🛡️ Imune! Sem efeito.', 'effect');
     } else {
-      const finalDmg = Math.floor(result.damage * wetMod);
+      const baseDmg  = Math.floor(result.damage * wetMod);
+      const finalDmg = this.applyEquipStatusAmp(baseDmg, ability.damageType);
       this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - finalDmg);
+      this.applyEquipStatusLifesteal(finalDmg);
 
       if (result.isCritical)         this.log('player', '💥 Acerto crítico!', 'effect');
       if (result.effectivenessLabel) this.log('player', result.effectivenessLabel, 'effect');
@@ -297,6 +327,183 @@ export class BattleEngine {
     return this.snapshot();
   }
 
+  /**
+   * Player triggers the active ability of the currently equipped item.
+   * Dispatches by ability_mode:
+   *  - 'unique': handler from equipmentAbilityRegistry (custom logic)
+   *  - 'combo':  data-driven via the existing damage / status pipeline,
+   *              parameters come from ability_config.
+   *
+   * Cooldown / availability rules come from ability_config:
+   *  - cooldown:        number of player turns until usable again (default 2).
+   *  - once_per_battle: when true, the item can only fire once and is permanently
+   *                     disabled after a successful use, regardless of cooldown.
+   */
+  async useEquipmentAbility(): Promise<BattleContext> {
+    if (this.ctx.phase !== 'PLAYER_TURN') return this.snapshot();
+
+    const item = this.ctx.equippedItem;
+    if (!item || !item.ability_mode) {
+      this.log('system', '❌ Nenhum item equipado.', 'info');
+      return this.snapshot();
+    }
+
+    if (this.ctx.equipmentCooldown > 0) {
+      this.log(
+        'system',
+        `⏳ ${item.ability_name ?? item.name} em recarga (${this.ctx.equipmentCooldown}).`,
+        'info',
+      );
+      return this.snapshot();
+    }
+
+    const config = (item.ability_config ?? {}) as Record<string, unknown>;
+    const oncePerBattle = config.once_per_battle === true;
+    if (oncePerBattle && this.ctx.equipmentUsed) {
+      this.log('system', `❌ ${item.ability_name ?? item.name} já foi utilizado nesta batalha.`, 'info');
+      return this.snapshot();
+    }
+
+    const blocked = this.tickPlayerStatus();
+    if (blocked) {
+      this.ctx.phase = 'ENEMY_TURN';
+      return this.snapshot();
+    }
+
+    this.log('player', `${this.ctx.player.name} usou ${item.ability_name ?? item.name}!`, 'action');
+
+    // Route all items with ability_key through registry (unique AND combo).
+    // runUniqueEquipmentAbility already falls back to runComboEquipmentAbility
+    // when no handler is registered.
+    let result: BattleActionResult;
+    if (item.ability_key) {
+      result = await this.runUniqueEquipmentAbility(item);
+    } else {
+      result = this.runComboEquipmentAbility(config);
+    }
+
+    if (result.message) {
+      this.log('player', result.message, result.damage ? 'damage' : 'effect', result.damage ?? result.heal);
+    }
+
+    if (!result.success) {
+      // Failure does not consume cooldown / once-per-battle.
+      return this.snapshot();
+    }
+
+    // Cooldown comes from ability_config (default 2 turns). Clamped to >= 0.
+    // For once_per_battle items we still set a cooldown so the cooldown text
+    // doesn't matter — equipmentUsed permanently disables the button.
+    const rawCooldown   = Number(config.cooldown);
+    const cooldownTurns = Number.isFinite(rawCooldown) && rawCooldown >= 0 ? Math.floor(rawCooldown) : 2;
+    this.ctx.equipmentCooldown = cooldownTurns;
+    if (oncePerBattle) this.ctx.equipmentUsed = true;
+
+    if (this.ctx.enemy.hpCurrent <= 0) {
+      this.ctx.enemy.hpCurrent = 0;
+      this.ctx.phase = 'VICTORY';
+      this.computeRewards();
+      this.log('system', `🏆 ${this.ctx.enemy.name} foi derrotado!`, 'info');
+      return this.snapshot();
+    }
+
+    this.checkSpecialTrigger();
+    this.ctx.phase = 'ENEMY_TURN';
+    return this.snapshot();
+  }
+
+  private async runUniqueEquipmentAbility(item: ShopItem): Promise<BattleActionResult> {
+    if (!item.ability_key) {
+      return { success: false, message: '❌ Habilidade sem chave registrada.' };
+    }
+    const handler = getEquipmentAbilityHandler(item.ability_key);
+    if (!handler && item.ability_config) {
+      return this.runComboEquipmentAbility((item.ability_config ?? {}) as Record<string, unknown>);
+    }
+    if (!handler) {
+      return { success: false, message: `❌ Handler "${item.ability_key}" não registrado.` };
+    }
+    return handler.execute(this.ctx);
+  }
+
+  private runComboEquipmentAbility(config: Record<string, unknown>): BattleActionResult {
+    const damageType = (config.damage_type as Ability['damageType']) ?? 'Physical';
+    const baseDamage = Number(config.base_damage ?? config.damage ?? 0);
+    const accuracy   = Number(config.accuracy ?? 100);
+    const effects    = Array.isArray(config.effects)
+      ? (config.effects as Array<{ type: string; chance?: number }>)
+      : [];
+
+    let totalDamage = 0;
+
+    if (baseDamage > 0 && damageType !== 'Status') {
+      const fallbackElement: ElementType =
+        (config.element as ElementType | undefined) ??
+        this.ctx.equippedAbilities[0]?.elementName ??
+        'Steel';
+      const synthetic: Ability = {
+        id:           '__equip_combo__',
+        name:         'Equipment Skill',
+        elementId:    0,
+        elementName:  fallbackElement,
+        tier:         1,
+        damageType,
+        baseDamage,
+        energyCost:   0,
+        accuracy,
+        requirement:  0,
+        description:  '',
+      };
+
+      const atkMod = getAttackModifier(this.ctx.playerStatus);
+      const accMod = getAccuracyModifier(this.ctx.playerStatus);
+      const wetMod = getDefenseModifier(this.ctx.enemyStatus, synthetic.elementName);
+
+      const attacker: CombatantStats = {
+        level:        this.ctx.player.level,
+        forca:        Math.floor(this.ctx.player.forca        * atkMod),
+        inteligencia: Math.floor(this.ctx.player.inteligencia * atkMod),
+        agilidade:    this.ctx.player.agilidade,
+        defFisica:    0,
+        defMagica:    0,
+      };
+      const defender: CombatantStats = {
+        level:        this.ctx.enemy.level,
+        forca:        0,
+        inteligencia: 0,
+        agilidade:    this.ctx.enemy.velocidade,
+        defFisica:    this.ctx.enemy.defFisica,
+        defMagica:    this.ctx.enemy.defMagica,
+        elementType:  this.ctx.enemy.elementType,
+      };
+
+      const modified = { ...synthetic, accuracy: Math.floor(synthetic.accuracy * accMod) };
+      const dmg = calculateDamage(attacker, defender, modified);
+
+      if (!dmg.isMiss && !dmg.isEvaded && dmg.effectiveness !== 0) {
+        const finalDmg = Math.floor(dmg.damage * wetMod);
+        this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - finalDmg);
+        totalDamage = finalDmg;
+      }
+    }
+
+    for (const eff of effects) {
+      const rawChance = typeof eff.chance === 'number' ? eff.chance : 100;
+      const chance = rawChance > 1 ? rawChance / 100 : rawChance;
+      if (Math.random() <= Math.max(0, Math.min(1, chance))) {
+        this.applyEffect('enemy', eff.type as StatusEffect);
+      }
+    }
+
+    const message = totalDamage > 0
+      ? `Causou ${totalDamage} de dano!`
+      : effects.length
+        ? '✨ Efeito aplicado!'
+        : '⚪ Sem efeito.';
+
+    return { success: true, damage: totalDamage || undefined, message };
+  }
+
   /** Player flees — always succeeds (can gate behind agilidade check later) */
   flee(): BattleContext {
     this.log('system', '🏃 Você fugiu da batalha!', 'info');
@@ -382,11 +589,18 @@ export class BattleEngine {
     } else if (result.effectiveness === 0) {
       this.log('enemy', '🛡️ Imune! Sem efeito.', 'effect');
     } else {
-      this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - result.damage);
-
       if (result.isCritical)         this.log('enemy', '💥 Acerto crítico!', 'effect');
       if (result.effectivenessLabel) this.log('enemy', result.effectivenessLabel, 'effect');
-      this.log('enemy', `Você sofreu ${result.damage} de dano!`, 'damage', result.damage);
+
+      const isMagic2     = ability.damageType === 'Special';
+      const effectiveDmg2 = this.applyEquipStatusOnIncomingDamage(result.damage, isMagic2);
+      if (effectiveDmg2 === -1) {
+        // blocked
+      } else {
+        this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - effectiveDmg2);
+        this.log('enemy', `Você sofreu ${effectiveDmg2} de dano!`, 'damage', effectiveDmg2);
+        if (effectiveDmg2 > 0) this.applyEquipStatusCounter(effectiveDmg2);
+      }
 
       if (
         ability.effectType &&
@@ -439,11 +653,18 @@ export class BattleEngine {
     } else if (result.effectiveness === 0) {
       this.log('enemy', '🛡️ Imune! Sem efeito.', 'effect');
     } else {
-      this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - result.damage);
-
       if (result.isCritical)         this.log('enemy', '💥 Acerto crítico!', 'effect');
       if (result.effectivenessLabel) this.log('enemy', result.effectivenessLabel, 'effect');
-      this.log('enemy', `Você sofreu ${result.damage} de dano!`, 'damage', result.damage);
+
+      const isMagic    = ability.damageType === 'Special';
+      const effectiveDmg = this.applyEquipStatusOnIncomingDamage(result.damage, isMagic);
+      if (effectiveDmg === -1) {
+        // blocked by evasion / invincible / magic_immune
+      } else {
+        this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - effectiveDmg);
+        this.log('enemy', `Você sofreu ${effectiveDmg} de dano!`, 'damage', effectiveDmg);
+        if (effectiveDmg > 0) this.applyEquipStatusCounter(effectiveDmg);
+      }
 
       if (
         ability.effectType &&
@@ -460,10 +681,163 @@ export class BattleEngine {
 
   private endTurn() {
     this.ctx.turn++;
+    if (this.ctx.equipmentCooldown > 0) this.ctx.equipmentCooldown--;
+    // Tick cooldownRounds for counter status (once per full round)
+    for (const s of this.ctx.playerStatuses) {
+      if (s.type === 'counter' && s.cooldownRounds !== undefined && s.cooldownRounds > 0 && s.cooldownRounds < 999) {
+        s.cooldownRounds--;
+      }
+    }
     this.ctx.phase = 'PLAYER_TURN';
   }
 
   // ─── Private: status ticks ───────────────────────────────────────────────────
+
+  // ─── Private: equipment status helpers ──────────────────────────────────────
+
+  /** Apply amp multiplier when player deals damage. Returns amplified damage. */
+  private applyEquipStatusAmp(rawDmg: number, damageType: Ability['damageType']): number {
+    const ss = this.ctx.playerStatuses;
+    const ampType = damageType === 'Physical' ? 'physical_amp' : damageType === 'Special' ? 'magic_amp' : null;
+    if (!ampType) return rawDmg;
+    const idx = ss.findIndex(s => s.type === ampType && (s.charges ?? 0) > 0);
+    if (idx < 0) return rawDmg;
+    const amp    = ss[idx];
+    const result = Math.floor(rawDmg * (amp.multiplier ?? 2));
+    amp.charges! -= 1;
+    if (amp.charges! <= 0) ss.splice(idx, 1);
+    this.log('player', `⚡ ${ampType === 'physical_amp' ? 'PHYSICAL' : 'MAGIC'} AMP ×${amp.multiplier ?? 2}!`, 'effect');
+    return result;
+  }
+
+  /** Heal player by lifesteal percent after dealing damage. */
+  private applyEquipStatusLifesteal(dmgDealt: number) {
+    const ss = this.ctx.playerStatuses;
+    for (const type of ['lifesteal', 'vampiric'] as const) {
+      const idx = ss.findIndex(s => s.type === type && (s.charges ?? 0) > 0);
+      if (idx < 0) continue;
+      const ls     = ss[idx];
+      const healed = Math.floor(dmgDealt * (ls.percent ?? 0.30));
+      this.ctx.player.hpCurrent = Math.min(this.ctx.player.hpMax, this.ctx.player.hpCurrent + healed);
+      ls.charges! -= 1;
+      if (ls.charges! <= 0) ss.splice(idx, 1);
+      this.log('player', `🩸 Lifesteal: +${healed} HP!`, 'effect', healed);
+      break;
+    }
+  }
+
+  /**
+   * Process incoming damage through player equip statuses.
+   * Returns effective damage after shields/evasion/etc.
+   * Returns -1 if the attack is completely blocked.
+   */
+  private applyEquipStatusOnIncomingDamage(rawDmg: number, isMagic: boolean): number {
+    const ss = this.ctx.playerStatuses;
+
+    // 1. Evasion
+    const evIdx = ss.findIndex(s => s.type === 'evasion' && (s.charges ?? 0) > 0);
+    if (evIdx >= 0) {
+      ss[evIdx].charges! -= 1;
+      if (ss[evIdx].charges! <= 0) ss.splice(evIdx, 1);
+      this.log('player', '💨 EVASION — ataque esquivado automaticamente!', 'effect');
+      return -1;
+    }
+
+    // 2. Invincible
+    const invIdx = ss.findIndex(s => s.type === 'invincible' && (s.charges ?? 0) > 0);
+    if (invIdx >= 0) {
+      ss[invIdx].charges! -= 1;
+      if (ss[invIdx].charges! <= 0) ss.splice(invIdx, 1);
+      this.log('player', '✨ INVINCIBLE — hit completamente negado!', 'effect');
+      return -1;
+    }
+
+    // 3. Magic immune
+    if (isMagic) {
+      const imIdx = ss.findIndex(s => s.type === 'magic_immune' && ((s.turnsLeft ?? 0) > 0 || s.turnsLeft === -1));
+      if (imIdx >= 0) {
+        this.log('player', '🧿 MAGIC IMMUNE — dano mágico anulado!', 'effect');
+        return -1;
+      }
+    }
+
+    let dmg = rawDmg;
+
+    // 4. Vulnerable (takes extra damage)
+    const vulnIdx = ss.findIndex(s => s.type === 'vulnerable');
+    if (vulnIdx >= 0) {
+      dmg = Math.floor(dmg * (1 + (ss[vulnIdx].percent ?? 0.30)));
+    }
+
+    // 5. Shield (absorbs damage)
+    const shieldIdx = ss.findIndex(s => s.type === 'shield' && (s.value ?? 0) > 0);
+    if (shieldIdx >= 0) {
+      const shield   = ss[shieldIdx];
+      const absorbed = Math.min(shield.value!, dmg);
+      shield.value! -= absorbed;
+      dmg           -= absorbed;
+      this.log('player', `🛡️ Escudo absorveu ${absorbed} de dano!`, 'effect');
+      if (shield.value! <= 0) ss.splice(shieldIdx, 1);
+    }
+
+    return Math.max(0, dmg);
+  }
+
+  /** Reflect damage back to enemy via counter status. */
+  private applyEquipStatusCounter(dmgReceived: number) {
+    const ss       = this.ctx.playerStatuses;
+    const cIdx     = ss.findIndex(s => s.type === 'counter' && (s.cooldownRounds ?? 0) <= 0);
+    if (cIdx < 0 || dmgReceived <= 0) return;
+    const counter  = ss[cIdx];
+    const reflected = Math.floor(dmgReceived * (counter.multiplier ?? 2));
+    this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - reflected);
+    this.log('player', `⚡ COUNTER — ${reflected} refletido ao inimigo!`, 'damage', reflected);
+    // Set cooldown
+    counter.cooldownRounds = 5;
+    // Reduce charges if this counter has a use limit
+    if (counter.charges !== undefined) {
+      counter.charges -= 1;
+      if (counter.charges <= 0) ss.splice(cIdx, 1);
+    }
+  }
+
+  /** Tick equip DoT effects and decrement turnsLeft/charges. */
+  private tickEquipStatusesFor(target: 'player' | 'enemy') {
+    const ss = target === 'player' ? this.ctx.playerStatuses : this.ctx.enemyStatuses;
+    for (const s of ss) {
+      const val = s.value ?? 0;
+      // DoT damage
+      if (val > 0 && (s.type === 'burn' || s.type === 'poison' || s.type === 'bleed' || s.type === 'death_curse')) {
+        const icon = s.type === 'burn' ? '🔥' : s.type === 'bleed' ? '🩸' : s.type === 'death_curse' ? '💀' : '☠️';
+        if (target === 'player') {
+          this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - val);
+        } else {
+          this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - val);
+        }
+        this.log(target, `${icon} ${s.type}: −${val} HP!`, 'status', val);
+      }
+      // Tick turnsLeft
+      if (s.turnsLeft !== undefined && s.turnsLeft > 0) s.turnsLeft -= 1;
+    }
+    // Remove expired
+    for (let i = ss.length - 1; i >= 0; i--) {
+      const s = ss[i];
+      const tExpired = s.turnsLeft !== undefined && s.turnsLeft !== -1 && s.turnsLeft <= 0;
+      const cExpired = s.charges !== undefined && s.charges <= 0;
+      if (tExpired || cExpired) {
+        this.log('system', `✅ Efeito (${s.type}) expirou.`, 'info');
+        ss.splice(i, 1);
+      }
+    }
+  }
+
+  /** Returns true if enemy has an active stun/freeze equip status. */
+  private isEnemyBlockedByEquipStatus(): boolean {
+    return this.ctx.enemyStatuses.some(
+      s => (s.type === 'stun' || s.type === 'freeze') &&
+           ((s.turnsLeft !== undefined && s.turnsLeft > 0) || s.turnsLeft === -1),
+    );
+  }
 
   private tickPlayerStatus(): boolean {
     return this.tickStatusFor('player');
@@ -474,8 +848,15 @@ export class BattleEngine {
   }
 
   private tickStatusFor(target: 'player' | 'enemy'): boolean {
+    // Also process equip-status DoTs and blocking effects
+    this.tickEquipStatusesFor(target);
+
     const status  = target === 'player' ? this.ctx.playerStatus : this.ctx.enemyStatus;
-    if (!status) return false;
+    if (!status) {
+      // Even with no legacy status, equip stun/freeze can block enemy
+      if (target === 'enemy') return this.isEnemyBlockedByEquipStatus();
+      return false;
+    }
 
     const maxHp     = target === 'player' ? this.ctx.player.hpMax  : this.ctx.enemy.hpMax;
     const currentHp = target === 'player' ? this.ctx.player.hpCurrent : this.ctx.enemy.hpCurrent;
@@ -501,7 +882,8 @@ export class BattleEngine {
       this.log('system', `✅ Status ${status.type} removido.`, 'info');
     }
 
-    return result.blocked;
+    // Merge with equip-status blocking (stun/freeze)
+    return result.blocked || (target === 'enemy' && this.isEnemyBlockedByEquipStatus());
   }
 
   // ─── Private: apply effects ───────────────────────────────────────────────────

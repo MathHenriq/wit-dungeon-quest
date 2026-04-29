@@ -17,6 +17,7 @@ import {
   type Floor, type FloorEnemy,
 } from '@/hooks/useFloors';
 import { useEquippedAbilities, useAbilities } from '@/hooks/useAbilities';
+import { useEquippedItem } from '@/hooks/useEquippedItem';
 import { useApplyBattleRewards } from '@/hooks/useCharacter';
 import type { BattleRewards } from '@/lib/loot/lootGenerator';
 import { applyBattleDrops } from '@/lib/drops/applyBattleDrops';
@@ -120,6 +121,9 @@ export function BattleDungeonView({ character, studentId, onRewardApplied, onBac
     .sort((a, b) => a.slot - b.slot)
     .map(s => abilityMap[s.ability_id])
     .filter(Boolean);
+
+  // Equipped item granting an in-battle ability (null if none)
+  const { data: equippedItem = null } = useEquippedItem(studentId);
 
   // Active floor's enemies (loaded when on map/battle phase)
   const activeFloorId = (phase.type === 'map' || phase.type === 'battle' || phase.type === 'victory' || phase.type === 'defeat')
@@ -281,6 +285,7 @@ export function BattleDungeonView({ character, studentId, onRewardApplied, onBac
         player={character}
         enemy={battleEnemy}
         equippedAbilities={equippedAbilities}
+        equippedItem={equippedItem}
         onVictory={(xp, coins) => {
           // Compute level-up result immediately for instant VictoryScreen feedback
           const spentOnPastLevels = getTotalXPForLevel(character.level);

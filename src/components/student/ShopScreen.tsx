@@ -19,13 +19,13 @@ function getRarity(item: ShopItem): ItemRarity {
 }
 
 const RARITY = {
-  common:    { label: "Comum",    color: "#9ca3af", glow: "rgba(156,163,175,0.35)", bg: "rgba(156,163,175,0.05)", bar: "#9ca3af" },
-  uncommon:  { label: "Incomum",  color: "#4ade80", glow: "rgba(74,222,128,0.4)",  bg: "rgba(74,222,128,0.05)",  bar: "#4ade80" },
-  rare:      { label: "Rara",     color: "#38bdf8", glow: "rgba(56,189,248,0.45)", bg: "rgba(56,189,248,0.06)",  bar: "#38bdf8" },
-  epic:      { label: "Épica",    color: "#c084fc", glow: "rgba(192,132,252,0.5)", bg: "rgba(192,132,252,0.07)", bar: "#c084fc" },
-  legendary: { label: "Lendária", color: "#f59e0b", glow: "rgba(245,158,11,0.6)",  bg: "rgba(245,158,11,0.08)",  bar: "#f59e0b" },
-  mythic:    { label: "Mitica",    color: "#fb7185", glow: "rgba(251,113,133,0.7)", bg: "rgba(251,113,133,0.09)", bar: "#fb7185" },
-  unknown:   { label: "???",       color: "#e5e7eb", glow: "rgba(255,255,255,0.85)", bg: "rgba(255,255,255,0.10)", bar: "#e5e7eb" },
+  common:    { label: "Comum",    color: "#c8d0d8", glow: "rgba(200,208,216,0.3)",  bg: "rgba(200,208,216,0.05)", bar: "#c8d0d8" },
+  uncommon:  { label: "Incomum",  color: "#4ade80", glow: "rgba(74,222,128,0.35)", bg: "rgba(74,222,128,0.05)",  bar: "#4ade80" },
+  rare:      { label: "Rara",     color: "#60c8f8", glow: "rgba(96,200,248,0.4)",  bg: "rgba(96,200,248,0.06)",  bar: "#60c8f8" },
+  epic:      { label: "Épica",    color: "#b57bee", glow: "rgba(181,123,238,0.45)", bg: "rgba(181,123,238,0.07)", bar: "#b57bee" },
+  legendary: { label: "Lendária", color: "#f5c84b", glow: "rgba(245,200,75,0.55)", bg: "rgba(245,200,75,0.08)",  bar: "#f5c84b" },
+  mythic:    { label: "Mítica",   color: "#f05050", glow: "rgba(240,80,80,0.55)",  bg: "rgba(240,80,80,0.08)",   bar: "#f05050" },
+  unknown:   { label: "???",      color: "#4b5563", glow: "rgba(75,85,99,0.5)",    bg: "rgba(75,85,99,0.08)",    bar: "#4b5563" },
 } as const;
 
 // ─── Injected CSS ─────────────────────────────────────────────────────────────
@@ -98,6 +98,341 @@ const SHOP_CSS = `
   }
   .shop-title-glow { animation: shop-title-pulse 3s ease-in-out infinite; }
   .shop-card-appear { animation: shop-card-in 0.38s cubic-bezier(0.22,1,0.36,1) both; }
+  
+  /* Greed Island Card Styles */
+  .greed-card {
+    position: relative;
+    background: #fdfbf7;
+    border: 4px solid #111;
+    border-radius: 4px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 4px 6px 0px rgba(0,0,0,0.4);
+    height: 100%;
+  }
+  .greed-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 6px 10px 0px rgba(0,0,0,0.5);
+  }
+  .greed-card.locked {
+    filter: grayscale(0.7) brightness(0.8);
+  }
+
+  /* ── Arcane Card (compact, premium) ── */
+  .arcane-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+  }
+  @media (max-width: 1280px) { .arcane-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  @media (max-width: 1020px) { .arcane-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (max-width: 760px)  { .arcane-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; } }
+  @media (max-width: 500px)  { .arcane-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+
+  .arcane-card {
+    --rarity: #c8d0d8;
+    --rarity-glow: rgba(200,208,216,0.3);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    background: linear-gradient(180deg, #1a1028 0%, #07050c 100%);
+    border: 3px solid var(--rarity);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.8),
+      0 10px 20px rgba(0,0,0,0.5);
+    transition: transform 0.22s cubic-bezier(0.22,1,0.36,1), box-shadow 0.22s ease;
+    isolation: isolate;
+  }
+  .arcane-card::after {
+    content: '';
+    position: absolute; inset: -3px;
+    border-radius: 12px;
+    box-shadow: 0 0 18px var(--rarity-glow), 0 0 6px var(--rarity-glow);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .arcane-card:hover {
+    transform: translateY(-6px);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.8),
+      0 20px 36px rgba(0,0,0,0.6);
+  }
+  .arcane-card:hover::after { opacity: 1; }
+  .arcane-card.locked { filter: grayscale(0.55) brightness(0.65); }
+
+  .arcane-art {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 50% 40%, var(--rarity-glow) 0%, transparent 65%),
+      linear-gradient(180deg, #1a1028 0%, #07050c 100%);
+  }
+  .arcane-art img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    object-position: center center;
+    transition: transform 0.55s cubic-bezier(0.22,1,0.36,1);
+    filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
+  }
+  .arcane-card:hover .arcane-art img { transform: scale(1.08); }
+  .arcane-art-fallback {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--rarity);
+    opacity: 0.6;
+  }
+  .arcane-art-shade {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.7) 95%);
+    pointer-events: none;
+  }
+  .arcane-art-tint {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 60%, var(--rarity-glow) 200%);
+    mix-blend-mode: screen;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .arcane-cost {
+    position: absolute; top: 8px; left: 8px;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 9px 4px 7px;
+    background: rgba(8,4,14,0.85);
+    border: 1px solid rgba(245,158,11,0.5);
+    border-radius: 999px;
+    backdrop-filter: blur(6px);
+    color: #fbbf24;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; font-weight: 700;
+    z-index: 3;
+  }
+  .arcane-rarity-badge {
+    position: absolute; top: 8px; right: 8px;
+    padding: 3px 8px;
+    background: rgba(8,4,14,0.85);
+    border: 1px solid var(--rarity);
+    color: var(--rarity);
+    border-radius: 999px;
+    backdrop-filter: blur(6px);
+    font-family: 'Cinzel', serif;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    z-index: 3;
+  }
+  .arcane-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(2px);
+    z-index: 3;
+  }
+  .arcane-overlay-icon {
+    background: rgba(8,4,14,0.85);
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 24px currentColor;
+  }
+
+  .arcane-attrs {
+    position: absolute;
+    left: 8px; right: 8px; bottom: 8px;
+    display: flex; flex-wrap: wrap; gap: 4px;
+    z-index: 3;
+  }
+  .arcane-attr {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 6px;
+    background: rgba(8,4,14,0.78);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: #fde68a;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; font-weight: 700;
+    backdrop-filter: blur(6px);
+  }
+
+  .arcane-foot {
+    padding: 10px 12px 11px;
+    display: flex; flex-direction: column; gap: 4px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.4));
+  }
+  .arcane-name {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f5f5f7;
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+  .arcane-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 6px;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .arcane-cat {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: rgba(255,255,255,0.42);
+  }
+  .arcane-status {
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .greed-header {
+    display: flex;
+    border: 3px solid #111;
+    margin-bottom: 6px;
+    background: #fdfbf7;
+    height: 34px;
+    border-radius: 2px;
+  }
+  .greed-header-left, .greed-header-right {
+    flex: 0 0 46px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: #111;
+  }
+  .greed-header-left {
+    border-right: 3px solid #111;
+  }
+  .greed-header-right {
+    border-left: 3px solid #111;
+    font-size: 11px;
+    flex-direction: column;
+    line-height: 1;
+  }
+  .greed-header-center {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+    font-size: 12px;
+    color: #111;
+    padding: 0 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .greed-image-wrapper {
+    border: 3px solid #111;
+    background: #fff;
+    padding: 4px;
+    margin-bottom: 6px;
+    border-radius: 2px;
+  }
+  .greed-image-container {
+    width: 100%;
+    height: 130px;
+    background: #000;
+    display: flex; justify-content: center; align-items: center;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid #111;
+  }
+
+  .greed-body-wrapper {
+    flex: 1;
+    padding: 6px;
+    border: 3px solid #111;
+    display: flex; flex-direction: column;
+    border-radius: 2px;
+  }
+  .greed-body-inner {
+    background: #f8f9fa;
+    border: 2px solid #111;
+    flex: 1;
+    padding: 6px 8px;
+    color: #111;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
+  }
+
+  /* Sheet styles */
+  .greed-sheet {
+    position: fixed; inset: 0; z-index: 60;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: shop-card-in 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .greed-sheet-content {
+    background: #fdfbf7;
+    border: 4px solid #111;
+    border-radius: 8px;
+    padding: 16px;
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    gap: 24px;
+    box-shadow: 8px 12px 0px rgba(0,0,0,0.6);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  @media (max-width: 640px) {
+    .greed-sheet-content {
+      flex-direction: column;
+      align-items: center;
+    }
+    .greed-sheet-content > div:first-child {
+      width: 240px;
+    }
+  }
+  
+  .greed-buy-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px; border-radius: 4px; cursor: pointer;
+    border: 3px solid #111;
+    font-family: 'Exo 2', sans-serif; font-size: 14px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    transition: all 0.15s ease;
+    box-shadow: 3px 3px 0px #111;
+    width: 100%;
+  }
+  .greed-buy-btn:not(:disabled):hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0px #111;
+  }
+  .greed-buy-btn:not(:disabled):active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px #111;
+  }
+  .greed-buy-btn:disabled {
+    opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none;
+  }
+
   .shop-item-card {
     position: relative;
     border-radius: 14px;
@@ -274,249 +609,151 @@ function ItemDetailSheet({
   const hasDiamondOption = (item.diamond_cost ?? 0) > 0;
 
   return (
-    <>
+    <div className="greed-sheet">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50"
-        style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
         onClick={onClose}
       />
 
-      {/* Sheet */}
-      <div
-        className="shop-detail-sheet"
-        style={{
-          background: `linear-gradient(180deg, rgba(8,5,14,0.98) 0%, rgba(12,8,20,0.99) 100%)`,
-          borderTop: `2px solid ${r.color}`,
-          boxShadow: `0 -24px 80px ${r.glow}, 0 -4px 20px rgba(0,0,0,0.8)`,
-          padding: '0',
-          maxHeight: '62vh',
-        }}
-      >
-        {/* Rarity glow strip */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 1,
-          background: `linear-gradient(90deg, transparent, ${r.color}80, transparent)`,
-        }} />
+      {/* Sheet Content */}
+      <div className="greed-sheet-content">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: -16, right: -16,
+            background: '#111', color: '#fff', border: '3px solid #fff',
+            borderRadius: '50%', width: 36, height: 36,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', zIndex: 10, boxShadow: '0 4px 10px rgba(0,0,0,0.5)'
+          }}
+        >
+          <X size={20} strokeWidth={3} />
+        </button>
 
-        <div style={{ padding: '20px 24px 28px' }}>
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute', top: 14, right: 14,
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8, padding: '4px 8px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 4,
-              fontFamily: "'Exo 2', sans-serif", fontSize: 12,
-            }}
-          >
-            <X size={13} /> Fechar
-          </button>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 22, alignItems: 'start' }}>
-            {/* Left: Image */}
-            <div>
-              <div
-                className="shop-float"
-                style={{
-                  width: 150, height: 150, borderRadius: 16,
-                  background: `radial-gradient(circle at 50% 60%, ${r.bg} 0%, rgba(8,5,14,0.6) 100%)`,
-                  border: `1px solid ${r.color}40`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden',
-                  boxShadow: `0 0 30px ${r.glow}`,
-                  position: 'relative',
-                }}
-              >
-                {/* Rune ring */}
-                <svg
-                  className="shop-rune"
-                  width="100" height="100"
-                  viewBox="0 0 100 100"
-
-                  style={{ position: 'absolute', opacity: 0.18 }}
-                >
-                  <circle cx="50" cy="50" r="44" fill="none" stroke={r.color} strokeWidth="0.8" strokeDasharray="4 6" />
-                  <circle cx="50" cy="50" r="36" fill="none" stroke={r.color} strokeWidth="0.5" strokeDasharray="2 8" />
-                </svg>
-                {item.image_url ? (
-                  <div style={{ position: 'relative', zIndex: 1, width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={item.image_url} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.6))', borderRadius: 8 }} />
-                  </div>
-                ) : (
-                  <div style={{ position: 'relative', zIndex: 1 }}>
-                    <GameIcon id={meta.iconId} size={52} />
-                  </div>
-                )}
-              </div>
-
-              {/* Rarity badge */}
-              <div style={{
-                marginTop: 8, textAlign: 'center',
-                fontFamily: "'Exo 2', sans-serif", fontSize: 11, fontWeight: 700,
-                letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: r.color, textShadow: `0 0 8px ${r.glow}`,
-              }}>
-                ✦ {r.label} ✦
+        {/* Left: The Card itself (scaled up) */}
+        <div style={{ width: 280, flexShrink: 0 }}>
+          <div className="greed-card" style={{ cursor: 'default', transform: 'none', boxShadow: 'none' }}>
+            <div className="greed-header">
+              <div className="greed-header-left">{item.cost}</div>
+              <div className="greed-header-center" style={{ fontSize: 14 }}>{item.name}</div>
+              <div className="greed-header-right">
+                <span style={{ fontSize: 9 }}>{r.label.substring(0,3).toUpperCase()}</span>
+                <span style={{ fontSize: 9 }}>{meta.label.substring(0,3).toUpperCase()}</span>
               </div>
             </div>
 
-            {/* Right: Info */}
-            <div>
-              {/* Category badge */}
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '3px 10px', borderRadius: 99,
-                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                fontFamily: "'Exo 2', sans-serif", fontSize: 11, fontWeight: 600,
-                color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase',
-                marginBottom: 6,
-              }}>
-                <GameIcon id={meta.iconId} size={11} /> {meta.label}
-                {item.min_level > 1 && (
-                  <span style={{ marginLeft: 6, color: 'rgba(255,255,255,0.3)' }}>· Nv. {item.min_level}+</span>
+            <div className="greed-image-wrapper">
+              <div className="greed-image-container" style={{ height: 220 }}>
+                {item.image_url ? (
+                  <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  <div style={{ color: '#fff' }}>
+                    <GameIcon id={meta.iconId} size={80} />
+                  </div>
                 )}
               </div>
+            </div>
 
-              {/* Item name */}
-              <div style={{
-                fontFamily: "'Cinzel', serif", fontSize: 20, fontWeight: 700,
-                color: '#fff', lineHeight: 1.2, marginBottom: 8,
-                textShadow: `0 0 16px ${r.glow}`,
-              }}>
-                {item.name}
-              </div>
-
-              {/* Description */}
-              {item.description && (
-                <p style={{
-                  fontFamily: "'Exo 2', sans-serif", fontSize: 13,
-                  color: 'rgba(255,255,255,0.5)', lineHeight: 1.55, marginBottom: 10,
-                }}>
-                  {item.description}
-                </p>
-              )}
-
-              {/* Attributes */}
-              {activeAttrs.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                  {activeAttrs.map(a => (
-                    <span key={a.key} style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      padding: '4px 10px', borderRadius: 8,
-                      background: 'rgba(0,229,255,0.07)', border: '1px solid rgba(0,229,255,0.18)',
-                      fontFamily: "'Share Tech Mono', monospace", fontSize: 12,
-                      color: '#67e8f9',
-                    }}>
-                      <GameIcon id={a.iconId} size={12} /> +{item[a.key]}
-                    </span>
-                  ))}
+            <div className="greed-body-wrapper" style={{ background: r.color }}>
+              <div className="greed-body-inner" style={{ fontSize: 13, minHeight: 120 }}>
+                <div className="greed-body-desc">
+                  {item.description ? item.description : "Uma carta valiosa e misteriosa..."}
                 </div>
-              )}
+                
+                <div className="greed-body-footer" style={{ marginTop: 12 }}>
+                   {activeAttrs.map(a => (
+                     <span key={a.key} style={{ fontWeight: 800, color: '#111', background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                       <GameIcon id={a.iconId} size={12} /> +{item[a.key]} {a.label}
+                     </span>
+                   ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-              {/* Footer: price + buttons */}
+        {/* Right: Info and Purchase */}
+        <div style={{ display: 'flex', flexDirection: 'column', color: '#111', fontFamily: "'Exo 2', sans-serif" }}>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: 24, fontWeight: 800, margin: '0 0 16px', borderBottom: '2px solid #111', paddingBottom: 8 }}>
+              {item.name}
+            </h2>
+            
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <div style={{ background: r.color, color: '#111', padding: '4px 8px', borderRadius: 4, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', border: '2px solid #111' }}>
+                {r.label}
+              </div>
+              <div style={{ background: '#111', color: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <GameIcon id={meta.iconId} size={12} /> {meta.label}
+              </div>
+            </div>
+
+            <p style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5, opacity: 0.8, marginBottom: 24 }}>
+              "Esta carta aguarda um mestre digno..."
+            </p>
+
+            {/* Requisitos / Status */}
+            <div style={{ background: 'rgba(0,0,0,0.05)', border: '2px solid #111', padding: 12, borderRadius: 4, marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginBottom: 8, color: '#666' }}>Status</div>
               {owned && item.category !== 'token' ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
-                  padding: '10px 20px', borderRadius: 10,
-                  background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)',
-                  fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 700,
-                  color: '#67e8f9', letterSpacing: '0.06em', alignSelf: 'flex-start',
-                }}>
-                  <CheckCircle size={15} /> Adquirido
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#059669', fontWeight: 800 }}>
+                  <CheckCircle size={18} /> Você já possui esta carta!
                 </div>
               ) : belowLevel ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 4,
-                  padding: '10px 20px', borderRadius: 10,
-                  background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-                  fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 600,
-                  color: 'rgba(239,68,68,0.7)', alignSelf: 'flex-start',
-                }}>
-                  <Lock size={13} /> Nível {item.min_level} necessário
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#dc2626', fontWeight: 800 }}>
+                  <Lock size={18} /> Nível {item.min_level} necessário para usar.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-                  {/* Coins button */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      fontFamily: "'Share Tech Mono', monospace", fontSize: 20, fontWeight: 700,
-                      color: '#f59e0b', minWidth: 90,
-                    }}>
-                      <GameIcon id="coin" size={18} />
-                      {item.cost.toLocaleString()}
-                    </div>
-                    <button
-                      className="shop-buy-btn"
-                      disabled={cantAfford || buying || buyingWithDiamonds}
-                      onClick={onBuy}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '9px 20px', borderRadius: 10, cursor: cantAfford ? 'not-allowed' : 'pointer',
-                        background: cantAfford ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${r.color}22, ${r.color}40)`,
-                        border: `1px solid ${cantAfford ? 'rgba(255,255,255,0.08)' : r.color + '60'}`,
-                        boxShadow: cantAfford ? 'none' : `0 0 20px ${r.glow}`,
-                        fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 800,
-                        letterSpacing: '0.1em', textTransform: 'uppercase',
-                        color: cantAfford ? 'rgba(255,255,255,0.2)' : r.color,
-                        transition: 'all 0.2s ease', opacity: cantAfford ? 0.5 : 1,
-                      }}
-                    >
-                      {buying ? (
-                        <><Loader2 size={14} className="animate-spin" /> Comprando...</>
-                      ) : cantAfford ? (
-                        <>Moedas insuficientes</>
-                      ) : (
-                        <><Zap size={14} /> Comprar</>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Diamond button (only if item has diamond price) */}
-                  {hasDiamondOption && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        fontFamily: "'Share Tech Mono', monospace", fontSize: 20, fontWeight: 700,
-                        color: '#63b3ed', minWidth: 90,
-                      }}>
-                        <GameIcon id="gem" size={18} />
-                        {formatPrice(item.diamond_cost)}
-                      </div>
-                      <button
-                        disabled={cantAffordDiamonds || buyingWithDiamonds || buying}
-                        onClick={onBuyWithDiamonds}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 8,
-                          padding: '9px 20px', borderRadius: 10, cursor: cantAffordDiamonds ? 'not-allowed' : 'pointer',
-                          background: cantAffordDiamonds ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg, rgba(99,179,237,0.15), rgba(99,179,237,0.3))',
-                          border: `1px solid ${cantAffordDiamonds ? 'rgba(255,255,255,0.08)' : 'rgba(99,179,237,0.5)'}`,
-                          boxShadow: cantAffordDiamonds ? 'none' : '0 0 20px rgba(99,179,237,0.3)',
-                          fontFamily: "'Exo 2', sans-serif", fontSize: 13, fontWeight: 800,
-                          letterSpacing: '0.1em', textTransform: 'uppercase',
-                          color: cantAffordDiamonds ? 'rgba(255,255,255,0.2)' : '#63b3ed',
-                          transition: 'all 0.2s ease', opacity: cantAffordDiamonds ? 0.5 : 1,
-                        }}
-                      >
-                        {buyingWithDiamonds ? (
-                          <><Loader2 size={14} className="animate-spin" /> Comprando...</>
-                        ) : cantAffordDiamonds ? (
-                          <>Diamantes insuficientes</>
-                        ) : (
-                          <><GameIcon id="gem" size={14} /> Comprar com diamantes</>
-                        )}
-                      </button>
-                    </div>
-                  )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#111', fontWeight: 800 }}>
+                  Carta disponível para aquisição.
                 </div>
               )}
             </div>
           </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 'auto' }}>
+            <button
+              className="greed-buy-btn"
+              disabled={cantAfford || buying || buyingWithDiamonds || (owned && item.category !== 'token')}
+              onClick={onBuy}
+              style={{ background: '#f59e0b', color: '#111' }}
+            >
+              {buying ? (
+                <><Loader2 size={16} className="animate-spin" /> Adquirindo...</>
+              ) : (owned && item.category !== 'token') ? (
+                "Adquirida"
+              ) : (
+                <>
+                  <GameIcon id="coin" size={16} /> 
+                  Comprar por {item.cost} Moedas
+                </>
+              )}
+            </button>
+
+            {hasDiamondOption && (
+              <button
+                className="greed-buy-btn"
+                disabled={cantAffordDiamonds || buying || buyingWithDiamonds || (owned && item.category !== 'token')}
+                onClick={onBuyWithDiamonds}
+                style={{ background: '#63b3ed', color: '#111' }}
+              >
+                {buyingWithDiamonds ? (
+                  <><Loader2 size={16} className="animate-spin" /> Adquirindo...</>
+                ) : (
+                  <>
+                    <GameIcon id="gem" size={16} /> 
+                    Comprar por {formatPrice(item.diamond_cost)} Diamantes
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -543,174 +780,77 @@ function ItemCard({
   const activeAttrs = ATTRIBUTES.filter(a => (item[a.key] ?? 0) > 0);
 
   const statusLabel = owned && item.category !== 'token'
-    ? { text: 'Adquirido', color: '#67e8f9' }
+    ? { text: 'Adquirido', color: '#059669' }
     : belowLevel
-    ? { text: `Nv. ${item.min_level}+`, color: 'rgba(239,68,68,0.7)' }
+    ? { text: `Nv. ${item.min_level}+`, color: '#dc2626' }
     : cantAfford
-    ? { text: 'Sem moedas', color: 'rgba(156,163,175,0.5)' }
+    ? { text: 'Sem moedas', color: '#6b7280' }
     : null;
 
   return (
     <div
-      className="shop-item-card shop-card-appear"
+      className={`arcane-card shop-card-appear ${belowLevel ? 'locked' : ''}`}
       style={{
         animationDelay: `${index * 0.045}s`,
-        background: `linear-gradient(160deg, ${r.bg} 0%, rgba(8,5,14,0.6) 100%)`,
-        border: `1px solid ${r.color}28`,
-        boxShadow: `inset 0 0 0 0 transparent`,
-        opacity: belowLevel ? 0.65 : 1,
-      }}
+        ['--rarity' as string]: r.color,
+        ['--rarity-glow' as string]: r.glow,
+      } as React.CSSProperties}
       onClick={onClick}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = `0 8px 32px ${r.glow}, 0 0 0 1px ${r.color}40`;
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = '';
-      }}
     >
-      {/* Scan line effect */}
-      <div className="shop-scan-line" />
-
-      {/* Rarity left bar */}
-      <div style={{
-        position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
-        background: `linear-gradient(180deg, transparent, ${r.color}, transparent)`,
-        borderRadius: '14px 0 0 14px',
-      }} />
-
-      {/* Image area */}
-      <div style={{
-        height: 156, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        position: 'relative', overflow: 'hidden',
-        background: `radial-gradient(ellipse at 50% 80%, ${r.color}12 0%, transparent 70%)`,
-        borderRadius: '14px 14px 0 0',
-      }}>
-        {/* Rune circle (shows on hover via opacity) */}
-        <svg width="118" height="118" viewBox="0 0 80 80"
-             className="shop-card-rune"
-             style={{ position: 'absolute', opacity: 0, transition: 'all 0.4s' }}>
-          <circle cx="40" cy="40" r="34" fill="none" stroke={r.color} strokeWidth="1" strokeDasharray="4 6" />
-        </svg>
+      <div className="arcane-art">
         {item.image_url ? (
-          <div style={{ position: 'relative', zIndex: 1, width: 100, height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-             <img src={item.image_url} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 8px 10px rgba(0,0,0,0.6))', borderRadius: 8 }} />
-          </div>
+          <img src={item.image_url} alt={item.name} />
         ) : (
-          <div style={{ position: 'relative', zIndex: 1 }}>
-             <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon color={r.color} size={38} strokeWidth={1} style={{ opacity: 0.8 }} />
-             </div>
+          <div className="arcane-art-fallback">
+            <GameIcon id={meta.iconId} size={64} />
           </div>
         )}
+        <div className="arcane-art-tint" />
+        <div className="arcane-art-shade" />
 
-        {/* Owned overlay */}
-        {owned && item.category !== 'token' && (
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(0,0,0,0.55)', borderRadius: '14px 14px 0 0',
-          }}>
-            <CheckCircle size={28} style={{ color: '#67e8f9', opacity: 0.9 }} />
-          </div>
-        )}
+        <span className="arcane-cost">
+          <GameIcon id="coin" size={11} />
+          {item.cost}
+        </span>
+        <span className="arcane-rarity-badge">{r.label}</span>
 
-        {/* Locked overlay */}
-        {belowLevel && (
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(0,0,0,0.6)', borderRadius: '14px 14px 0 0',
-          }}>
-            <Lock size={24} style={{ color: 'rgba(239,68,68,0.7)' }} />
-          </div>
-        )}
-
-        {/* Rarity top-right tag */}
-        <div style={{
-          position: 'absolute', top: 7, right: 8,
-          fontFamily: "'Exo 2', sans-serif", fontSize: 9, fontWeight: 700,
-          letterSpacing: '0.1em', textTransform: 'uppercase',
-          color: r.color, textShadow: `0 0 6px ${r.glow}`,
-          background: `${r.color}15`, padding: '2px 6px', borderRadius: 6,
-          border: `1px solid ${r.color}30`,
-        }}>
-          {r.label}
-        </div>
-      </div>
-
-      {/* Info area */}
-      <div style={{ padding: '10px 14px 12px' }}>
-        {/* Category + name */}
-        <div style={{
-          fontFamily: "'Exo 2', sans-serif", fontSize: 10, fontWeight: 600,
-          letterSpacing: '0.08em', textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.35)', marginBottom: 3,
-          display: 'flex', alignItems: 'center', gap: 4,
-        }}>
-          <GameIcon id={meta.iconId} size={10} /> {meta.label}
-        </div>
-        <div style={{
-          fontFamily: "'Cinzel', serif", fontSize: 14, fontWeight: 600,
-          color: '#fff', lineHeight: 1.25, marginBottom: 6,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {item.name}
-        </div>
-
-        {/* Attr badges (max 3) */}
         {activeAttrs.length > 0 && (
-          <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+          <div className="arcane-attrs">
             {activeAttrs.slice(0, 3).map(a => (
-              <span key={a.key} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 3,
-                padding: '2px 7px', borderRadius: 6,
-                background: 'rgba(0,229,255,0.07)', border: '1px solid rgba(0,229,255,0.15)',
-                fontFamily: "'Share Tech Mono', monospace", fontSize: 10,
-                color: '#67e8f9',
-              }}>
-                <GameIcon id={a.iconId} size={10} /> +{item[a.key]}
+              <span key={a.key} className="arcane-attr">
+                <GameIcon id={a.iconId} size={10} />
+                +{item[a.key]}
               </span>
             ))}
           </div>
         )}
 
-        {/* Price row */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8,
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 700,
-              color: '#f59e0b',
-            }}>
-              <GameIcon id="coin" size={14} /> {item.cost}
-            </div>
-            {(item.diamond_cost ?? 0) > 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 700,
-                color: '#63b3ed',
-              }}>
-                <GameIcon id="gem" size={12} /> {formatPrice(item.diamond_cost)}
-              </div>
-            )}
+        {owned && item.category !== 'token' && (
+          <div className="arcane-overlay" style={{ color: '#4ade80' }}>
+            <div className="arcane-overlay-icon"><CheckCircle size={26} /></div>
           </div>
+        )}
+        {belowLevel && (
+          <div className="arcane-overlay" style={{ color: '#ef4444' }}>
+            <div className="arcane-overlay-icon"><Lock size={24} /></div>
+          </div>
+        )}
+      </div>
 
+      <div className="arcane-foot">
+        <div className="arcane-name" title={item.name}>{item.name}</div>
+        <div className="arcane-meta">
+          <span className="arcane-cat">
+            <GameIcon id={meta.iconId} size={11} />
+            {meta.label}
+          </span>
           {statusLabel ? (
-            <span style={{
-              fontFamily: "'Exo 2', sans-serif", fontSize: 10, fontWeight: 700,
-              letterSpacing: '0.06em', textTransform: 'uppercase',
-              color: statusLabel.color,
-            }}>
+            <span className="arcane-status" style={{ color: statusLabel.color }}>
               {statusLabel.text}
             </span>
           ) : (
-            <span style={{
-              fontFamily: "'Exo 2', sans-serif", fontSize: 10, fontWeight: 700,
-              letterSpacing: '0.06em', textTransform: 'uppercase',
-              color: r.color, textShadow: `0 0 8px ${r.glow}`,
-            }}>
-              Ver item →
+            <span className="arcane-status" style={{ color: r.color }}>
+              Nv. {item.min_level}+
             </span>
           )}
         </div>
@@ -1040,11 +1180,7 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
                   </p>
                 </div>
               ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))',
-                  gap: 16,
-                }}>
+                <div className="arcane-grid">
                   {filteredItems.map((item, idx) => {
                     const owned = ownedItemIds.has(item.id);
                     const cantAfford = student.coins < item.cost;

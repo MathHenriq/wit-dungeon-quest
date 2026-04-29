@@ -9,6 +9,7 @@ import type { Ability, BattleCharacter } from "@/types/character";
 import { ELEMENT_META, canUseAbility } from "@/types/character";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAnon } from "@/integrations/supabase/anonClient";
 import { toast } from "sonner";
 
 // ─── Extended types ────────────────────────────────────────────────────────────
@@ -74,14 +75,14 @@ const ATTR_META: { key: keyof Student; label: string; iconId: string; color: str
   { key: "attr_resistencia",  label: "Resistência",  iconId: "shield", color: "#f87171", short: "RES" },
 ];
 
-const SLOT_DEFS: { category: string; label: string; iconId: string; col: number; row: number }[] = [
-  { category: "armamento",  label: "Armamento",  iconId: "sword",  col: 1, row: 1 },
-  { category: "armadura",   label: "Armadura",   iconId: "shield", col: 2, row: 1 },
-  { category: "habilidade", label: "Habilidade", iconId: "wand",   col: 1, row: 2 },
-  { category: "utilizavel", label: "Acessório",  iconId: "potion", col: 2, row: 2 },
-  { category: "colecao",    label: "Coleção",    iconId: "star",   col: 1, row: 3 },
-  { category: "token",      label: "Token",      iconId: "scroll", col: 2, row: 3 },
+const SLOT_DEFS: { category: string; label: string; iconId: string; col: number; row: number; isCartaEspecial?: boolean }[] = [
+  { category: "armamento",      label: "Armamento",     iconId: "sword",  col: 1, row: 1 },
+  { category: "armadura",       label: "Armadura",      iconId: "shield", col: 2, row: 1 },
+  { category: "carta_especial", label: "Carta Especial", iconId: "star",  col: 1, row: 2, isCartaEspecial: true },
 ];
+
+/** Categories whose items count as "carta especial" for equipping purposes */
+const CARTA_ESPECIAL_CATS = new Set(["colecao", "habilidade", "token", "utilizavel"]);
 
 const TITLE_LABELS: Record<string, string> = {
   helper_of_week:    "AUXILIAR DA SEMANA",
@@ -384,11 +385,13 @@ function EquipActionPanel({
       ) : (
         /* Empty slot header */
         <div style={{ padding: "14px 16px 12px", borderBottom: `1px solid ${T.borderDim}`, flexShrink: 0 }}>
-          <div style={{ fontFamily: FONT_MON, fontSize: 9, color: T.textMuted, letterSpacing: "1.5px", marginBottom: 4 }}>
+          <div style={{ fontFamily: FONT_MON, fontSize: 9, color: slotDef.isCartaEspecial ? T.gold : T.textMuted, letterSpacing: "1.5px", marginBottom: 4 }}>
             {slotDef.label.toUpperCase()} · VAZIO
           </div>
           <div style={{ fontFamily: FONT_RAJ, fontSize: 13, color: "rgba(120,150,190,0.5)" }}>
-            Selecione um item abaixo para equipar
+            {slotDef.isCartaEspecial
+              ? "Escolha sua carta especial de batalha"
+              : "Selecione um item abaixo para equipar"}
           </div>
         </div>
       )}
@@ -475,23 +478,32 @@ function EquipmentPanel({
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Build equipped-by-category map
+  // For carta_especial: any equipped item with ability_key from special categories
   const equippedByCategory = new Map<string, InventoryItemX>();
   for (const inv of inventory) {
-    if (inv.is_equipped && inv.item && !equippedByCategory.has(inv.item.category)) {
-      equippedByCategory.set(inv.item.category, inv);
+    if (!inv.is_equipped || !inv.item) continue;
+    const cat = inv.item.category as string;
+    // Map special categories → virtual "carta_especial" slot
+    if (CARTA_ESPECIAL_CATS.has(cat) && (inv.item as ShopItemX & { ability_key?: string }).ability_key) {
+      if (!equippedByCategory.has("carta_especial")) equippedByCategory.set("carta_especial", inv);
+    } else if (!equippedByCategory.has(cat)) {
+      equippedByCategory.set(cat, inv);
     }
   }
 
-  // All inventory items grouped by category (for slot picker)
+  // All inventory items grouped by virtual slot (for slot picker)
   const inventoryByCategory = new Map<string, InventoryItemX[]>();
   for (const inv of inventory) {
-    if (inv.item) {
-      const cat = inv.item.category;
-      if (!inventoryByCategory.has(cat)) inventoryByCategory.set(cat, []);
-      // Equipped item first
-      if (inv.is_equipped) inventoryByCategory.get(cat)!.unshift(inv);
-      else inventoryByCategory.get(cat)!.push(inv);
-    }
+    if (!inv.item) continue;
+    const cat = inv.item.category as string;
+    const shopItem = inv.item as ShopItemX & { ability_key?: string };
+    // Items with ability_key from special categories go into carta_especial picker
+    const virtualCat = CARTA_ESPECIAL_CATS.has(cat) && shopItem.ability_key
+      ? "carta_especial"
+      : cat;
+    if (!inventoryByCategory.has(virtualCat)) inventoryByCategory.set(virtualCat, []);
+    if (inv.is_equipped) inventoryByCategory.get(virtualCat)!.unshift(inv);
+    else inventoryByCategory.get(virtualCat)!.push(inv);
   }
 
   const handleHover = useCallback((cat: string) => {
@@ -511,32 +523,60 @@ function EquipmentPanel({
   // Equip any specific item (handles swapping)
   const handleEquipItem = useCallback(async (inv: InventoryItemX) => {
     if (!inv.item) return;
-    const cat = inv.item.category;
-    setTogglingCat(cat);
+    const realCat = inv.item.category as string;
+    const shopItem = inv.item as ShopItemX & { ability_key?: string };
+    const isSpecialCard = CARTA_ESPECIAL_CATS.has(realCat) && !!shopItem.ability_key;
+    const virtualCat = isSpecialCard ? "carta_especial" : realCat;
+
+    setTogglingCat(virtualCat);
     try {
       const nowEquipped = !inv.is_equipped;
-      // Unequip the currently equipped item in this slot (if different)
       if (nowEquipped) {
-        const current = equippedByCategory.get(cat);
-        if (current && current.id !== inv.id) {
-          await supabaseStudent
-            .from("student_inventory" as never)
-            .update({ is_equipped: false, equipped_slot: null })
-            .eq("id", current.id).eq("student_id", studentId);
+        if (isSpecialCard) {
+          // Unequip ALL currently equipped items in any special-card slot
+          const specialEquipped = inventory.filter(i =>
+            i.is_equipped && i.item &&
+            (CARTA_ESPECIAL_CATS.has(i.item.category as string) ||
+             i.equipped_slot === "carta_especial") &&
+            i.id !== inv.id
+          );
+          for (const old of specialEquipped) {
+            await supabaseAnon
+              .from("student_inventory" as never)
+              .update({ is_equipped: false, equipped_slot: null } as never)
+              .eq("id", old.id).eq("student_id", studentId);
+          }
+        } else {
+          // Unequip the currently equipped item in the same normal slot
+          const current = equippedByCategory.get(virtualCat);
+          if (current && current.id !== inv.id) {
+            await supabaseAnon
+              .from("student_inventory" as never)
+              .update({ is_equipped: false, equipped_slot: null } as never)
+              .eq("id", current.id).eq("student_id", studentId);
+          }
         }
       }
-      await supabaseStudent
+      const slot = nowEquipped ? (isSpecialCard ? "carta_especial" : realCat) : null;
+      const { error: updateErr } = await supabaseAnon
         .from("student_inventory" as never)
-        .update({ is_equipped: nowEquipped, equipped_slot: nowEquipped ? cat : null })
-        .eq("id", inv.id).eq("student_id", studentId);
+        .update({ is_equipped: nowEquipped, equipped_slot: slot } as never)
+        .eq("id", inv.id)
+        .eq("student_id", studentId) as unknown as { error: { message: string } | null };
+      if (updateErr) {
+        console.error("[EquipmentPanel] update error:", updateErr);
+        toast.error(`Erro ao equipar: ${updateErr.message}`);
+        return;
+      }
       toast.success(nowEquipped ? `${inv.item.name} equipado!` : `${inv.item.name} desequipado`);
       onRefresh();
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Erro ao atualizar equipamento");
     } finally {
       setTogglingCat(null);
     }
-  }, [equippedByCategory, studentId, onRefresh]);
+  }, [equippedByCategory, inventory, studentId, onRefresh]);
 
   const equippedCount = SLOT_DEFS.filter(s => equippedByCategory.get(s.category)?.is_equipped).length;
 
@@ -580,19 +620,190 @@ function EquipmentPanel({
         <div style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gridTemplateRows: "repeat(3, 1fr)",
+          gridTemplateRows: "1fr 1fr",
           gap: 8,
           height: "100%",
         }}>
           {SLOT_DEFS.map((slotDef, idx) => {
             const inv = equippedByCategory.get(slotDef.category);
-            const shopItem = inv?.item as ShopItemX | undefined;
+            const shopItem = inv?.item as (ShopItemX & { ability_key?: string; ability_name?: string }) | undefined;
             const rarity = shopItem?.rarity ?? "common";
-            const rc = shopItem ? (RARITY_COLOR[rarity] ?? T.common) : "rgba(60,90,130,0.3)";
-            const rb = shopItem ? (RARITY_BG[rarity] ?? "rgba(8,14,24,0.8)") : "rgba(8,14,24,0.5)";
+            const isCartaEspecial = !!slotDef.isCartaEspecial;
+            const emptyColor = isCartaEspecial ? "rgba(212,168,83,0.35)" : "rgba(60,90,130,0.3)";
+            const rc = shopItem ? (RARITY_COLOR[rarity] ?? T.common) : emptyColor;
+            const rb = shopItem ? (RARITY_BG[rarity] ?? "rgba(8,14,24,0.8)") : isCartaEspecial ? "rgba(12,10,5,0.7)" : "rgba(8,14,24,0.5)";
             const isHovered = hoveredCat === slotDef.category;
             const isEquipped = inv?.is_equipped ?? false;
 
+            // ── Carta especial: render as arcane-card (shop style) ───────────
+            if (isCartaEspecial) {
+              const ARCANE_RARITY: Record<string, { color: string; glow: string; label: string }> = {
+                common:    { color: "#c8d0d8", glow: "rgba(200,208,216,0.3)",  label: "Comum"    },
+                uncommon:  { color: "#4ade80", glow: "rgba(74,222,128,0.35)", label: "Incomum"  },
+                rare:      { color: "#60c8f8", glow: "rgba(96,200,248,0.4)",  label: "Rara"     },
+                epic:      { color: "#b57bee", glow: "rgba(181,123,238,0.45)",label: "Épica"    },
+                legendary: { color: "#f5c84b", glow: "rgba(245,200,75,0.55)", label: "Lendária" },
+                mythic:    { color: "#f05050", glow: "rgba(240,80,80,0.55)",  label: "Mítica"   },
+              };
+              const ar = shopItem ? (ARCANE_RARITY[rarity] ?? ARCANE_RARITY.common) : null;
+              const goldGlow = "rgba(212,168,83,0.4)";
+              const activeAttrs = shopItem ? ATTR_META.filter(a => (shopItem[a.key] ?? 0) > 0) : [];
+
+              return (
+                <div
+                  key={slotDef.category}
+                  ref={el => { if (el) tileRefs.current.set(slotDef.category, el); }}
+                  className="hs-equip-tile"
+                  style={{
+                    animationDelay: `${0.08 + idx * 0.06}s`,
+                    gridColumn: "1 / -1",
+                    background: shopItem
+                      ? `linear-gradient(180deg, #1a1028 0%, #07050c 100%)`
+                      : `linear-gradient(180deg, #0d0a14 0%, #06040c 100%)`,
+                    border: shopItem
+                      ? `3px solid ${ar!.color}`
+                      : `2px dashed rgba(212,168,83,0.25)`,
+                    borderRadius: 12,
+                    boxShadow: shopItem
+                      ? isHovered
+                        ? `0 0 0 1px rgba(0,0,0,0.8), 0 20px 36px rgba(0,0,0,0.6), 0 0 18px ${ar!.glow}, 0 0 6px ${ar!.glow}`
+                        : `0 0 0 1px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5), 0 0 8px ${ar!.glow}`
+                      : isHovered
+                        ? `0 0 18px ${goldGlow}`
+                        : "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                    padding: 0,
+                    transition: "transform 0.22s cubic-bezier(0.22,1,0.36,1), box-shadow 0.22s ease",
+                    cursor: "pointer",
+                    isolation: "isolate",
+                  }}
+                  onMouseEnter={() => handleHover(slotDef.category)}
+                  onMouseLeave={handleLeave}
+                >
+                  {shopItem && ar ? (
+                    <>
+                      {/* Art area (Identical to Shop) */}
+                      <div style={{
+                        position: "relative",
+                        width: "100%",
+                        aspectRatio: "4 / 3",
+                        background: `radial-gradient(ellipse at 50% 40%, ${ar.glow} 0%, transparent 65%), linear-gradient(180deg, #1a1028 0%, #07050c 100%)`,
+                        overflow: "hidden",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {shopItem.image_url ? (
+                          <img
+                            src={shopItem.image_url} alt={shopItem.name}
+                            style={{ width: "100%", height: "100%", objectFit: "contain", filter: `drop-shadow(0 4px 16px rgba(0,0,0,0.6))`, transition: "transform 0.55s cubic-bezier(0.22,1,0.36,1)", transform: isHovered ? "scale(1.08)" : "scale(1)" }}
+                            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <GameIcon id={slotDef.iconId} size={40} />
+                        )}
+                        
+                        {/* Shaders */}
+                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.7) 95%)", pointerEvents: "none" }} />
+                        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 60%, ${ar.glow})`, mixBlendMode: "screen", opacity: 0.4, pointerEvents: "none" }} />
+                        
+                        {/* Rarity badge */}
+                        <div style={{
+                          position: "absolute", top: 8, right: 8,
+                          padding: "3px 8px",
+                          background: "rgba(8,4,14,0.85)",
+                          border: `1px solid ${ar.color}`,
+                          color: ar.color,
+                          borderRadius: 999,
+                          backdropFilter: "blur(6px)",
+                          fontFamily: "'Cinzel', serif", fontSize: 9, fontWeight: 700,
+                          letterSpacing: "0.18em", textTransform: "uppercase",
+                          zIndex: 3,
+                        }}>
+                          {ar.label}
+                        </div>
+
+                        {/* Attribute badges (Bottom Left) */}
+                        <div style={{
+                          position: "absolute", bottom: 8, left: 8,
+                          display: "flex", flexWrap: "wrap", gap: 4, zIndex: 3
+                        }}>
+                          {activeAttrs.slice(0, 2).map(a => (
+                            <div key={a.key} style={{
+                              display: "inline-flex", alignItems: "center", gap: 3,
+                              padding: "2px 6px", background: "rgba(8,4,14,0.78)",
+                              border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6,
+                              color: "#fde68a", fontFamily: FONT_MON, fontSize: 10, fontWeight: 700,
+                              backdropFilter: "blur(6px)"
+                            }}>
+                              <GameIcon id={a.iconId} size={10} /> +{shopItem[a.key]}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Equipped Overlay (Checkmark) */}
+                        <div style={{
+                          position: "absolute", inset: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)",
+                          zIndex: 2, pointerEvents: "none", color: "#4ade80"
+                        }}>
+                          <div style={{
+                            background: "rgba(8,4,14,0.85)", border: "2px solid currentColor",
+                            borderRadius: "50%", width: 52, height: 52,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            boxShadow: "0 0 24px currentColor"
+                          }}>
+                            <CheckCircle size={26} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info area (Identical to Shop arcane-foot) */}
+                      <div style={{
+                        padding: "10px 12px 11px",
+                        display: "flex", flexDirection: "column", gap: 4,
+                        borderTop: "1px solid rgba(255,255,255,0.06)",
+                        background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.4))",
+                      }}>
+                        <div style={{
+                          fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 700,
+                          color: "#f5f5f7", letterSpacing: "0.04em", lineHeight: 1.25,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {shopItem.name}
+                        </div>
+                        <div style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          gap: 6, fontFamily: "'Exo 2', sans-serif", fontSize: 10.5,
+                          fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase"
+                        }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.42)" }}>
+                            <GameIcon id={slotDef.iconId} size={11} />
+                            {(shopItem as any).category === 'habilidade' ? 'HABILIDADE' : slotDef.label}
+                          </span>
+                          <span style={{ color: ar.color, fontWeight: 800 }}>EQUIPADA</span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* Empty state */
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "24px 20px" }}>
+                      <div style={{ width: 44, height: 44, border: "1.5px dashed rgba(212,168,83,0.25)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <GameIcon id="star" size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontFamily: FONT_MON, fontSize: 9, color: T.gold, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 3 }}>CARTA ESPECIAL</div>
+                        <div style={{ fontFamily: FONT_RAJ, fontSize: 14, color: "rgba(212,168,83,0.4)", fontWeight: 600 }}>Nenhuma equipada</div>
+                        <div style={{ fontFamily: FONT_MON, fontSize: 8, color: T.textMuted, marginTop: 2 }}>Passe o mouse para escolher</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // ── Normal slot (armamento / armadura) ───────────────────────────
             return (
               <div
                 key={slotDef.category}
@@ -607,87 +818,36 @@ function EquipmentPanel({
                     : isEquipped ? `0 0 10px ${rc}20` : "none",
                   display: "flex", flexDirection: "column",
                   alignItems: "center", justifyContent: "center",
-                  padding: "10px 8px 8px",
-                  gap: 6,
+                  padding: "10px 8px 8px", gap: 6,
                 }}
                 onMouseEnter={() => handleHover(slotDef.category)}
                 onMouseLeave={handleLeave}
               >
-                {/* Equipped indicator (top-left dot) */}
                 {isEquipped && (
-                  <div style={{
-                    position: "absolute", top: 5, left: 5,
-                    width: 6, height: 6, borderRadius: "50%",
-                    background: rc,
-                    boxShadow: `0 0 6px ${rc}`,
-                  }} />
+                  <div style={{ position: "absolute", top: 5, left: 5, width: 6, height: 6, borderRadius: "50%", background: rc, boxShadow: `0 0 6px ${rc}` }} />
                 )}
-
-                {/* Rarity tag (top-right) */}
                 {shopItem && (
-                  <div style={{
-                    position: "absolute", top: 5, right: 5,
-                    fontFamily: FONT_MON, fontSize: 7,
-                    color: rc, letterSpacing: "0.5px",
-                    background: `${rc}18`, border: `1px solid ${rc}30`,
-                    borderRadius: 3, padding: "1px 4px",
-                  }}>
+                  <div style={{ position: "absolute", top: 5, right: 5, fontFamily: FONT_MON, fontSize: 7, color: rc, letterSpacing: "0.5px", background: `${rc}18`, border: `1px solid ${rc}30`, borderRadius: 3, padding: "1px 4px" }}>
                     {RARITY_LABEL[rarity]?.slice(0, 3) ?? "COM"}
                   </div>
                 )}
-
-                {/* Icon / image */}
-                <div style={{
-                  width: 52, height: 52, borderRadius: 6,
-                  background: "rgba(8,14,24,0.7)",
-                  border: `1px solid ${shopItem ? rc + "35" : "rgba(50,80,120,0.2)"}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  overflow: "hidden", flexShrink: 0, position: "relative",
-                }}>
+                <div style={{ width: 52, height: 52, borderRadius: 6, background: "rgba(8,14,24,0.7)", border: `1px solid ${shopItem ? rc + "35" : "rgba(50,80,120,0.2)"}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
                   {shopItem ? (
-                    shopItem.image_url ? (
-                      <img src={shopItem.image_url} alt={shopItem.name}
-                        style={{ width: 42, height: 42, objectFit: "contain" }}
-                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-                      />
-                    ) : (
-                      <GameIcon id={slotDef.iconId} size={26} />
-                    )
+                    shopItem.image_url
+                      ? <img src={shopItem.image_url} alt={shopItem.name} style={{ width: 42, height: 42, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      : <GameIcon id={slotDef.iconId} size={26} />
                   ) : (
-                    <>
-                      <div style={{ width: 24, height: 24, border: "1.5px dashed rgba(60,90,130,0.25)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <GameIcon id={slotDef.iconId} size={14} />
-                      </div>
-                    </>
+                    <div style={{ width: 24, height: 24, border: "1.5px dashed rgba(60,90,130,0.25)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <GameIcon id={slotDef.iconId} size={14} />
+                    </div>
                   )}
                 </div>
-
-                {/* Name or slot label */}
-                <div style={{
-                  fontFamily: shopItem ? FONT_RAJ : FONT_MON,
-                  fontSize: shopItem ? 11 : 9,
-                  fontWeight: shopItem ? 600 : 400,
-                  color: shopItem ? T.textPrimary : T.textMuted,
-                  letterSpacing: shopItem ? "0.3px" : "1.5px",
-                  textTransform: "uppercase",
-                  textAlign: "center",
-                  lineHeight: 1.2,
-                  overflow: "hidden", textOverflow: "ellipsis",
-                  whiteSpace: "nowrap", maxWidth: "100%",
-                }}>
+                <div style={{ fontFamily: shopItem ? FONT_RAJ : FONT_MON, fontSize: shopItem ? 11 : 9, fontWeight: shopItem ? 600 : 400, color: shopItem ? T.textPrimary : T.textMuted, letterSpacing: shopItem ? "0.3px" : "1.5px", textTransform: "uppercase", textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>
                   {shopItem ? shopItem.name : slotDef.label}
                 </div>
-
-                {/* Total attrs badge */}
                 {shopItem && (() => {
                   const t = (shopItem.attr_forca??0)+(shopItem.attr_destreza??0)+(shopItem.attr_inteligencia??0)+(shopItem.attr_carisma??0)+(shopItem.attr_agilidade??0)+(shopItem.attr_resistencia??0);
-                  return t > 0 ? (
-                    <div style={{
-                      fontFamily: FONT_MON, fontSize: 9, color: T.cyan,
-                      background: "rgba(56,217,232,0.08)", border: "1px solid rgba(56,217,232,0.2)",
-                      borderRadius: 3, padding: "1px 6px",
-                    }}>+{t}</div>
-                  ) : null;
+                  return t > 0 ? <div style={{ fontFamily: FONT_MON, fontSize: 9, color: T.cyan, background: "rgba(56,217,232,0.08)", border: "1px solid rgba(56,217,232,0.2)", borderRadius: 3, padding: "1px 6px" }}>+{t}</div> : null;
                 })()}
               </div>
             );
@@ -696,7 +856,8 @@ function EquipmentPanel({
       </div>
 
       {/* Action panel — rendered via portal to escape backdropFilter stacking context */}
-      {hoveredCat && anchorRect && hoveredSlot && hoveredAllItems.length > 0 && createPortal(
+      {/* For carta especial always show panel (it's the picker). For normal slots only when items exist. */}
+      {hoveredCat && anchorRect && hoveredSlot && (hoveredAllItems.length > 0 || hoveredSlot.isCartaEspecial) && createPortal(
         <EquipActionPanel
           inv={hoveredInv}
           slotDef={hoveredSlot}

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { BattleEngine, type BattleContext, type BattleEnemy, type ItemEffect } from '@/lib/battle';
 import type { BattleCharacter, Ability } from '@/types/character';
+import type { ShopItem } from '@/types';
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -10,8 +11,13 @@ export function useBattleEngine() {
 
   // ── Init ───────────────────────────────────────────────────────────────────
   const startBattle = useCallback(
-    (player: BattleCharacter, enemy: BattleEnemy, equippedAbilities: Ability[]) => {
-      const engine = new BattleEngine(player, enemy, equippedAbilities);
+    (
+      player: BattleCharacter,
+      enemy: BattleEnemy,
+      equippedAbilities: Ability[],
+      equippedItem: ShopItem | null = null,
+    ) => {
+      const engine = new BattleEngine(player, enemy, equippedAbilities, equippedItem);
       engineRef.current = engine;
       const initial = engine.start();
       setCtx(initial);
@@ -60,6 +66,20 @@ export function useBattleEngine() {
     }
   }, []);
 
+  const useEquipmentAbility = useCallback(async () => {
+    if (!engineRef.current) return;
+    const result = await engineRef.current.useEquipmentAbility();
+    setCtx(result);
+
+    if (result.phase === 'ENEMY_TURN') {
+      setTimeout(() => {
+        if (!engineRef.current) return;
+        const afterEnemy = engineRef.current.enemyTurn();
+        setCtx(afterEnemy);
+      }, 1200);
+    }
+  }, []);
+
   const flee = useCallback(() => {
     if (!engineRef.current) return;
     const result = engineRef.current.flee();
@@ -77,6 +97,7 @@ export function useBattleEngine() {
     startBattle,
     playerAttack,
     useItem,
+    useEquipmentAbility,
     flee,
     reset,
   };

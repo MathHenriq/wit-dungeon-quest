@@ -680,7 +680,7 @@
   border-left: 2px solid rgba(0,229,255,0.2);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr auto;
+  grid-template-rows: 1fr 1fr auto auto;
   gap: 0;
   overflow: hidden;
 }
@@ -729,6 +729,87 @@
 
 .poke-skill-btn:nth-child(2n) { border-right: none; }
 .poke-skill-btn:nth-child(3), .poke-skill-btn:nth-child(4) { border-bottom: none; }
+
+/* ── 5th slot: equipment item ability ─────────────────────────────────────── */
+/*   Inherits all .poke-skill-btn base styles — only overrides layout/color   */
+.poke-skill-btn--equip {
+  --el-color: #f59e0b;          /* amber — drives tint, border, hover via base */
+  grid-column: 1 / -1;
+  flex-direction: row;          /* override column → row for icon + text layout */
+  align-items: center;
+  gap: 10px;
+  border-right: none;
+  border-bottom: none;
+  border-top: 2px solid color-mix(in srgb, #f59e0b 38%, transparent);
+}
+
+/* Item thumbnail */
+.poke-equip-icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  border: 1px solid rgba(245,158,11,0.45);
+  background: rgba(0,0,0,0.40);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.poke-equip-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.poke-equip-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+
+/* Text block */
+.poke-equip-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  min-width: 0;
+}
+.poke-equip-item-name {
+  font-size: 7px;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.poke-equip-ability-name {
+  font-size: 6px;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status badge */
+.poke-equip-badge {
+  flex-shrink: 0;
+  font-size: 6px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #f59e0b 20%, transparent);
+  color: #fbbf24;
+  border: 1px solid color-mix(in srgb, #f59e0b 38%, transparent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.poke-equip-badge--off {
+  background: rgba(80,80,80,0.25);
+  color: rgba(255,255,255,0.30);
+  border-color: rgba(100,100,100,0.25);
+}
 
 .poke-skill-btn:hover:not(:disabled) {
   background: linear-gradient(135deg,

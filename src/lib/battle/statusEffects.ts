@@ -167,3 +167,38 @@ export function getDefenseModifier(status: ActiveStatus | null, incomingType?: s
   if (status.type === 'wet' && incomingType === 'Electric') return 2.0;
   return 1.0;
 }
+
+// ─── Equipment-ability status effects ────────────────────────────────────────
+// Applied exclusively via the equipment ability registry.
+// Coexist alongside the existing ActiveStatus system (separate arrays).
+
+export type EquipStatusType =
+  // Enemy debuffs
+  | 'burn'         // value HP/turno por turnsLeft turnos
+  | 'poison'       // value HP/turno (turnsLeft -1 = permanente)
+  | 'bleed'        // value HP/turno por turnsLeft turnos
+  | 'stun'         // bloqueia N turnos inimigo
+  | 'freeze'       // bloqueia N turnos inimigo
+  | 'defense_down' // reduz defFisica/defMagica por value por turnsLeft turnos
+  | 'death_curse'  // veneno intenso permanente (value HP/turno, turnsLeft -1)
+  // Player buffs / protections
+  | 'evasion'      // esquiva automática dos próximos N ataques (charges)
+  | 'magic_immune' // nega dano mágico por N turnos (turnsLeft)
+  | 'physical_amp' // próximos N ataques físicos × multiplier (charges)
+  | 'magic_amp'    // próximos N ataques mágicos × multiplier (charges)
+  | 'counter'      // reflete multiplier×dano; cooldownRounds até próxima ativação
+  | 'lifesteal'    // cura percent% do dano por N ataques (charges, percent)
+  | 'shield'       // absorve value HP de dano recebido
+  | 'invincible'   // nega próximo hit recebido (charges: 1)
+  | 'vulnerable'   // recebe percent% a mais de dano por N turnos (turnsLeft, percent)
+  | 'vampiric';    // lifesteal automático (charges, percent)
+
+export interface EquipStatus {
+  type:             EquipStatusType;
+  value?:           number;   // HP/turno para DoTs; HP absorvido para shield; flat para defense_down
+  multiplier?:      number;   // multiplicador de dano (physical_amp, magic_amp, counter)
+  charges?:         number;   // hits/usos restantes até expirar
+  turnsLeft?:       number;   // turnos restantes (-1 = permanente)
+  percent?:         number;   // 0–1: lifesteal, vampiric, vulnerable
+  cooldownRounds?:  number;   // rounds até counter poder ativar novamente (999 = já usado)
+}

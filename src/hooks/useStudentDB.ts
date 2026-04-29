@@ -628,6 +628,11 @@ export function useStudentDB() {
     if (data) setStudent(data as unknown as Student);
   };
 
+  const refreshInventory = async () => {
+    if (!student) return;
+    await loadInventory(student.id);
+  };
+
   const refreshMissions = async () => {
     if (!student) return;
     missionsLoadedRef.current = true; // mark loaded so ensureMissionsLoaded won't double-fetch
@@ -697,6 +702,7 @@ export function useStudentDB() {
       requests.some(r => r.challenge_id === challengeId && r.status === "pending"),
     logout,
     refreshStudent,
+    refreshInventory,
     refreshMissions,
     ensureMissionsLoaded,
     ensureShopLoaded,

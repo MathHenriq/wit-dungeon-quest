@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { BattleCharacter, Ability } from '@/types/character';
+import type { ShopItem } from '@/types';
 import type { BattleEnemy } from '@/lib/battle';
 import { ELEMENT_META } from '@/types/character';
 import { useBattleEngine } from '@/hooks/useBattleEngine';
@@ -14,6 +15,7 @@ interface BattleScreenProps {
   player:            BattleCharacter;
   enemy:             BattleEnemy;
   equippedAbilities: Ability[];
+  equippedItem?:     ShopItem | null;
   onVictory:         (xp: number, coins: number) => void;
   onDefeat:          () => void;
   onFled?:           () => void;
@@ -77,6 +79,7 @@ export function BattleScreen({
   player,
   enemy,
   equippedAbilities,
+  equippedItem = null,
   onVictory,
   onDefeat,
   onFled,
@@ -132,7 +135,7 @@ export function BattleScreen({
   // ── Start battle (only when using the internal engine) ─────────────────────
   useEffect(() => {
     if (!engineOverride) {
-      startBattle(player, enemy, equippedAbilities);
+      internalEngine.startBattle(player, enemy, equippedAbilities, equippedItem);
     }
   }, []); // eslint-disable-line
 
@@ -561,6 +564,53 @@ export function BattleScreen({
                   <span className="poke-skill-name" style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
                 </button>
               ))}
+
+              {/* 5th slot: equipment-granted ability */}
+              {!pvpMode && ctx.equippedItem?.ability_key && (() => {
+                const item        = ctx.equippedItem;
+                const onCooldown  = ctx.equipmentCooldown > 0;
+                const usedOnce    = !!(
+                  (item.ability_config as Record<string, unknown> | null | undefined)?.once_per_battle
+                  && ctx.equipmentUsed
+                );
+                const disabled    = onCooldown || usedOnce;
+                const label       = item.ability_name ?? item.name;
+                const subline     = usedOnce
+                  ? 'utilizada'
+                  : onCooldown
+                    ? `recarga ${ctx.equipmentCooldown}t`
+                    : item.ability_mode === 'unique' ? 'única' : 'combo';
+                return (
+                  <button
+                    key="equip-skill"
+                    className="poke-skill-btn poke-skill-btn--equip"
+                    disabled={disabled}
+                    onClick={() => {
+                      internalEngine.useEquipmentAbility();
+                      setMenu('main');
+                    }}
+                  >
+                    {/* Item thumbnail */}
+                    <span className="poke-equip-icon">
+                      {item.image_url
+                        ? <img src={item.image_url} alt={item.name} className="poke-equip-img" />
+                        : <span className="poke-equip-emoji">{item.icon ?? '🗡️'}</span>
+                      }
+                    </span>
+
+                    {/* Text block */}
+                    <span className="poke-equip-text">
+                      <span className="poke-equip-item-name">{item.name}</span>
+                      <span className="poke-equip-ability-name">{label}</span>
+                    </span>
+
+                    {/* Status badge */}
+                    <span className={`poke-equip-badge${disabled ? ' poke-equip-badge--off' : ''}`}>
+                      {subline}
+                    </span>
+                  </button>
+                );
+              })()}
 
               <button className="poke-back-btn" onClick={() => setMenu('main')}>
                 ← VOLTAR
