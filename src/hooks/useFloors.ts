@@ -312,76 +312,61 @@ export function useEnemyDefeats(characterId: string | null, floorId: string | nu
   });
 }
 
-/** Records a single enemy defeat in floor_enemy_defeats. */
-export function useRecordEnemyDefeatById() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ characterId, enemyId }: { characterId: string; enemyId: string }) => {
-      const { error } = await studentSupabase
-        .from('floor_enemy_defeats')
-        .upsert({ character_id: characterId, enemy_id: enemyId }, { onConflict: 'character_id,enemy_id' });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['enemy_defeats'] });
-      qc.invalidateQueries({ queryKey: ['floor_progress'] });
-    },
-  });
-}
-
-// ─── Record enemy defeat (student) ───────────────────────────────────────────
-
-interface RecordDefeatInput {
-  characterId: string;
-  floorId:     string;
-  isBoss:      boolean;
-}
-
+/** Records a single enemy defeat and updates floor progress summary. */
 export function useRecordEnemyDefeat() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ characterId, floorId, isBoss }: RecordDefeatInput) => {
-      // 1. Get the current real count of unique non-boss enemies defeated on this floor
+    mutationFn: async ({ characterId, floorId, enemyId, isBoss }: RecordDefeatInput & { enemyId: string }) => {
+      // 1. Record the individual defeat first
+      const { error: individualErr } = await studentSupabase
+        .from('floor_enemy_defeats')
+        .upsert({ character_id: characterId, enemy_id: enemyId }, { onConflict: 'character_id,enemy_id' });
+      
+      if (individualErr) throw individualErr;
+
+      // 2. Get the updated real count of unique non-boss enemies defeated on this floor
+      // We use Number(floorId) to match INTEGER column in DB
       const { count: realDefeatedCount } = await studentSupabase
         .from('floor_enemy_defeats')
         .select('enemy_id, enemies!inner(floor_id, is_boss)', { count: 'exact', head: true })
         .eq('character_id', characterId)
-        .eq('enemies.floor_id', floorId)
+        .eq('enemies.floor_id', Number(floorId))
         .eq('enemies.is_boss', false);
 
-      // 2. Fetch existing progress record
+      // 3. Fetch existing progress record for summary
       const { data: existing } = await studentSupabase
         .from('character_progress')
-        .select('enemies_defeated, boss_defeated, completed_at')
+        .select('boss_defeated, completed_at')
         .eq('character_id', characterId)
-        .eq('floor_id', floorId)
+        .eq('floor_id', Number(floorId))
         .maybeSingle();
 
       const prevBoss        = existing?.boss_defeated    ?? false;
       const prevCompletedAt = existing?.completed_at      ?? null;
 
-      // Use a single UPSERT keyed on (character_id, floor_id).
-      // newEnemies is the real count we just fetched.
       const newEnemies      = realDefeatedCount ?? 0;
       const newBoss         = isBoss || prevBoss;
-      
-      // If just defeated a boss and never completed before, set completed_at
       const newCompletedAt  = (isBoss && !prevBoss) ? new Date().toISOString() : prevCompletedAt;
 
-      const { error } = await studentSupabase
+      // 4. Update the summary progress
+      const { error: summaryErr } = await studentSupabase
         .from('character_progress')
         .upsert({
           character_id:     characterId,
-          floor_id:         floorId,
+          floor_id:         Number(floorId),
           enemies_defeated: newEnemies,
           boss_defeated:    newBoss,
           completed_at:     newCompletedAt,
         }, { onConflict: 'character_id,floor_id' });
 
-      if (error) throw error;
+      if (summaryErr) throw summaryErr;
+      
+      return { characterId, floorId, enemyId };
     },
-    onSuccess: (_data, { characterId }) => {
+    onSuccess: (_data, { characterId, floorId }) => {
+      // Invalidate all related queries to refresh the UI
+      qc.invalidateQueries({ queryKey: ['enemy_defeats', characterId, floorId] });
       qc.invalidateQueries({ queryKey: ['floor_progress', characterId] });
     },
   });

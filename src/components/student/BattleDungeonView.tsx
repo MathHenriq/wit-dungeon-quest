@@ -13,7 +13,7 @@ import { BattleScreen } from '@/components/battle/BattleScreen';
 import { VictoryScreen } from '@/components/battle/VictoryScreen';
 import {
   useFloors, useFloorProgress, useFloorEnemies,
-  useEnemyDefeats, useRecordEnemyDefeatById, useRecordEnemyDefeat,
+  useEnemyDefeats, useRecordEnemyDefeat,
   type Floor, type FloorEnemy,
 } from '@/hooks/useFloors';
 import { useEquippedAbilities, useAbilities } from '@/hooks/useAbilities';
@@ -144,7 +144,6 @@ export function BattleDungeonView({
     useEnemyDefeats(character.id, activeFloorId);
 
   // Mutations
-  const recordDefeatById = useRecordEnemyDefeatById();
   const recordDefeat     = useRecordEnemyDefeat();
   const applyRewards     = useApplyBattleRewards(character.id);
 
@@ -208,10 +207,7 @@ export function BattleDungeonView({
     items:    [],
   } : null;
 
-  let mapEnemies: FloorMapEnemy[] = floorEnemies.map(fe => toFloorMapEnemy(fe, defeatedIds));
-  if (mapEnemies.length > 0 && mapEnemies.every(e => e.defeated)) {
-    mapEnemies = mapEnemies.map(e => ({ ...e, defeated: false }));
-  }
+  const mapEnemies: FloorMapEnemy[] = floorEnemies.map(fe => toFloorMapEnemy(fe, defeatedIds));
 
   const activeFloorData: FloorData = {
     id:          String(phase.floor.id),
@@ -263,8 +259,12 @@ export function BattleDungeonView({
               setPendingXPReward(xpResult);
 
               // 2. Record defeat + apply rewards (DB write)
-              recordDefeatById.mutate({ characterId: character.id, enemyId: phase.enemy.id });
-              recordDefeat.mutate({ characterId: character.id, floorId: phase.floor.id, isBoss: phase.enemy.isBoss });
+              recordDefeat.mutate({ 
+                characterId: character.id, 
+                floorId: String(phase.floor.id), 
+                enemyId: phase.enemy.id, 
+                isBoss: phase.enemy.isBoss 
+              });
               applyRewards.mutate({ xp, coins }, { onSuccess: () => onRewardApplied?.() });
 
               // 3. Roll drops via RPC
