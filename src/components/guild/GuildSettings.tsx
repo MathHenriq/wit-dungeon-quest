@@ -3,15 +3,26 @@ import { toast } from 'sonner';
 import type { Guild } from '@/types';
 
 interface GuildSettingsProps {
-  guild: Guild;
-  onLeave: () => Promise<void>;
+  guild:           Guild;
+  isLeader:        boolean;
+  isOnlyMember:    boolean;
+  onLeave:         () => Promise<void>;
 }
 
-export function GuildSettings({ guild, onLeave }: GuildSettingsProps) {
+export function GuildSettings({ guild, isLeader, isOnlyMember, onLeave }: GuildSettingsProps) {
   const [leaving, setLeaving] = useState(false);
 
+  // Leader leaving the guild has different consequences:
+  //   - alone   → guilda é dissolvida
+  //   - others  → liderança transferida ao próximo membro
+  const confirmMessage = isLeader
+    ? (isOnlyMember
+        ? 'Você é o único membro. Sair vai DISSOLVER a guilda. Continuar?'
+        : 'Você é o líder. Ao sair, a liderança será transferida para outro membro. Continuar?')
+    : 'Tem certeza que deseja sair da guilda?';
+
   const handleLeave = async () => {
-    if (!confirm('Tem certeza que deseja dissolver/sair da guilda?')) return;
+    if (!confirm(confirmMessage)) return;
     setLeaving(true);
     try {
       await onLeave();
@@ -49,7 +60,9 @@ export function GuildSettings({ guild, onLeave }: GuildSettingsProps) {
             onClick={handleLeave}
             disabled={leaving}
           >
-            {leaving ? 'Saindo...' : 'Sair da Guilda'}
+            {leaving
+              ? 'Saindo...'
+              : (isLeader && isOnlyMember ? 'Dissolver Guilda' : 'Sair da Guilda')}
           </button>
         </div>
       </div>

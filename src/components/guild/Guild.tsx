@@ -11,6 +11,7 @@ import { GuildDevelopment }  from './GuildDevelopment';
 import { GuildCreate }       from './GuildCreate';
 import { GuildSearch }       from './GuildSearch';
 import { GuildSettings }     from './GuildSettings';
+import { GuildRequests }     from './GuildRequests';
 import { useGuild }          from '@/hooks/useGuild';
 import type { Student }      from '@/types';
 import type { GuildTab }     from './guild-types';
@@ -26,7 +27,9 @@ type OnboardStep = 'menu' | 'create';
 export function Guild({ student, onBack }: GuildProps) {
   const {
     myGuild, members, posts, availableGuilds, myRole, isLoading,
-    createGuild, joinGuild, leaveGuild, kickMember, sendPost,
+    pendingRequests, myPendingRequest,
+    createGuild, requestJoinGuild, cancelJoinRequest, respondJoinRequest,
+    leaveGuild, kickMember, sendPost,
   } = useGuild(student.id, student.teacher_id);
 
   const [activeTab, setActiveTab] = useState<GuildTab>('chat');
@@ -80,7 +83,9 @@ export function Guild({ student, onBack }: GuildProps) {
             {onboard === 'menu' ? (
               <GuildSearch
                 availableGuilds={availableGuilds}
-                onJoin={joinGuild}
+                myPendingRequest={myPendingRequest}
+                onRequestJoin={requestJoinGuild}
+                onCancelRequest={cancelJoinRequest}
                 onCreateNew={() => setOnboard('create')}
               />
             ) : (
@@ -96,7 +101,8 @@ export function Guild({ student, onBack }: GuildProps) {
   }
 
   // ── IN a guild ─────────────────────────────────────────────────────────────
-  const isLeader   = myRole === 'lider';
+  const isLeader  = myRole === 'lider';
+  const canManage = isLeader || myRole === 'vice_lider';
 
   const handleKick = async (guildMemberId: string) => {
     const target = members.find(m => m.id === guildMemberId);
@@ -126,7 +132,8 @@ export function Guild({ student, onBack }: GuildProps) {
         <GuildTabs
           active={activeTab}
           onChange={setActiveTab}
-          isLeader={isLeader}
+          canManage={canManage}
+          pendingCount={pendingRequests.length}
         />
 
         <div className="guild-content">
@@ -160,9 +167,18 @@ export function Guild({ student, onBack }: GuildProps) {
             <GuildRanking currentGuildId={myGuild.id} />
           )}
 
-          {activeTab === 'settings' && isLeader && (
+          {activeTab === 'requests' && canManage && (
+            <GuildRequests
+              requests={pendingRequests}
+              onRespond={respondJoinRequest}
+            />
+          )}
+
+          {activeTab === 'settings' && (
             <GuildSettings
               guild={myGuild}
+              isLeader={isLeader}
+              isOnlyMember={members.length <= 1}
               onLeave={leaveGuild}
             />
           )}

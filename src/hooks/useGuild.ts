@@ -1,14 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
-import type { Guild, GuildMember, GuildPost, GuildRole } from "@/types";
+import type { Guild, GuildMember, GuildPost, GuildRole, GuildJoinRequest } from "@/types";
+
+export interface AvailableGuild extends Guild {
+  member_count: number;
+  leader_name:      string | null;
+  vice_leader_name: string | null;
+}
 
 export function useGuild(studentId: string, teacherId: string) {
   const [myGuild,         setMyGuild]         = useState<Guild | null>(null);
   const [members,         setMembers]         = useState<GuildMember[]>([]);
   const [posts,           setPosts]           = useState<GuildPost[]>([]);
-  const [availableGuilds, setAvailableGuilds] = useState<(Guild & { member_count: number })[]>([]);
+  const [availableGuilds, setAvailableGuilds] = useState<AvailableGuild[]>([]);
   const [myRole,          setMyRole]          = useState<GuildRole | null>(null);
   const [isLoading,       setIsLoading]       = useState(true);
+  const [pendingRequests, setPendingRequests] = useState<GuildJoinRequest[]>([]);
+  const [myPendingRequest, setMyPendingRequest] = useState<GuildJoinRequest | null>(null);
 
   const loadPosts = useCallback(async (guildId: string) => {
     const { data } = await supabaseStudent
@@ -21,26 +29,75 @@ export function useGuild(studentId: string, teacherId: string) {
   }, []);
 
   const loadAvailableGuilds = useCallback(async () => {
-    if (!teacherId) return;
+    // List EVERY guild in the system (cross-teacher). The student picks any
+    // one to send a join request to; the leader/vice-leader of that guild
+    // approves or rejects.
     const { data: guildsData } = await supabaseStudent
       .from("guilds")
       .select("*")
-      .eq("teacher_id", teacherId)
       .order("level", { ascending: false });
 
     if (!guildsData) return;
 
-    const guildsWithCount = await Promise.all(
+    // One round trip for ALL leader/vice rows across the listed guilds.
+    const guildIds = guildsData.map(g => g.id);
+    const { data: leaderRows } = guildIds.length
+      ? await supabaseStudent
+          .from("guild_members")
+          .select("guild_id, role, student:students(name, character_name)")
+          .in("guild_id", guildIds)
+          .in("role", ["lider", "vice_lider"])
+      : { data: [] as Array<{
+          guild_id: string;
+          role: string;
+          student: { name: string; character_name: string | null } | null;
+        }> };
+
+    const byGuild: Record<string, { leader: string | null; vice: string | null }> = {};
+    (leaderRows || []).forEach((r: any) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
+      const display = r.student?.character_name || r.student?.name || null;
+      const slot    = byGuild[r.guild_id] ??= { leader: null, vice: null };
+      if (r.role === 'lider')      slot.leader = display;
+      if (r.role === 'vice_lider') slot.vice   = display;
+    });
+
+    const guildsWithMeta = await Promise.all(
       guildsData.map(async (g) => {
         const { count } = await supabaseStudent
           .from("guild_members")
           .select("*", { count: 'exact', head: true })
           .eq("guild_id", g.id);
-        return { ...g, member_count: count ?? 0 };
+        return {
+          ...g,
+          member_count:     count ?? 0,
+          leader_name:      byGuild[g.id]?.leader ?? null,
+          vice_leader_name: byGuild[g.id]?.vice   ?? null,
+        };
       })
     );
-    setAvailableGuilds(guildsWithCount as (Guild & { member_count: number })[]);
-  }, [teacherId]);
+    setAvailableGuilds(guildsWithMeta as AvailableGuild[]);
+  }, []);
+
+  const loadPendingRequests = useCallback(async (guildId: string) => {
+    const { data } = await supabaseStudent
+      .from("guild_join_requests")
+      .select("*, student:students(name, character_name, character_class, level)")
+      .eq("guild_id", guildId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    setPendingRequests((data || []) as unknown as GuildJoinRequest[]);
+  }, []);
+
+  const loadMyPendingRequest = useCallback(async () => {
+    if (!studentId) return;
+    const { data } = await supabaseStudent
+      .from("guild_join_requests")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("status", "pending")
+      .maybeSingle();
+    setMyPendingRequest((data as GuildJoinRequest | null) ?? null);
+  }, [studentId]);
 
   const loadMyGuild = useCallback(async () => {
     if (!studentId) return;
@@ -56,6 +113,7 @@ export function useGuild(studentId: string, teacherId: string) {
         const guild = memberData.guild as Guild;
         setMyGuild(guild);
         setMyRole(memberData.role as GuildRole);
+        setMyPendingRequest(null);
 
         const { data: membersData } = await supabaseStudent
           .from("guild_members")
@@ -65,17 +123,26 @@ export function useGuild(studentId: string, teacherId: string) {
         setMembers((membersData || []) as unknown as GuildMember[]);
 
         await loadPosts(guild.id);
+
+        // Leaders / vice-leaders need to see pending requests.
+        if (memberData.role === 'lider' || memberData.role === 'vice_lider') {
+          await loadPendingRequests(guild.id);
+        } else {
+          setPendingRequests([]);
+        }
       } else {
         setMyGuild(null);
         setMyRole(null);
         setMembers([]);
         setPosts([]);
+        setPendingRequests([]);
         await loadAvailableGuilds();
+        await loadMyPendingRequest();
       }
     } finally {
       setIsLoading(false);
     }
-  }, [studentId, loadPosts, loadAvailableGuilds]);
+  }, [studentId, loadPosts, loadAvailableGuilds, loadPendingRequests, loadMyPendingRequest]);
 
   useEffect(() => {
     loadMyGuild();
@@ -126,14 +193,33 @@ export function useGuild(studentId: string, teacherId: string) {
     await loadMyGuild();
   };
 
-  const joinGuild = async (guildId: string) => {
-    const { error } = await supabaseStudent.from("guild_members").insert({
+  const requestJoinGuild = async (guildId: string) => {
+    const { error } = await supabaseStudent.from("guild_join_requests").insert({
       guild_id:   guildId,
       student_id: studentId,
-      role:       'soldado',
+      status:     'pending',
     });
     if (error) throw error;
-    await loadMyGuild();
+    await loadMyPendingRequest();
+  };
+
+  const cancelJoinRequest = async () => {
+    if (!myPendingRequest) return;
+    const { error } = await supabaseStudent
+      .from("guild_join_requests")
+      .update({ status: 'cancelled', resolved_at: new Date().toISOString() })
+      .eq("id", myPendingRequest.id);
+    if (error) throw error;
+    setMyPendingRequest(null);
+  };
+
+  const respondJoinRequest = async (requestId: string, approve: boolean) => {
+    const { error } = await supabaseStudent.rpc('respond_guild_join_request', {
+      p_request_id: requestId,
+      p_approve:    approve,
+    });
+    if (error) throw error;
+    await loadMyGuild();  // refreshes members + pending list
   };
 
   const kickMember = async (guildMemberId: string) => {
@@ -191,6 +277,8 @@ export function useGuild(studentId: string, teacherId: string) {
 
   return {
     myGuild, members, posts, availableGuilds, myRole, isLoading,
-    createGuild, joinGuild, leaveGuild, kickMember, sendPost, loadMyGuild,
+    pendingRequests, myPendingRequest,
+    createGuild, requestJoinGuild, cancelJoinRequest, respondJoinRequest,
+    leaveGuild, kickMember, sendPost, loadMyGuild,
   };
 }

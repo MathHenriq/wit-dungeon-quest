@@ -246,6 +246,17 @@ export interface GuildPost {
   student?: { name: string; character_name: string | null };
 }
 
+export interface GuildJoinRequest {
+  id: string;
+  guild_id: string;
+  student_id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  student?: { name: string; character_name: string | null; character_class: string | null; level: number };
+}
+
 export interface PetType {
   id: string;
   teacher_id: string;

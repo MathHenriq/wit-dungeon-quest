@@ -1,6 +1,6 @@
 // ── Guild UI types & constants ────────────────────────────────────────────────
 
-export type GuildTab = 'chat' | 'members' | 'missions' | 'ranking' | 'development' | 'settings';
+export type GuildTab = 'chat' | 'members' | 'missions' | 'ranking' | 'development' | 'requests' | 'settings';
 
 // ── Role hierarchy ────────────────────────────────────────────────────────────
 
