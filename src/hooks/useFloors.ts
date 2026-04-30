@@ -67,7 +67,21 @@ function rowToFloor(r: any): Floor {
   };
 }
 
-function rowToEnemy(r: any): FloorEnemy {
+function rowToEnemy(r: any, index: number = 0): FloorEnemy {
+  // Fallback coordinates if the database has them bunched at 50,50
+  const isDefault = (r.position_x === 50 || r.position_x === null) && 
+                    (r.position_y === 50 || r.position_y === null);
+  
+  const fallbackCoords = [
+    { x: 20, y: 80 }, { x: 50, y: 70 }, { x: 30, y: 40 },
+    { x: 60, y: 30 }, { x: 40, y: 20 }, { x: 70, y: 15 },
+    { x: 25, y: 60 }, { x: 55, y: 50 }, { x: 35, y: 30 },
+    { x: 65, y: 20 }
+  ];
+
+  const posX = isDefault ? (r.is_boss ? 85 : (fallbackCoords[index % 10]?.x ?? 50)) : (r.position_x ?? 50);
+  const posY = isDefault ? (r.is_boss ? 50 : (fallbackCoords[index % 10]?.y ?? 50)) : (r.position_y ?? 50);
+
   return {
     id:                   String(r.id),
     floorId:              String(r.floor_id),
@@ -87,9 +101,9 @@ function rowToEnemy(r: any): FloorEnemy {
     specialAbilityName:   r.special_ability_name  ?? null,
     specialAbilityEffect: r.special_ability_effect ?? null,
     specialTrigger:       r.special_trigger        ?? null,
-    positionX:            r.position_x ?? 50,
-    positionY:            r.position_y ?? 50,
-    iconType:             r.icon_type  ?? 'skull',
+    positionX:            posX,
+    positionY:            posY,
+    iconType:             r.icon_type ?? (r.is_boss ? 'boss' : 'skull'),
   };
 }
 
@@ -145,7 +159,7 @@ export function useFloorEnemies(floorId: string | null) {
         .eq('floor_id', floorId!)
         .order('is_boss', { ascending: true });
       if (error) throw error;
-      return (data ?? []).map(rowToEnemy);
+      return (data ?? []).map((row, i) => rowToEnemy(row, i));
     },
   });
 }
