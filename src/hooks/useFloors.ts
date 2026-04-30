@@ -214,8 +214,17 @@ export function usePublishFloor() {
 
       const primaryElement = elements[0];
 
+      // Coordinates to spread enemies on the map
+      const normalCoords = [
+        { x: 25, y: 75 },
+        { x: 55, y: 65 },
+        { x: 35, y: 40 },
+        { x: 65, y: 35 },
+        { x: 45, y: 20 },
+      ];
+
       // Helper: build enemy insert row
-      const buildRow = (e: GeneratedEnemy, isBoss: boolean, extra?: Record<string, unknown>) => ({
+      const buildRow = (e: GeneratedEnemy, isBoss: boolean, index: number, extra?: Record<string, unknown>) => ({
         floor_id:    floor.id,
         name:        e.name,
         level:       e.level,
@@ -230,17 +239,20 @@ export function usePublishFloor() {
         ability_2:   e.abilities[1] ?? null,
         ability_3:   e.abilities[2] ?? null,
         ability_4:   e.abilities[3] ?? null,
+        position_x:  isBoss ? 80 : (normalCoords[index]?.x ?? 50),
+        position_y:  isBoss ? 50 : (normalCoords[index]?.y ?? 50),
+        icon_type:   isBoss ? 'boss' : 'skull',
         ...extra,
       });
 
       // 3. Insert normal enemies
-      const enemyRows = generated.enemies.map(e => buildRow(e, false));
+      const enemyRows = generated.enemies.map((e, i) => buildRow(e, false, i));
       const { error: enemiesErr } = await supabase.from('enemies').insert(enemyRows);
       if (enemiesErr) throw enemiesErr;
 
       // 4. Insert boss
       const { error: bossErr } = await supabase.from('enemies').insert(
-        buildRow(generated.boss, true, {
+        buildRow(generated.boss, true, 0, {
           special_ability_name:   generated.boss.specialAbilityName,
           special_ability_effect: generated.boss.specialAbilityEffect,
           special_trigger:        generated.boss.specialTrigger,
