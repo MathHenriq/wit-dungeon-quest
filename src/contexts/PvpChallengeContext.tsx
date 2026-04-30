@@ -608,12 +608,14 @@ export function PvpChallengeProvider({
   const outgoingRef     = useRef<PvpChallenge | null>(null);
   const pendingOppRef   = useRef<PvpOpponentInfo | null>(null);
   const isInBattleRef   = useRef(isInBattle);
+  const battleDataRef   = useRef<PvpBattleData | null>(null);
   const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoDeclinedRef = useRef<string | null>(null);
 
   useEffect(() => { outgoingRef.current   = outgoingChallenge; }, [outgoingChallenge]);
   useEffect(() => { pendingOppRef.current = pendingOpponent;   }, [pendingOpponent]);
   useEffect(() => { isInBattleRef.current = isInBattle;        }, [isInBattle]);
+  useEffect(() => { battleDataRef.current = battleData;        }, [battleData]);
 
   // ── Timer management ──────────────────────────────────────────────────────
 
@@ -649,27 +651,41 @@ export function PvpChallengeProvider({
   useEffect(() => {
     const channel = supabaseStudent
       .channel(`pvp_global_${student.id}`)
-      // Someone challenged ME
+      // Someone challenged ME or updated a match I'm in
       .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'pvp_matches',
+        event: '*', schema: 'public', table: 'pvp_matches',
         filter: `opponent_id=eq.${student.id}`,
       }, async (payload) => {
         const match = payload.new as PvpChallenge;
-        if (match.status !== 'pending' || isInBattleRef.current) return;
-        const info = await fetchOpponentInfo(match.challenger_id);
-        setIncomingChallenge(match);
-        setPendingOpponent(info);
+        
+        // Handle new challenge (INSERT)
+        if (payload.eventType === 'INSERT') {
+          if (match.status !== 'pending' || isInBattleRef.current) return;
+          const info = await fetchOpponentInfo(match.challenger_id);
+          setIncomingChallenge(match);
+          setPendingOpponent(info);
+          return;
+        }
+
+        // Handle match updates (UPDATE) - like the challenger finishing the match
+        if (payload.eventType === 'UPDATE') {
+          if (match.status === 'finished' || match.status === 'declined') {
+            setIncomingChallenge(null);
+            setBattleData(null);
+            setPendingOpponent(null);
+          }
+        }
       })
-      // My challenge got a response
+      // My challenge got a response or the opponent finished
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'pvp_matches',
         filter: `challenger_id=eq.${student.id}`,
       }, async (payload) => {
         const match = payload.new as PvpChallenge;
-        const current = outgoingRef.current;
-        if (!current || current.id !== match.id) return;
-
-        if (match.status === 'accepted') {
+        const currentOutgoing = outgoingRef.current;
+        
+        // Match I initiated got updated
+        if (match.status === 'accepted' && currentOutgoing?.id === match.id) {
           setOutgoingChallenge(null);
           const opp = pendingOppRef.current ?? await fetchOpponentInfo(match.opponent_id);
           const [myChar, oppChar, myStats, myFull, oppFull] = await Promise.all([
@@ -691,9 +707,13 @@ export function PvpChallengeProvider({
             oppChar:      oppFull?.char,
             oppAbilities: oppFull?.abilities,
           });
-        } else if (match.status === 'declined') {
-          setOutgoingChallenge(null);
-          setPendingOpponent(null);
+        } else if (match.status === 'declined' || match.status === 'finished') {
+          // If match was declined or finished by the other side, close my screen
+          if (currentOutgoing?.id === match.id || match.id === battleDataRef.current?.matchId) {
+            setOutgoingChallenge(null);
+            setBattleData(null);
+            setPendingOpponent(null);
+          }
         }
       })
       .subscribe();
