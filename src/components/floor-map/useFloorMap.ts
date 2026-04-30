@@ -196,13 +196,18 @@ export function useFloorMap({ enemies: init, onEnemyEncounter }: UseFloorMapOpti
     }
   }, [enemies, isMoving]);
 
+  // --- completion ---
+  const [dismissedComplete, setDismissedComplete] = useState(false);
+
   // ── derived ────────────────────────────────────────────────────────────────
 
   const bossUnlocked = isBossUnlocked(enemies);
   const progress     = getProgress(enemies);
-  const floorDone    = progress.total > 0 &&
-                       progress.defeated === progress.total &&
-                       enemies.find(e => e.isBoss)?.defeated === true;
+  const isActuallyDone = progress.total > 0 &&
+                         progress.defeated === progress.total &&
+                         enemies.find(e => e.isBoss)?.defeated === true;
+
+  const floorDone = isActuallyDone && !dismissedComplete;
 
   return {
     mapRef,
@@ -219,5 +224,6 @@ export function useFloorMap({ enemies: init, onEnemyEncounter }: UseFloorMapOpti
     handleMapClick,
     markEnemyDefeated,
     resetToMap,
+    dismissComplete: () => setDismissedComplete(true),
   };
 }

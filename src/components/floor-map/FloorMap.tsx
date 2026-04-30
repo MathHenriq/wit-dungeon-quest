@@ -45,6 +45,7 @@ export function FloorMap({ floor, enemies: initEnemies, onBack, onEnemyEncounter
     handleMapClick,
     markEnemyDefeated,
     resetToMap,
+    dismissComplete,
   } = useFloorMap({ floor, enemies: initEnemies, onEnemyEncounter });
 
   useImperativeHandle(handleRef, () => ({
@@ -94,10 +95,20 @@ export function FloorMap({ floor, enemies: initEnemies, onBack, onEnemyEncounter
           <div className="fm-complete__card">
             <div className="fm-complete__title">Andar Concluido</div>
             <div className="fm-complete__sub">{floor.name} foi dominado</div>
-            <button className="fm-complete__btn" onClick={onBack}>
-              <ChevronRight size={14} />
-              Continuar
-            </button>
+            
+            <div className="flex flex-col gap-3 w-full">
+              <button className="fm-complete__btn" onClick={onBack}>
+                <ChevronRight size={14} />
+                Continuar para Andares
+              </button>
+              
+              <button 
+                className="text-white/40 text-[0.6rem] uppercase tracking-widest hover:text-white/80 transition-colors py-2"
+                onClick={dismissComplete}
+              >
+                Permanecer no Mapa (Re-jogar)
+              </button>
+            </div>
           </div>
         </div>
       )}
