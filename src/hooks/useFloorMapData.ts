@@ -113,33 +113,33 @@ export function useRecordFloorEnemyDefeat(characterId: string | null, floorId: s
         .from('floor_enemy_defeats')
         .upsert({ character_id: characterId, enemy_id: enemyId });
 
-      // Also update the aggregate progress row (existing system)
+      // Also update the aggregate progress row.
+      // character_progress PK is (character_id, floor_id) — there is no
+      // `id` column. Earlier `.eq('id', existing.id)` calls silently
+      // matched nothing. UPSERT on the composite key fixes it.
       const { data: existing } = await supabaseStudent
         .from('character_progress')
-        .select('*')
+        .select('enemies_defeated, boss_defeated, completed_at')
         .eq('character_id', characterId)
         .eq('floor_id', floorId!)
         .maybeSingle();
 
-      if (!existing) {
-        await supabaseStudent.from('character_progress').insert({
-          character_id:     characterId,
-          floor_id:         floorId!,
-          enemies_defeated: isBoss ? 0 : 1,
-          boss_defeated:    isBoss,
-          completed_at:     isBoss ? new Date().toISOString() : null,
-        });
-      } else if (isBoss) {
-        await supabaseStudent
-          .from('character_progress')
-          .update({ boss_defeated: true, completed_at: new Date().toISOString() })
-          .eq('id', existing.id);
-      } else {
-        await supabaseStudent
-          .from('character_progress')
-          .update({ enemies_defeated: (existing.enemies_defeated ?? 0) + 1 })
-          .eq('id', existing.id);
-      }
+      const nowIso         = new Date().toISOString();
+      const prevDefeated   = existing?.enemies_defeated ?? 0;
+      const prevBoss       = existing?.boss_defeated    ?? false;
+      const newEnemies     = isBoss ? prevDefeated : prevDefeated + 1;
+      const newBoss        = isBoss || prevBoss;
+      const newCompletedAt = isBoss && !prevBoss
+        ? nowIso
+        : existing?.completed_at ?? null;
+
+      await supabaseStudent.from('character_progress').upsert({
+        character_id:     characterId,
+        floor_id:         floorId!,
+        enemies_defeated: newEnemies,
+        boss_defeated:    newBoss,
+        completed_at:     newCompletedAt,
+      }, { onConflict: 'character_id,floor_id' });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['floor-enemy-defeats', characterId, floorId] });

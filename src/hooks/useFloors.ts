@@ -315,36 +315,38 @@ export function useRecordEnemyDefeat() {
 
   return useMutation({
     mutationFn: async ({ characterId, floorId, isBoss }: RecordDefeatInput) => {
-      // Upsert progress row
+      // character_progress has composite primary key (character_id, floor_id)
+      // — there is NO id column. Every prior call that ended in
+      // `.update(...).eq('id', existing.id)` was a silent no-op, which is
+      // why most progress rows never grew past 1 enemy defeated.
+      // Use a single UPSERT keyed on (character_id, floor_id) instead.
       const { data: existing } = await studentSupabase
         .from('character_progress')
-        .select('*')
+        .select('enemies_defeated, boss_defeated, completed_at')
         .eq('character_id', characterId)
         .eq('floor_id', floorId)
         .maybeSingle();
 
-      if (!existing) {
-        await studentSupabase.from('character_progress').insert({
-          character_id:      characterId,
-          floor_id:          floorId,
-          enemies_defeated:  isBoss ? 0 : 1,
-          boss_defeated:     isBoss,
-          completed_at:      isBoss ? new Date().toISOString() : null,
-        });
-      } else {
-        await studentSupabase
-          .from('character_progress')
-          .update({
-            enemies_defeated: isBoss
-              ? existing.enemies_defeated
-              : (existing.enemies_defeated ?? 0) + 1,
-            boss_defeated:  isBoss || existing.boss_defeated,
-            completed_at:   isBoss && !existing.boss_defeated
-              ? new Date().toISOString()
-              : existing.completed_at,
-          })
-          .eq('id', existing.id);
-      }
+      const nowIso          = new Date().toISOString();
+      const prevDefeated    = existing?.enemies_defeated ?? 0;
+      const prevBoss        = existing?.boss_defeated    ?? false;
+      const newEnemies      = isBoss ? prevDefeated : prevDefeated + 1;
+      const newBoss         = isBoss || prevBoss;
+      const newCompletedAt  = isBoss && !prevBoss
+        ? nowIso
+        : existing?.completed_at ?? null;
+
+      const { error } = await studentSupabase
+        .from('character_progress')
+        .upsert({
+          character_id:     characterId,
+          floor_id:         floorId,
+          enemies_defeated: newEnemies,
+          boss_defeated:    newBoss,
+          completed_at:     newCompletedAt,
+        }, { onConflict: 'character_id,floor_id' });
+
+      if (error) throw error;
     },
     onSuccess: (_data, { characterId }) => {
       qc.invalidateQueries({ queryKey: ['floor_progress', characterId] });
