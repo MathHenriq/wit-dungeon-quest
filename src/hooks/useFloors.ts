@@ -298,6 +298,7 @@ export function useRecordEnemyDefeatById() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['enemy_defeats'] });
+      qc.invalidateQueries({ queryKey: ['floor_progress'] });
     },
   });
 }
@@ -315,11 +316,15 @@ export function useRecordEnemyDefeat() {
 
   return useMutation({
     mutationFn: async ({ characterId, floorId, isBoss }: RecordDefeatInput) => {
-      // character_progress has composite primary key (character_id, floor_id)
-      // — there is NO id column. Every prior call that ended in
-      // `.update(...).eq('id', existing.id)` was a silent no-op, which is
-      // why most progress rows never grew past 1 enemy defeated.
-      // Use a single UPSERT keyed on (character_id, floor_id) instead.
+      // 1. Get the current real count of unique non-boss enemies defeated on this floor
+      const { count: realDefeatedCount } = await studentSupabase
+        .from('floor_enemy_defeats')
+        .select('enemy_id, enemies!inner(floor_id, is_boss)', { count: 'exact', head: true })
+        .eq('character_id', characterId)
+        .eq('enemies.floor_id', floorId)
+        .eq('enemies.is_boss', false);
+
+      // 2. Fetch existing progress record
       const { data: existing } = await studentSupabase
         .from('character_progress')
         .select('enemies_defeated, boss_defeated, completed_at')
@@ -327,14 +332,16 @@ export function useRecordEnemyDefeat() {
         .eq('floor_id', floorId)
         .maybeSingle();
 
-      const nowIso          = new Date().toISOString();
-      const prevDefeated    = existing?.enemies_defeated ?? 0;
       const prevBoss        = existing?.boss_defeated    ?? false;
-      const newEnemies      = isBoss ? prevDefeated : prevDefeated + 1;
+      const prevCompletedAt = existing?.completed_at      ?? null;
+
+      // Use a single UPSERT keyed on (character_id, floor_id).
+      // newEnemies is the real count we just fetched.
+      const newEnemies      = realDefeatedCount ?? 0;
       const newBoss         = isBoss || prevBoss;
-      const newCompletedAt  = isBoss && !prevBoss
-        ? nowIso
-        : existing?.completed_at ?? null;
+      
+      // If just defeated a boss and never completed before, set completed_at
+      const newCompletedAt  = (isBoss && !prevBoss) ? new Date().toISOString() : prevCompletedAt;
 
       const { error } = await studentSupabase
         .from('character_progress')

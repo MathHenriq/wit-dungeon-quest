@@ -83,6 +83,12 @@ export function useAnalytics() {
     [track]
   );
 
+  const trackEnemyVictory = useCallback(
+    (teacherId: string, studentId: string, classId: string, floorId: string, enemyId: string, xp: number) =>
+      track({ event_type: "enemy_victory", teacher_id: teacherId, student_id: studentId, class_id: classId, event_data: { floor_id: floorId, enemy_id: enemyId, xp } }),
+    [track]
+  );
+
   const trackPageView = useCallback(
     (teacherId: string, studentId: string, page: string) =>
       track({ event_type: "page_view", teacher_id: teacherId, student_id: studentId, event_data: { page } }),
@@ -110,6 +116,7 @@ export function useAnalytics() {
     trackLevelUp,
     trackAttendance,
     trackBossAttempt,
+    trackEnemyVictory,
     trackPageView,
     trackSessionStart,
     trackSessionEnd,

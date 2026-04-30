@@ -61,6 +61,11 @@ export function useFloorMap({ enemies: init, onEnemyEncounter }: UseFloorMapOpti
   const enemiesRef = useRef(init);
   enemiesRef.current = enemies;
 
+  // Sync state if init prop changes (e.g. after a battle mutation invalidates query)
+  useEffect(() => {
+    setEnemies(init);
+  }, [init]);
+
   // --- battle transition ---
   const [transition, setTransition] = useState<TransitionState>('idle');
   const [transitionEnemy, setTransitionEnemy] = useState<FloorMapEnemy | null>(null);

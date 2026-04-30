@@ -28,6 +28,7 @@ import {
   type XPReward,
 } from '@/lib/progression/xpCalculator';
 import { XPLevelBadge } from './XPLevelBadge';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 // ─── Convert FloorEnemy → FloorMapEnemy ──────────────────────────────────────
 
@@ -82,26 +83,34 @@ function toBattleEnemy(fe: FloorMapEnemy, abilityMap: Record<string, Ability>): 
 
 // ─── Phase types ──────────────────────────────────────────────────────────────
 
-type DungeonPhase =
+type ViewPhase =
   | { type: 'select' }
   | { type: 'map';     floor: Floor }
   | { type: 'battle';  floor: Floor; enemy: FloorMapEnemy }
   | { type: 'victory'; floor: Floor; enemy: FloorMapEnemy; xp: number; coins: number; drops: DropResult[] }
   | { type: 'defeat';  floor: Floor; enemy: FloorMapEnemy };
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 interface BattleDungeonViewProps {
   character:         BattleCharacter;
-  studentId?:        string;
+  studentId:         string;
+  teacherId:         string;
+  classId?:          string;
   onRewardApplied?:  () => void;
-  onBack?:           () => void;
+  onBack:            () => void;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function BattleDungeonView({ character, studentId, onRewardApplied, onBack }: BattleDungeonViewProps) {
-  const [phase, setPhase] = useState<DungeonPhase>({ type: 'select' });
+export function BattleDungeonView({ 
+  character, 
+  studentId, 
+  teacherId, 
+  classId, 
+  onRewardApplied, 
+  onBack 
+}: BattleDungeonViewProps) {
+  const { track, trackBossAttempt, trackEnemyVictory } = useAnalytics();
+  const [phase, setPhase] = useState<ViewPhase>({ type: 'select' });
 
   // XP reward computed at battle-end, shown in the VictoryScreen
   const [pendingXPReward, setPendingXPReward] = useState<XPReward | null>(null);
@@ -139,32 +148,16 @@ export function BattleDungeonView({ character, studentId, onRewardApplied, onBac
   const recordDefeat     = useRecordEnemyDefeat();
   const applyRewards     = useApplyBattleRewards(character.id);
 
-  // Safety net: if equipped-abilities query never resolves in battle phase, unblock after 10 s
-  const [battleLoadTimedOut, setBattleLoadTimedOut] = useState(false);
-  useEffect(() => {
-    if (phase.type !== 'battle' || !loadingEquipped) {
-      setBattleLoadTimedOut(false);
-      return;
-    }
-    const t = setTimeout(() => {
-      console.warn('[BattleDungeonView] loadingEquipped timed out after 10 s');
-      setBattleLoadTimedOut(true);
-    }, 10_000);
-    return () => clearTimeout(t);
-  }, [phase.type, loadingEquipped]);
-
-  // ── SELECT phase ──────────────────────────────────────────────────────────
+  // ── Rendering logic ──
 
   if (phase.type === 'select') {
     if (loadingFloors || loadingProgress) {
       return (
-        <div className="flex items-center justify-center h-full text-white/60">
+        <div className="flex items-center justify-center h-full text-white/60 bg-[#020611]">
           <Loader2 className="animate-spin mr-3" size={24} /> Carregando andares...
         </div>
       );
     }
-
-    // Removed empty state so that FloorSelectVisual can map the 100 dummy floors.
 
     const bossDefeatedSet = new Set<number>(
       progress
@@ -182,17 +175,17 @@ export function BattleDungeonView({ character, studentId, onRewardApplied, onBac
       return {
         id:           String(floor.id),
         floor_number: fNum,
-      name:         floor.name || floor.theme,
-      theme:        floor.theme,
-      boss:         null,
-      status:       getFloorStatus(fNum, bossDefeatedSet, lowestAvailableFloorNumber),
-    };
-  });
+        name:         floor.name || floor.theme,
+        theme:        floor.theme,
+        boss:         null,
+        status:       getFloorStatus(fNum, bossDefeatedSet, lowestAvailableFloorNumber),
+      };
+    });
 
     return (
       <FloorSelectVisual
         floors={floorSelectData}
-        onBack={onBack ?? (() => {})}
+        onBack={onBack}
         onPlay={(floorId) => {
           const floorIdStr = String(floorId);
           const floor = floors.find(f => String(f.id) === floorIdStr);
@@ -202,179 +195,140 @@ export function BattleDungeonView({ character, studentId, onRewardApplied, onBac
     );
   }
 
-  // ── MAP phase ─────────────────────────────────────────────────────────────
+  // If we are here, we are in a floor (map, battle, victory, or defeat)
+  
+  const xpReward: XPReward | null = phase.type === 'victory' ? (pendingXPReward ?? {
+    baseXP: phase.xp, bonusXP: 0, totalXP: phase.xp, leveledUp: false, levelsGained: 0,
+  }) : null;
 
-  if (phase.type === 'map') {
-    if (loadingEnemies || loadingDefeats) {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-[#020611] text-white/60">
-          <Loader2 className="animate-spin mr-3" size={24} /> Carregando mapa...
-        </div>
-      );
-    }
+  const rewards: BattleRewards | null = phase.type === 'victory' ? {
+    xp:       phase.xp,
+    coins:    phase.coins,
+    diamonds: phase.enemy.isBoss ? Math.floor(Math.random() * 3) + 1 : 0,
+    items:    [],
+  } : null;
 
-    let mapEnemies: FloorMapEnemy[] = floorEnemies.map(fe => toFloorMapEnemy(fe, defeatedIds));
-    // Replay support: when the floor is fully cleared (every enemy + boss
-    // already in defeatedIds), reset the local defeat flags so the player
-    // can walk and fight again. The DB history stays intact; further defeat
-    // upserts are idempotent.
-    if (mapEnemies.length > 0 && mapEnemies.every(e => e.defeated)) {
-      mapEnemies = mapEnemies.map(e => ({ ...e, defeated: false }));
-    }
-
-    const floorData: FloorData = {
-      id:          String(phase.floor.id),
-      floorNumber: phase.floor.floorNumber,
-      name:        phase.floor.name,
-      theme:       (phase.floor.theme as FloorData['theme']) ?? 'forest',
-    };
-
-    return (
-      <>
-        <FloorMap
-          floor={floorData}
-          enemies={mapEnemies}
-          mapRef={mapHandle}
-          onBack={() => setPhase({ type: 'select' })}
-          onEnemyEncounter={(enemy) => {
-            setPhase({ type: 'battle', floor: phase.floor, enemy });
-          }}
-        />
-        {/* XP / Level badge — always visible on the floor map */}
-        <XPLevelBadge character={character} />
-      </>
-    );
+  let mapEnemies: FloorMapEnemy[] = floorEnemies.map(fe => toFloorMapEnemy(fe, defeatedIds));
+  if (mapEnemies.length > 0 && mapEnemies.every(e => e.defeated)) {
+    mapEnemies = mapEnemies.map(e => ({ ...e, defeated: false }));
   }
 
-  // ── BATTLE phase ──────────────────────────────────────────────────────────
+  const activeFloorData: FloorData = {
+    id:          String(phase.floor.id),
+    floorNumber: phase.floor.floorNumber,
+    name:        phase.floor.name,
+    theme:       (phase.floor.theme as FloorData['theme']) ?? 'forest',
+  };
 
-  if (phase.type === 'battle') {
-    if (loadingEquipped && !battleLoadTimedOut) {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-[#020611] text-white/60">
-          <Loader2 className="animate-spin mr-3" size={24} /> Carregando batalha...
-        </div>
-      );
-    }
-
-    if (battleLoadTimedOut && loadingEquipped) {
-      return (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#020611] gap-4">
-          <div className="holo-panel text-center p-8 max-w-sm">
-            <p className="text-lg font-bold mb-2 text-white">Erro ao carregar batalha</p>
-            <p className="text-sm text-white/60 mb-4">Não foi possível carregar as habilidades. Verifique sua conexão e tente novamente.</p>
-            <button className="btn-cyber w-full justify-center" onClick={() => setPhase({ type: 'map', floor: phase.floor })}>
-              Voltar ao mapa
-            </button>
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-[#020611]">
+      {/* ── MAP LAYER (always mounted if a floor is picked) ── */}
+      <div 
+        className="absolute inset-0 z-10"
+        style={{ visibility: phase.type === 'map' ? 'visible' : 'hidden' }}
+      >
+        {(loadingEnemies || loadingDefeats) ? (
+          <div className="flex items-center justify-center h-full text-white/60">
+            <Loader2 className="animate-spin mr-3" size={24} /> Carregando mapa...
           </div>
+        ) : (
+          <>
+            <FloorMap
+              floor={activeFloorData}
+              enemies={mapEnemies}
+              mapRef={mapHandle}
+              onBack={() => setPhase({ type: 'select' })}
+              onEnemyEncounter={(enemy) => {
+                setPhase({ type: 'battle', floor: phase.floor, enemy });
+              }}
+            />
+            <XPLevelBadge character={character} />
+          </>
+        )}
+      </div>
+
+      {/* ── BATTLE LAYER ── */}
+      {phase.type === 'battle' && (
+        <div className="absolute inset-0 z-20">
+          <BattleScreen
+            player={character}
+            enemy={toBattleEnemy(phase.enemy, abilityMap)}
+            equippedAbilities={equippedAbilities}
+            equippedItem={equippedItem}
+            onVictory={(xp, coins) => {
+              // 1. Compute level-up result immediately for instant VictoryScreen feedback
+              const spentOnPastLevels = getTotalXPForLevel(character.level);
+              const currentLevelXP    = Math.max(0, character.xp - spentOnPastLevels);
+              const xpResult          = processXPGain(character.level, currentLevelXP, xp);
+              setPendingXPReward(xpResult);
+
+              // 2. Record defeat + apply rewards (DB write)
+              recordDefeatById.mutate({ characterId: character.id, enemyId: phase.enemy.id });
+              recordDefeat.mutate({ characterId: character.id, floorId: phase.floor.id, isBoss: phase.enemy.isBoss });
+              applyRewards.mutate({ xp, coins }, { onSuccess: () => onRewardApplied?.() });
+
+              // 3. Roll drops via RPC
+              const dropsPromise = studentId
+                ? applyBattleDrops(studentId, phase.enemy.id)
+                : Promise.resolve<DropResult[]>([]);
+
+              // 4. Track Analytics
+              if (phase.enemy.isBoss) {
+                trackBossAttempt(teacherId, studentId, classId ?? '', phase.enemy.id, true, xp);
+              } else {
+                trackEnemyVictory(teacherId, studentId, classId ?? '', String(phase.floor.id), phase.enemy.id, xp);
+              }
+
+              // 5. Transition to victory screen
+              dropsPromise.then((drops) => {
+                setPhase({ type: 'victory', floor: phase.floor, enemy: phase.enemy, xp, coins, drops });
+              });
+            }}
+            onDefeat={() => setPhase({ type: 'defeat', floor: phase.floor, enemy: phase.enemy })}
+          />
         </div>
-      );
-    }
+      )}
 
-    if (equippedAbilities.length === 0) {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-[#020611]">
-          <div className="holo-panel text-center p-8 max-w-sm">
-            <p className="text-lg font-bold mb-2 text-white">Nenhuma habilidade equipada!</p>
-            <p className="text-sm text-white/60 mb-4">Vá até a aba <strong>Skills</strong> e equipe até 4 habilidades antes de batalhar.</p>
-            <button className="btn-cyber" onClick={() => setPhase({ type: 'map', floor: phase.floor })}>
-              Voltar ao mapa
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    const battleEnemy = toBattleEnemy(phase.enemy, abilityMap);
-
-    return (
-      <BattleScreen
-        player={character}
-        enemy={battleEnemy}
-        equippedAbilities={equippedAbilities}
-        equippedItem={equippedItem}
-        onVictory={(xp, coins) => {
-          // Compute level-up result immediately for instant VictoryScreen feedback
-          const spentOnPastLevels = getTotalXPForLevel(character.level);
-          const currentLevelXP    = Math.max(0, character.xp - spentOnPastLevels);
-          const xpResult          = processXPGain(character.level, currentLevelXP, xp);
-          setPendingXPReward(xpResult);
-
-          // Record defeat + apply rewards (DB write)
-          recordDefeatById.mutate({ characterId: character.id, enemyId: phase.enemy.id });
-          recordDefeat.mutate({ characterId: character.id, floorId: phase.floor.id, isBoss: phase.enemy.isBoss });
-          applyRewards.mutate({ xp, coins }, { onSuccess: () => onRewardApplied?.() });
-
-          // Roll drops via RPC (no-op if studentId is missing)
-          const enemyId = phase.enemy.id;
-          const dropsPromise = studentId
-            ? applyBattleDrops(studentId, enemyId)
-            : Promise.resolve<DropResult[]>([]);
-
-          dropsPromise.then((drops) => {
-            setPhase({ type: 'victory', floor: phase.floor, enemy: phase.enemy, xp, coins, drops });
-          });
-        }}
-        onDefeat={() => setPhase({ type: 'defeat', floor: phase.floor, enemy: phase.enemy })}
-        onFled={() => setPhase({ type: 'defeat', floor: phase.floor, enemy: phase.enemy })}
-      />
-    );
-  }
-
-  // ── VICTORY phase ─────────────────────────────────────────────────────────
-
-  if (phase.type === 'victory') {
-    const xpReward: XPReward = pendingXPReward ?? {
-      baseXP: phase.xp, bonusXP: 0, totalXP: phase.xp, leveledUp: false, levelsGained: 0,
-    };
-    const rewards: BattleRewards = {
-      xp:       phase.xp,
-      coins:    phase.coins,
-      diamonds: phase.enemy.isBoss ? Math.floor(Math.random() * 3) + 1 : 0,
-      items:    [],
-    };
-
-    return (
-      <VictoryScreen
-        rewards={rewards}
-        xpReward={xpReward}
-        drops={phase.drops}
-        onContinue={() => {
-          setPendingXPReward(null);
-          mapHandle.current?.markDefeated(phase.enemy.id);
-          setPhase({ type: 'map', floor: phase.floor });
-        }}
-      />
-    );
-  }
-
-  // ── DEFEAT phase ──────────────────────────────────────────────────────────
-
-  if (phase.type === 'defeat') {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#020611] gap-6">
-        <div className="holo-panel text-center p-8 max-w-sm">
-          <p className="text-5xl mb-4">💀</p>
-          <h2 className="text-2xl font-black text-red-400 mb-2">Derrota...</h2>
-          <p className="text-white/60 text-sm mb-2">
-            <strong className="text-white/80">{phase.enemy.name}</strong> foi mais forte desta vez.
-          </p>
-          <p className="text-white/40 text-xs mb-6">
-            Distribua mais pontos elementais e equipe habilidades melhores.
-          </p>
-          <button
-            className="btn-cyber w-full justify-center"
-            onClick={() => {
-              mapHandle.current?.resetToMap();
+      {/* ── VICTORY LAYER ── */}
+      {phase.type === 'victory' && rewards && xpReward && (
+        <div className="absolute inset-0 z-30">
+          <VictoryScreen
+            rewards={rewards}
+            xpReward={xpReward}
+            drops={phase.drops}
+            onContinue={() => {
+              setPendingXPReward(null);
+              mapHandle.current?.markDefeated(phase.enemy.id);
               setPhase({ type: 'map', floor: phase.floor });
             }}
-          >
-            <RotateCcw size={14} /> Voltar ao mapa
-          </button>
+          />
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return null;
+      {/* ── DEFEAT LAYER ── */}
+      {phase.type === 'defeat' && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#020611] gap-6">
+          <div className="holo-panel text-center p-8 max-w-sm">
+            <p className="text-5xl mb-4">💀</p>
+            <h2 className="text-2xl font-black text-red-400 mb-2">Derrota...</h2>
+            <p className="text-white/60 text-sm mb-2">
+              <strong className="text-white/80">{phase.enemy.name}</strong> foi mais forte desta vez.
+            </p>
+            <p className="text-white/40 text-xs mb-6">
+              Distribua mais pontos elementais e equipe habilidades melhores.
+            </p>
+            <button
+              className="btn-cyber w-full justify-center"
+              onClick={() => {
+                mapHandle.current?.resetToMap();
+                setPhase({ type: 'map', floor: phase.floor });
+              }}
+            >
+              <RotateCcw size={14} /> Voltar ao mapa
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
