@@ -31,6 +31,7 @@ import {
   Sparkles, Award, UserPlus, ShoppingBag, Loader2, BarChart3, GraduationCap,
   Swords, Users2, Heart, Network, Hammer, Package, BrainCircuit,
   Swords as SwordsIcon, Monitor, Search, Menu, X, ChevronRight, Settings2,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -259,6 +260,20 @@ export default function TeacherDashboard() {
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Painel do Professor</p>
         </div>
       </div>
+
+      {/* Admin shortcut — only visible to is_admin teachers */}
+      {teacher?.is_admin && (
+        <div className="px-3 pt-3">
+          <button
+            onClick={() => navigate("/professor/admin")}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-gradient-to-r from-red-500/15 to-red-500/5 border border-red-500/40 hover:border-red-500/70 hover:from-red-500/25 transition-all group"
+          >
+            <ShieldAlert size={16} className="text-red-400 group-hover:text-red-300" />
+            <span className="text-xs font-bold uppercase tracking-wider text-red-300 group-hover:text-red-200">Painel Admin</span>
+            <ChevronRight size={14} className="ml-auto text-red-400/60 group-hover:text-red-300" />
+          </button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="px-3 py-3 border-b border-border">

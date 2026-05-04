@@ -456,16 +456,49 @@ export function useStudentDB() {
       });
 
       if (error) {
-        // 23505 = unique_violation. If a row for this user_id already exists (e.g. user
-        // refreshed the page mid-flow), recover by updating that row instead of failing.
+        // 23505 = unique_violation. Two distinct cases here:
+        //   (a) UNIQUE(user_id) — row already exists for this auth user (page refresh,
+        //       double-submit). Recover by UPDATE-ing that row.
+        //   (b) UNIQUE(class_id, name) — an orphan pre-OAuth row exists with the same
+        //       name in the same class and user_id IS NULL. Claim it by setting
+        //       user_id = auth.uid() (the trigger allows the NULL → uid transition).
         if (error.code === "23505") {
-          const { error: updateError } = await supabaseStudent
+          // (a) try claiming our own existing row
+          const { data: ownRows, error: ownErr } = await supabaseStudent
             .from("students")
             .update({ name: name.trim(), teacher_id: teacherId, class_id: classId, status: "pending" })
-            .eq("user_id", authUser.id);
-          if (updateError) {
-            console.error("[useStudentDB] registerStudent (recover):", updateError);
+            .eq("user_id", authUser.id)
+            .select("id");
+
+          if (ownErr) {
+            console.error("[useStudentDB] registerStudent (recover own):", ownErr);
             return { success: false, error: "Não conseguimos finalizar seu cadastro. Tente recarregar a página." };
+          }
+
+          // (b) no own row found — try claiming an orphan with same (class_id, name).
+          // Note: teacher_id/class_id stay as the orphan's values (trigger forbids changing them
+          // on the self/claim path). The student is effectively re-joining the original setup.
+          if (!ownRows || ownRows.length === 0) {
+            const { data: claimed, error: claimErr } = await supabaseStudent
+              .from("students")
+              .update({ user_id: authUser.id, status: "pending" })
+              .eq("class_id", classId)
+              .eq("name", name.trim())
+              .is("user_id", null)
+              .select("id");
+
+            if (claimErr) {
+              console.error("[useStudentDB] registerStudent (claim orphan):", claimErr);
+              return { success: false, error: "Não conseguimos finalizar seu cadastro. Contate o professor." };
+            }
+
+            if (!claimed || claimed.length === 0) {
+              // Real name conflict with another active student — surface a clear error.
+              return {
+                success: false,
+                error: "Já existe um aluno com esse nome nesta turma. Verifique com o professor ou use outro nome.",
+              };
+            }
           }
         } else {
           console.error("[useStudentDB] registerStudent:", error);

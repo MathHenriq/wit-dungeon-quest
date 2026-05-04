@@ -98,19 +98,33 @@ export function ProfilePhoto({
     }
 
     setIsSaving(true);
-    // Use uploadClient (supabaseStudent) when available so the student's JWT is sent;
-    // fall back to teacher supabase for teacher-side edits
-    const { data: updatedRows, error } = await client
-      .from("students")
-      .update({ profile_photo_url: trimmed || null })
-      .eq("id", studentId)
-      .select("id");
+
+    // Student path (uploadClient passed in): use SECURITY DEFINER RPC so we
+    // bypass the trigger/RLS edge cases that bit legacy accounts after the
+    // OAuth removal. Teacher path (no uploadClient): direct UPDATE — teachers
+    // already have a working RLS policy and may edit any student.
+    let saveError: { message: string } | null = null;
+    let zeroRows = false;
+
+    if (uploadClient) {
+      const { error } = await uploadClient.rpc("update_my_profile_photo", { p_url: trimmed });
+      saveError = error;
+    } else {
+      const { data: updatedRows, error } = await client
+        .from("students")
+        .update({ profile_photo_url: trimmed || null })
+        .eq("id", studentId)
+        .select("id");
+      saveError = error;
+      zeroRows = !error && (!updatedRows || updatedRows.length === 0);
+    }
+
     setIsSaving(false);
 
-    if (error) {
-      toast.error("Erro ao salvar foto", { description: error.message });
-    } else if (!updatedRows || updatedRows.length === 0) {
-      // RLS silently blocked the update (0 rows affected, no error)
+    if (saveError) {
+      console.error("[ProfilePhoto] save error:", saveError);
+      toast.error("Erro ao salvar foto", { description: saveError.message });
+    } else if (zeroRows) {
       console.error("[ProfilePhoto] UPDATE retornou 0 linhas — possível bloqueio de RLS. studentId:", studentId);
       toast.error("Sem permissão para salvar", {
         description: "Não foi possível atualizar a foto. Verifique as políticas de segurança do Supabase (RLS).",
