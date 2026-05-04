@@ -14,6 +14,7 @@ import StudentPortal from "./pages/StudentPortal";
 import TeacherLogin from "./pages/TeacherLogin";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherAnalytics from "./pages/TeacherAnalytics";
+import AdminPanel from "./pages/AdminPanel";
 import ParentLogin from "./pages/ParentLogin";
 import ParentPortal from "./pages/ParentPortal";
 import ParentReport from "./pages/ParentReport";
@@ -59,6 +60,7 @@ function AppRoutes() {
       <Route path="/professor/login"        element={<TeacherLogin />} />
       <Route path="/professor"              element={<TeacherDashboard />} />
       <Route path="/professor/analytics"   element={<TeacherAnalytics />} />
+      <Route path="/professor/admin"        element={<AdminPanel />} />
       <Route path="/pais/login"             element={<ParentLogin />} />
       <Route path="/pais"                   element={<ParentPortal />} />
       <Route path="/pais/filho"             element={<ParentStudentView />} />

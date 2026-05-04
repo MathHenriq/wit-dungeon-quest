@@ -156,6 +156,7 @@ export interface Teacher {
   name: string;
   /** Present when the full teacher row is fetched (auth context). */
   user_id?: string;
+  is_admin?: boolean;
 }
 
 export interface StudentTitle {
