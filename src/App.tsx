@@ -10,6 +10,7 @@ import { ColorBlindFilters } from "@/components/ColorBlindFilters";
 import { SpaceBackground } from "@/components/background/SpaceBackground";
 import { IntroRouter } from "@/components/IntroRouter";
 import { BootSequence } from "@/components/boot-sequence";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import StudentPortal from "./pages/StudentPortal";
 import TeacherLogin from "./pages/TeacherLogin";
 import TeacherDashboard from "./pages/TeacherDashboard";
@@ -87,6 +88,7 @@ const App = () => (
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
+        <SpeedInsights />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
