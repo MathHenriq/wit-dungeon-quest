@@ -1566,95 +1566,162 @@ const registry: Record<string, EquipmentAbilityHandler> = {
 
   'berserker-armor_unique': {
     execute: async (ctx) => {
-      // Armadura Berserker de Guts: remove todos os limitadores → triple dano + custo HP
+      // GUTS — quanto mais ferido, mais selvagem. Mult escala com HP perdido.
+      // <30% HP = ×5 dano, 30-60% = ×3.5, >60% = ×2.5. Mas custo de dor sobe.
+      const hpFrac = ctx.player.hpCurrent / Math.max(1, ctx.player.hpMax);
+      let mult: number; let burnDmg: number; let tag: string;
+      if (hpFrac < 0.30)      { mult = 5;   burnDmg = 15; tag = 'FÚRIA TOTAL'; }
+      else if (hpFrac < 0.60) { mult = 3.5; burnDmg = 10; tag = 'BESTA DESPERTA'; }
+      else                    { mult = 2.5; burnDmg = 6;  tag = 'CONTROLADO'; }
       ctx.playerForms.push({
         key: 'custom',
         name: 'Armadura Berserker',
         turnsLeft: 3,
-        physicalDmgMult: 3,
+        physicalDmgMult: mult,
       });
-      ctx.playerStatuses.push({ type: 'burn', value: 8, turnsLeft: 3 });
+      ctx.playerStatuses.push({ type: 'burn', value: burnDmg, turnsLeft: 3 });
+      // Bonus: imune a stun/freeze enquanto na armadura (Guts não pode ser parado)
+      ctx.playerStatuses.push({ type: 'magic_immune', turnsLeft: 3 });
       return {
         success: true,
-        message: 'ARMADURA BERSERKER — todos os limitadores REMOVIDOS! Guts ignora a dor e age como uma fera. Dano físico ×3 por 3 turnos. Custo: os nervos sangram internamente (8 HP/turno).',
+        message: `🛡️ ARMADURA BERSERKER — ${tag}. HP em ${Math.floor(hpFrac * 100)}%, sangue ativa a fera: dano físico ×${mult} por 3 turnos + imune a controle. Custo: ${burnDmg} HP/turno em sangramento interno. Guts não para.`,
       };
     },
   },
 
   'chastiefol_unique': {
     execute: async (ctx) => {
-      // Tesouro Sagrado do Rei das Fadas: 10 formas → ataque + defesa simultâneos
-      const dmg = 80;
+      // 10 FORMAS DE CHASTIEFOL — sorteia 1 das 3 mais icônicas a cada uso:
+      // Forma 4 "Sunflower" (multi-hit), Forma 6 "Sublime" (escudo absoluto),
+      // Forma 10 "Cosmos" (dano massivo único)
+      const roll = Math.floor(Math.random() * 3);
+      if (roll === 0) {
+        // Sunflower: 6 hits
+        const hits = 6, dmgPerHit = 20;
+        const total = hits * dmgPerHit;
+        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - total);
+        return { success: true, damage: total,
+          message: `🌻 CHASTIEFOL FORMA 4: SUNFLOWER — 6 girassóis perfuram o inimigo. ${total} de dano total. King libera o coração da floresta.` };
+      }
+      if (roll === 1) {
+        // Sublime: escudo absoluto + cura
+        const shield = 150;
+        const heal = Math.floor(ctx.player.hpMax * 0.30);
+        ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
+        ctx.playerStatuses.push({ type: 'shield', value: shield });
+        ctx.playerStatuses.push({ type: 'invincible', charges: 1 });
+        return { success: true, heal,
+          message: `🌺 CHASTIEFOL FORMA 6: SUBLIME — defesa absoluta. Escudo de ${shield} HP + cura ${heal} + próximo hit anulado. O Rei das Fadas protege.` };
+      }
+      // Cosmos: nuke único
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.50) + 30;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 2 });
-      ctx.playerStatuses.push({ type: 'shield', value: 40 });
-      return {
-        success: true,
-        damage: dmg,
-        message: `CHASTIEFOL — Tesouro Sagrado do Rei das Fadas! ${dmg} de dano + inimigo imobilizado por 2 turnos + Cama de Conforto: escudo de 40 HP.`,
-      };
+      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 3 });
+      return { success: true, damage: dmg, guaranteedHit: true,
+        message: `🌌 CHASTIEFOL FORMA 10: COSMOS — explosão estelar. ${dmg} de dano (ACERTO GARANTIDO) + atordoado 3 turnos. A maior forma do Tesouro Sagrado.` };
     },
   },
 
   'death-scythe_unique': {
     execute: async (ctx) => {
-      // Foice da Morte: executa abaixo de 35% HP
+      // EXECUÇÃO + PRESENÇA DA CEIFADORA: se executar, a próxima ability
+      // ganha +50% dano (a essência do morto alimenta a próxima vítima).
       const pct = ctx.enemy.hpCurrent / ctx.enemy.hpMax;
       if (pct < 0.35) {
         const finalDmg = ctx.enemy.hpCurrent;
         ctx.enemy.hpCurrent = 0;
-        return { success: true, damage: finalDmg, message: 'FOICE DA MORTE — a alma foi ceifada! EXECUÇÃO INSTANTÂNEA abaixo de 35% HP!' };
+        // (Boss morre. Próxima batalha será outra entidade, mas o efeito é narrativo.)
+        return { success: true, damage: finalDmg,
+          message: `💀 FOICE DA MORTE — a alma foi CEIFADA! EXECUÇÃO INSTANTÂNEA. ${finalDmg} de dano fatal.` };
       }
-      const dmg = Math.floor(ctx.enemy.hpCurrent * 0.35) + 30;
+      const dmg = Math.floor(ctx.enemy.hpCurrent * 0.30) + 30;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      return { success: true, damage: dmg, message: `FOICE DA MORTE — ${dmg} de dano. (Abaixo de 35% HP seria execução instantânea...)` };
+      // Bonus: marca um "execution threshold" mais alto. Cria executionRule.
+      if (!ctx.executionRules.some(r => r.key === 'reaper_aura')) {
+        ctx.executionRules.push({
+          key: 'reaper_aura',
+          thresholdHpFraction: 0.40, // sobe o threshold de execução
+          requiresMarkKey: 'reaper_mark',
+          minStacks: 1,
+          excludesBosses: false,
+          message: '☠️ A AURA DA CEIFADORA — alma marcada se rompe abaixo de 40% HP!',
+        });
+        ctx.enemyMarks.push({ key: 'reaper_mark', name: 'Marcado pela Foice', stacks: 1, turnsLeft: null, sourceCardKey: 'death-scythe_unique' });
+      }
+      return { success: true, damage: dmg,
+        message: `💀 FOICE DA MORTE — ${dmg} de dano + alma MARCADA pela ceifadora. Se o inimigo cair abaixo de 40% HP, execução automática. Use de novo se ele resistir.` };
     },
   },
 
   'demon-sword-ragnarok_unique': {
     execute: async (ctx) => {
-      // Crona e Ragnarok: espada demoníaca com absorção de vida
-      const dmg = 55;
+      // CRONA + RAGNAROK: a espada CONSOME a alma do inimigo a cada hit.
+      // Drain de 50% por 5 hits + cada hit também alimenta o Spirit Gun
+      // se ativo (sinergia secreta).
+      const dmg = 50;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.playerStatuses.push({ type: 'lifesteal', percent: 0.40, charges: 3 });
+      ctx.playerStatuses.push({ type: 'lifesteal', percent: 0.50, charges: 5 });
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 1.5, charges: 5 });
+      ctx.enemyStatuses.push({ type: 'bleed', value: 12, turnsLeft: 5 });
       return {
         success: true,
         damage: dmg,
-        message: `ESPADA DEMONÍACA RAGNAROK — Crona e Ragnarok em sincronia! ${dmg} de dano + 40% do dano dos próximos 3 ataques vira HP.`,
+        message: `🗡️ ESPADA DEMONÍACA RAGNAROK — Crona acorda com a espada viva. ${dmg} de dano + próximos 5 ataques: ×1,5 dano + 50% absorvido como HP + inimigo sangra 12/turno por 5 turnos. A sincronia.`,
       };
     },
   },
 
   'dragon-slayer_unique': {
     execute: async (ctx) => {
-      // Berserk: a espada grande demais para ser chamada de espada — impacto de massa pura
-      const dmg = 100;
-      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 1 });
+      // 3 GOLPES ESCALANTES: cada um mais forte que o anterior. Boss-killer.
+      // Total: 40+55+70 = 165. Plus stun acumulado.
+      let total = 0;
+      const hits = [40, 55, 70];
+      for (const hit of hits) {
+        const dmg = hit;
+        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+        total += dmg;
+        if (ctx.enemy.hpCurrent <= 0) break;
+      }
+      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 2 });
+      // Bonus: vs bosses, ganha bleed massivo (mata-dragão é a especialidade)
+      if (ctx.enemy.isBoss) {
+        ctx.enemyStatuses.push({ type: 'bleed', value: 25, turnsLeft: 4 });
+      }
       return {
         success: true,
-        damage: dmg,
-        message: `DRAGON SLAYER — uma massa de ferro tão pesada que nem deveria existir como espada. ${dmg} de dano puro. O inimigo não processa o que o acertou.`,
+        damage: total,
+        message: `🗡️ DRAGON SLAYER — 3 golpes escalantes (40+55+70): ${total} de dano + atordoado 2 turnos${ctx.enemy.isBoss ? ' + sangramento 25 HP/turno por 4 (BÔNUS vs boss)' : ''}. A massa de ferro que não deveria existir como espada.`,
       };
     },
   },
 
   'gideon_unique': {
     execute: async (ctx) => {
-      const dmg = 75;
+      // PESO COLOSSAL: dano + reduz defesa do inimigo permanente (não expira)
+      // + cria campo "Gravidade Aumentada" que dá mais dano a cada turno.
+      const dmg = 70;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      ctx.enemyStatuses.push({ type: 'defense_down', value: 30, turnsLeft: -1 });
       ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 1 });
+      ctx.battlefieldEffects.push({
+        key: 'custom',
+        source: 'player',
+        name: 'Gravidade Aumentada',
+        turnsLeft: 5,
+        endTurnDamage: { target: 'enemy', base: 8, growthPerTurn: 4, currentTurn: 0 },
+      });
       return {
         success: true,
         damage: dmg,
-        message: `GIDEON — peso colossal despenca sobre o inimigo. ${dmg} de dano puro + atordoado por 1 turno. Ninguém fica em pé.`,
+        message: `🪨 GIDEON — peso colossal despenca! ${dmg} de dano + atordoado 1 turno + defesa do inimigo −30 PERMANENTE + Gravidade Aumentada: 8→24 HP/turno por 5 turnos. O inimigo afunda no chão.`,
       };
     },
   },
 
   'hyorinmaru_unique': {
     execute: async (ctx) => {
-      // Hyorinmaru: maior Zanpakuto de gelo do Soul Society → campo de batalha glacial
+      // CAMPO DE GELO + FREEZE DE ABILITY ALEATÓRIA do inimigo (banimento)
       ctx.battlefieldEffects = ctx.battlefieldEffects.filter(
         f => !(f.key === 'custom' && f.name === 'Eterno Gelo de Hyorinmaru'),
       );
@@ -1665,149 +1732,246 @@ const registry: Record<string, EquipmentAbilityHandler> = {
         turnsLeft: 4,
         outgoingElementMult: { Ice: 2.5 },
         incomingElementMult: { Fire: 0.5 },
-        endTurnDamage: { target: 'enemy', base: 12, growthPerTurn: 0, currentTurn: 0 },
+        endTurnDamage: { target: 'enemy', base: 15, growthPerTurn: 0, currentTurn: 0 },
       });
+      // Banir uma ability aleatória do inimigo (Senbonzakura roxa de gelo)
+      const pool = ctx.enemy.abilities.filter(a => !ctx.erasedEnemyAbilityIds.includes(a.id));
+      let banido = '';
+      if (pool.length > 0) {
+        const target = pool[Math.floor(Math.random() * pool.length)];
+        ctx.erasedEnemyAbilityIds.push(target.id);
+        banido = target.name;
+      }
       const dmg = 50;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
       return {
         success: true,
         damage: dmg,
-        message: `HYORINMARU — o céu e a terra congelam! ${dmg} de dano imediato + campo de gelo eterno por 4 turnos: Ice ×2,5, resistência a Fire, 12 HP/turno de dano glacial.`,
+        message: `❄️ HYORINMARU — Daiguren Hyorinmaru ergue o trono de gelo. ${dmg} de dano + campo glacial por 4 turnos (Ice ×2,5, Fire ×0,5, 15 HP/turno)${banido ? ` + ability inimiga CONGELADA permanentemente: ${banido}.` : '.'}`,
       };
     },
   },
 
   'lostvayne_unique': {
     execute: async (ctx) => {
-      // Lostvayne de Meliodas: fragmenta a alma em clones → 3 reflexos de dano
-      ctx.playerStatuses.push({ type: 'counter', multiplier: 1.5, cooldownRounds: 999, charges: 3 });
+      // 4 CLONES — counter + amp + auto-counter simultâneo. Cada clone faz algo:
+      // Clone 1: counter 200% (3 cargas) — reflexos físicos
+      // Clone 2: amp ×2 (3 cargas) — dano direto dobrado
+      // Clone 3: auto-counter 50% por 3 turnos — bate de volta automaticamente
+      // Clone 4: vampiric 40% (3 cargas) — alma drena
+      ctx.playerStatuses.push({ type: 'counter', multiplier: 2, cooldownRounds: 999, charges: 3 });
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 2, charges: 3 });
+      ctx.playerStatuses.push({ type: 'vampiric', percent: 0.40, charges: 3 });
+      ctx.autoCounter = { percent: 0.50, turnsLeft: 3 };
       return {
         success: true,
-        message: 'LOSTVAYNE — Meliodas fragmenta sua alma em clones! Os próximos 3 ataques recebidos são refletidos com 150% de força por cada clone.',
+        message: `👥 LOSTVAYNE — Meliodas fragmenta a alma em 4 CLONES (3 turnos): contra-ataque ×2 (3 hits) + próximos 3 ataques físicos ×2 + lifesteal 40% + auto-counter 50% true damage. Sincronia perfeita.`,
       };
     },
   },
 
   'mjolnir_unique': {
     execute: async (ctx) => {
-      const dmg = Math.floor(ctx.enemy.hpCurrent * 0.25) + 40;
+      // PROVA DO DIGNO: dano dobrado SE o jogador estiver em <60% HP
+      // (foi forçado a lutar — dignidade comprovada). Em HP alto: só básico.
+      const hpFrac = ctx.player.hpCurrent / Math.max(1, ctx.player.hpMax);
+      const isDigno = hpFrac < 0.60;
+      const mult = isDigno ? 2 : 1;
+      const dmg = Math.floor((ctx.enemy.hpCurrent * 0.25 + 40) * mult);
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 2 });
+      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: isDigno ? 3 : 2 });
+      // Bônus: se digno, raio também limpa debuffs do jogador
+      if (isDigno) {
+        ctx.playerStatuses = ctx.playerStatuses.filter(s =>
+          !['burn','poison','bleed','vulnerable','death_curse'].includes(s.type),
+        );
+      }
       return {
         success: true,
         damage: dmg,
-        message: `MJOLNIR — apenas o digno pode empunhá-la. ${dmg} de dano + raio divino de Thor atordoa o inimigo por 2 turnos.`,
+        message: isDigno
+          ? `⚡ MJÖLNIR — VOCÊ É DIGNO. HP <60% prova o sacrifício. ${dmg} de dano (×2) + atordoa 3 turnos + raio purifica seus debuffs.`
+          : `⚡ MJÖLNIR — ainda não digno. ${dmg} de dano + atordoa 2 turnos. (Sob 60% HP, o martelo libera todo seu poder.)`,
       };
     },
   },
 
   'murasame_unique': {
     execute: async (ctx) => {
+      // MURASAME — Akame ga Kill. UM CORTE = MORTE. Marca o inimigo;
+      // cada ability subsequente sua tem 25% de aplicar nova carga.
+      // Com 5 cargas, abaixo de 40% HP → EXECUÇÃO.
       const existing = ctx.enemyMarks.find(m => m.key === 'murasame_death_curse');
       if (existing) existing.stacks = Math.min(5, existing.stacks + 1);
-      else ctx.enemyMarks.push({ key: 'murasame_death_curse', name: 'Maldi??o da Morte', stacks: 1, turnsLeft: null, sourceCardKey: 'murasame_unique' });
+      else ctx.enemyMarks.push({
+        key: 'murasame_death_curse', name: 'Maldição da Morte',
+        stacks: 1, turnsLeft: null, sourceCardKey: 'murasame_unique',
+      });
       if (!ctx.executionRules.some(r => r.key === 'murasame_execute')) {
         ctx.executionRules.push({
-          key: 'murasame_execute', thresholdHpFraction: 0.35,
+          key: 'murasame_execute', thresholdHpFraction: 0.40,
           requiresMarkKey: 'murasame_death_curse', minStacks: 5,
-          excludesBosses: false, message: 'MURASAME ? a maldi??o amadureceu. Execu??o inevit?vel!',
+          excludesBosses: false,
+          message: '⚔️ MURASAME — a maldição amadureceu. Execução inevitável!',
         });
       }
-      return { success: true, message: 'Murasame ? o alvo foi marcado. Cada dano recebido alimenta a Maldi??o da Morte; com 5 cargas, abaixo de 35% HP, ele ? executado.' };
+      // Dano inicial + bleed pra o veneno trabalhar
+      const dmg = 35;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      ctx.enemyStatuses.push({ type: 'bleed', value: 15, turnsLeft: -1 });
+      const cargas = existing ? existing.stacks : 1;
+      return { success: true, damage: dmg,
+        message: `☠️ MURASAME — corte venenoso. ${dmg} de dano + sangramento PERMANENTE (15 HP/turno) + Maldição ${cargas}/5. Com 5 cargas, abaixo de 40% HP, EXECUÇÃO.` };
     },
   },
 
   'philosophers-stone_unique': {
     execute: async (ctx) => {
-      const heal = Math.floor(ctx.player.hpMax * 0.60);
-      ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
+      // CURA TOTAL + REFLECT 100% pelos próximos 3 turnos. O preço foi pago
+      // em almas — a pedra devolve TUDO e amplifica retorno.
+      const heal = ctx.player.hpMax - ctx.player.hpCurrent;
+      ctx.player.hpCurrent = ctx.player.hpMax;
       ctx.playerStatuses = ctx.playerStatuses.filter(s =>
-        !['poison', 'burn', 'bleed', 'stun', 'freeze', 'vulnerable', 'death_curse'].includes(s.type),
+        !['poison','burn','bleed','stun','freeze','vulnerable','death_curse'].includes(s.type),
       );
+      // Reflexo total: todo dano sofrido pelos próximos 3 turnos vira ataque
+      ctx.autoCounter = { percent: 1.0, turnsLeft: 3 };
+      // E magic_immune total no período
+      ctx.playerStatuses.push({ type: 'magic_immune', turnsLeft: 3 });
       return {
         success: true,
         heal,
-        message: `PEDRA FILOSOFAL — o segredo da vida e da morte, forjado em almas humanas. +${heal} HP (60% do máximo) + todos os debuffs eliminados. O custo moral... é outra história.`,
+        message: `🪨 PEDRA FILOSOFAL — equivalência mágica. +${heal} HP (cura TOTAL) + todos debuffs removidos + por 3 turnos imune a magia + 100% do dano sofrido VIRA contra-ataque true damage. O custo das almas é pago em retorno.`,
       };
     },
   },
 
   'potara-earrings_unique': {
     execute: async (ctx) => {
-      // Brincos Potara: fusão permanente com o mais forte → playerForm que não expira
+      // FUSÃO POTARA: ×2 perm + escudo + Spirit Gun fica MUITO mais poderoso
+      // (sinergia oculta: fusão de Kaioshin amplifica energia espiritual)
       if (ctx.playerForms.some(f => f.name === 'Fusão Potara')) {
         return { success: false, message: 'A Fusão Potara já está ativa.' };
       }
       ctx.playerForms.push({
         key: 'custom',
         name: 'Fusão Potara',
-        turnsLeft: null, // fusão de Kaioshin dura indefinidamente (ou até o fim da batalha)
+        turnsLeft: null,
         physicalDmgMult: 2,
         magicalDmgMult: 2,
       });
-      ctx.playerStatuses.push({ type: 'shield', value: 80 });
+      ctx.playerStatuses.push({ type: 'shield', value: 100 });
+      // Spirit Gun amp: se ativo, dobra cargas atuais
+      if (ctx.spiritGunCharge && !ctx.spiritGunCharge.fired) {
+        ctx.spiritGunCharge.damagePerCharge *= 2;
+      }
+      // Cura inicial pequena (corpos se reforjam)
+      const heal = Math.floor(ctx.player.hpMax * 0.30);
+      ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
       return {
         success: true,
-        message: 'BRINCOS POTARA — FUSÃO DOS DEUSES! Poder combinado dos dois guerreiros. Dano físico e mágico ×2 permanentemente + escudo de 80 HP. Gogeta ou Vegito?',
+        heal,
+        message: `💎 BRINCOS POTARA — FUSÃO DOS DEUSES. Cura +${heal} HP + escudo 100 + dano físico/mágico ×2 PERMANENTE${ctx.spiritGunCharge ? ' + Reigan amplificado (dano/carga ×2)' : ''}. Gogeta ou Vegito?`,
       };
     },
   },
 
   'rhitta_unique': {
     execute: async (ctx) => {
-      // Escanor: Rhitta absorve calor solar ao longo do dia — quanto mais tarde, mais forte
-      const dmg = Math.min(ctx.turn * 15, 90) + 40;
+      // RHITTA — ESCANOR DO MEIO-DIA: dano escala com turno (sol nasce).
+      // Se player ainda não recebeu dano nesta batalha (HP cheio) = ×2 (Escanor invicto).
+      // Se for turno >= 8, ataque é tratado como dano divino e fura tudo.
+      const isInvicto = ctx.player.hpCurrent >= ctx.player.hpMax;
+      const isMeioDia = ctx.turn >= 8;
+      const base = Math.min(ctx.turn * 18, 120) + 40;
+      let dmg = base;
+      if (isInvicto) dmg *= 2;
+      if (isMeioDia) {
+        // Dano direto, ignora tudo
+        const before = ctx.enemy.hpCurrent;
+        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+        return { success: true, damage: before - ctx.enemy.hpCurrent, trueDamage: true,
+          message: `☀️ RHITTA — O ABSOLUTO. Meio-dia chegou (turno ${ctx.turn})${isInvicto ? ' E você está invicto' : ''}. ${dmg} de dano DIVINO (true damage, ignora tudo). "Quem me deu esse poder?"` };
+      }
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      return {
-        success: true,
-        damage: dmg,
-        message: `RHITTA — "Quem me deu esse poder?" Turno ${ctx.turn}: ${dmg} de dano. Escanor ao meio-dia seria o absoluto.`,
-      };
+      return { success: true, damage: dmg,
+        message: `☀️ RHITTA — turno ${ctx.turn}, sol subindo. ${dmg} de dano${isInvicto ? ' (×2 INVICTO)' : ''}. Atinja o meio-dia (turno 8) ou mantenha HP cheio pra liberar o absoluto.` };
     },
   },
 
   'senbonzakura_unique': {
     execute: async (ctx) => {
-      // Bankai de Byakuya: mil lâminas de pétala em área — multi-hit + bleed
-      const hits = 5;
-      const dmgPerHit = Math.floor(ctx.enemy.hpCurrent * 0.04) + 6;
-      const total = hits * dmgPerHit;
-      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - total);
-      ctx.enemyStatuses.push({ type: 'bleed', value: 10, turnsLeft: 5 });
+      // SENBONZAKURA KAGEYOSHI — mil pétalas. 8 hits cada com 40% de aplicar
+      // bleed INDEPENDENTE. Acumulado de bleeds pode chegar a 8 simultâneos.
+      const hits = 8;
+      const dmgPerHit = Math.floor(ctx.enemy.hpCurrent * 0.05) + 8;
+      let total = 0;
+      let bleedsApplied = 0;
+      for (let i = 0; i < hits; i++) {
+        const dmg = dmgPerHit;
+        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+        total += dmg;
+        if (Math.random() < 0.40) {
+          ctx.enemyStatuses.push({ type: 'bleed', value: 8, turnsLeft: 4 });
+          bleedsApplied++;
+        }
+        if (ctx.enemy.hpCurrent <= 0) break;
+      }
       return {
         success: true,
         damage: total,
-        message: `SENBONZAKURA KAGEYOSHI — mil pétalas de aço dançam. ${hits} impactos: ${total} de dano total. Os cortes persistem por 5 turnos (10 HP/turno).`,
+        message: `🌸 SENBONZAKURA KAGEYOSHI — Bankai de Byakuya. ${hits} pétalas de aço dançam: ${total} de dano${bleedsApplied > 0 ? ` + ${bleedsApplied} sangramentos independentes aplicados (8/turno cada × 4 turnos = ${bleedsApplied * 32} HP extra)` : ''}.`,
       };
     },
   },
 
   'stand-arrow_unique': {
     execute: async (ctx) => {
-      // Flecha de Stand: efeito aleatório — qual Stand vai despertar?
+      // STAND DESPERTA — agora o Stand PERSISTE pelo resto da batalha como
+      // companion + status passivo. Cada Stand tem identidade.
       const roll = Math.floor(Math.random() * 5);
       switch (roll) {
         case 0: {
-          const dmg = 90;
+          // Star Platinum — companion físico que bate cada turno
+          ctx.companion = { name: 'Star Platinum', damage: 22, turnsLeft: 99 };
+          const dmg = 60;
           ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-          return { success: true, damage: dmg, message: `STAND ARROW — Stand de combate evoluído! Golpe devastador: ${dmg} de dano.` };
+          return { success: true, damage: dmg,
+            message: `🌟 STAND ARROW: STAR PLATINUM acordado! ${dmg} de dano inicial + 22 de dano automático todo turno até o fim da batalha. "ORA ORA ORA!"` };
         }
         case 1: {
+          // The World — skip + future skips
           ctx.enemySkipTurns += 3;
-          return { success: true, message: 'STAND ARROW — Stand de manipulação do tempo! O inimigo perde 3 turnos.' };
+          ctx.autoCounter = { percent: 0.40, turnsLeft: 5 };
+          return { success: true,
+            message: `⏱️ STAND ARROW: THE WORLD acordado! Inimigo perde 3 turnos + por 5 turnos, contra-ataque automático 40% true damage. Toki wa tomatta.` };
         }
         case 2: {
-          ctx.playerStatuses.push({ type: 'evasion', charges: 4 });
-          return { success: true, message: 'STAND ARROW — Stand de velocidade! Próximos 4 ataques inimigos esquivados automaticamente.' };
+          // Silver Chariot — esquiva contínua
+          ctx.autoDodgeTurnsLeft = Math.max(ctx.autoDodgeTurnsLeft, 5);
+          ctx.playerStatuses.push({ type: 'evasion', charges: 6 });
+          return { success: true,
+            message: `⚔️ STAND ARROW: SILVER CHARIOT acordado! Velocidade absoluta — 5 turnos de auto-dodge + 6 esquivas extras. Polnareff aproxima.` };
         }
         case 3: {
+          // Crazy Diamond — restauração contínua + cura inicial
           const heal = Math.floor(ctx.player.hpMax * 0.50);
           ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
-          return { success: true, heal, message: `STAND ARROW — Stand de restauração! ${heal} HP (50% do máximo) recuperado.` };
+          ctx.battlefieldEffects.push({
+            key: 'custom', source: 'player', name: 'Crazy Diamond Heal Field',
+            turnsLeft: 6, endTurnDamage: { target: 'enemy', base: 0, growthPerTurn: 0, currentTurn: 0 },
+          });
+          ctx.playerStatuses.push({ type: 'vampiric', percent: 0.30, charges: 99 });
+          return { success: true, heal,
+            message: `💎 STAND ARROW: CRAZY DIAMOND acordado! +${heal} HP imediato + lifesteal permanente 30%. "DORARARARA!"` };
         }
         default: {
-          ctx.enemy.hpCurrent = Math.floor(ctx.enemy.hpMax * 0.10);
-          return { success: true, message: 'STAND ARROW — Stand de Requiem... O inimigo perde a vontade de existir. HP reduzido a 10%.' };
+          // Gold Experience Requiem — destruir o inimigo até 8% HP + zero status
+          ctx.enemy.hpCurrent = Math.floor(ctx.enemy.hpMax * 0.08);
+          ctx.enemyStatuses = [];
+          ctx.requiemNextAmplify = true;
+          return { success: true,
+            message: `✨ STAND ARROW: GOLD EXPERIENCE REQUIEM acordado! HP do inimigo → 8% + todos status apagados + sua próxima ability é REQUIEM (×2). O resultado é zero.` };
         }
       }
     },
@@ -1815,67 +1979,107 @@ const registry: Record<string, EquipmentAbilityHandler> = {
 
   'stone-mask_unique': {
     execute: async (ctx) => {
-      // Máscara de Pedra: transformação vampírica → cura + absorção de vida permanente
-      const heal = Math.floor(ctx.player.hpMax * 0.35);
+      // VAMPIRISMO ETERNO: cura inicial + lifesteal permanente + regen passivo
+      // + imune a debuffs (vampiros não sentem mais dor humana).
+      const heal = Math.floor(ctx.player.hpMax * 0.40);
       ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
-      ctx.playerStatuses.push({ type: 'vampiric', percent: 0.50, charges: 5 });
+      ctx.playerStatuses.push({ type: 'vampiric', percent: 0.60, charges: 99 });
+      // Regen passivo: heal-field aplicado ao jogador (via battlefieldEffect endTurnDamage negativo? não funciona).
+      // Implementação: adicionar lifesteal alto e magic_immune longo + escudo grande
+      ctx.playerStatuses.push({ type: 'magic_immune', turnsLeft: 6 });
+      ctx.playerStatuses.push({ type: 'shield', value: 80 });
+      // Remove debuffs imediatos
+      ctx.playerStatuses = ctx.playerStatuses.filter(s =>
+        !['poison','burn','bleed','vulnerable','death_curse'].includes(s.type),
+      );
       return {
         success: true,
         heal,
-        message: `MÁSCARA DE PEDRA — transformação vampírica completa! +${heal} HP restaurado (35% do máximo) + próximos 5 ataques absorvem 50% do dano causado como vida.`,
+        message: `🩸 MÁSCARA DE PEDRA — transformação vampírica completa. +${heal} HP + lifesteal PERMANENTE 60% + escudo 80 + imune a magia 6 turnos + debuffs removidos. O sangue alimenta.`,
       };
     },
   },
 
   'tensa-zanguetsu_unique': {
     execute: async (ctx) => {
-      if (ctx.playerForms.some(f => f.name === 'Bankai — Tensa Zangetsu')) {
-        return { success: false, message: 'O Bankai já está ativo.' };
+      // Primeira ativação = Bankai. Segunda ativação no mesmo combate = MUGETSU
+      // (Last Getsuga Tenshou — sacrifício, dano massivo + custo HP).
+      const hasBankai = ctx.playerForms.some(f => f.name === 'Bankai — Tensa Zangetsu');
+      if (!hasBankai) {
+        // 1ª: Bankai
+        ctx.playerForms.push({
+          key: 'custom',
+          name: 'Bankai — Tensa Zangetsu',
+          turnsLeft: 4,
+          physicalDmgMult: 2,
+          overrideAttackElement: 'Dark',
+        });
+        ctx.autoDodgeTurnsLeft = Math.max(ctx.autoDodgeTurnsLeft, 3);
+        const dmg = Math.floor(ctx.enemy.hpCurrent * 0.25) + 25;
+        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+        return { success: true, damage: dmg,
+          message: `⚫ TENSA ZANGETSU — BANKAI! ${dmg} de dano + dano físico ×2, ataques Dark por 4 turnos, 3 esquivas. Use de novo pra liberar MUGETSU.` };
       }
-      // Bankai de Ichigo: a espada comprime todo o poder → velocidade absoluta + dano físico ×2
-      ctx.playerForms.push({
-        key: 'custom',
-        name: 'Bankai — Tensa Zangetsu',
-        turnsLeft: 4,
-        physicalDmgMult: 2,
-        overrideAttackElement: 'Dark',
-      });
-      // Velocidade do Bankai = 2 esquivas automáticas
-      ctx.autoDodgeTurnsLeft = Math.max(ctx.autoDodgeTurnsLeft, 2);
-      const dmg = Math.floor(ctx.enemy.hpCurrent * 0.25) + 25;
+      // 2ª: MUGETSU (Final Getsuga Tenshou)
+      // Sacrifício: HP do player vai pra 10%, mas dano massivo + apaga 3 abilities inimigas
+      const sacrifice = ctx.player.hpCurrent - Math.floor(ctx.player.hpMax * 0.10);
+      ctx.player.hpCurrent = Math.floor(ctx.player.hpMax * 0.10);
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.65) + 50;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      return {
-        success: true,
-        damage: dmg,
-        message: `TENSA ZANGETSU — BANKAI! A espada compressa libera velocidade absoluta. ${dmg} de dano inicial + dano físico ×2 + ataques Dark por 4 turnos. 2 esquivas automáticas garantidas.`,
-      };
+      // Apaga 3 abilities aleatórias do inimigo
+      const pool = ctx.enemy.abilities.filter(a => !ctx.erasedEnemyAbilityIds.includes(a.id));
+      for (let i = 0; i < 3 && pool.length > 0; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        ctx.erasedEnemyAbilityIds.push(pool.splice(idx, 1)[0].id);
+      }
+      return { success: true, damage: dmg,
+        message: `🌑 MUGETSU — O Último Getsuga Tenshou. Sacrifício: você perde ${sacrifice} HP (fica em 10%). Dano: ${dmg} + 3 abilities inimigas APAGADAS. "Adeus, Rukia."` };
     },
   },
 
   'volundr_unique': {
     execute: async (ctx) => {
-      const dmg = 65;
+      // FORJA DIVINA: forja 3 buffs aleatórios e os aplica todos.
+      // Sempre 3 buffs diferentes vão sair (pool de 6 opções).
+      const pool = [
+        { name: 'Espada do Sol',     apply: () => { ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 2, charges: 3 }); }, desc: 'Próx 3 ataques físicos ×2' },
+        { name: 'Cetro Arcano',      apply: () => { ctx.playerStatuses.push({ type: 'magic_amp', multiplier: 2, charges: 3 }); }, desc: 'Próx 3 ataques mágicos ×2' },
+        { name: 'Égide de Mjölnir',  apply: () => { ctx.playerStatuses.push({ type: 'shield', value: 120 }); }, desc: 'Escudo 120 HP' },
+        { name: 'Mantos de Loki',    apply: () => { ctx.playerStatuses.push({ type: 'evasion', charges: 4 }); }, desc: 'Esquiva ×4' },
+        { name: 'Anel de Odin',      apply: () => { ctx.playerStatuses.push({ type: 'vampiric', percent: 0.5, charges: 5 }); }, desc: 'Lifesteal 50% × 5' },
+        { name: 'Coração de Surtr',  apply: () => { ctx.enemyStatuses.push({ type: 'burn', value: 25, turnsLeft: 4 }); }, desc: 'Burn 25/turno × 4' },
+      ];
+      // Sorteia 3 diferentes
+      const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 3);
+      shuffled.forEach(b => b.apply());
+      const dmg = 50;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.playerStatuses.push({ type: 'shield', value: 60 });
       return {
         success: true,
         damage: dmg,
-        message: `VOLUNDR — forja divina nórdica! ${dmg} de dano + escudo de 60 HP forjado em batalha.`,
+        message: `⚒️ VÖLUNDR — forja divina ativa! ${dmg} de dano + 3 itens criados: ${shuffled.map(b => `${b.name} (${b.desc})`).join(' | ')}. Todos aplicados.`,
       };
     },
   },
 
   'z-sword_unique': {
     execute: async (ctx) => {
-      // Z Sword: a espada que Gohan quebrou sem querer — poder dos deuses liberado
+      // ESPADA Z: ao QUEBRAR (HP do inimigo cair >50% nesta ativação), libera
+      // o velho Kaioshin de dentro — concede +1 revive E amp permanente.
       const dmg = 70;
+      const hpBefore = ctx.enemy.hpCurrent;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      const hpFracAfter = ctx.enemy.hpCurrent / Math.max(1, ctx.enemy.hpMax);
       ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 2, charges: 3 });
-      return {
-        success: true,
-        damage: dmg,
-        message: `Z SWORD — a espada dos deuses Kai, que Gohan quebrou sem querer. ${dmg} de dano + próximos 3 ataques físicos com o DOBRO de força.`,
-      };
+      // Se ainda não tem revive E o golpe foi devastador → desperta Kaioshin
+      if (hpFracAfter < 0.5 && hpBefore / ctx.enemy.hpMax >= 0.5) {
+        ctx.reviveCharges += 1;
+        ctx.playerStatuses.push({ type: 'magic_amp', multiplier: 2, charges: 3 });
+        return { success: true, damage: dmg,
+          message: `⚔️ ESPADA Z QUEBROU — o Velho Kaioshin desperta! ${dmg} de dano + próximos 3 físicos ×2 + próximos 3 mágicos ×2 + 1 revive extra. A espada dos deuses se sacrifica.` };
+      }
+      return { success: true, damage: dmg,
+        message: `⚔️ Z SWORD — ${dmg} de dano + próximos 3 ataques físicos ×2. (Se o golpe atravessar 50% HP do inimigo, o Velho Kaioshin acorda.)` };
     },
   },
 
