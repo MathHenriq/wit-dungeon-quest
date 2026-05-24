@@ -9,6 +9,7 @@ import { ErrorRecoveryToast } from "@/components/ErrorRecoveryToast";
 import { ColorBlindFilters } from "@/components/ColorBlindFilters";
 import { IntroRouter } from "@/components/IntroRouter";
 import { BootSequence } from "@/components/boot-sequence";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // Patch 10.2: lazy-load heavy routes + the three.js background. Cuts the
 // initial bundle from a single 3.2 MB chunk to ~1.2 MB + per-route chunks
@@ -116,6 +117,7 @@ const App = () => (
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
+        <SpeedInsights />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
