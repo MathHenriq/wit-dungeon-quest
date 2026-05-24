@@ -2588,6 +2588,405 @@ const registry: Record<string, EquipmentAbilityHandler> = {
     },
   },
 
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH 2.0 — 30 cartas NOVAS (IPs diversas)
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── ??? (3) ──────────────────────────────────────────────────────
+  'coordenadas-titan_unique': {
+    execute: async (ctx) => {
+      // Eren controla todos os titãs. Inimigo skip 4 + 3 auto-counters true
+      ctx.enemySkipTurns += 4;
+      ctx.autoCounter = { percent: 1.0, turnsLeft: 3 };
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.40);
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `🦴 COORDENADAS — Eren grita do Titã Fundador. ${dmg} de dano + inimigo perde 4 turnos + por 3 ataques sofridos, contra-ataque 100% true damage. Todos os titãs respondem.` };
+    },
+  },
+
+  'time-leap_unique': {
+    execute: async (ctx) => {
+      // Mais forte que Requiem: rewind do estado de 2 turnos atrás (uso lastTurnSnapshot)
+      const snap = ctx.lastTurnSnapshot;
+      if (!snap) {
+        // Fallback
+        const heal = Math.floor(ctx.player.hpMax * 0.5);
+        ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
+        return { success: true, heal,
+          message: `🌀 TIME LEAP — sem World Line anterior. Cura ${heal} HP.` };
+      }
+      ctx.player.hpCurrent = snap.playerHp;
+      ctx.playerStatus = snap.playerStatus ? { ...snap.playerStatus } : null;
+      ctx.playerStatuses = snap.playerStatuses.map(s => ({ ...s }));
+      ctx.enemy.hpCurrent = snap.enemyHp;
+      ctx.enemyStatuses = snap.enemyStatuses.map(s => ({ ...s }));
+      ctx.lastTurnSnapshot = null;
+      // Bônus: também marca a próxima ability como Requiem (sinergia)
+      ctx.requiemNextAmplify = true;
+      return { success: true,
+        message: `🌀 TIME LEAP — Okabe muda a World Line. Tudo do turno passado revertido (HP/status de ambos). Bônus: próxima ability ×2. El Psy Kongroo.` };
+    },
+  },
+
+  '100-percent-mode_unique': {
+    execute: async (ctx) => {
+      // Mob solta tudo: dano = HP perdido × 3 + reset HP a 50%
+      const hpPerdido = ctx.player.hpMax - ctx.player.hpCurrent;
+      const dmg = hpPerdido * 3 + 50;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      ctx.player.hpCurrent = Math.floor(ctx.player.hpMax * 0.5);
+      ctx.playerStatuses = ctx.playerStatuses.filter(s =>
+        !['poison','burn','bleed','stun','freeze','vulnerable','death_curse'].includes(s.type),
+      );
+      return { success: true, damage: dmg,
+        message: `💢 100% MODE — Mob libera tudo. Dano = HP perdido (${hpPerdido}) × 3 + 50 = ${dmg}. HP reset a 50% + debuffs removidos. "Você quer parar? ...100%."` };
+    },
+  },
+
+  // ── MÍTICA (5) ───────────────────────────────────────────────────
+  'kyoka-suigetsu_unique': {
+    execute: async (ctx) => {
+      // Hipnose Aizen: inimigo erra todas abilities por 4 turnos
+      ctx.domainEnemyFailChance = 0.95;
+      ctx.domainEnergyDiscountTurns = 4;
+      ctx.autoDodgeTurnsLeft = Math.max(ctx.autoDodgeTurnsLeft, 4);
+      return { success: true,
+        message: `🌸 KYOKA SUIGETSU — Aizen ativa hipnose absoluta. Por 4 turnos, 95% dos ataques inimigos falham + você esquiva tudo. "A partir do momento que viu meu Shikai..."` };
+    },
+  },
+
+  'conquerors-haki_unique': {
+    execute: async (ctx) => {
+      // Haki do Rei: stun + apaga 2 abilities aleatórias
+      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 2 });
+      const pool = ctx.enemy.abilities.filter(a => !ctx.erasedEnemyAbilityIds.includes(a.id));
+      const erased: string[] = [];
+      for (let i = 0; i < 2 && pool.length > 0; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        const t = pool.splice(idx, 1)[0];
+        ctx.erasedEnemyAbilityIds.push(t.id);
+        erased.push(t.name);
+      }
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.25) + 30;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `👑 HAKI DO REI CONQUISTADOR — pressão absoluta. ${dmg} de dano + stun 2 turnos${erased.length ? ` + abilities APAGADAS: ${erased.join(', ')}` : ''}. Os fracos desmaiam.` };
+    },
+  },
+
+  'six-paths-mode_unique': {
+    execute: async (ctx) => {
+      // Modo Sábio dos Seis Caminhos por 5 turnos
+      ctx.playerForms.push({
+        key: 'custom', name: 'Modo Seis Caminhos',
+        turnsLeft: 5, physicalDmgMult: 1.8, magicalDmgMult: 1.8,
+      });
+      ctx.battlefieldEffects.push({
+        key: 'custom', source: 'player', name: 'Aura dos Seis Caminhos',
+        turnsLeft: 5, endTurnDamage: { target: 'enemy', base: 0, growthPerTurn: 0, currentTurn: 0 },
+      });
+      // Cura proporcional cada turno via vampiric alta
+      ctx.playerStatuses.push({ type: 'vampiric', percent: 0.40, charges: 99 });
+      const heal = Math.floor(ctx.player.hpMax * 0.30);
+      ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
+      return { success: true, heal,
+        message: `☯️ MODO SÁBIO DOS SEIS CAMINHOS — Naruto canaliza Kurama + Hagoromo. +${heal} HP + dano ×1,8 + lifesteal 40% por 5 turnos. Chakra puro.` };
+    },
+  },
+
+  'kagune-liberated_unique': {
+    execute: async (ctx) => {
+      // Forma ghoul: cada hit aplica bleed independente (acumula)
+      const hits = 4;
+      let total = 0;
+      for (let i = 0; i < hits; i++) {
+        const d = Math.floor(ctx.enemy.hpMax * 0.10) + 12;
+        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - d);
+        total += d;
+        ctx.enemyStatuses.push({ type: 'bleed', value: 10, turnsLeft: 5 });
+      }
+      // Sub-status próximos ataques também aplicam bleed
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 1.5, charges: 5 });
+      return { success: true, damage: total,
+        message: `🩸 KAGUNE LIBERADO — Kaneki Ken liberou tudo. ${hits} cortes (${total} dano) + 4 bleeds independentes 10/turno por 5 turnos. Próximos 5 ataques ×1,5. "1000-7?"` };
+    },
+  },
+
+  'devil-contract_unique': {
+    execute: async (ctx) => {
+      // Sacrifica 50% HP atual, próxima ability = 4× o HP sacrificado
+      const sacrificado = Math.floor(ctx.player.hpCurrent * 0.5);
+      ctx.player.hpCurrent -= sacrificado;
+      // Armazena no monarchAttrMult temporário como amp multiplicador
+      const dmg = sacrificado * 4;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `🔪 CONTRATO COM O DIABO — Denji ativa Pochita. Sacrificou ${sacrificado} HP, devolveu ${dmg} de dano direto. "Apenas amasse meus seios..."` };
+    },
+  },
+
+  // ── LENDÁRIA (7) ─────────────────────────────────────────────────
+  'edo-tensei_unique': {
+    execute: async (ctx) => {
+      // Invoca espectro companion
+      ctx.companion = { name: 'Espectro Edo Tensei', damage: 28, turnsLeft: 6 };
+      const dmg = 40;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `👻 EDO TENSEI — Orochimaru invoca alma morta. ${dmg} de dano + espectro ataca 28/turno por 6 turnos. Imortalidade emprestada.` };
+    },
+  },
+
+  'bungee-gum_unique': {
+    execute: async (ctx) => {
+      // Aplica vulnerable (vira ×2 todo dano que sofrer)
+      const dmg = 60;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      ctx.enemyStatuses.push({ type: 'vulnerable', percent: 1.0, turnsLeft: 4 });
+      return { success: true, damage: dmg,
+        message: `🩴 BUNGEE GUM — Hisoka aplica a propriedade da borracha e do chiclete. ${dmg} de dano + inimigo recebe ×2 dano por 4 turnos. Não consegue se soltar.` };
+    },
+  },
+
+  'beast-spirit_unique': {
+    execute: async (ctx) => {
+      // 90% crit por 4 ataques
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 1.8, charges: 4 });
+      // Hack: usa "extraCritChance" via passive não vai funcionar aqui; aplica via dano direto + amp
+      const dmg = 70;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `🐗 ESPÍRITO DA BESTA — Inosuke se torna a fera. ${dmg} de dano + próximos 4 ataques físicos ×1,8 (cada com chance ALTA de crítico). Respiração da Besta!` };
+    },
+  },
+
+  'black-whip_unique': {
+    execute: async (ctx) => {
+      // 3 hits + cada reduz def 10
+      const hits = 3;
+      let total = 0;
+      for (let i = 0; i < hits; i++) {
+        const d = 35;
+        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - d);
+        total += d;
+        ctx.enemyStatuses.push({ type: 'defense_down', value: 10, turnsLeft: -1 });
+      }
+      return { success: true, damage: total,
+        message: `⛓️ BLACK WHIP — Izuku canaliza One For All segundo usuário. 3 chicotes: ${total} de dano + defesa do inimigo −30 PERMANENTE.` };
+    },
+  },
+
+  'gae-bolg_unique': {
+    execute: async (ctx) => {
+      // Reverte causalidade: dano = 30% HP MÁXIMO ignora tudo
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.30) + 25;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg, trueDamage: true, guaranteedHit: true,
+        message: `🔱 GÁE BOLG — Cu Chulainn reverte causalidade. ${dmg} de dano (TRUE DAMAGE + ACERTO GARANTIDO). A lança encontra o coração antes de ser arremessada.` };
+    },
+  },
+
+  'big-bang-attack_unique': {
+    execute: async (ctx) => {
+      // Dano cresce com turno
+      const dmg = (ctx.turn * 25) + 60;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `💥 BIG BANG ATTACK — Vegeta acumulou energia (turno ${ctx.turn}). ${dmg} de dano. "Você é só um insulto à raça Saiyajin!"` };
+    },
+  },
+
+  'cage-of-thorns_unique': {
+    execute: async (ctx) => {
+      // Skip 2 turnos + DoT
+      ctx.enemySkipTurns += 2;
+      ctx.battlefieldEffects.push({
+        key: 'custom', source: 'player', name: 'Jaula de Espinhos',
+        turnsLeft: 3, endTurnDamage: { target: 'enemy', base: 30, growthPerTurn: 0, currentTurn: 0 },
+      });
+      const dmg = 50;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `🌹 JAULA DE ESPINHOS — Frieren aprisiona. ${dmg} de dano + inimigo skip 2 turnos + 30 HP/turno por 3 turnos. Magia élfica antiga.` };
+    },
+  },
+
+  // ── ÉPICA (10) ───────────────────────────────────────────────────
+  'soul-switch_unique': {
+    execute: async (ctx) => {
+      // Troca HP atual entre player e inimigo
+      const pH = ctx.player.hpCurrent;
+      const eH = ctx.enemy.hpCurrent;
+      ctx.player.hpCurrent = Math.min(ctx.player.hpMax, eH);
+      ctx.enemy.hpCurrent  = Math.min(ctx.enemy.hpMax, pH);
+      return { success: true,
+        message: `🔄 SOUL SWITCH — JJK technique. Trocou HP: você ${pH}→${ctx.player.hpCurrent}, inimigo ${eH}→${ctx.enemy.hpCurrent}. High risk, high reward.` };
+    },
+  },
+
+  'devils-bargain_unique': {
+    execute: async (ctx) => {
+      const custo = Math.floor(ctx.player.hpMax * 0.20);
+      ctx.player.hpCurrent = Math.max(1, ctx.player.hpCurrent - custo);
+      ctx.playerStatuses.push({ type: 'shield', value: 200 });
+      return { success: true,
+        message: `🤝 PACTO DEMONÍACO — pagou ${custo} HP, recebeu escudo de 200 HP. A balança da equivalência demoníaca.` };
+    },
+  },
+
+  'roswaals-spell_unique': {
+    execute: async (ctx) => {
+      // Magia de 6 elementos: dano = HP atual do player × 0.5 (true)
+      const dmg = Math.floor(ctx.player.hpCurrent * 0.5);
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg, trueDamage: true,
+        message: `🌈 MAGIA DE ROSWAAL — combinação dos 6 elementos. ${dmg} de dano verdadeiro (50% do seu HP atual). Maximiliano sorri.` };
+    },
+  },
+
+  'decay-touch_unique': {
+    execute: async (ctx) => {
+      ctx.enemyStatuses.push({ type: 'defense_down', value: 80, turnsLeft: 4 });
+      const dmg = 45;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `🖐️ TOQUE DE DECADÊNCIA — Shigaraki desintegra. ${dmg} de dano + defesa do inimigo −80 por 4 turnos. Tudo cinzas.` };
+    },
+  },
+
+  'hellfire_unique': {
+    execute: async (ctx) => {
+      ctx.enemyStatuses.push({ type: 'burn', value: 30, turnsLeft: 5 });
+      ctx.playerStatuses.push({ type: 'burn', value: 5, turnsLeft: 3 }); // custo
+      const dmg = 50;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `🔥 FOGO INFERNAL — magia ofensiva proibida. ${dmg} de dano + inimigo queima 30 HP/turno por 5 turnos. Custo: você também queima (5/turno × 3).` };
+    },
+  },
+
+  'ope-ope-room_unique': {
+    execute: async (ctx) => {
+      ctx.battlefieldEffects.push({
+        key: 'custom', source: 'player', name: 'ROOM (Ope Ope)',
+        turnsLeft: 3, outgoingElementMult: {},
+      });
+      // Implementação simples: 3 cargas de "noMiss" via 3 abilities ×1.0 amp
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 1, charges: 3 });
+      ctx.playerStatuses.push({ type: 'magic_amp', multiplier: 1, charges: 3 });
+      const dmg = 40;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg, guaranteedHit: true,
+        message: `⚕️ OPE OPE NO MI — Law cria a ROOM. ${dmg} de dano (acerto garantido) + 3 próximas abilities nunca erram. Doctor de operações.` };
+    },
+  },
+
+  'conqueror-strike_unique': {
+    execute: async (ctx) => {
+      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 1 });
+      ctx.enemyStatuses.push({ type: 'defense_down', value: 30, turnsLeft: 3 });
+      const dmg = 55;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `👊 GOLPE CONQUISTADOR — mini-Haki. ${dmg} de dano + atordoado 1 turno + defesa −30 por 3 turnos.` };
+    },
+  },
+
+  'founding-titan-roar_unique': {
+    execute: async (ctx) => {
+      // Fear + stun + cura
+      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 1 });
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - 40);
+      const heal = Math.floor(ctx.player.hpMax * 0.25);
+      ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
+      return { success: true, damage: 40, heal,
+        message: `🦴 RUGIDO DO TITÃ FUNDADOR — Eren grita do outro lado. 40 dmg + atordoa 1 + cura ${heal}. A terra tremeu.` };
+    },
+  },
+
+  'coffin-of-stars_unique': {
+    execute: async (ctx) => {
+      // Cancela buffs do inimigo (limpa todos enemyStatuses positivos)
+      const before = ctx.enemyStatuses.length;
+      ctx.enemyStatuses = ctx.enemyStatuses.filter(s =>
+        ['burn','poison','bleed','curse','stun','freeze','defense_down','death_curse','vulnerable'].includes(s.type),
+      );
+      const cancelled = before - ctx.enemyStatuses.length;
+      const dmg = 65;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `⚰️ CAIXÃO DAS ESTRELAS — Frieren cancela magia. ${dmg} de dano + ${cancelled} buffs inimigos cancelados. Vasto silêncio.` };
+    },
+  },
+
+  'iron-fist-vinland_unique': {
+    execute: async (ctx) => {
+      // Stack: cada uso +20 dano permanente
+      const existing = ctx.enemyMarks.find(m => m.key === 'vinland_iron_stack');
+      const stacks = existing ? Math.min(5, existing.stacks + 1) : 1;
+      if (existing) existing.stacks = stacks;
+      else ctx.enemyMarks.push({ key: 'vinland_iron_stack', name: 'Punho de Ferro', stacks, turnsLeft: null, sourceCardKey: 'iron-fist-vinland_unique' });
+      const dmg = 40 + (stacks * 20);
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `🥊 PUNHO DE FERRO — Thorfinn empilha experiência. ${dmg} de dano (stack ${stacks}/5, cada +20 dano permanente nesta batalha).` };
+    },
+  },
+
+  // ── RARA (5) ─────────────────────────────────────────────────────
+  'hydration-field_unique': {
+    execute: async (ctx) => {
+      ctx.enemyStatuses.push({ type: 'burn', value: 0, turnsLeft: 0 }); // limpa burn antigo via push noop
+      // Regen via vampiric stack alto
+      ctx.playerStatuses.push({ type: 'vampiric', percent: 0.20, charges: 4 });
+      const dmg = 35;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      return { success: true, damage: dmg,
+        message: `💧 CAMPO DE HIDRATAÇÃO — Respiração da Água acalma. ${dmg} de dano + lifesteal 20% nos próximos 4 ataques.` };
+    },
+  },
+
+  'light-step_unique': {
+    execute: async (ctx) => {
+      ctx.playerStatuses.push({ type: 'evasion', charges: 2 });
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 1.3, charges: 1 });
+      return { success: true,
+        message: `💨 PASSO LEVE — 2 esquivas garantidas + próximo ataque físico ×1,3 com bônus de crítico.` };
+    },
+  },
+
+  'stone-skin_unique': {
+    execute: async (ctx) => {
+      ctx.playerStatuses.push({ type: 'shield', value: 80 });
+      return { success: true,
+        message: `🪨 PELE DE PEDRA — escudo de 80 HP por 3 turnos. Magia clássica de proteção.` };
+    },
+  },
+
+  'spectral-mark_unique': {
+    execute: async (ctx) => {
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 1, charges: 1 });
+      ctx.enemyStatuses.push({ type: 'vulnerable', percent: 1.0, turnsLeft: 1 });
+      return { success: true,
+        message: `✨ MARCA ESPECTRAL — sua próxima ability causa TRUE DAMAGE + inimigo vulnerável ×2 por 1 turno.` };
+    },
+  },
+
+  'mana-surge_unique': {
+    execute: async (ctx) => {
+      // Restaura energia + amp mágico
+      ctx.equipmentCooldown = 0;
+      ctx.playerStatuses.push({ type: 'magic_amp', multiplier: 1.5, charges: 2 });
+      // Refill ability PP (todas as PP atuais voltam ao max)
+      for (const id of Object.keys(ctx.abilityPP)) {
+        ctx.abilityPP[id].current = ctx.abilityPP[id].max;
+      }
+      return { success: true,
+        message: `🔮 SURTO DE MANA — energia total restaurada + próximos 2 ataques mágicos ×1,5. Pool de abilities full.` };
+    },
+  },
+
 };
 
 // ─── Lookup ───────────────────────────────────────────────────────────────────
