@@ -148,6 +148,52 @@ export interface BattleContext {
   enemySurviveLethalAvailable: boolean;
   /** True se ainda devemos rolar enemyMissChance (sai depois do primeiro ataque do inimigo). */
   enemyMissCheckPending: boolean;
+
+  // ─── Patch 2.0 — Mecânicas criativas (cartas Lendária+) ─────────────────
+  /** Save-point: snapshot do estado do jogador. Se cair, restaura ao invés
+   *  de game-over. Inimigo perde respawnEnemyHpPenalty% do HP máx por uso. */
+  respawnSnapshot:        BattleSnapshot | null;
+  savePointCharges:       number;
+  respawnEnemyHpPenalty:  number; // 0..1
+  /** Snapshot do estado no início do turno passado (Requiem rewind). */
+  lastTurnSnapshot:       BattleSnapshot | null;
+  /** Companion (ex: Kamish dragão): dispara dano extra ao fim do turno do jogador. */
+  companion: { name: string; damage: number; turnsLeft: number; element?: ElementType } | null;
+  /** Spirit Gun: acumula cargas a cada hit recebido; dispara nuke. */
+  spiritGunCharge: {
+    charges: number; damagePerCharge: number; turnsLeft: number;
+    triggerHpThreshold: number; fired: boolean;
+  } | null;
+  /** UBW Sword Rain: dispara um hit grátis no início de cada turno do jogador. */
+  swordRain: { remainingHits: number; damagePerHit: number; finalBonusMult: number } | null;
+  /** Auto-counter (Ultra Instinto): qualquer dano recebido gera contra-ataque true. */
+  autoCounter: { percent: number; turnsLeft: number } | null;
+  /** Hollow Purple chain (3 turnos). 0=inativo, 1-3=estágios. */
+  hollowPurpleStage:  0 | 1 | 2 | 3;
+  hollowPurpleAccum:  number;
+  /** Monarch Aura (Kamish's Wrath): mult de atributos por phase do boss. */
+  monarchAttrMult:    number;
+  monarchPhasesHit:   number; // 0..3
+  /** Próxima ability do jogador é amplificada para versão Requiem. */
+  requiemNextAmplify: boolean;
+  /** Magic-pierce: ignora defesa mágica do inimigo (Zoltraak). */
+  magicPierceTurnsLeft: number;
+  /** Geass — usável uma única vez por batalha. */
+  geassUsed: boolean;
+  /** Domain Expansion: inimigo tem N% de falhar abilities, jogador sem custo. */
+  domainEnemyFailChance: number;     // 0..1
+  domainEnergyDiscountTurns: number; // turns left of no-cost player abilities
+}
+
+/** Snapshot mínimo pra rewind/respawn. */
+export interface BattleSnapshot {
+  turn: number;
+  playerHp: number;
+  playerStatus: ActiveStatus | null;
+  playerStatuses: EquipStatus[];
+  enemyHp: number;
+  enemyStatus: ActiveStatus | null;
+  enemyStatuses: EquipStatus[];
 }
 
 // ─── Item types ───────────────────────────────────────────────────────────────
@@ -267,6 +313,24 @@ export class BattleEngine {
       surviveLethalAvailable:        !!(playerPassives && playerPassives.surviveLethal),
       enemySurviveLethalAvailable:   !!(enemyPassives  && enemyPassives.surviveLethal),
       enemyMissCheckPending:         !!(playerPassives && playerPassives.enemyMissChance > 0),
+      // Patch 2.0 — defaults inertes pras mecânicas novas
+      respawnSnapshot:        null,
+      savePointCharges:       0,
+      respawnEnemyHpPenalty:  0,
+      lastTurnSnapshot:       null,
+      companion:              null,
+      spiritGunCharge:        null,
+      swordRain:              null,
+      autoCounter:            null,
+      hollowPurpleStage:      0,
+      hollowPurpleAccum:      0,
+      monarchAttrMult:        1,
+      monarchPhasesHit:       0,
+      requiemNextAmplify:     false,
+      magicPierceTurnsLeft:   0,
+      geassUsed:              false,
+      domainEnemyFailChance:  0,
+      domainEnergyDiscountTurns: 0,
     };
   }
 
@@ -393,13 +457,15 @@ export class BattleEngine {
     const defDown = this.ctx.enemyStatuses
       .filter(s => s.type === 'defense_down')
       .reduce((acc, s) => acc + (s.value ?? 0), 0);
+    // Patch 2.0 — Magic-pierce (Zoltraak): zera defesa mágica do alvo
+    const magicPierceActive = this.ctx.magicPierceTurnsLeft > 0;
     const defender: CombatantStats = {
       level:        this.ctx.enemy.level,
       forca:        0,
       inteligencia: 0,
       agilidade:    this.ctx.enemy.velocidade,
       defFisica:    Math.max(0, this.ctx.enemy.defFisica - defDown),
-      defMagica:    Math.max(0, this.ctx.enemy.defMagica - defDown),
+      defMagica:    magicPierceActive ? 0 : Math.max(0, this.ctx.enemy.defMagica - defDown),
       elementType:  this.ctx.enemy.elementType,
       elementTypeSecondary: this.ctx.enemy.elementTypeSecondary ?? null,
     };
@@ -422,11 +488,14 @@ export class BattleEngine {
       this.log('player', '🛡️ Imune! Sem efeito.', 'effect');
     } else {
       const baseDmg  = Math.floor(result.damage * wetMod * this.getOutgoingFieldMultiplier(effectiveAbility.elementName) * this.getPlayerFormDamageMultiplier(effectiveAbility.damageType));
-      const finalDmg = this.applyEquipStatusAmp(baseDmg, effectiveAbility.damageType);
+      // Patch 2.0 — Monarch aura (Kamish's Wrath): mult cumulativo de cada phase HP do boss derrubada
+      const monarchScaled = Math.floor(baseDmg * this.ctx.monarchAttrMult);
+      const finalDmg = this.applyEquipStatusAmp(monarchScaled, effectiveAbility.damageType);
       this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - finalDmg);
       this.applyEquipStatusLifesteal(finalDmg);
       this.onPlayerDamageDealt(finalDmg, result.effectiveness, effectiveAbility);
       this.maybeActivateBossPhase2();
+      this.checkMonarchAuraStacks();
 
       if (result.isCritical)         this.log('player', '💥 Acerto crítico!', 'effect');
       if (result.effectivenessLabel) this.log('player', result.effectivenessLabel, 'effect');
@@ -631,7 +700,35 @@ export class BattleEngine {
       return Math.max(0, dmg);
     }
     this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - dmg);
+    // Patch 2.0 — Hooks ao tomar dano: Spirit Gun acumula carga; Auto-counter retalia
+    if (dmg > 0) this.onPlayerHitTaken(dmg);
     return dmg;
+  }
+
+  /** Patch 2.0 — Monarch aura: cada phase HP atravessada (75/50/25%) dá +30% atributos. */
+  private checkMonarchAuraStacks() {
+    if (this.ctx.monarchAttrMult <= 1) return; // aura inativa
+    const hpFrac = this.ctx.enemy.hpCurrent / Math.max(1, this.ctx.enemy.hpMax);
+    const thresholds = [0.75, 0.50, 0.25];
+    const expectedPhases = thresholds.filter(t => hpFrac < t).length;
+    while (this.ctx.monarchPhasesHit < expectedPhases) {
+      this.ctx.monarchPhasesHit++;
+      this.ctx.monarchAttrMult *= 1.30;
+      this.log('player', `👑 AURA DO MONARCA — ${this.ctx.monarchPhasesHit}× sombras despertam. Dano ×${this.ctx.monarchAttrMult.toFixed(2)}.`, 'effect');
+    }
+  }
+
+  /** Patch 2.0 — Hooks acumuladores quando o jogador sofre dano. */
+  private onPlayerHitTaken(rawDmg: number) {
+    if (this.ctx.spiritGunCharge && !this.ctx.spiritGunCharge.fired) {
+      this.ctx.spiritGunCharge.charges += 1;
+      this.log('player', `⚡ Reigan carregando — ${this.ctx.spiritGunCharge.charges} cargas.`, 'effect');
+    }
+    if (this.ctx.autoCounter && this.ctx.enemy.hpCurrent > 0) {
+      const counter = Math.max(1, Math.floor(rawDmg * this.ctx.autoCounter.percent));
+      this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - counter);
+      this.log('player', `🌀 Contra-ataque do Instinto — ${counter} de dano verdadeiro.`, 'damage', counter);
+    }
   }
 
   /** Player uses an item (does not consume an action in enemy turn if player turn) */
@@ -907,9 +1004,11 @@ export class BattleEngine {
       this.enemyChooseAndAttack();
     }
 
-    // Player dead? — Patch 2.5 revive check kicks in here.
+    // Player dead? — Patch 2.0: save-point (Return by Death) > revive > game over.
     if (this.ctx.player.hpCurrent <= 0) {
-      if (this.ctx.reviveCharges > 0) {
+      if (this.tryRespawnFromSavePoint()) {
+        // Restored from save point — keep playing.
+      } else if (this.ctx.reviveCharges > 0) {
         this.ctx.reviveCharges -= 1;
         this.ctx.player.hpCurrent = Math.max(1, Math.floor(this.ctx.player.hpMax * 0.5));
         this.log('system', `✨ Você renasceu! HP restaurado a ${this.ctx.player.hpCurrent}.`, 'effect');
@@ -923,6 +1022,37 @@ export class BattleEngine {
 
     this.endTurn();
     return this.snapshot();
+  }
+
+  // ─── Patch 2.0 — Save-point logic (Return by Death) ────────────────────────
+  /** Captura snapshot atual pra rewind/respawn. */
+  private captureSnapshot(): BattleSnapshot {
+    return {
+      turn:           this.ctx.turn,
+      playerHp:       this.ctx.player.hpCurrent,
+      playerStatus:   this.ctx.playerStatus ? { ...this.ctx.playerStatus } : null,
+      playerStatuses: this.ctx.playerStatuses.map(s => ({ ...s })),
+      enemyHp:        this.ctx.enemy.hpCurrent,
+      enemyStatus:    this.ctx.enemyStatus  ? { ...this.ctx.enemyStatus  } : null,
+      enemyStatuses:  this.ctx.enemyStatuses.map(s => ({ ...s })),
+    };
+  }
+  /** Tenta usar respawnSnapshot. True se conseguiu (vida do jogador volta + inimigo perde HP máx). */
+  private tryRespawnFromSavePoint(): boolean {
+    if (!this.ctx.respawnSnapshot || this.ctx.savePointCharges <= 0) return false;
+    const snap = this.ctx.respawnSnapshot;
+    // Restaura jogador
+    this.ctx.player.hpCurrent = snap.playerHp;
+    this.ctx.playerStatus     = snap.playerStatus ? { ...snap.playerStatus } : null;
+    this.ctx.playerStatuses   = snap.playerStatuses.map(s => ({ ...s }));
+    // Penaliza HP máx do inimigo permanentemente
+    const penalty = Math.floor(this.ctx.enemy.hpMax * this.ctx.respawnEnemyHpPenalty);
+    this.ctx.enemy.hpMax     = Math.max(1, this.ctx.enemy.hpMax - penalty);
+    this.ctx.enemy.hpCurrent = Math.min(this.ctx.enemy.hpCurrent, this.ctx.enemy.hpMax);
+    this.ctx.savePointCharges -= 1;
+    if (this.ctx.savePointCharges <= 0) this.ctx.respawnSnapshot = null;
+    this.log('system', `🌀 RETORNO PELA MORTE — Subaru voltou. Inimigo perdeu ${penalty} de HP máx permanentemente.`, 'effect');
+    return true;
   }
 
   // ─── PvP: enemy turn driven by opponent's choice ─────────────────────────────
@@ -1033,6 +1163,12 @@ export class BattleEngine {
   private enemyChooseAndAttack() {
     // Onda 11.3 — Persuasão (carisma 60): inimigo erra primeiro ataque.
     if (this.tryRollEnemyFirstMiss()) return;
+
+    // Patch 2.0 — Domain Expansion: inimigo tem chance de falhar dentro do domínio
+    if (this.ctx.domainEnemyFailChance > 0 && Math.random() < this.ctx.domainEnemyFailChance) {
+      this.log('enemy', `🌑 A energia do inimigo se dissipa no domínio — ele falhou!`, 'effect');
+      return;
+    }
 
     // Patch 2.5: filter out any abilities erased by player cards.
     const erased = this.ctx.erasedEnemyAbilityIds;
@@ -1150,7 +1286,71 @@ export class BattleEngine {
     }
     // Onda 11.3 — inspiração (passiva healPerTurn): só em contexto de raid.
     this.applyHealPerTurnIfRaid();
+    // Patch 2.0 — tick mecânicas criativas
+    this.tickPatch20Mechanics();
     this.ctx.phase = 'PLAYER_TURN';
+  }
+
+  // ─── Patch 2.0 — tick das mecânicas criativas a cada turno completo ───────
+  private tickPatch20Mechanics() {
+    // Companion (Kamish dragão etc): bate no inimigo ao iniciar o turno do player
+    if (this.ctx.companion && this.ctx.companion.turnsLeft > 0 && this.ctx.enemy.hpCurrent > 0) {
+      const dmg = this.ctx.companion.damage;
+      this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - dmg);
+      this.log('player', `🐉 ${this.ctx.companion.name} atacou! −${dmg} HP`, 'damage', dmg);
+      this.ctx.companion.turnsLeft--;
+      if (this.ctx.companion.turnsLeft <= 0) {
+        this.log('system', `${this.ctx.companion.name} desapareceu.`, 'info');
+        this.ctx.companion = null;
+      }
+    }
+    // Sword Rain (UBW): 1 hit grátis por turno
+    if (this.ctx.swordRain && this.ctx.swordRain.remainingHits > 0 && this.ctx.enemy.hpCurrent > 0) {
+      const dmg = this.ctx.swordRain.damagePerHit;
+      this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - dmg);
+      this.log('player', `⚔️ Lâmina materializada — −${dmg} HP`, 'damage', dmg);
+      this.ctx.swordRain.remainingHits--;
+      if (this.ctx.swordRain.remainingHits <= 0) {
+        // Bônus final: próxima ability ×finalBonusMult
+        this.ctx.playerStatuses.push({
+          type: 'physical_amp', multiplier: this.ctx.swordRain.finalBonusMult, charges: 1,
+        });
+        this.ctx.playerStatuses.push({
+          type: 'magic_amp', multiplier: this.ctx.swordRain.finalBonusMult, charges: 1,
+        });
+        this.log('system', `⚔️ Todas as lâminas usadas! Próximo ataque ×${this.ctx.swordRain.finalBonusMult}.`, 'effect');
+        this.ctx.swordRain = null;
+      }
+    }
+    // Auto-counter tick down
+    if (this.ctx.autoCounter) {
+      this.ctx.autoCounter.turnsLeft--;
+      if (this.ctx.autoCounter.turnsLeft <= 0) this.ctx.autoCounter = null;
+    }
+    // Spirit Gun timer + threshold trigger
+    if (this.ctx.spiritGunCharge && !this.ctx.spiritGunCharge.fired) {
+      this.ctx.spiritGunCharge.turnsLeft--;
+      const hpFrac = this.ctx.player.hpCurrent / this.ctx.player.hpMax;
+      if (this.ctx.spiritGunCharge.turnsLeft <= 0 || hpFrac <= this.ctx.spiritGunCharge.triggerHpThreshold) {
+        const nuke = this.ctx.spiritGunCharge.damagePerCharge * this.ctx.spiritGunCharge.charges;
+        this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - nuke);
+        this.log('player', `💥 REIGAN DISPARA! ${this.ctx.spiritGunCharge.charges} cargas × ${this.ctx.spiritGunCharge.damagePerCharge} = ${nuke} de dano verdadeiro.`, 'damage', nuke);
+        this.ctx.spiritGunCharge.fired = true;
+        this.ctx.spiritGunCharge = null;
+      }
+    }
+    // Magic-pierce timer
+    if (this.ctx.magicPierceTurnsLeft > 0) this.ctx.magicPierceTurnsLeft--;
+    // Domain Expansion energy discount timer
+    if (this.ctx.domainEnergyDiscountTurns > 0) {
+      this.ctx.domainEnergyDiscountTurns--;
+      if (this.ctx.domainEnergyDiscountTurns <= 0) {
+        this.ctx.domainEnemyFailChance = 0;
+        this.log('system', '🌑 O Domínio se dissolveu.', 'info');
+      }
+    }
+    // Patch 2.0 — Save lastTurnSnapshot (pra Requiem rewind)
+    this.ctx.lastTurnSnapshot = this.captureSnapshot();
   }
 
   // Onda 11.3 — passiva inspiração: cura % do HP máximo por turno em raids.
