@@ -44,6 +44,8 @@ export interface BattleEnemy {
   defMagica:   number;
   velocidade:  number;
   elementType: ElementType;
+  /** Patch 2.0: second element for dual-type bosses (post-floor 25). */
+  elementTypeSecondary?: ElementType | null;
   abilities:   Ability[];
   spriteUrl?:  string;
   isBoss?:     boolean;
@@ -399,6 +401,7 @@ export class BattleEngine {
       defFisica:    Math.max(0, this.ctx.enemy.defFisica - defDown),
       defMagica:    Math.max(0, this.ctx.enemy.defMagica - defDown),
       elementType:  this.ctx.enemy.elementType,
+      elementTypeSecondary: this.ctx.enemy.elementTypeSecondary ?? null,
     };
 
     // Apply accuracy debuff by reducing ability accuracy temporarily
@@ -556,6 +559,7 @@ export class BattleEngine {
       defFisica:    this.ctx.enemy.defFisica,
       defMagica:    this.ctx.enemy.defMagica,
       elementType:  this.ctx.enemy.elementType,
+      elementTypeSecondary: this.ctx.enemy.elementTypeSecondary ?? null,
     };
     const modifiedAbility: Ability = { ...ability, accuracy: Math.floor(ability.accuracy * accMod) };
     const passiveBundle = this.computePlayerPassiveBundle(modifiedAbility);
@@ -837,6 +841,7 @@ export class BattleEngine {
         defFisica:    this.ctx.enemy.defFisica,
         defMagica:    this.ctx.enemy.defMagica,
         elementType:  this.ctx.enemy.elementType,
+        elementTypeSecondary: this.ctx.enemy.elementTypeSecondary ?? null,
       };
 
       const modified = { ...synthetic, accuracy: Math.floor(synthetic.accuracy * accMod) };
@@ -1635,6 +1640,7 @@ export class BattleEngine {
       defFisica:    this.ctx.enemy.defFisica,
       defMagica:    this.ctx.enemy.defMagica,
       elementType:  this.ctx.enemy.elementType,
+      elementTypeSecondary: this.ctx.enemy.elementTypeSecondary ?? null,
     };
   }
 

@@ -102,6 +102,25 @@ export function getTypeEffectiveness(
   return EFFECTIVENESS[attackType]?.[defenderType] ?? 1.0;
 }
 
+/**
+ * Patch 2.0 — Effectiveness vs a (possibly) dual-element defender.
+ * Multiplies the two effectiveness values, Pokémon-style:
+ *   - Fire vs Grass+Steel → 2 × 2 = 4×
+ *   - Electric vs Ground+Flying → 0 × 2 = 0 (immunity wins)
+ *   - Water vs Fire+Water → 2 × 0.5 = 1×
+ */
+export function getDualTypeEffectiveness(
+  attackType: ElementType,
+  defenderType: ElementType,
+  defenderTypeSecondary?: ElementType | null,
+): number {
+  const primary = getTypeEffectiveness(attackType, defenderType);
+  if (!defenderTypeSecondary || defenderTypeSecondary === defenderType) {
+    return primary;
+  }
+  return primary * getTypeEffectiveness(attackType, defenderTypeSecondary);
+}
+
 export type EffectivenessLevel = 'immune' | 'not_very' | 'normal' | 'super';
 
 export function getEffectivenessLevel(multiplier: number): EffectivenessLevel {

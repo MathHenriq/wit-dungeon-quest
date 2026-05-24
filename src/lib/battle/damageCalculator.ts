@@ -1,5 +1,5 @@
 import type { Ability, ElementType } from '@/types/character';
-import { getTypeEffectiveness, getEffectivenessLabel } from './typeEffectiveness';
+import { getTypeEffectiveness, getDualTypeEffectiveness, getEffectivenessLabel } from './typeEffectiveness';
 import type { AttributeModifiers } from './attributeModifiers';
 import { identityModifiers } from './attributeModifiers';
 
@@ -13,6 +13,8 @@ export interface CombatantStats {
   defFisica:    number;       // physical defense
   defMagica:    number;       // special defense
   elementType?: ElementType;  // for type effectiveness check
+  /** Patch 2.0: second element for dual-type defender (bosses 26+). */
+  elementTypeSecondary?: ElementType | null;
 }
 
 // ─── Result ───────────────────────────────────────────────────────────────────
@@ -127,7 +129,7 @@ export function calculateDamage(
 
   // ── Type effectiveness ───────────────────────────────────────────────────────
   const effectiveness = defender.elementType
-    ? getTypeEffectiveness(ability.elementName, defender.elementType)
+    ? getDualTypeEffectiveness(ability.elementName, defender.elementType, defender.elementTypeSecondary)
     : 1.0;
 
   // Immune → 0 damage
@@ -185,6 +187,6 @@ export function estimateDamage(
   const defStat   = Math.max(1, ability.damageType === 'Physical' ? defender.defFisica : defender.defMagica);
   const levelMod  = (2 * attacker.level / 5) + 2;
   const raw       = ((levelMod * ability.baseDamage * (atkStat / defStat)) / 50) + 2;
-  const eff       = defender.elementType ? getTypeEffectiveness(ability.elementName, defender.elementType) : 1;
+  const eff       = defender.elementType ? getDualTypeEffectiveness(ability.elementName, defender.elementType, defender.elementTypeSecondary) : 1;
   return Math.floor(raw * eff * 0.925); // avg variance
 }

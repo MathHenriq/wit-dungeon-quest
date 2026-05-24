@@ -7,6 +7,8 @@ import { useAbilities, useEquippedAbilities, useEquipAbility, useUnequipAbility,
 import { useDistributePoints } from '@/hooks/useCharacter';
 import { useClassProfile } from '@/hooks/useClassProfile';
 import { applyClassVariant } from '@/lib/skills/abilityVariants';
+import { useQuery } from '@tanstack/react-query';
+import { getMasteredElements } from '@/lib/skills/api';
 import { SkillTreeCanvas } from './SkillTreeCanvas';
 import { SkillDetailPanel } from './SkillDetailPanel';
 import type { Ability } from '@/types/character';
@@ -28,13 +30,38 @@ export function SkillTreePage({ character, studentId, onBack }: SkillTreePagePro
 
   // Data
   const { data: rawAbilities = [], isLoading: loadingAbilities } = useAbilities();
-  const { data: classProfile } = useClassProfile(studentId ?? character.studentId);
+  const resolvedStudentId = studentId ?? character.studentId;
+  const { data: classProfile } = useClassProfile(resolvedStudentId);
   const wave11Class = classProfile?.classType ?? null;
 
-  const abilities = useMemo(
+  // Patch 2.0 — filtro de elementos: só os destravados pelo aluno aparecem
+  // na árvore (principal + secundário + dominados). Antes mostrava os 12.
+  const { data: masteredElements = [] } = useQuery({
+    queryKey: ['skills', 'mastery', resolvedStudentId],
+    queryFn:  () => getMasteredElements(resolvedStudentId!),
+    enabled:  !!resolvedStudentId,
+    staleTime: 60_000,
+  });
+
+  const allowedElements = useMemo(() => {
+    const set = new Set<string>();
+    if (classProfile?.primaryElement)   set.add(String(classProfile.primaryElement).toLowerCase());
+    if (classProfile?.secondaryElement) set.add(String(classProfile.secondaryElement).toLowerCase());
+    masteredElements.forEach(e => set.add(String(e).toLowerCase()));
+    return set;
+  }, [classProfile?.primaryElement, classProfile?.secondaryElement, masteredElements]);
+
+  const variantAbilities = useMemo(
     () => (wave11Class ? rawAbilities.map(a => applyClassVariant(a, wave11Class)) : rawAbilities),
     [rawAbilities, wave11Class],
   );
+
+  // Fallback: se aluno não tem nenhum elemento atribuído ainda, mostra tudo
+  // (evita tela vazia em estado raro de classe sem elemento).
+  const abilities = useMemo(() => {
+    if (allowedElements.size === 0) return variantAbilities;
+    return variantAbilities.filter(a => allowedElements.has(String(a.elementName).toLowerCase()));
+  }, [variantAbilities, allowedElements]);
 
   // Keep selected ability in sync with class-variant names when class loads
   const selectedAbilityResolved = useMemo(

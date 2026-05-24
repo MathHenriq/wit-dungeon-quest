@@ -25,6 +25,8 @@ export interface FloorMapEnemy extends MapEnemy {
   defMagica:    number;
   velocidade:   number;
   elementType:  string;
+  /** Patch 2.0: dual-type boss support (post-floor 25). */
+  elementTypeSecondary?: string | null;
   ability1?:    string | null;
   ability2?:    string | null;
   ability3?:    string | null;

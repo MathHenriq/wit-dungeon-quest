@@ -251,6 +251,21 @@ export function BattleScreen({
           const meta = ELEMENT_META[ctx.enemy.elementType];
           color = meta?.color ?? '#ef4444';
           icon  = meta?.icon  ?? '💥';
+          // Patch 2.0 — dispara o CardActivationAnimation pro deck do inimigo,
+          // mesma animação cinemática do jogador, vinda do "deck dele".
+          const enemyAbId = ctx.lastEnemyAbilityId;
+          const enemyAb   = enemyAbId
+            ? ctx.enemy.abilities.find(a => a.id === enemyAbId)
+            : null;
+          if (enemyAb) {
+            const abMeta = ELEMENT_META[enemyAb.elementName];
+            void playCardActivation({
+              rarity:      'common' as CardRarity,
+              cardName:    enemyAb.name,
+              description: `${ctx.enemy.name} canalizou ${enemyAb.elementName}.`,
+              customTone:  abMeta?.color ?? meta?.color ?? '#ef4444',
+            });
+          }
         }
 
         if (isPlayerAtk) setShowAttackSprite(true);
@@ -413,6 +428,31 @@ export function BattleScreen({
           </span>
           <span className="poke-hpbox-level">Lv.{ctx.enemy.level}</span>
         </div>
+
+        {/* Patch 2.0: badges de elemento (dual nos bosses 26+) */}
+        <div className="poke-element-row">
+          {[ctx.enemy.elementType, ctx.enemy.elementTypeSecondary].filter(Boolean).map((el, i) => {
+            const meta = ELEMENT_META[el as keyof typeof ELEMENT_META];
+            if (!meta) return null;
+            return (
+              <span
+                key={i}
+                className="poke-element-chip"
+                style={{
+                  background: `${meta.color}22`,
+                  border: `1px solid ${meta.color}88`,
+                  color: meta.color,
+                  textShadow: `0 0 6px ${meta.color}66`,
+                }}
+                title={el as string}
+              >
+                <span style={{ fontSize: '0.9em' }}>{meta.icon}</span>
+                <span>{el}</span>
+              </span>
+            );
+          })}
+        </div>
+
         <div className="poke-hpbar-row">
           <span className="poke-hpbar-label">HP</span>
           <div className="poke-hpbar-track">
@@ -425,6 +465,33 @@ export function BattleScreen({
             />
           </div>
         </div>
+
+        {/* Patch 2.0: deck do inimigo — abilities visíveis sem revelar dano */}
+        {ctx.enemy.abilities.length > 0 && (
+          <div className="poke-enemy-skills">
+            <span className="poke-enemy-skills-label">DECK</span>
+            <div className="poke-enemy-skills-list">
+              {ctx.enemy.abilities.slice(0, 4).map(ab => {
+                const meta = ELEMENT_META[ab.elementName as keyof typeof ELEMENT_META];
+                const color = meta?.color ?? '#94a3b8';
+                return (
+                  <span
+                    key={ab.id}
+                    className="poke-enemy-skill-chip"
+                    style={{
+                      borderColor: `${color}66`,
+                      color: '#e6f0ff',
+                    }}
+                    title={`${ab.name} · ${ab.elementName}`}
+                  >
+                    <span style={{ color }}>{meta?.icon ?? '◇'}</span>
+                    <span>{ab.name}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Projectile ──────────────────────────────────────────────────────── */}

@@ -185,6 +185,66 @@
   color: rgba(239, 68, 68, 0.8);
 }
 
+/* ── Patch 2.0 — element chips (mono ou dual) ── */
+.poke-element-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  transform: skewX(5deg);
+  flex-wrap: wrap;
+}
+.poke-element-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+}
+
+/* ── Patch 2.0 — deck do inimigo (abilities preview) ── */
+.poke-enemy-skills {
+  margin-top: 10px;
+  transform: skewX(5deg);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.poke-enemy-skills-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.45);
+  padding-top: 3px;
+  flex-shrink: 0;
+}
+.poke-enemy-skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.poke-enemy-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  background: rgba(8, 14, 28, 0.55);
+  border: 1px solid;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
 /* ── HP bar row ── */
 .poke-hpbar-row {
   display: flex;

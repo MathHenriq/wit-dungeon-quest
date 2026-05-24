@@ -49,8 +49,9 @@ export function defaultDuration(effect: StatusEffect): number {
     case 'poison':
     case 'bleed':
     case 'curse':   return 3;
+    // Patch 2.0 — paralyze/freeze ficavam tão breves que mal eram percebidos.
     case 'freeze':
-    case 'paralyze':
+    case 'paralyze': return 3;
     case 'confuse':
     case 'fear':
     case 'blind':   return 2;
@@ -92,18 +93,20 @@ export function tickStatus(
 
     // ── Action-blocking effects ───────────────────────────────────────────────
     case 'freeze': {
-      const blocked = Math.random() < 0.5;
+      // Patch 2.0 — bumpado de 50% → 70%
+      const blocked = Math.random() < 0.70;
       return {
         damage: 0,
-        message: blocked ? '❄️ Congelado — não pode agir!' : '❄️ Descongelou!',
+        message: blocked ? '❄️ Congelado — não pode agir!' : '❄️ Descongelou parcialmente!',
         blocked,
       };
     }
     case 'paralyze': {
-      const blocked = Math.random() < 0.25;
+      // Patch 2.0 — bumpado de 25% → 50%
+      const blocked = Math.random() < 0.50;
       return {
         damage: 0,
-        message: blocked ? '⚡ Paralisado — não pode agir!' : '⚡ Está paralisado.',
+        message: blocked ? '⚡ Paralisado — não pode agir!' : '⚡ Tenta agir, paralisado.',
         blocked,
       };
     }
@@ -116,7 +119,8 @@ export function tickStatus(
 
     // ── Conditional self-damage ───────────────────────────────────────────────
     case 'confuse': {
-      if (Math.random() < 0.33) {
+      // Patch 2.0 — 33% → 45% self-hit
+      if (Math.random() < 0.45) {
         const dmg = Math.max(1, Math.floor(currentHp * 0.10));
         return { damage: dmg, message: `😵 Confuso — atacou a si mesmo! −${dmg} HP`, blocked: false };
       }

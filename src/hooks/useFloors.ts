@@ -30,6 +30,8 @@ export interface FloorEnemy {
   defMagica:            number;
   velocidade:           number;
   elementType:          ElementType;
+  /** Patch 2.0: bosses pós-andar 25 podem ter um segundo elemento. */
+  elementTypeSecondary: ElementType | null;
   ability1:             string | null;
   ability2:             string | null;
   ability3:             string | null;
@@ -94,6 +96,7 @@ function rowToEnemy(r: any, index: number = 0): FloorEnemy {
     defMagica:            r.def_magica,
     velocidade:           r.velocidade,
     elementType:          r.element_type as ElementType,
+    elementTypeSecondary: (r.element_type_secondary ?? null) as ElementType | null,
     ability1:             r.ability_1 ?? null,
     ability2:             r.ability_2 ?? null,
     ability3:             r.ability_3 ?? null,
@@ -157,7 +160,7 @@ export function useFloorEnemies(floorId: string | null) {
     queryFn: async () => {
       const { data, error } = await studentSupabase
         .from('enemies')
-        .select('id, floor_id, name, level, is_boss, lore, hp_max, def_fisica, def_magica, velocidade, element_type, ability_1, ability_2, ability_3, ability_4, special_ability_name, special_ability_effect, special_trigger, position_x, position_y, icon_type')
+        .select('id, floor_id, name, level, is_boss, lore, hp_max, def_fisica, def_magica, velocidade, element_type, element_type_secondary, ability_1, ability_2, ability_3, ability_4, special_ability_name, special_ability_effect, special_trigger, position_x, position_y, icon_type')
         .eq('floor_id', floorId!)
         .order('is_boss', { ascending: true });
       if (error) throw error;

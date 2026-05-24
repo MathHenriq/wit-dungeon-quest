@@ -54,6 +54,7 @@ export function useFloorMapEnemies(
         defMagica:   r.def_magica,
         velocidade:  r.velocidade,
         elementType: r.element_type as ElementType,
+        elementTypeSecondary: (r.element_type_secondary ?? null) as ElementType | null,
         ability1:    r.ability_1 ?? null,
         ability2:    r.ability_2 ?? null,
         ability3:    r.ability_3 ?? null,
