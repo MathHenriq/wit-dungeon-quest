@@ -4,12 +4,19 @@ import { X, Edit3, Loader2, CheckCircle } from "lucide-react";
 import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { Inventory } from "@/components/inventory/Inventory";
+import { CreationTicketsPanel } from "@/components/student/CreationTicketsPanel";
+import { TitlesPanel } from "@/components/student/TitlesPanel";
 import type { Student, InventoryItem, StudentPet, StudentTitle, ShopItem } from "@/types";
 import type { Ability, BattleCharacter } from "@/types/character";
 import { ELEMENT_META, canUseAbility } from "@/types/character";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAnon } from "@/integrations/supabase/anonClient";
+import { useEquippedSkins, resolveItemImage } from "@/hooks/useEquippedSkins";
+import { CornerOrnament } from "@/components/battle/CardActivationAnimation";
+import { useClassProfile } from "@/hooks/useClassProfile";
+import { CLASS_META } from "@/lib/skills/classIcons";
+import { applyClassVariant } from "@/lib/skills/abilityVariants";
 import { toast } from "sonner";
 
 // ─── Extended types ────────────────────────────────────────────────────────────
@@ -197,7 +204,288 @@ const HERO_CSS = `
 .hs-action-panel {
   animation: hs-slide-up 0.2s cubic-bezier(0.22,1,0.36,1) both;
 }
+
+/* ── Responsive (Wave C.2.5) ───────────────────────────────────────────── */
+/* The 3-column desktop layout collapses to a single vertical stack on
+   tablets and below. We use grid-template-areas so the JSX doesn't need
+   to know about breakpoints — order in the stack is fixed in CSS. */
+.hs-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr 310px;
+  grid-template-rows: 64px auto 72px;
+  grid-template-areas:
+    "topbar topbar topbar"
+    "equip  center stats"
+    "bottom bottom bottom";
+}
+.hs-area-topbar { grid-area: topbar; }
+.hs-area-equip  { grid-area: equip; }
+.hs-area-center { grid-area: center; }
+.hs-area-stats  { grid-area: stats; }
+.hs-area-bottom { grid-area: bottom; }
+
+@media (max-width: 1024px) {
+  .hs-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 64px auto auto auto 72px;
+    grid-template-areas:
+      "topbar"
+      "equip"
+      "center"
+      "stats"
+      "bottom";
+  }
+}
+@media (max-width: 640px) {
+  .hs-grid {
+    /* tighter spacing on phones */
+    grid-template-rows: 56px auto auto auto 64px;
+  }
+}
+
+/* ── Carta Especial — Solo Leveling notification style ─────────────────── */
+.hs-sl-panel {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(180deg, rgba(10, 18, 38, 0.94) 0%, rgba(6, 12, 26, 0.96) 100%);
+  border: 2px solid var(--sl-tone, #ffffff);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06) inset,
+    0 0 28px color-mix(in srgb, var(--sl-tone, #ffffff) 35%, transparent),
+    0 0 48px color-mix(in srgb, var(--sl-tone, #ffffff) 12%, transparent);
+  color: #f5f5f7;
+  font-family: 'Rajdhani', 'Cinzel', sans-serif;
+  transition: box-shadow 0.25s ease;
+}
+.hs-sl-panel:hover {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.08) inset,
+    0 0 36px color-mix(in srgb, var(--sl-tone, #ffffff) 50%, transparent),
+    0 0 60px color-mix(in srgb, var(--sl-tone, #ffffff) 18%, transparent);
+}
+.hs-sl-corner {
+  position: absolute;
+  width: 44px; height: 44px;
+  color: var(--sl-tone, #ffffff);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--sl-tone, #ffffff) 75%, transparent));
+  pointer-events: none;
+  z-index: 3;
+}
+.hs-sl-corner-tl { top: -8px; left: -8px; }
+.hs-sl-corner-tr { top: -8px; right: -8px; transform: scaleX(-1); }
+.hs-sl-corner-bl { bottom: -8px; left: -8px; transform: scaleY(-1); }
+.hs-sl-corner-br { bottom: -8px; right: -8px; transform: scale(-1, -1); }
+
+.hs-sl-header {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+.hs-sl-header-icon {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+.hs-sl-header-text {
+  color: #ffffff;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--sl-tone, #ffffff) 65%, transparent);
+}
+.hs-sl-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--sl-tone, #ffffff) 85%, transparent) 50%,
+    transparent 100%
+  );
+  position: relative;
+}
+.hs-sl-divider::after {
+  /* central diamond glow accent like the Notice screen */
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 60px; height: 6px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, var(--sl-tone, #ffffff) 0%, transparent 70%);
+  filter: blur(2px);
+  opacity: 0.85;
+}
+.hs-sl-bracket {
+  color: var(--sl-tone, #ffffff);
+  font-weight: 700;
+  padding: 0 4px;
+}
+.hs-sl-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: clamp(16px, 1.8vw, 20px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  text-align: center;
+  margin: 0;
+  line-height: 1.25;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--sl-tone, #ffffff) 45%, transparent);
+}
+.hs-sl-art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(180deg, rgba(8, 14, 28, 0.6) 0%, rgba(4, 8, 20, 0.85) 100%);
+  border: 1px solid color-mix(in srgb, var(--sl-tone, #ffffff) 40%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.hs-sl-art img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  padding: 10px;
+  filter: drop-shadow(0 4px 14px rgba(0,0,0,0.7));
+  transition: transform 0.45s cubic-bezier(0.22,1,0.36,1);
+}
+.hs-sl-panel:hover .hs-sl-art img {
+  transform: scale(1.04);
+}
+.hs-sl-art::after {
+  /* faint scanline overlay to evoke the Solo Leveling holographic feel */
+  content: "";
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 2px,
+    rgba(255,255,255,0.025) 2px 3px
+  );
+  pointer-events: none;
+}
+.hs-sl-attr {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  background: rgba(8, 14, 28, 0.85);
+  border: 1px solid color-mix(in srgb, var(--sl-tone, #ffffff) 35%, transparent);
+  color: #fde68a;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  backdrop-filter: blur(6px);
+}
+.hs-sl-ability {
+  background: rgba(255,255,255,0.03);
+  border-left: 2px solid var(--sl-tone, #ffffff);
+  padding: 8px 11px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(235, 240, 250, 0.9);
+  letter-spacing: 0.01em;
+}
+.hs-sl-ability-name {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--sl-tone, #ffffff);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.hs-sl-cta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+}
+.hs-sl-cta strong {
+  color: var(--sl-tone, #ffffff);
+  font-weight: 700;
+}
 `;
+
+// ─── Collapsible panel wrapper (Wave C.2.4) ────────────────────────────────
+function CollapsiblePanel({
+  title,
+  icon,
+  badge,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  badge?: string | number;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{
+      background: "rgba(8,14,24,0.55)",
+      border: `1px solid ${open ? T.borderGlow + "55" : T.borderDim}`,
+      borderRadius: 8,
+      overflow: "hidden",
+      transition: "border-color 0.18s ease",
+    }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%",
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "9px 12px",
+          background: "transparent", border: "none",
+          color: T.textSecondary,
+          cursor: "pointer",
+          fontFamily: FONT_ORB, fontSize: 10, fontWeight: 700,
+          letterSpacing: "2.5px", textTransform: "uppercase",
+        }}
+      >
+        {icon && <span style={{ display: "inline-flex", alignItems: "center" }}>{icon}</span>}
+        <span style={{ flex: 1, textAlign: "left" }}>{title}</span>
+        {badge !== undefined && (
+          <span style={{
+            fontFamily: FONT_MON, fontSize: 9, fontWeight: 700,
+            padding: "2px 7px", borderRadius: 10,
+            background: open ? `${T.borderGlow}22` : "rgba(255,255,255,0.05)",
+            color: open ? T.textAccent : T.textMuted,
+            border: `1px solid ${open ? T.borderGlow + "55" : "rgba(255,255,255,0.1)"}`,
+            letterSpacing: "0.5px",
+          }}>
+            {badge}
+          </span>
+        )}
+        <svg
+          width="12" height="12" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" strokeWidth="2.5"
+          strokeLinecap="round" strokeLinejoin="round"
+          style={{
+            transition: "transform 0.22s ease",
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            opacity: 0.7,
+          }}
+        >
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+      </button>
+      {open && (
+        <div style={{ borderTop: `1px solid ${T.borderDim}` }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Background ────────────────────────────────────────────────────────────────
 function HeroBackground({ classColor }: { classColor: string }) {
@@ -253,6 +541,8 @@ function EquipActionPanel({
   onMouseLeave?: () => void;
 }) {
   const item = inv?.item as ShopItemX | undefined;
+  const { skinsByBaseId } = useEquippedSkins();
+  const equippedImage = resolveItemImage(item ?? null, skinsByBaseId);
 
   const rarity = item?.rarity ?? "common";
   const rc = RARITY_COLOR[rarity] ?? T.common;
@@ -321,8 +611,8 @@ function EquipActionPanel({
               display: "flex", alignItems: "center", justifyContent: "center",
               overflow: "hidden",
             }}>
-              {item.image_url ? (
-                <img src={item.image_url} alt={item.name} style={{ width: 52, height: 52, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              {equippedImage ? (
+                <img src={equippedImage} alt={item.name} style={{ width: 52, height: 52, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
               ) : (
                 <GameIcon id={slotDef.iconId} size={32} />
               )}
@@ -426,10 +716,12 @@ function EquipActionPanel({
                     border: `1px solid ${orc}40`,
                     display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
                   }}>
-                    {oItem.image_url
-                      ? <img src={oItem.image_url} alt={oItem.name} style={{ width: 28, height: 28, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                      : <GameIcon id={slotDef.iconId} size={18} />
-                    }
+                    {(() => {
+                      const altImg = resolveItemImage(oItem, skinsByBaseId);
+                      return altImg
+                        ? <img src={altImg} alt={oItem.name} style={{ width: 28, height: 28, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        : <GameIcon id={slotDef.iconId} size={18} />;
+                    })()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontFamily: FONT_RAJ, fontSize: 13, fontWeight: 600, color: T.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -473,6 +765,7 @@ function EquipmentPanel({
   const [togglingCat, setTogglingCat] = useState<string | null>(null);
   const tileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { skinsByBaseId } = useEquippedSkins();
 
   // Build equipped-by-category map
   // For carta_especial: any equipped item with ability_key.
@@ -561,7 +854,7 @@ function EquipmentPanel({
 
   return (
     <div style={{
-      gridColumn: "1", gridRow: "2",
+      gridArea: "equip",
       background: T.bgPanel,
       borderRight: `1px solid ${T.borderDim}`,
       backdropFilter: "blur(16px)",
@@ -610,167 +903,173 @@ function EquipmentPanel({
             const isHovered = hoveredCat === slotDef.category;
             const isEquipped = inv?.is_equipped ?? false;
 
-            // ── Carta especial: render as arcane-card (shop style) ───────────
+            // ── Carta especial: Solo Leveling notification style ─────────────
             if (isCartaEspecial) {
-              const ARCANE_RARITY: Record<string, { color: string; glow: string; label: string }> = {
-                common:    { color: "#c8d0d8", glow: "rgba(200,208,216,0.3)",  label: "Comum"    },
-                uncommon:  { color: "#4ade80", glow: "rgba(74,222,128,0.35)", label: "Incomum"  },
-                rare:      { color: "#60c8f8", glow: "rgba(96,200,248,0.4)",  label: "Rara"     },
-                epic:      { color: "#b57bee", glow: "rgba(181,123,238,0.45)",label: "Épica"    },
-                legendary: { color: "#f5c84b", glow: "rgba(245,200,75,0.55)", label: "Lendária" },
-                mythic:    { color: "#f05050", glow: "rgba(240,80,80,0.55)",  label: "Mítica"   },
+              const SL_RARITY: Record<string, { color: string; label: string }> = {
+                common:    { color: "#c8d0d8", label: "Comum"    },
+                uncommon:  { color: "#4ade80", label: "Incomum"  },
+                rare:      { color: "#60c8f8", label: "Rara"     },
+                epic:      { color: "#b57bee", label: "Épica"    },
+                legendary: { color: "#f5c84b", label: "Lendária" },
+                mythic:    { color: "#f05050", label: "Mítica"   },
               };
-              const ar = shopItem ? (ARCANE_RARITY[rarity] ?? ARCANE_RARITY.common) : null;
-              const goldGlow = "rgba(212,168,83,0.4)";
+              const ar = shopItem ? (SL_RARITY[rarity] ?? SL_RARITY.common) : SL_RARITY.legendary;
               const activeAttrs = shopItem ? ATTR_META.filter(a => (shopItem[a.key] ?? 0) > 0) : [];
+              const emptyAccent = "#7dd3fc"; // light cyan for empty slot, matches Solo Leveling default panel
+              const tone = shopItem ? ar.color : emptyAccent;
+              const abilityName = shopItem ? ((shopItem as ShopItemX & { ability_name?: string }).ability_name ?? null) : null;
+              const abilityDesc = shopItem ? ((shopItem as ShopItemX & { ability_description?: string }).ability_description ?? null) : null;
+              const abilityMode = shopItem ? ((shopItem as ShopItemX & { ability_mode?: string }).ability_mode ?? null) : null;
 
               return (
                 <div
                   key={slotDef.category}
                   ref={el => { if (el) tileRefs.current.set(slotDef.category, el); }}
-                  className="hs-equip-tile"
+                  className="hs-equip-tile hs-sl-panel"
                   style={{
                     animationDelay: `${0.08 + idx * 0.06}s`,
                     gridColumn: "1 / -1",
-                    background: shopItem
-                      ? `linear-gradient(180deg, #1a1028 0%, #07050c 100%)`
-                      : `linear-gradient(180deg, #0d0a14 0%, #06040c 100%)`,
-                    border: shopItem
-                      ? `3px solid ${ar!.color}`
-                      : `2px dashed rgba(212,168,83,0.25)`,
-                    borderRadius: 12,
-                    boxShadow: shopItem
-                      ? isHovered
-                        ? `0 0 0 1px rgba(0,0,0,0.8), 0 20px 36px rgba(0,0,0,0.6), 0 0 18px ${ar!.glow}, 0 0 6px ${ar!.glow}`
-                        : `0 0 0 1px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5), 0 0 8px ${ar!.glow}`
-                      : isHovered
-                        ? `0 0 18px ${goldGlow}`
-                        : "none",
-                    display: "flex",
-                    flexDirection: "column",
-                    overflow: "hidden",
-                    padding: 0,
-                    transition: "transform 0.22s cubic-bezier(0.22,1,0.36,1), box-shadow 0.22s ease",
+                    gridRow: "1 / -1",
+                    ['--sl-tone' as string]: tone,
+                    display: "flex", flexDirection: "column", gap: 12,
+                    padding: "18px 18px 16px",
                     cursor: "pointer",
-                    isolation: "isolate",
-                  }}
+                    minHeight: 0,
+                  } as React.CSSProperties}
                   onMouseEnter={() => handleHover(slotDef.category)}
                   onMouseLeave={handleLeave}
                 >
-                  {shopItem && ar ? (
+                  {/* Corner ornaments */}
+                  <span className="hs-sl-corner hs-sl-corner-tl"><CornerOrnament /></span>
+                  <span className="hs-sl-corner hs-sl-corner-tr"><CornerOrnament /></span>
+                  <span className="hs-sl-corner hs-sl-corner-bl"><CornerOrnament /></span>
+                  <span className="hs-sl-corner hs-sl-corner-br"><CornerOrnament /></span>
+
+                  {/* Header */}
+                  <div className="hs-sl-header" style={{ flexShrink: 0 }}>
+                    <span className="hs-sl-header-icon" aria-hidden>!</span>
+                    <span className="hs-sl-header-text">CARTA ESPECIAL</span>
+                  </div>
+
+                  {/* Divider with diamond glow accent */}
+                  <div className="hs-sl-divider" style={{ flexShrink: 0 }} />
+
+                  {shopItem ? (
                     <>
-                      {/* Art area (Identical to Shop) */}
-                      <div style={{
-                        position: "relative",
-                        width: "100%",
-                        aspectRatio: "4 / 3",
-                        background: `radial-gradient(ellipse at 50% 40%, ${ar.glow} 0%, transparent 65%), linear-gradient(180deg, #1a1028 0%, #07050c 100%)`,
-                        overflow: "hidden",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        {shopItem.image_url ? (
-                          <img
-                            src={shopItem.image_url} alt={shopItem.name}
-                            style={{ width: "100%", height: "100%", objectFit: "contain", filter: `drop-shadow(0 4px 16px rgba(0,0,0,0.6))`, transition: "transform 0.55s cubic-bezier(0.22,1,0.36,1)", transform: isHovered ? "scale(1.08)" : "scale(1)" }}
-                            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
-                        ) : (
-                          <GameIcon id={slotDef.iconId} size={40} />
-                        )}
-                        
-                        {/* Shaders */}
-                        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.7) 95%)", pointerEvents: "none" }} />
-                        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 60%, ${ar.glow})`, mixBlendMode: "screen", opacity: 0.4, pointerEvents: "none" }} />
-                        
-                        {/* Rarity badge */}
-                        <div style={{
-                          position: "absolute", top: 8, right: 8,
-                          padding: "3px 8px",
-                          background: "rgba(8,4,14,0.85)",
-                          border: `1px solid ${ar.color}`,
-                          color: ar.color,
-                          borderRadius: 999,
-                          backdropFilter: "blur(6px)",
-                          fontFamily: "'Cinzel', serif", fontSize: 9, fontWeight: 700,
-                          letterSpacing: "0.18em", textTransform: "uppercase",
-                          zIndex: 3,
-                        }}>
-                          {ar.label}
-                        </div>
-
-                        {/* Attribute badges (Bottom Left) */}
-                        <div style={{
-                          position: "absolute", bottom: 8, left: 8,
-                          display: "flex", flexWrap: "wrap", gap: 4, zIndex: 3
-                        }}>
-                          {activeAttrs.slice(0, 2).map(a => (
-                            <div key={a.key} style={{
-                              display: "inline-flex", alignItems: "center", gap: 3,
-                              padding: "2px 6px", background: "rgba(8,4,14,0.78)",
-                              border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6,
-                              color: "#fde68a", fontFamily: FONT_MON, fontSize: 10, fontWeight: 700,
-                              backdropFilter: "blur(6px)"
-                            }}>
-                              <GameIcon id={a.iconId} size={10} /> +{shopItem[a.key]}
+                      {/* Art panel */}
+                      <div className="hs-sl-art" style={{ flexShrink: 0 }}>
+                        {(() => {
+                          const skImg = resolveItemImage(shopItem, skinsByBaseId);
+                          return skImg ? (
+                            <img
+                              src={skImg}
+                              alt={shopItem.name}
+                              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          ) : (
+                            <div style={{ color: ar.color }}>
+                              <GameIcon id={slotDef.iconId} size={72} />
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })()}
 
-                        {/* Equipped Overlay (Checkmark) */}
-                        <div style={{
-                          position: "absolute", inset: 0,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)",
-                          zIndex: 2, pointerEvents: "none", color: "#4ade80"
-                        }}>
+                        {/* Attribute pills */}
+                        {activeAttrs.length > 0 && (
                           <div style={{
-                            background: "rgba(8,4,14,0.85)", border: "2px solid currentColor",
-                            borderRadius: "50%", width: 52, height: 52,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            boxShadow: "0 0 24px currentColor"
+                            position: "absolute", bottom: 8, left: 8, right: 8,
+                            display: "flex", flexWrap: "wrap", gap: 4, zIndex: 2,
                           }}>
-                            <CheckCircle size={26} />
+                            {activeAttrs.slice(0, 4).map(a => (
+                              <span key={a.key} className="hs-sl-attr">
+                                <GameIcon id={a.iconId} size={10} /> +{shopItem[a.key]}
+                              </span>
+                            ))}
                           </div>
-                        </div>
+                        )}
                       </div>
 
-                      {/* Info area (Identical to Shop arcane-foot) */}
+                      {/* Card name in brackets */}
+                      <h3 className="hs-sl-name" style={{ flexShrink: 0 }}>
+                        <span className="hs-sl-bracket">[</span>
+                        {shopItem.name}
+                        <span className="hs-sl-bracket">]</span>
+                      </h3>
+
+                      {/* Rarity + mode pills line */}
                       <div style={{
-                        padding: "10px 12px 11px",
-                        display: "flex", flexDirection: "column", gap: 4,
-                        borderTop: "1px solid rgba(255,255,255,0.06)",
-                        background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.4))",
+                        display: "flex", justifyContent: "center", gap: 8, flexShrink: 0,
+                        flexWrap: "wrap",
                       }}>
-                        <div style={{
-                          fontFamily: "'Cinzel', serif", fontSize: 13, fontWeight: 700,
-                          color: "#f5f5f7", letterSpacing: "0.04em", lineHeight: 1.25,
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        <span style={{
+                          fontFamily: FONT_MON, fontSize: 9.5, letterSpacing: "0.22em",
+                          textTransform: "uppercase", padding: "2px 8px",
+                          background: `${ar.color}18`, color: ar.color,
+                          border: `1px solid ${ar.color}66`,
                         }}>
-                          {shopItem.name}
-                        </div>
-                        <div style={{
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          gap: 6, fontFamily: "'Exo 2', sans-serif", fontSize: 10.5,
-                          fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase"
-                        }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.42)" }}>
-                            <GameIcon id={slotDef.iconId} size={11} />
-                            CARTA ESPECIAL
+                          ★ {ar.label}
+                        </span>
+                        {abilityMode && (
+                          <span style={{
+                            fontFamily: FONT_MON, fontSize: 9.5, letterSpacing: "0.22em",
+                            textTransform: "uppercase", padding: "2px 8px",
+                            background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.85)",
+                            border: "1px solid rgba(255,255,255,0.18)",
+                          }}>
+                            {abilityMode === "unique" ? "Única" : "Combo"}
                           </span>
-                          <span style={{ color: ar.color, fontWeight: 800 }}>ATIVA</span>
+                        )}
+                        <span style={{
+                          fontFamily: FONT_MON, fontSize: 9.5, letterSpacing: "0.22em",
+                          textTransform: "uppercase", padding: "2px 8px",
+                          background: "rgba(74,222,128,0.12)", color: "#86efac",
+                          border: "1px solid rgba(74,222,128,0.4)",
+                        }}>
+                          ✓ Ativa
+                        </span>
+                      </div>
+
+                      {/* Ability text block — fills available space */}
+                      {(abilityName || abilityDesc) && (
+                        <div className="hs-sl-ability" style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                          {abilityName && (
+                            <span className="hs-sl-ability-name">
+                              <span className="hs-sl-bracket">[</span>
+                              {abilityName}
+                              <span className="hs-sl-bracket">]</span>
+                            </span>
+                          )}
+                          {abilityDesc && <span>{abilityDesc}</span>}
                         </div>
+                      )}
+
+                      {/* CTA */}
+                      <div className="hs-sl-cta" style={{ flexShrink: 0 }}>
+                        passe o mouse · <strong>trocar carta</strong>
                       </div>
                     </>
                   ) : (
-                    /* Empty state */
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "24px 20px" }}>
-                      <div style={{ width: 44, height: 44, border: "1.5px dashed rgba(212,168,83,0.25)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <GameIcon id="star" size={20} />
+                    /* Empty state — Solo Leveling notification */
+                    <div style={{
+                      flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+                      justifyContent: "center", gap: 14, padding: "8px 4px",
+                      textAlign: "center",
+                    }}>
+                      <div style={{
+                        width: 72, height: 72, borderRadius: "50%",
+                        background: "rgba(125, 211, 252, 0.08)",
+                        border: `1px solid ${emptyAccent}66`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: emptyAccent,
+                      }}>
+                        <GameIcon id="star" size={32} />
                       </div>
-                      <div>
-                        <div style={{ fontFamily: FONT_MON, fontSize: 9, color: T.gold, letterSpacing: "2px", textTransform: "uppercase", marginBottom: 3 }}>CARTA ESPECIAL</div>
-                        <div style={{ fontFamily: FONT_RAJ, fontSize: 14, color: "rgba(212,168,83,0.4)", fontWeight: 600 }}>Nenhuma carta ativa</div>
-                        <div style={{ fontFamily: FONT_MON, fontSize: 8, color: T.textMuted, marginTop: 2 }}>Passe o mouse para escolher</div>
+                      <h3 className="hs-sl-name">
+                        <span className="hs-sl-bracket">[</span>
+                        Nenhuma carta ativa
+                        <span className="hs-sl-bracket">]</span>
+                      </h3>
+                      <div className="hs-sl-cta" style={{ maxWidth: 220 }}>
+                        passe o mouse para <strong>escolher uma carta</strong> do seu inventário
                       </div>
                     </div>
                   )}
@@ -807,11 +1106,12 @@ function EquipmentPanel({
                   </div>
                 )}
                 <div style={{ width: 52, height: 52, borderRadius: 6, background: "rgba(8,14,24,0.7)", border: `1px solid ${shopItem ? rc + "35" : "rgba(50,80,120,0.2)"}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-                  {shopItem ? (
-                    shopItem.image_url
-                      ? <img src={shopItem.image_url} alt={shopItem.name} style={{ width: 42, height: 42, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                      : <GameIcon id={slotDef.iconId} size={26} />
-                  ) : (
+                  {shopItem ? (() => {
+                    const skImg = resolveItemImage(shopItem, skinsByBaseId);
+                    return skImg
+                      ? <img src={skImg} alt={shopItem.name} style={{ width: 42, height: 42, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      : <GameIcon id={slotDef.iconId} size={26} />;
+                  })() : (
                     <div style={{ width: 24, height: 24, border: "1.5px dashed rgba(60,90,130,0.25)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <GameIcon id={slotDef.iconId} size={14} />
                     </div>
@@ -878,24 +1178,30 @@ function CharacterDisplay({
   title,
   powerLevel,
   classColor,
+  classLabel,
   battleCharacter,
   equippedAbilities,
   allAbilities,
   onEquipAbility,
   onUnequipAbility,
+  onOpenTitles,
 }: {
   student: Student;
   title: StudentTitle | null;
   powerLevel: number;
   classColor: string;
+  classLabel: string | null;
   battleCharacter: BattleCharacter | null;
   equippedAbilities: { ability_id: string; slot: number }[];
   allAbilities: Ability[];
   onEquipAbility: (id: string, slot: 1 | 2 | 3 | 4) => Promise<void>;
   onUnequipAbility: (slot: 1 | 2 | 3 | 4) => Promise<void>;
+  onOpenTitles: () => void;
 }) {
   const hasPhoto = !!student.profile_photo_url;
   const [togglingSlot, setTogglingSlot] = useState<number | null>(null);
+  // Wave C.2.3 — abilities carousel: element tab filter
+  const [activeElementTab, setActiveElementTab] = useState<string>("all");
 
   // Build slot map: slot number → Ability
   const slotMap = new Map<number, Ability>();
@@ -928,7 +1234,7 @@ function CharacterDisplay({
 
   return (
     <div style={{
-      gridColumn: "2", gridRow: "2",
+      gridArea: "center",
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "space-between",
       position: "relative", overflow: "hidden",
@@ -1045,26 +1351,42 @@ function CharacterDisplay({
               <circle cx="30" cy="37" r="2.5" fill="rgba(255,255,255,0.25)" />
             </svg>
             <span style={{ position: "absolute", bottom: 14, fontFamily: FONT_MON, fontSize: 9, color: classColor, letterSpacing: "2.5px" }}>
-              {(student.character_class ?? "HERÓI").toUpperCase()}
+              {(classLabel ?? "HERÓI").toUpperCase()}
             </span>
           </div>
         )}
       </div>
 
-      {/* Title badge */}
-      {title && (
-        <div style={{
+      {/* Title badge — clickable, opens TitlesPanel modal */}
+      <button
+        type="button"
+        onClick={onOpenTitles}
+        title="Trocar título"
+        style={{
           padding: "6px 18px", marginTop: 8,
-          background: "rgba(212,168,83,0.07)",
-          border: `1px solid rgba(212,168,83,0.3)`,
+          background: title ? "rgba(212,168,83,0.07)" : "rgba(255,255,255,0.03)",
+          border: `1px solid ${title ? "rgba(212,168,83,0.3)" : "rgba(255,255,255,0.1)"}`,
           borderRadius: 20, fontFamily: FONT_ORB,
-          fontSize: 10, fontWeight: 600, color: T.gold,
+          fontSize: 10, fontWeight: 600,
+          color: title ? T.gold : T.textMuted,
           letterSpacing: "4px", textAlign: "center",
-          boxShadow: "0 0 16px rgba(212,168,83,0.1)",
-        }}>
-          {TITLE_LABELS[title.title_type] ?? title.title_type.toUpperCase()}
-        </div>
-      )}
+          boxShadow: title ? "0 0 16px rgba(212,168,83,0.1)" : "none",
+          cursor: "pointer",
+          transition: "all 0.18s ease",
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(212,168,83,0.55)";
+          (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 0 22px rgba(212,168,83,0.22)";
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLButtonElement).style.borderColor = title ? "rgba(212,168,83,0.3)" : "rgba(255,255,255,0.1)";
+          (e.currentTarget as HTMLButtonElement).style.boxShadow = title ? "0 0 16px rgba(212,168,83,0.1)" : "none";
+        }}
+      >
+        {title
+          ? (TITLE_LABELS[title.title_type] ?? title.title_type.toUpperCase())
+          : "DEFINIR TÍTULO ▾"}
+      </button>
 
       {/* Battle Skills Section */}
       <div style={{ width: "100%", padding: "12px 16px 14px", borderTop: `1px solid ${T.borderDim}`, marginTop: 8 }}>
@@ -1142,48 +1464,167 @@ function CharacterDisplay({
             </span>
           </div>
         ) : availableAbilities.length > 0 ? (
-          <div>
-            <div style={{ fontFamily: FONT_MON, fontSize: 8, color: T.textMuted, letterSpacing: "1.5px", marginBottom: 8 }}>
-              DISPONÍVEIS — CLIQUE PARA EQUIPAR
-            </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 120, overflowY: "auto" }}>
-              {availableAbilities.map(abl => {
-                const elMeta = ELEMENT_META[abl.elementName];
-                const elColor = elMeta?.color ?? T.purple;
-                return (
-                  <div
-                    key={abl.id}
-                    onClick={() => !togglingSlot && handleEquip(abl.id)}
-                    title={`${abl.name}${abl.description ? ': ' + abl.description : ''} (${abl.elementName} · Tier ${abl.tier})`}
+          (() => {
+            // Group available abilities by element for the carousel tabs.
+            const byElement = new Map<string, typeof availableAbilities>();
+            for (const abl of availableAbilities) {
+              const key = abl.elementName;
+              if (!byElement.has(key)) byElement.set(key, []);
+              byElement.get(key)!.push(abl);
+            }
+            const elementKeys = Array.from(byElement.keys());
+            const filtered = activeElementTab === "all"
+              ? availableAbilities
+              : (byElement.get(activeElementTab) ?? availableAbilities);
+
+            return (
+              <div>
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  fontFamily: FONT_MON, fontSize: 8, color: T.textMuted,
+                  letterSpacing: "1.5px", marginBottom: 10,
+                }}>
+                  <span>DISPONÍVEIS — CLIQUE PARA EQUIPAR</span>
+                  <span style={{ color: T.textMuted }}>{filtered.length} hab.</span>
+                </div>
+
+                {/* Element filter tabs */}
+                <div style={{
+                  display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8,
+                  marginBottom: 8, scrollbarWidth: "thin",
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveElementTab("all")}
                     style={{
-                      width: 48, height: 48, borderRadius: 8, cursor: "pointer",
-                      background: `${elColor}12`,
-                      border: `1px solid ${elColor}30`,
-                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                      gap: 2, transition: "all 0.15s ease", userSelect: "none", flexShrink: 0,
-                    }}
-                    onMouseEnter={e => {
-                      const el = e.currentTarget as HTMLDivElement;
-                      el.style.background = `${elColor}25`;
-                      el.style.borderColor = `${elColor}70`;
-                      el.style.boxShadow = `0 0 10px ${elColor}20`;
-                    }}
-                    onMouseLeave={e => {
-                      const el = e.currentTarget as HTMLDivElement;
-                      el.style.background = `${elColor}12`;
-                      el.style.borderColor = `${elColor}30`;
-                      el.style.boxShadow = "none";
+                      flexShrink: 0,
+                      padding: "5px 12px", borderRadius: 14,
+                      fontFamily: FONT_MON, fontSize: 9, fontWeight: 700,
+                      letterSpacing: "1.5px", textTransform: "uppercase", cursor: "pointer",
+                      background: activeElementTab === "all" ? "rgba(155,109,255,0.18)" : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${activeElementTab === "all" ? "rgba(155,109,255,0.55)" : "rgba(255,255,255,0.1)"}`,
+                      color: activeElementTab === "all" ? "#cdb4ff" : "rgba(255,255,255,0.55)",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <span style={{ fontSize: 20 }}>{elMeta?.icon ?? "✦"}</span>
-                    <div style={{ fontFamily: FONT_MON, fontSize: 6, color: elColor, letterSpacing: "0.3px", maxWidth: 44, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "center" }}>
-                      {abl.name}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                    Todas ({availableAbilities.length})
+                  </button>
+                  {elementKeys.map(el => {
+                    const meta = ELEMENT_META[el as keyof typeof ELEMENT_META];
+                    const color = meta?.color ?? T.purple;
+                    const active = activeElementTab === el;
+                    const count = byElement.get(el)?.length ?? 0;
+                    return (
+                      <button
+                        key={el}
+                        type="button"
+                        onClick={() => setActiveElementTab(el)}
+                        style={{
+                          flexShrink: 0,
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                          padding: "5px 11px", borderRadius: 14,
+                          fontFamily: FONT_MON, fontSize: 9, fontWeight: 700,
+                          letterSpacing: "1.5px", textTransform: "uppercase", cursor: "pointer",
+                          background: active ? `${color}28` : "rgba(255,255,255,0.03)",
+                          border: `1px solid ${active ? `${color}88` : "rgba(255,255,255,0.1)"}`,
+                          color: active ? color : "rgba(255,255,255,0.55)",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span style={{ fontSize: 14 }}>{meta?.icon ?? "✦"}</span>
+                        {el}
+                        <span style={{ opacity: 0.65 }}>({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Horizontal carousel — bigger cards, scroll left/right */}
+                <div style={{
+                  display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8,
+                  scrollbarWidth: "thin",
+                }}>
+                  {filtered.map(abl => {
+                    const elMeta = ELEMENT_META[abl.elementName];
+                    const elColor = elMeta?.color ?? T.purple;
+                    return (
+                      <div
+                        key={abl.id}
+                        onClick={() => !togglingSlot && handleEquip(abl.id)}
+                        title={abl.description ? `${abl.name}: ${abl.description}` : abl.name}
+                        style={{
+                          flexShrink: 0,
+                          width: 132, padding: "10px 11px 9px",
+                          borderRadius: 8, cursor: "pointer",
+                          background: `linear-gradient(180deg, ${elColor}14 0%, rgba(8,14,24,0.5) 100%)`,
+                          border: `1px solid ${elColor}35`,
+                          display: "flex", flexDirection: "column", gap: 6,
+                          transition: "all 0.18s ease", userSelect: "none",
+                          position: "relative",
+                        }}
+                        onMouseEnter={e => {
+                          const el = e.currentTarget as HTMLDivElement;
+                          el.style.borderColor = `${elColor}88`;
+                          el.style.boxShadow = `0 4px 14px rgba(0,0,0,0.4), 0 0 18px ${elColor}30`;
+                          el.style.transform = "translateY(-2px)";
+                        }}
+                        onMouseLeave={e => {
+                          const el = e.currentTarget as HTMLDivElement;
+                          el.style.borderColor = `${elColor}35`;
+                          el.style.boxShadow = "none";
+                          el.style.transform = "translateY(0)";
+                        }}
+                      >
+                        {/* Top row: element icon + tier */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            width: 28, height: 28, borderRadius: 6,
+                            background: `${elColor}18`, border: `1px solid ${elColor}40`,
+                            fontSize: 16,
+                          }}>
+                            {elMeta?.icon ?? "✦"}
+                          </span>
+                          <span style={{
+                            fontFamily: FONT_MON, fontSize: 8, fontWeight: 700,
+                            letterSpacing: "0.5px",
+                            color: elColor, opacity: 0.85,
+                            padding: "1px 6px", border: `1px solid ${elColor}55`,
+                            borderRadius: 3,
+                          }}>
+                            T{abl.tier}
+                          </span>
+                        </div>
+
+                        {/* Ability name */}
+                        <div style={{
+                          fontFamily: FONT_RAJ, fontSize: 12, fontWeight: 600,
+                          color: "#e6e6f0", lineHeight: 1.2,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          minHeight: 30,
+                        }}>
+                          {abl.name}
+                        </div>
+
+                        {/* Element name */}
+                        <div style={{
+                          fontFamily: FONT_MON, fontSize: 8,
+                          color: elColor, opacity: 0.75,
+                          letterSpacing: "1.2px", textTransform: "uppercase",
+                          paddingTop: 4, borderTop: `1px solid ${elColor}1a`,
+                        }}>
+                          {abl.elementName}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()
         ) : (
           <div style={{ fontFamily: FONT_MON, fontSize: 9, color: T.purple, letterSpacing: "1px", textAlign: "center", background: "rgba(155,109,255,0.06)", border: "1px solid rgba(155,109,255,0.2)", borderRadius: 6, padding: "8px 0" }}>
             ✦ TODOS OS SLOTS EQUIPADOS
@@ -1312,61 +1753,78 @@ function PetCard({ pet }: { pet: StudentPet }) {
 function StatsPanel({ student, pet }: { student: Student; pet: StudentPet | null }) {
   return (
     <div style={{
-      gridColumn: "3", gridRow: "2",
+      gridArea: "stats",
       background: T.bgPanel,
       borderLeft: `1px solid ${T.borderDim}`,
       backdropFilter: "blur(16px)",
       display: "flex", flexDirection: "column",
-      overflow: "hidden",
+      // Page-level scroll (parent .fixed.inset-0.overflow-y-auto) handles
+      // overflow now — no need for per-column scroll containers.
+      padding: "12px 12px 16px",
+      gap: 10,
     }}>
-      {/* Attributes */}
-      <div style={{ padding: "14px 14px 12px", borderBottom: `1px solid ${T.borderDim}`, flex: "0 0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <div style={{ width: 3, height: 18, background: `linear-gradient(180deg, ${T.blue}, transparent)`, borderRadius: 1.5 }} />
-          <span style={{ fontFamily: FONT_ORB, fontSize: 10, letterSpacing: "3px", color: T.textSecondary, fontWeight: 700 }}>ATRIBUTOS</span>
+      {/* Atributos — always-on header, content always visible (most-used data) */}
+      <div style={{
+        background: "rgba(8,14,24,0.55)",
+        border: `1px solid ${T.borderDim}`,
+        borderRadius: 8,
+        padding: "12px 12px 10px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div style={{ width: 3, height: 16, background: `linear-gradient(180deg, ${T.blue}, transparent)`, borderRadius: 1.5 }} />
+          <span style={{ fontFamily: FONT_ORB, fontSize: 10, letterSpacing: "2.5px", color: T.textSecondary, fontWeight: 700 }}>ATRIBUTOS</span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {ATTR_META.map((attr, idx) => (
             <AttrRow key={attr.key} attr={attr} value={(student[attr.key] as number) ?? 0} delay={`${0.1 + idx * 0.07}s`} />
           ))}
         </div>
       </div>
 
-      {/* Pet */}
-      <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", overflow: "hidden", justifyContent: "center" }}>
-        {pet ? (
-          <PetCard pet={pet} />
-        ) : (
-          <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
-            background: "rgba(8,14,24,0.6)", border: `1px dashed ${T.borderDim}`, borderRadius: 10, padding: 20,
-          }}>
-            <GameIcon id="dragon" size={32} />
-            <span style={{ fontFamily: FONT_MON, fontSize: 9, color: T.textMuted, letterSpacing: "1.5px", textAlign: "center" }}>
-              SEM COMPANHEIRO
-            </span>
-            <span style={{ fontFamily: FONT_RAJ, fontSize: 11, color: "rgba(120,150,190,0.4)", textAlign: "center" }}>
-              Desbloqueie um pet na loja
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Pet — collapsible. Closed by default; the empty state was eating */}
+      {/* vertical space. */}
+      <CollapsiblePanel title={pet ? "Companheiro" : "Companheiro (vazio)"}>
+        <div style={{ padding: "10px 12px" }}>
+          {pet ? (
+            <PetCard pet={pet} />
+          ) : (
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+              padding: "12px 8px", color: T.textMuted, textAlign: "center",
+            }}>
+              <GameIcon id="dragon" size={26} />
+              <span style={{ fontFamily: FONT_MON, fontSize: 9, letterSpacing: "1.5px" }}>SEM COMPANHEIRO</span>
+              <span style={{ fontFamily: FONT_RAJ, fontSize: 11, color: "rgba(120,150,190,0.45)" }}>
+                Desbloqueie um pet na loja
+              </span>
+            </div>
+          )}
+        </div>
+      </CollapsiblePanel>
+
+      {/* CreationTicketsPanel self-hides when the student has no tickets, so
+          it only appears when there's something to show. */}
+      <CreationTicketsPanel />
+
+      {/* Removidos: Quests do Dia, Banners do Perfil, Coleção de Backdrops.
+          Esses 4 painéis cresciam a página além de 100vh, dificultando a
+          navegação. Eles seguem acessíveis a partir de outras telas. */}
     </div>
   );
 }
 
 // ─── Top Bar ───────────────────────────────────────────────────────────────────
 function HeroTopBar({
-  student, classColor, onEdit, onBack,
+  student, classColor, classLabel, onEdit, onBack,
 }: {
-  student: Student; classColor: string;
+  student: Student; classColor: string; classLabel: string | null;
   onEdit: () => void; onBack: () => void;
 }) {
   const displayName = student.character_name ?? student.name;
 
   return (
     <div style={{
-      gridColumn: "1 / -1", gridRow: "1",
+      gridArea: "topbar",
       display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: "0 20px",
       background: "rgba(3,5,10,0.9)",
@@ -1435,12 +1893,12 @@ function HeroTopBar({
             {displayName}
           </h1>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
-            {student.character_class && (
+            {classLabel && (
               <span style={{ fontFamily: FONT_MON, fontSize: 10, color: classColor, letterSpacing: "1.5px", textTransform: "uppercase" }}>
-                {student.character_class}
+                {classLabel}
               </span>
             )}
-            {student.character_class && student.race && <span style={{ color: T.textMuted, fontSize: 10 }}>·</span>}
+            {classLabel && student.race && <span style={{ color: T.textMuted, fontSize: 10 }}>·</span>}
             {student.race && (
               <span style={{ fontFamily: FONT_MON, fontSize: 10, color: T.textSecondary, letterSpacing: "1.5px", textTransform: "uppercase" }}>
                 {student.race}
@@ -1480,14 +1938,14 @@ function HeroTopBar({
 }
 
 // ─── Bottom Bar (XP only, no dead shortcuts) ───────────────────────────────────
-function HeroBottomBar({ student }: { student: Student }) {
+function HeroBottomBar({ student, classLabel }: { student: Student; classLabel: string | null }) {
   const xp = (student as Record<string, unknown>).xp as number ?? 0;
   const xpToNext = 50 * student.level * student.level + 100 * student.level;
   const xpPct = Math.min((xp / xpToNext) * 100, 100);
 
   return (
     <div style={{
-      gridColumn: "1 / -1", gridRow: "3",
+      gridArea: "bottom",
       display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: "0 24px",
       background: "rgba(3,5,10,0.9)",
@@ -1504,9 +1962,9 @@ function HeroBottomBar({ student }: { student: Student }) {
         }}>
           NÍV {student.level}
         </div>
-        {student.character_class && (
+        {classLabel && (
           <span style={{ fontFamily: FONT_MON, fontSize: 10, color: T.textMuted, letterSpacing: "1px" }}>
-            {student.character_class.toUpperCase()}{student.race ? ` · ${student.race.toUpperCase()}` : ""}
+            {classLabel.toUpperCase()}{student.race ? ` · ${student.race.toUpperCase()}` : ""}
           </span>
         )}
       </div>
@@ -1548,6 +2006,7 @@ interface HeroScreenProps {
 
 export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenProps) {
   const [showEdit, setShowEdit] = useState(false);
+  const [showTitles, setShowTitles] = useState(false);
   const [pet, setPet] = useState<StudentPet | null>(null);
   const [title, setTitle] = useState<StudentTitle | null>(null);
   const [battleCharacter, setBattleCharacter] = useState<BattleCharacter | null>(null);
@@ -1563,14 +2022,37 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
     if (data) setEquippedAbilities(data as { ability_id: string; slot: number }[]);
   }, []);
 
+  // Refetchable so the badge updates after the TitlesPanel modal selection.
+  // The Wave-11 schema puts active titles in student_unlocked_titles joined
+  // with title_catalog (NOT the legacy student_titles table that the prior
+  // implementation queried).
+  const refreshTitle = useCallback(async () => {
+    const { data } = await supabaseStudent
+      .from("student_unlocked_titles" as never)
+      .select("title_id, is_active, title_catalog!inner(key, name, color, category)")
+      .eq("student_id", student.id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (!data) { setTitle(null); return; }
+    const row = data as unknown as {
+      title_id: string;
+      title_catalog: { key: string; name: string; color: string; category: string };
+    };
+    // Mimic the legacy StudentTitle shape so existing badge code keeps working:
+    // we put the human-readable name in `title_type`.
+    setTitle({
+      title_type: row.title_catalog.name,
+      student_id: student.id,
+    } as unknown as StudentTitle);
+  }, [student.id]);
+
   useEffect(() => {
     // Pet
     supabaseStudent.from("student_pets").select("*, pet_type:pet_types(*)").eq("student_id", student.id).eq("is_active", true).maybeSingle()
       .then(({ data }) => setPet(data as StudentPet | null));
 
     // Title
-    supabaseStudent.from("student_titles").select("*").eq("student_id", student.id).order("expires_at", { ascending: false }).limit(1).maybeSingle()
-      .then(({ data }) => setTitle(data as StudentTitle | null));
+    refreshTitle();
 
     // Battle character + abilities
     if (student.user_id) {
@@ -1598,14 +2080,16 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
         });
     }
 
-    // Fetch all abilities (global, no auth needed)
+    // Fetch all abilities (global, no auth needed). Wave 11 C.4 — rewrite
+    // each ability to its class-specific variant (name/description/damage
+    // type from SKILLS_REGISTRY) when the student has a Wave-11 class.
     supabase
       .from("abilities")
       .select("*, elements:element_id(name, icon_url, color_hex)")
       .order("tier")
       .then(({ data: ablData }) => {
         if (!ablData) return;
-        setAllAbilities((ablData as any[]).map(row => ({
+        const mapped = (ablData as any[]).map(row => ({
           id:           row.id,
           name:         row.name,
           elementId:    row.element_id,
@@ -1619,9 +2103,12 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
           description:  row.description ?? "",
           elementColor: row.elements?.color_hex,
           elementIcon:  row.elements?.icon_url,
-        } as Ability)));
+        } as Ability));
+        setAllAbilities(
+          wave11Class ? mapped.map(a => applyClassVariant(a, wave11Class)) : mapped,
+        );
       });
-  }, [student.id, student.user_id, refreshEquipped]);
+  }, [student.id, student.user_id, refreshEquipped, wave11Class]);
 
   const handleEquipAbility = useCallback(async (abilityId: string, slot: 1 | 2 | 3 | 4) => {
     if (!battleCharacter) return;
@@ -1644,7 +2131,15 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
   }, [battleCharacter]);
 
   const inventoryX = inventory as InventoryItemX[];
-  const classColor = CLASS_COLOR[student.character_class ?? ""] ?? "#4a9eff";
+  // Wave 11 owns the class now. Fall back to legacy character_class only for
+  // accounts that haven't gone through the new onboarding yet.
+  const { data: classProfile } = useClassProfile(student.id);
+  const wave11Class = classProfile?.classType ?? null;
+  const wave11ClassMeta = wave11Class ? CLASS_META[wave11Class] : null;
+  const effectiveClassLabel = wave11ClassMeta?.label ?? student.character_class ?? null;
+  const classColor = wave11ClassMeta?.color
+    ?? CLASS_COLOR[student.character_class ?? ""]
+    ?? "#4a9eff";
 
   const attrSum = (student.attr_forca ?? 0)+(student.attr_destreza ?? 0)+(student.attr_inteligencia ?? 0)+(student.attr_carisma ?? 0)+(student.attr_agilidade ?? 0)+(student.attr_resistencia ?? 0);
   const equippedItems = inventoryX.filter(i => i.is_equipped && i.item);
@@ -1656,33 +2151,48 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
 
 
   return (
-    <>
+    <div
+      style={{
+        // Single, predictable scroll container. The StudentPortal wrapper no
+        // longer has overflow-y, so this is the only scrollable ancestor —
+        // wheel events have nowhere else to land.
+        position: "absolute",
+        inset: 0,
+        overflowY: "auto",
+      }}
+    >
       <style>{HERO_CSS}</style>
       <HeroBackground classColor={classColor} />
 
-      <div style={{
-        width: "100%", height: "100vh",
-        display: "grid",
-        gridTemplateColumns: "300px 1fr 310px",
-        gridTemplateRows: "64px 1fr 72px",
-        position: "relative", zIndex: 1,
-        background: T.bgAbyss,
-      }}>
-        <HeroTopBar student={student} classColor={classColor} onEdit={() => setShowEdit(true)} onBack={onBack} />
+      <div
+        className="hs-grid"
+        style={{
+          width: "100%", minHeight: "100vh",
+          position: "relative", zIndex: 1,
+          background: T.bgAbyss,
+        }}
+      >
+        <HeroTopBar student={student} classColor={classColor} classLabel={effectiveClassLabel} onEdit={() => setShowEdit(true)} onBack={onBack} />
 
         <EquipmentPanel inventory={inventoryX} classColor={classColor} studentId={student.id} onRefresh={onUpdate} />
         <CharacterDisplay
           student={student} title={title} powerLevel={powerLevel} classColor={classColor}
+          classLabel={effectiveClassLabel}
           battleCharacter={battleCharacter}
           equippedAbilities={equippedAbilities}
           allAbilities={allAbilities}
           onEquipAbility={handleEquipAbility}
           onUnequipAbility={handleUnequipAbility}
+          onOpenTitles={() => setShowTitles(true)}
         />
         <StatsPanel student={student} pet={pet} />
 
-        <HeroBottomBar student={student} />
+        <HeroBottomBar student={student} classLabel={effectiveClassLabel} />
       </div>
+
+      {/* Wave C.2.4 — moved the floating Quests/Tickets/Banners/Backdrops
+          column into StatsPanel itself (right grid cell). Single vertical
+          stack instead of two overlapping right-aligned columns. */}
 
       {/* Edit Modal */}
       {showEdit && (
@@ -1701,6 +2211,37 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
           </div>
         </div>
       )}
-    </>
+
+      {/* Titles modal — opened by clicking the title badge under the hero name */}
+      {showTitles && (() => {
+        const closeAndRefresh = () => { setShowTitles(false); refreshTitle(); };
+        return (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "24px 16px",
+          }}
+          role="dialog" aria-modal="true"
+          onClick={closeAndRefresh}
+        >
+          <div style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
+          }} />
+          <div
+            style={{
+              position: "relative", zIndex: 1,
+              width: "100%", maxWidth: 480,
+              maxHeight: "85vh", overflowY: "auto",
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <TitlesPanel onClose={closeAndRefresh} />
+          </div>
+        </div>
+        );
+      })()}
+    </div>
   );
 }

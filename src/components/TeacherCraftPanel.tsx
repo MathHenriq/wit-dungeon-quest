@@ -65,9 +65,16 @@ export function TeacherCraftPanel({ teacherId, shopItems }: TeacherCraftPanelPro
   async function loadAll() {
     setIsLoading(true);
     const [recipesRes, treesRes, nodesRes] = await Promise.all([
-      supabase.from('craft_recipes').select('*').eq('teacher_id', teacherId).order('created_at', { ascending: false }),
-      supabase.from('skill_trees').select('*').eq('teacher_id', teacherId),
-      supabase.from('skill_nodes').select('*').order('sort_order', { ascending: true }),
+      supabase.from('craft_recipes')
+        .select('id, teacher_id, name, description, icon, result_item_id, result_coins, result_xp, ingredient_nodes, rarity, created_at')
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false }),
+      supabase.from('skill_trees')
+        .select('id, teacher_id, name, description, icon, created_at')
+        .eq('teacher_id', teacherId),
+      supabase.from('skill_nodes')
+        .select('id, tree_id, name, description, icon, parent_node_id, reward_coins, reward_title, position_x, position_y, sort_order, created_at')
+        .order('sort_order', { ascending: true }),
     ]);
 
     if (!recipesRes.error) setRecipes((recipesRes.data || []) as unknown as CraftRecipe[]);

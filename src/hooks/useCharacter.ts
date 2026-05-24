@@ -187,11 +187,27 @@ export function useApplyBattleRewards(characterId: string) {
 
       if (studentErr) throw studentErr;
 
-      // 3. Calculate progression using student data
+      // 3. Calculate progression using student data.
+      //    Patch 2.3: apply the daily coin cap BEFORE adding to the wallet.
+      //    The RPC atomically (a) decides the multiplier based on today's
+      //    accumulated earnings, (b) increments the daily log, and (c)
+      //    returns the effective coin amount we should actually credit.
+      //    Diamonds are NOT routed through this — only coins.
+      let effectiveCoins = coins;
+      if (coins > 0) {
+        const { data: capResult, error: capErr } = await supabaseStudent
+          .rpc('apply_daily_coin_cap', { p_amount: coins });
+        if (capErr) {
+          console.warn('[useApplyBattleRewards] apply_daily_coin_cap failed; crediting raw amount', capErr);
+        } else if (capResult && typeof (capResult as { effective?: number }).effective === 'number') {
+          effectiveCoins = (capResult as { effective: number }).effective;
+        }
+      }
+
       const currentLevel  = student.level ?? 1;
       const xpBase        = Math.max(student.xp ?? 0, getTotalXPForLevel(currentLevel));
       const newTotalXP    = xpBase + xp;
-      const newTotalCoins = (student.coins ?? 0) + coins;
+      const newTotalCoins = (student.coins ?? 0) + effectiveCoins;
 
       const spentOnPastLevels = getTotalXPForLevel(currentLevel);
       const currentLevelXP    = Math.max(0, xpBase - spentOnPastLevels);
@@ -246,6 +262,8 @@ export function useApplyBattleRewards(characterId: string) {
       qc.invalidateQueries({ queryKey: ['battle-character'] });
       qc.invalidateQueries({ queryKey: ['battle', 'character-by-id', characterId] });
       qc.invalidateQueries({ queryKey: ['battle', 'character'] });
+      // Patch 2.3: refresh the daily coin cap HUD bar.
+      qc.invalidateQueries({ queryKey: ['daily-coins-summary'] });
     },
     onError: (err: any) => {
       toast.error('Erro ao salvar recompensas: ' + (err.message ?? 'Erro desconhecido'));

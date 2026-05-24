@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabaseAnon } from "@/integrations/supabase/anonClient";
+import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import type { Student, InventoryItem, ShopItem } from "@/types";
 import { ArrowLeftRight, CheckCircle, X, Loader2, Clock, ArrowLeft, Coins } from "lucide-react";
 import { toast } from "sonner";
@@ -529,12 +530,20 @@ export function TradingScreen({ student, inventory, onBack, onInventoryChanged }
 
   async function handleAccept(tradeId: string) {
     const { data, error } = await supabaseAnon.rpc("execute_trade", { p_trade_id: tradeId });
-    if (error || !(data as { success: boolean }).success) {
-      toast.error((data as { error?: string })?.error ?? "Erro ao aceitar.");
-    } else {
-      toast.success("Troca realizada!");
-      loadTrades(); onInventoryChanged?.();
+    const result = data as { success?: boolean; error?: string } | null;
+    if (error) {
+      toast.error(error.message ?? "Erro ao aceitar.");
+      loadTrades();
+      return;
     }
+    if (!result?.success) {
+      toast.error(result?.error ?? "Erro ao aceitar.");
+      loadTrades();
+      return;
+    }
+    toast.success("Troca realizada!");
+    void supabaseStudent.rpc("increment_daily_counter", { p_type: "trades_done", p_amount: 1 });
+    loadTrades(); onInventoryChanged?.();
   }
 
   async function handleReject(tradeId: string) {

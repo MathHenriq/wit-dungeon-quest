@@ -51,6 +51,18 @@ export interface Student {
   status?: "pending" | "active" | "rejected";
   /** Points available to distribute across attributes */
   pontos_disponiveis?: number;
+  /** ISO timestamp until which the student is suspended (set by teacher); null when active. */
+  suspended_until?: string | null;
+  /** Reason shown to the student on the suspension screen. */
+  suspended_reason?: string | null;
+  /** Patch 2.7: timestamp when the Season 2 wipe ran for this student (NULL = not wiped). */
+  wiped_at_patch_1_1?: string | null;
+  /** Patch 2.7: true once the student has dismissed the Patch 1.1 welcome modal. */
+  seen_patch_1_1?: boolean;
+  /** Patch 2.7: coins this student got back as part of the wipe (250 or 850). */
+  patch_1_1_refund?: number | null;
+  /** XP — used by auto_level_up trigger to derive level. */
+  xp?: number;
   // Character attributes
   attr_forca?: number;
   attr_destreza?: number;
@@ -73,6 +85,7 @@ export interface ShopItem {
   icon: string;
   image_url: string | null;
   is_active: boolean;
+  is_premium?: boolean;
   source_anime?: string | null;
   ability_mode?: ItemAbilityMode;
   ability_key?: string | null;
@@ -378,6 +391,8 @@ export interface ChestType {
   is_active: boolean;
   is_limited: boolean;
   stock: number | null;
+  event_id?: string | null;
+  chest_key?: string | null;
   created_at?: string;
 }
 

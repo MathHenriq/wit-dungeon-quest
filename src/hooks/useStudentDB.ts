@@ -19,6 +19,7 @@ export type StudentAuthState =
   | "unauthenticated"
   | "needs_registration"
   | "pending"
+  | "suspended"
   | "active";
 
 /**
@@ -179,7 +180,7 @@ export function useStudentDB() {
       .from("shop_items")
       .select("*")
       .eq("is_active", true)
-      .eq("teacher_id", teacherId)
+      .or(`teacher_id.eq.${teacherId},teacher_id.is.null`)
       .order("created_at", { ascending: false });
     if (error) { console.error("[useStudentDB] loadShopItems:", error); return; }
     setShopItems((data || []) as unknown as ShopItem[]);
@@ -240,6 +241,22 @@ export function useStudentDB() {
     }
 
     const typedStudent = studentData as unknown as Student;
+
+    // ── Suspension gate ──
+    // If the teacher set a suspended_until in the future, block access entirely.
+    // We deliberately do NOT sign the user out: the SuspendedScreen needs the
+    // student record (name, suspended_until, suspended_reason) to show context
+    // and a logout button. Routing in StudentPortal renders SuspendedScreen
+    // when authState === 'suspended' instead of the dashboard.
+    const suspendedUntilStr = (typedStudent as unknown as { suspended_until?: string | null }).suspended_until;
+    if (suspendedUntilStr) {
+      const suspendedUntil = new Date(suspendedUntilStr);
+      if (!Number.isNaN(suspendedUntil.getTime()) && suspendedUntil.getTime() > Date.now()) {
+        setStudent(typedStudent);
+        setAuthState("suspended");
+        return;
+      }
+    }
 
     if (typedStudent.status === "pending") {
       setStudent(typedStudent);

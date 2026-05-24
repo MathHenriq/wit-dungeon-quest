@@ -1,15 +1,16 @@
 import React from 'react';
-import type { ItemCategory } from './inventory-types';
+import type { InvTab } from './inventory-types';
 
 interface InventoryTabsProps {
-  active:   ItemCategory;
-  onChange: (tab: ItemCategory) => void;
+  active:   InvTab;
+  onChange: (tab: InvTab) => void;
 }
 
-const TABS: { id: ItemCategory; label: string }[] = [
+const TABS: { id: InvTab; label: string }[] = [
   { id: 'equipment',  label: 'Equipamentos' },
   { id: 'consumable', label: 'Consumiveis'  },
   { id: 'cosmetic',   label: 'Coleção'      },
+  { id: 'material',   label: 'Materiais'    },
 ];
 
 export function InventoryTabs({ active, onChange }: InventoryTabsProps) {

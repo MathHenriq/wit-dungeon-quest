@@ -55,6 +55,8 @@ export interface Ability {
 export interface BattleCharacter {
   id: string;
   userId: string;
+  /** Onda 11.3: id do aluno (public.students.id) — usado para carregar class_profile/passivas. Opcional para preservar compatibilidade. */
+  studentId?: string;
   name: string;
   class: string;
   level: number;

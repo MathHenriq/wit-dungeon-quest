@@ -112,9 +112,9 @@ export function getEffectivenessLevel(multiplier: number): EffectivenessLevel {
 }
 
 export function getEffectivenessLabel(multiplier: number): string {
-  if (multiplier === 0)   return 'Imune!';
-  if (multiplier === 0.5) return 'Pouco efetivo...';
-  if (multiplier === 2.0) return 'Super efetivo!';
+  if (multiplier === 0)   return 'Não afeta...';
+  if (multiplier <  1.0)  return 'Não muito efetivo...';
+  if (multiplier >  1.0)  return 'SUPER EFETIVO!';
   return '';
 }
 

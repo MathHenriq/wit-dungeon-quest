@@ -6,7 +6,7 @@ import type { ShopItem, InventoryItem, ItemCategory } from '@/types';
 export type { ShopItem, InventoryItem, ItemCategory };
 
 // Visual tab categories
-export type InvTab = 'equipment' | 'consumable' | 'cosmetic';
+export type InvTab = 'equipment' | 'consumable' | 'cosmetic' | 'material';
 
 // Equip slot types
 export type EquipSlotType = 'weapon' | 'offhand' | 'armor' | 'head' | 'accessory' | 'ring';

@@ -6,10 +6,22 @@ import {
 } from './equipmentAbilityRegistry';
 import { calculateDamage, estimateDamage, type CombatantStats } from './damageCalculator';
 import {
+  applyAttributeModifiers, identityModifiers, type AttributeModifiers,
+} from './attributeModifiers';
+import {
+  computeCoinReward, computeXpReward,
+  BOSS_PHASE2_HP_THRESHOLD, BOSS_PHASE2_DAMAGE_REDUCTION,
+} from './enemyScaling';
+import {
   tickStatus, canAct, getAccuracyModifier, getAttackModifier, getDefenseModifier,
   defaultDuration, STAT_MODIFIERS,
   type ActiveStatus, type StatusEffect, type EquipStatus,
 } from './statusEffects';
+import type { BattlefieldEffect, PlayerForm, ElementOverride, EnemyMark, ExecutionRule, QueuedFollowUp } from './battleState';
+// ─── Onda 11.3 — classes, elementos e passivas ────────────────────────────────
+import type { ClassType } from '@/lib/skills/skillsRegistry';
+import type { PassiveEffectAggregation } from '@/lib/skills/evolutionsRegistry';
+import { getAffinityMultiplier } from './elementBridge';
 
 // ─── Battle-specific types ────────────────────────────────────────────────────
 
@@ -35,6 +47,8 @@ export interface BattleEnemy {
   abilities:   Ability[];
   spriteUrl?:  string;
   isBoss?:     boolean;
+  /** Floor depth (1..N) — used to scale rewards. Set by toBattleEnemy. */
+  floorNumber?: number;
   // Special ability
   specialName?:        string;
   specialEffect?:      string;
@@ -79,11 +93,94 @@ export interface BattleContext {
   equipmentUsed: boolean;
   /** XP / rewards after VICTORY */
   rewards?: { xp: number; coins?: number };
+  /** Attribute-derived modifiers, computed once at battle start (Patch 2.1). */
+  playerMods: AttributeModifiers;
+  enemyMods:  AttributeModifiers;
+  /** Patch 2.2: latched true once a boss falls below the phase-2 HP threshold. */
+  bossPhase2Active: boolean;
+
+  // ─── Patch 2.5 — generic mechanic slots ─────────────────────────────────
+  // These exist so the higher-rarity card handlers the designer is writing
+  // can express common mechanics without each card reinventing the engine
+  // hook. Defaults are inert (no behaviour change) so any handler that
+  // doesn't touch them runs exactly like before.
+
+  /** Player auto-revives this many times when hit lethal damage (restored to 50% hpMax). */
+  reviveCharges: number;
+  /** Enemy will skip this many of its upcoming turns. */
+  enemySkipTurns: number;
+  /** Player auto-dodges every incoming attack until this counter reaches 0. */
+  autoDodgeTurnsLeft: number;
+  /** Enemy ability IDs the engine must remove from the enemy's pool. */
+  erasedEnemyAbilityIds: string[];
+  /** The last ability id used by the enemy (set by the engine after each enemy attack). */
+  lastEnemyAbilityId: string | null;
+  /** An enemy ability id the player has copied and can spend on their next attack. */
+  copiedEnemyAbilityId: string | null;
+  /** Forge buffs that were merged into playerMods at battle start (display only). */
+  activeBuffs: ActiveBuffInput[];
+  /** Guild raid phase (1–4) when this battle is a raid encounter; undefined otherwise. */
+  raidPhase?: number;
+  battlefieldEffects: BattlefieldEffect[];
+  playerForms: PlayerForm[];
+  elementOverrides: ElementOverride[];
+  enemyMarks: EnemyMark[];
+  executionRules: ExecutionRule[];
+  queuedFollowUps: QueuedFollowUp[];
+
+  // ─── Onda 11.3 — perfil de classe e passivas ─────────────────────────────
+  /** Classe do jogador (null = aluno legacy sem onboarding 11.x). */
+  playerClass:    ClassType | null;
+  /** Elemento principal do jogador no namespace legacy ('Fire' etc.). null = sem afinidade. */
+  playerElement:  ElementType | null;
+  /** Passivas agregadas do jogador. null = sem passivas (comportamento legacy). */
+  playerPassives: PassiveEffectAggregation | null;
+  /** PvP: classe e passivas do oponente (sempre null em PvE). */
+  enemyClass:     ClassType | null;
+  enemyPassives:  PassiveEffectAggregation | null;
+  /** True após a primeira skill do jogador na batalha (usado por firstTurnFree). */
+  firstPlayerSkillUsed: boolean;
+  /** True enquanto a passiva survive_lethal ainda está disponível nesta batalha. */
+  surviveLethalAvailable: boolean;
+  /** Mesmo para o oponente em PvP. */
+  enemySurviveLethalAvailable: boolean;
+  /** True se ainda devemos rolar enemyMissChance (sai depois do primeiro ataque do inimigo). */
+  enemyMissCheckPending: boolean;
 }
 
 // ─── Item types ───────────────────────────────────────────────────────────────
 
 export type ItemEffect = 'heal' | 'recharge' | 'cure' | 'revive';
+
+// ─── Forge buff types (Patch 3.3 wiring) ──────────────────────────────────────
+
+export type BuffEffectKey =
+  | 'evade_bonus'
+  | 'physical_dmg'
+  | 'magic_dmg'
+  | 'proc_bonus'
+  | 'damage_reduction'
+  | 'crit_bonus';
+
+export interface ActiveBuffInput {
+  /** temporary_buffs.effect column */
+  effect:       BuffEffectKey;
+  /** Magnitude — 0.10 = +10% (or −10% for damage_reduction). */
+  effect_value: number;
+  /** Display label for the battle log. */
+  name?:        string;
+}
+
+/** Forge consumable effect — mirrors consumables.effect column. */
+export type ConsumableEffectKey = 'heal_flat' | 'heal_percent' | 'cure' | 'revive' | 'recharge';
+
+export interface ConsumableInput {
+  key:          string;
+  name:         string;
+  effect:       ConsumableEffectKey;
+  effect_value: number;
+  icon?:        string;
+}
 
 // ─── Engine ───────────────────────────────────────────────────────────────────
 
@@ -95,6 +192,14 @@ export class BattleEngine {
     enemy: BattleEnemy,
     equippedAbilities: Ability[],
     equippedItem: ShopItem | null = null,
+    activeBuffs: ActiveBuffInput[] = [],
+    raidPhase?: number,
+    // ─── Onda 11.3 — opcionais; null/undefined = comportamento legacy ──
+    playerClass:    ClassType | null = null,
+    playerElement:  ElementType | null = null,
+    playerPassives: PassiveEffectAggregation | null = null,
+    enemyClass:     ClassType | null = null,
+    enemyPassives:  PassiveEffectAggregation | null = null,
   ) {
     // Initialise PP for every equipped ability
     const abilityPP: Record<string, { current: number; max: number }> = {};
@@ -103,8 +208,17 @@ export class BattleEngine {
       abilityPP[ability.id] = { current: max, max };
     }
 
+    // Onda 11.3 — aplica hpMaxMult da passiva vitalidade no início da batalha.
+    // Multiplica hpMax e preserva % de hpCurrent para evitar surpresas.
+    const playerCopy: BattleCharacter = { ...player };
+    if (playerPassives && playerPassives.hpMaxMult > 0) {
+      const hpRatio = playerCopy.hpMax > 0 ? playerCopy.hpCurrent / playerCopy.hpMax : 1;
+      playerCopy.hpMax = Math.max(1, Math.floor(playerCopy.hpMax * (1 + playerPassives.hpMaxMult)));
+      playerCopy.hpCurrent = Math.max(1, Math.floor(playerCopy.hpMax * hpRatio));
+    }
+
     this.ctx = {
-      player:       { ...player },      // shallow copy — won't mutate original
+      player:       playerCopy,
       enemy:        { ...enemy },
       abilityPP,
       rechargeUsed:  false,
@@ -121,6 +235,36 @@ export class BattleEngine {
       equippedItem,
       equipmentCooldown: 0,
       equipmentUsed:     false,
+      // Patch 2.1: attribute modifiers computed once. Enemies stay at identity
+      // (will be flipped on demand in Patch 2.2's boss phase-2 trigger).
+      playerMods: BattleEngine.applyBuffsToMods(applyAttributeModifiers(player), activeBuffs),
+      enemyMods:  identityModifiers(),
+      activeBuffs: [...activeBuffs],
+      raidPhase,
+      bossPhase2Active: false,
+      // Patch 2.5 inert defaults
+      reviveCharges: 0,
+      enemySkipTurns: 0,
+      autoDodgeTurnsLeft: 0,
+      erasedEnemyAbilityIds: [],
+      lastEnemyAbilityId: null,
+      copiedEnemyAbilityId: null,
+      battlefieldEffects: [],
+      playerForms: [],
+      elementOverrides: [],
+      enemyMarks: [],
+      executionRules: [],
+      queuedFollowUps: [],
+      // Onda 11.3
+      playerClass,
+      playerElement,
+      playerPassives,
+      enemyClass,
+      enemyPassives,
+      firstPlayerSkillUsed: false,
+      surviveLethalAvailable:        !!(playerPassives && playerPassives.surviveLethal),
+      enemySurviveLethalAvailable:   !!(enemyPassives  && enemyPassives.surviveLethal),
+      enemyMissCheckPending:         !!(playerPassives && playerPassives.enemyMissChance > 0),
     };
   }
 
@@ -130,15 +274,64 @@ export class BattleEngine {
     this.log('system', `⚔️ Batalha iniciada!`, 'info');
     this.log('system', `${this.ctx.player.name} vs ${this.ctx.enemy.name}!`, 'info');
 
-    const playerFirst = this.ctx.player.agilidade >= this.ctx.enemy.velocidade;
-    this.ctx.phase = playerFirst ? 'PLAYER_TURN' : 'ENEMY_TURN';
-
-    this.log('system',
-      playerFirst
-        ? `${this.ctx.player.name} é mais ágil e ataca primeiro!`
-        : `${this.ctx.enemy.name} é mais rápido e ataca primeiro!`,
+    // Patch 2.1: surface active attribute modifiers on battle start so we have
+    // a clear trace in console + battle log. Eventually the HUD will read this.
+    const m = this.ctx.playerMods;
+    const a = this.ctx.player;
+    console.info('[BattleEngine] Attribute modifiers active for', this.ctx.player.name, {
+      attributes: {
+        forca: a.forca, destreza: a.destreza, inteligencia: a.inteligencia,
+        carisma: a.carisma, agilidade: a.agilidade, resistencia: a.resistencia,
+      },
+      modifiers: m,
+    });
+    const pct = (n: number) => Math.round(n * 100);
+    this.log(
+      'system',
+      `⚙️ Atributos: +${pct(m.physicalDmgMult - 1)}% dano físico · +${pct(m.magicalDmgMult - 1)}% dano mágico · +${pct(m.critBonus)}% crit · +${pct(m.procMult - 1)}% efeito · +${pct(m.evadeBonus)}% esquiva · −${pct(1 - m.damageTakenMult)}% dano recebido`,
       'info',
     );
+
+    if (this.ctx.raidPhase === 2) {
+      this.log('system', '💀 Maldição da Guilda ativa — o boss drena 5% do seu HP máximo a cada turno.', 'effect');
+    }
+    if (this.ctx.raidPhase === 4) {
+      this.log('enemy', `🔥 ${this.ctx.enemy.name} está ENFURECIDO! Dano dobrado.`, 'effect');
+    }
+
+    if (this.ctx.activeBuffs.length) {
+      const summary = this.ctx.activeBuffs
+        .map(b => b.name ?? b.effect)
+        .join(', ');
+      this.log('system', `🔮 Buffs da Forja ativos: ${summary}.`, 'effect');
+    }
+
+    // Onda 11.3 — log perfil de classe/elemento se setado.
+    if (this.ctx.playerClass || this.ctx.playerElement) {
+      const parts: string[] = [];
+      if (this.ctx.playerClass)   parts.push(`Classe: ${this.ctx.playerClass}`);
+      if (this.ctx.playerElement) parts.push(`Elemento: ${this.ctx.playerElement}`);
+      this.log('system', `🎭 ${parts.join(' · ')}`, 'info');
+    }
+    if (this.ctx.playerPassives && this.ctx.playerPassives.hpMaxMult > 0) {
+      this.log('system', `❤️ Vitalidade: HP máximo +${Math.round(this.ctx.playerPassives.hpMaxMult * 100)}% (${this.ctx.player.hpMax}).`, 'effect');
+    }
+
+    // Turn order: firstStrike (passive iniciativa) força o jogador primeiro.
+    const passiveFirstStrike = !!(this.ctx.playerPassives && this.ctx.playerPassives.firstStrike);
+    const playerFirst = passiveFirstStrike || this.ctx.player.agilidade >= this.ctx.enemy.velocidade;
+    this.ctx.phase = playerFirst ? 'PLAYER_TURN' : 'ENEMY_TURN';
+
+    if (passiveFirstStrike) {
+      this.log('system', `⚡ Iniciativa: ${this.ctx.player.name} ataca primeiro!`, 'effect');
+    } else {
+      this.log('system',
+        playerFirst
+          ? `${this.ctx.player.name} é mais ágil e ataca primeiro!`
+          : `${this.ctx.enemy.name} é mais rápido e ataca primeiro!`,
+        'info',
+      );
+    }
 
     return this.snapshot();
   }
@@ -183,7 +376,8 @@ export class BattleEngine {
     // Build combatant stats
     const atkMod  = getAttackModifier(this.ctx.playerStatus);
     const accMod  = getAccuracyModifier(this.ctx.playerStatus);
-    const wetMod  = getDefenseModifier(this.ctx.enemyStatus, ability.elementName);
+    const effectiveAbility = this.resolvePlayerAttackAbility(ability);
+    const wetMod  = getDefenseModifier(this.ctx.enemyStatus, effectiveAbility.elementName);
 
     const attacker: CombatantStats = {
       level:        this.ctx.player.level,
@@ -208,8 +402,14 @@ export class BattleEngine {
     };
 
     // Apply accuracy debuff by reducing ability accuracy temporarily
-    const modifiedAbility: Ability = { ...ability, accuracy: Math.floor(ability.accuracy * accMod) };
-    const result = calculateDamage(attacker, defender, modifiedAbility);
+    const modifiedAbility: Ability = { ...effectiveAbility, accuracy: Math.floor(effectiveAbility.accuracy * accMod) };
+    // Onda 11.3 — afinidade + passivas do jogador
+    const passiveBundle = this.computePlayerPassiveBundle(modifiedAbility);
+    const result = calculateDamage(attacker, defender, modifiedAbility, {
+      attackerMods: this.ctx.playerMods,
+      defenderMods: this.ctx.enemyMods,
+      ...passiveBundle,
+    });
 
     this.log('player', `${this.ctx.player.name} usou ${ability.name}!`, 'action');
 
@@ -218,10 +418,12 @@ export class BattleEngine {
     } else if (result.effectiveness === 0) {
       this.log('player', '🛡️ Imune! Sem efeito.', 'effect');
     } else {
-      const baseDmg  = Math.floor(result.damage * wetMod);
-      const finalDmg = this.applyEquipStatusAmp(baseDmg, ability.damageType);
+      const baseDmg  = Math.floor(result.damage * wetMod * this.getOutgoingFieldMultiplier(effectiveAbility.elementName) * this.getPlayerFormDamageMultiplier(effectiveAbility.damageType));
+      const finalDmg = this.applyEquipStatusAmp(baseDmg, effectiveAbility.damageType);
       this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - finalDmg);
       this.applyEquipStatusLifesteal(finalDmg);
+      this.onPlayerDamageDealt(finalDmg, result.effectiveness, effectiveAbility);
+      this.maybeActivateBossPhase2();
 
       if (result.isCritical)         this.log('player', '💥 Acerto crítico!', 'effect');
       if (result.effectivenessLabel) this.log('player', result.effectivenessLabel, 'effect');
@@ -244,15 +446,18 @@ export class BattleEngine {
         this.log('player', `💢 Recuo: −${recoil} HP próprio`, 'damage', recoil);
       }
 
-      // Secondary effect
+      // Secondary effect — Patch 2.1: Carisma scales proc chance via procMult.
       if (
         ability.effectType &&
         !STAT_MODIFIERS.has(ability.effectType as StatusEffect) &&
         ability.effectChance &&
-        Math.random() < ability.effectChance
+        Math.random() < ability.effectChance * this.ctx.playerMods.procMult
       ) {
         this.applyEffect('enemy', ability.effectType as StatusEffect);
       }
+
+      // Onda 11.3 — gatilhos pós-acerto (impacto / lifesteal / sombra)
+      this.applyPlayerPostHitPassives(effectiveAbility, finalDmg);
     }
 
     // Check enemy death
@@ -267,8 +472,162 @@ export class BattleEngine {
     // Check enemy special ability trigger
     this.checkSpecialTrigger();
 
+    // Onda 11.3 — firstTurnFree (tempo_suspenso): primeira skill da batalha
+    // não consome turno. Marca usada e mantém PLAYER_TURN.
+    const isFirstSkill = !this.ctx.firstPlayerSkillUsed;
+    this.ctx.firstPlayerSkillUsed = true;
+    const freeFirstTurn = isFirstSkill && !!(this.ctx.playerPassives && this.ctx.playerPassives.firstTurnFree);
+    if (freeFirstTurn) {
+      this.log('system', '⏳ Tempo Suspenso — sua primeira skill não consumiu turno.', 'effect');
+      return this.snapshot();
+    }
+
     this.ctx.phase = 'ENEMY_TURN';
     return this.snapshot();
+  }
+
+  // ─── Onda 11.3 — bundle de passivas para o calculateDamage ─────────────────
+
+  private computePlayerPassiveBundle(ability: Ability) {
+    const p = this.ctx.playerPassives;
+    if (!p) {
+      // Sem passivas: só afinidade de classe ainda pode aplicar.
+      return {
+        affinityMult: getAffinityMultiplier(this.ctx.playerClass, ability.elementName),
+      };
+    }
+    const isPhysical = ability.damageType === 'Physical';
+    const isMagical  = ability.damageType === 'Special';
+    const hpRatio = this.ctx.player.hpMax > 0 ? this.ctx.player.hpCurrent / this.ctx.player.hpMax : 1;
+    const lowHp = hpRatio < 0.30;
+
+    let passiveDmgMult = 1;
+    if (isPhysical) passiveDmgMult *= 1 + p.damageMultPhysical;
+    if (isMagical)  passiveDmgMult *= 1 + p.damageMultMagical;
+    if (lowHp)      passiveDmgMult *= 1 + p.damageMultLowHp;
+
+    return {
+      affinityMult:           getAffinityMultiplier(this.ctx.playerClass, ability.elementName),
+      passiveDmgMult,
+      passiveExtraCritChance: p.critChance,
+      passiveCritMultiplier:  p.critMultiplier,
+      defenseIgnore:          isPhysical ? p.defenseIgnore : 0,
+      noMiss:                 p.noMiss,
+    };
+  }
+
+  private applyPlayerPostHitPassives(ability: Ability, dmgDealt: number) {
+    const p = this.ctx.playerPassives;
+    if (!p || dmgDealt <= 0) return;
+
+    // impacto — chance de stun em ataques físicos
+    if (ability.damageType === 'Physical' && p.stunChance > 0 && Math.random() < p.stunChance) {
+      this.log('player', '💫 Impacto — inimigo atordoado!', 'effect');
+      this.applyEffect('enemy', 'stun' as StatusEffect);
+    }
+
+    // sombra — double attack: re-executa um golpe livre na mesma skill
+    if (p.doubleAttackChance > 0 && Math.random() < p.doubleAttackChance) {
+      const second = this.replayPlayerAttackOnce(ability);
+      if (second > 0) {
+        this.log('player', `🌑 Sombra — segundo ataque! +${second} de dano.`, 'damage', second);
+      }
+    }
+  }
+
+  /** Replica o cálculo de dano da skill atual sem consumir PP nem disparar onPlayerDamageDealt em cascata. */
+  private replayPlayerAttackOnce(ability: Ability): number {
+    if (this.ctx.enemy.hpCurrent <= 0) return 0;
+    const atkMod = getAttackModifier(this.ctx.playerStatus);
+    const accMod = getAccuracyModifier(this.ctx.playerStatus);
+    const attacker: CombatantStats = {
+      level:        this.ctx.player.level,
+      forca:        Math.floor(this.ctx.player.forca       * atkMod),
+      inteligencia: Math.floor(this.ctx.player.inteligencia * atkMod),
+      agilidade:    this.ctx.player.agilidade,
+      defFisica:    0,
+      defMagica:    0,
+    };
+    const defender: CombatantStats = {
+      level:        this.ctx.enemy.level,
+      forca:        0,
+      inteligencia: 0,
+      agilidade:    this.ctx.enemy.velocidade,
+      defFisica:    this.ctx.enemy.defFisica,
+      defMagica:    this.ctx.enemy.defMagica,
+      elementType:  this.ctx.enemy.elementType,
+    };
+    const modifiedAbility: Ability = { ...ability, accuracy: Math.floor(ability.accuracy * accMod) };
+    const passiveBundle = this.computePlayerPassiveBundle(modifiedAbility);
+    const r = calculateDamage(attacker, defender, modifiedAbility, {
+      attackerMods: this.ctx.playerMods,
+      defenderMods: this.ctx.enemyMods,
+      ...passiveBundle,
+    });
+    if (r.isMiss || r.isEvaded || r.effectiveness === 0) return 0;
+    this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - r.damage);
+    return r.damage;
+  }
+
+  // ─── Onda 11.3 — passivas no ataque do inimigo / PvP ───────────────────────
+
+  private computeEnemyPassiveBundle(ability: Ability) {
+    // Em PvE o `enemy` não tem class profile — só identidade. Em PvP usa o
+    // enemyClass/enemyPassives carregados no construtor.
+    const p = this.ctx.enemyPassives;
+    if (!p) {
+      return {
+        affinityMult: getAffinityMultiplier(this.ctx.enemyClass, ability.elementName),
+      };
+    }
+    const isPhysical = ability.damageType === 'Physical';
+    const isMagical  = ability.damageType === 'Special';
+    const hpRatio = this.ctx.enemy.hpMax > 0 ? this.ctx.enemy.hpCurrent / this.ctx.enemy.hpMax : 1;
+    const lowHp = hpRatio < 0.30;
+
+    let passiveDmgMult = 1;
+    if (isPhysical) passiveDmgMult *= 1 + p.damageMultPhysical;
+    if (isMagical)  passiveDmgMult *= 1 + p.damageMultMagical;
+    if (lowHp)      passiveDmgMult *= 1 + p.damageMultLowHp;
+
+    return {
+      affinityMult:           getAffinityMultiplier(this.ctx.enemyClass, ability.elementName),
+      passiveDmgMult,
+      passiveExtraCritChance: p.critChance,
+      passiveCritMultiplier:  p.critMultiplier,
+      defenseIgnore:          isPhysical ? p.defenseIgnore : 0,
+      noMiss:                 p.noMiss,
+    };
+  }
+
+  /** Persuasão — chance do inimigo errar o primeiro ataque da batalha. Retorna true se errou. */
+  private tryRollEnemyFirstMiss(): boolean {
+    if (!this.ctx.enemyMissCheckPending) return false;
+    this.ctx.enemyMissCheckPending = false;
+    const chance = this.ctx.playerPassives?.enemyMissChance ?? 0;
+    if (chance > 0 && Math.random() < chance) {
+      this.log('enemy', '🕊️ Persuasão — o inimigo hesitou e errou!', 'effect');
+      return true;
+    }
+    return false;
+  }
+
+  /** Aplica dano ao jogador respeitando passivas (couro_duro, imortal). Retorna o dano efetivamente sofrido. */
+  private applyDamageToPlayerWithPassives(rawDmg: number): number {
+    let dmg = rawDmg;
+    // couro_duro — damageTakenMult vem NEGATIVO no passive (e.g. -0.10).
+    const dtMult = this.ctx.playerPassives?.damageTakenMult ?? 0;
+    if (dtMult !== 0) dmg = Math.max(0, Math.floor(dmg * (1 + dtMult)));
+    // imortal — sobrevive a golpe letal com 1 HP (uma vez por batalha).
+    if (dmg >= this.ctx.player.hpCurrent && this.ctx.surviveLethalAvailable && this.ctx.player.hpCurrent > 0) {
+      this.ctx.surviveLethalAvailable = false;
+      dmg = this.ctx.player.hpCurrent - 1;
+      this.ctx.player.hpCurrent = 1;
+      this.log('player', '🔥 Imortal — sobreviveu com 1 HP!', 'effect');
+      return Math.max(0, dmg);
+    }
+    this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - dmg);
+    return dmg;
   }
 
   /** Player uses an item (does not consume an action in enemy turn if player turn) */
@@ -385,6 +744,9 @@ export class BattleEngine {
     if (result.message) {
       this.log('player', result.message, result.damage ? 'damage' : 'effect', result.damage ?? result.heal);
     }
+    if (result.damage && result.damage > 0) {
+      this.onPlayerDamageDealt(result.damage, 1, null);
+    }
 
     if (!result.success) {
       // Failure does not consume cooldown / once-per-battle.
@@ -478,12 +840,16 @@ export class BattleEngine {
       };
 
       const modified = { ...synthetic, accuracy: Math.floor(synthetic.accuracy * accMod) };
-      const dmg = calculateDamage(attacker, defender, modified);
+      const dmg = calculateDamage(attacker, defender, modified, {
+        attackerMods: this.ctx.playerMods,
+        defenderMods: this.ctx.enemyMods,
+      });
 
       if (!dmg.isMiss && !dmg.isEvaded && dmg.effectiveness !== 0) {
         const finalDmg = Math.floor(dmg.damage * wetMod);
         this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - finalDmg);
         totalDamage = finalDmg;
+        this.maybeActivateBossPhase2();
       }
     }
 
@@ -518,18 +884,36 @@ export class BattleEngine {
 
     this.ctx.phase = 'PROCESSING';
 
+    // Patch 2.5: time-stop / enemy-skip mechanic. A card can push N into
+    // enemySkipTurns and we consume one each turn until back to 0.
+    if (this.ctx.enemySkipTurns > 0) {
+      this.ctx.enemySkipTurns -= 1;
+      this.log('system', '⏸️ Tempo congelado — o inimigo perdeu o turno.', 'effect');
+      this.endTurn();
+      return this.snapshot();
+    }
+
+    // Raid phase 2 — guild curse: boss drains 5% of player max HP as true damage.
+    this.applyRaidPhase2Curse();
+
     // Status tick
     const blocked = this.tickEnemyStatus();
     if (!blocked) {
       this.enemyChooseAndAttack();
     }
 
-    // Player dead?
+    // Player dead? — Patch 2.5 revive check kicks in here.
     if (this.ctx.player.hpCurrent <= 0) {
-      this.ctx.player.hpCurrent = 0;
-      this.ctx.phase = 'DEFEAT';
-      this.log('system', '💀 Você foi derrotado!', 'info');
-      return this.snapshot();
+      if (this.ctx.reviveCharges > 0) {
+        this.ctx.reviveCharges -= 1;
+        this.ctx.player.hpCurrent = Math.max(1, Math.floor(this.ctx.player.hpMax * 0.5));
+        this.log('system', `✨ Você renasceu! HP restaurado a ${this.ctx.player.hpCurrent}.`, 'effect');
+      } else {
+        this.ctx.player.hpCurrent = 0;
+        this.ctx.phase = 'DEFEAT';
+        this.log('system', '💀 Você foi derrotado!', 'info');
+        return this.snapshot();
+      }
     }
 
     this.endTurn();
@@ -561,9 +945,26 @@ export class BattleEngine {
   }
 
   private enemyAttackWithAbility(abilityId: string) {
+    // Patch 2.5: respect erased abilities even in the PvP-driven path.
+    if (this.ctx.erasedEnemyAbilityIds.includes(abilityId)) {
+      this.log('enemy', `${this.ctx.enemy.name} tentou uma habilidade apagada!`, 'info');
+      return;
+    }
+
     const ability = this.ctx.enemy.abilities.find(a => a.id === abilityId);
     if (!ability) {
       this.log('enemy', `${this.ctx.enemy.name} não encontrou a habilidade!`, 'info');
+      return;
+    }
+
+    // Patch 2.5: track for copy mechanics.
+    this.ctx.lastEnemyAbilityId = ability.id;
+
+    // Patch 2.5: auto-dodge consumes one charge here too.
+    if (this.ctx.autoDodgeTurnsLeft > 0) {
+      this.ctx.autoDodgeTurnsLeft -= 1;
+      this.log('enemy', `${this.ctx.enemy.name} usou ${ability.name}!`, 'action');
+      this.log('player', 'Você desviou automaticamente!', 'effect');
       return;
     }
 
@@ -580,7 +981,16 @@ export class BattleEngine {
       return;
     }
 
-    const result = calculateDamage(attacker, this.playerStats(), ability);
+    // Onda 11.3 — Persuasão também roda em PvP (passiva do "player" deste cliente).
+    if (this.tryRollEnemyFirstMiss()) return;
+
+    // Onda 11.3 — passivas do oponente em PvP modificam o ataque dele.
+    const enemyBundle = this.computeEnemyPassiveBundle(ability);
+    const result = calculateDamage(attacker, this.playerStats(), ability, {
+      attackerMods: this.ctx.enemyMods,
+      defenderMods: this.ctx.playerMods,
+      ...enemyBundle,
+    });
 
     this.log('enemy', `${this.ctx.enemy.name} usou ${ability.name}!`, 'action');
 
@@ -597,16 +1007,16 @@ export class BattleEngine {
       if (effectiveDmg2 === -1) {
         // blocked
       } else {
-        this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - effectiveDmg2);
-        this.log('enemy', `Você sofreu ${effectiveDmg2} de dano!`, 'damage', effectiveDmg2);
-        if (effectiveDmg2 > 0) this.applyEquipStatusCounter(effectiveDmg2);
+        const sufferedDmg2 = this.applyDamageToPlayerWithPassives(effectiveDmg2);
+        this.log('enemy', `Você sofreu ${sufferedDmg2} de dano!`, 'damage', sufferedDmg2);
+        if (sufferedDmg2 > 0) this.applyEquipStatusCounter(sufferedDmg2);
       }
 
       if (
         ability.effectType &&
         !STAT_MODIFIERS.has(ability.effectType as StatusEffect) &&
         ability.effectChance &&
-        Math.random() < ability.effectChance
+        Math.random() < ability.effectChance * this.ctx.enemyMods.procMult
       ) {
         this.applyEffect('player', ability.effectType as StatusEffect);
       }
@@ -616,13 +1026,22 @@ export class BattleEngine {
   // ─── Private: enemy AI ───────────────────────────────────────────────────────
 
   private enemyChooseAndAttack() {
-    if (!this.ctx.enemy.abilities.length) {
+    // Onda 11.3 — Persuasão (carisma 60): inimigo erra primeiro ataque.
+    if (this.tryRollEnemyFirstMiss()) return;
+
+    // Patch 2.5: filter out any abilities erased by player cards.
+    const erased = this.ctx.erasedEnemyAbilityIds;
+    const pool = erased.length === 0
+      ? this.ctx.enemy.abilities
+      : this.ctx.enemy.abilities.filter(a => !erased.includes(a.id));
+
+    if (!pool.length) {
       this.log('enemy', `${this.ctx.enemy.name} ficou sem habilidades!`, 'info');
       return;
     }
 
     // Simple AI: pick ability that does most estimated damage (with some randomness)
-    const sorted = [...this.ctx.enemy.abilities].sort(
+    const sorted = [...pool].sort(
       (a, b) =>
         estimateDamage(this.enemyStats(), this.playerStats(), b) -
         estimateDamage(this.enemyStats(), this.playerStats(), a),
@@ -630,6 +1049,17 @@ export class BattleEngine {
 
     // 60% chance to pick best, 40% random
     const ability = Math.random() < 0.6 ? sorted[0] : sorted[Math.floor(Math.random() * sorted.length)];
+
+    // Patch 2.5: record last enemy ability so "copy" cards can replay it.
+    this.ctx.lastEnemyAbilityId = ability.id;
+
+    // Patch 2.5: auto-dodge — player cards can grant N turns of guaranteed evade.
+    if (this.ctx.autoDodgeTurnsLeft > 0) {
+      this.ctx.autoDodgeTurnsLeft -= 1;
+      this.log('enemy', `${this.ctx.enemy.name} usou ${ability.name}!`, 'action');
+      this.log('player', 'Você desviou automaticamente!', 'effect');
+      return;
+    }
 
     const atkMod = getAttackModifier(this.ctx.enemyStatus);
     const attacker: CombatantStats = {
@@ -644,7 +1074,10 @@ export class BattleEngine {
       return;
     }
 
-    const result = calculateDamage(attacker, this.playerStats(), ability);
+    const result = calculateDamage(attacker, this.playerStats(), ability, {
+      attackerMods: this.ctx.enemyMods,
+      defenderMods: this.ctx.playerMods,
+    });
 
     this.log('enemy', `${this.ctx.enemy.name} usou ${ability.name}!`, 'action');
 
@@ -657,29 +1090,51 @@ export class BattleEngine {
       if (result.effectivenessLabel) this.log('enemy', result.effectivenessLabel, 'effect');
 
       const isMagic    = ability.damageType === 'Special';
-      const effectiveDmg = this.applyEquipStatusOnIncomingDamage(result.damage, isMagic);
+      const rawIncoming = this.applyRaidPhase4Multiplier(result.damage);
+      const effectiveDmg = this.applyEquipStatusOnIncomingDamage(rawIncoming, isMagic);
       if (effectiveDmg === -1) {
         // blocked by evasion / invincible / magic_immune
       } else {
-        this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - effectiveDmg);
-        this.log('enemy', `Você sofreu ${effectiveDmg} de dano!`, 'damage', effectiveDmg);
-        if (effectiveDmg > 0) this.applyEquipStatusCounter(effectiveDmg);
+        // Onda 11.3: aplica couro_duro + imortal por baixo.
+        const sufferedDmg = this.applyDamageToPlayerWithPassives(effectiveDmg);
+        this.log('enemy', `Você sofreu ${sufferedDmg} de dano!`, 'damage', sufferedDmg);
+        if (sufferedDmg > 0) this.applyEquipStatusCounter(sufferedDmg);
       }
 
       if (
         ability.effectType &&
         !STAT_MODIFIERS.has(ability.effectType as StatusEffect) &&
         ability.effectChance &&
-        Math.random() < ability.effectChance
+        Math.random() < ability.effectChance * this.ctx.enemyMods.procMult
       ) {
         this.applyEffect('player', ability.effectType as StatusEffect);
       }
     }
   }
 
+  // ─── Private: raid phase mechanics ──────────────────────────────────────────
+
+  /** Phase 2 — Maldição da Guilda. Boss drains 5% of player maxHP at the start
+   *  of its turn as true damage (ignores defenses, statuses, shields). */
+  private applyRaidPhase2Curse() {
+    if (this.ctx.raidPhase !== 2) return;
+    const dmg = Math.max(1, Math.ceil(this.ctx.player.hpMax * 0.05));
+    this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - dmg);
+    this.log('system', `💀 Maldição do Boss — você perde ${dmg} HP.`, 'damage', dmg);
+  }
+
+  /** Phase 4 — Boss enfurecido. All boss-dealt damage doubles before the
+   *  defender's equip-status pipeline (shield/evasion/etc.) runs on top. */
+  private applyRaidPhase4Multiplier(rawDmg: number): number {
+    if (this.ctx.raidPhase !== 4) return rawDmg;
+    return Math.floor(rawDmg * 2);
+  }
+
   // ─── Private: turn management ────────────────────────────────────────────────
 
   private endTurn() {
+    this.tickBattlefieldEffects();
+    this.tickPlayerForms();
     this.ctx.turn++;
     if (this.ctx.equipmentCooldown > 0) this.ctx.equipmentCooldown--;
     // Tick cooldownRounds for counter status (once per full round)
@@ -688,7 +1143,23 @@ export class BattleEngine {
         s.cooldownRounds--;
       }
     }
+    // Onda 11.3 — inspiração (passiva healPerTurn): só em contexto de raid.
+    this.applyHealPerTurnIfRaid();
     this.ctx.phase = 'PLAYER_TURN';
+  }
+
+  // Onda 11.3 — passiva inspiração: cura % do HP máximo por turno em raids.
+  private applyHealPerTurnIfRaid() {
+    const p = this.ctx.playerPassives;
+    if (!p || !this.ctx.raidPhase || p.healPerTurn <= 0) return;
+    if (this.ctx.player.hpCurrent <= 0) return;
+    const heal = Math.max(1, Math.floor(this.ctx.player.hpMax * p.healPerTurn));
+    const before = this.ctx.player.hpCurrent;
+    this.ctx.player.hpCurrent = Math.min(this.ctx.player.hpMax, before + heal);
+    const gained = this.ctx.player.hpCurrent - before;
+    if (gained > 0) {
+      this.log('player', `🎶 Inspiração — +${gained} HP.`, 'effect', gained);
+    }
   }
 
   // ─── Private: status ticks ───────────────────────────────────────────────────
@@ -791,6 +1262,7 @@ export class BattleEngine {
     const counter  = ss[cIdx];
     const reflected = Math.floor(dmgReceived * (counter.multiplier ?? 2));
     this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - reflected);
+    this.maybeActivateBossPhase2();
     this.log('player', `⚡ COUNTER — ${reflected} refletido ao inimigo!`, 'damage', reflected);
     // Set cooldown
     counter.cooldownRounds = 5;
@@ -813,6 +1285,7 @@ export class BattleEngine {
           this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - val);
         } else {
           this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - val);
+          this.maybeActivateBossPhase2();
         }
         this.log(target, `${icon} ${s.type}: −${val} HP!`, 'status', val);
       }
@@ -837,6 +1310,107 @@ export class BattleEngine {
       s => (s.type === 'stun' || s.type === 'freeze') &&
            ((s.turnsLeft !== undefined && s.turnsLeft > 0) || s.turnsLeft === -1),
     );
+  }
+
+
+  private resolvePlayerAttackAbility(ability: Ability): Ability {
+    const form = [...this.ctx.playerForms].reverse().find(f => f.overrideAttackElement);
+    const override = this.ctx.elementOverrides.find(o =>
+      o.charges > 0 && (!o.onlyDamageType || o.onlyDamageType === ability.damageType),
+    );
+    const elementName = override?.replaceWith ?? form?.overrideAttackElement ?? ability.elementName;
+    if (override) override.charges -= 1;
+    this.ctx.elementOverrides = this.ctx.elementOverrides.filter(o => o.charges > 0);
+    return elementName === ability.elementName ? ability : { ...ability, elementName };
+  }
+
+  private getPlayerFormDamageMultiplier(damageType: Ability['damageType']): number {
+    return this.ctx.playerForms.reduce((mult, form) => {
+      if (damageType === 'Physical') return mult * (form.physicalDmgMult ?? 1);
+      if (damageType === 'Special') return mult * (form.magicalDmgMult ?? 1);
+      return mult;
+    }, 1);
+  }
+
+  private getOutgoingFieldMultiplier(element: ElementType): number {
+    return this.ctx.battlefieldEffects.reduce(
+      (mult, field) => mult * (field.outgoingElementMult?.[element] ?? 1),
+      1,
+    );
+  }
+
+  private onPlayerDamageDealt(damage: number, effectiveness: number, ability: Ability | null) {
+    const murasame = this.ctx.enemyMarks.find(m => m.key === 'murasame_death_curse');
+    if (murasame) murasame.stacks = Math.min(5, murasame.stacks + 1);
+
+    if (ability && effectiveness > 1) {
+      const followUps = this.ctx.queuedFollowUps.filter(f =>
+        f.trigger === 'on_super_effective' && f.expiresAfterTurn >= this.ctx.turn,
+      );
+      for (const follow of followUps) {
+        const bonus = Math.max(1, Math.floor(damage * follow.damageMultiplier));
+        this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - bonus);
+        this.log('player', `?? Follow-up super efetivo: ${bonus} de dano adicional!`, 'damage', bonus);
+      }
+      if (followUps.length) {
+        this.ctx.queuedFollowUps = this.ctx.queuedFollowUps.filter(f => !followUps.includes(f));
+      }
+    }
+
+    this.checkExecutionRules();
+  }
+
+  private checkExecutionRules() {
+    for (const rule of this.ctx.executionRules) {
+      if (rule.excludesBosses && this.ctx.enemy.isBoss) continue;
+      const hpFraction = this.ctx.enemy.hpCurrent / Math.max(1, this.ctx.enemy.hpMax);
+      if (hpFraction > rule.thresholdHpFraction) continue;
+      if (rule.requiresMarkKey) {
+        const mark = this.ctx.enemyMarks.find(m => m.key === rule.requiresMarkKey);
+        if (!mark || mark.stacks < (rule.minStacks ?? 1)) continue;
+      }
+      if (this.ctx.enemy.hpCurrent > 0) {
+        const dmg = this.ctx.enemy.hpCurrent;
+        this.ctx.enemy.hpCurrent = 0;
+        this.log('player', rule.message, 'damage', dmg);
+      }
+    }
+  }
+
+  private tickBattlefieldEffects() {
+    for (const field of this.ctx.battlefieldEffects) {
+      if (field.endTurnDamage) {
+        const turn = field.endTurnDamage.currentTurn ?? 0;
+        const dmg = field.endTurnDamage.base + turn * (field.endTurnDamage.growthPerTurn ?? 0);
+        if (field.endTurnDamage.target === 'enemy') {
+          this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - dmg);
+          this.maybeActivateBossPhase2();
+          this.log('enemy', `?? ${field.name}: ?${dmg} HP`, 'status', dmg);
+        } else {
+          this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - dmg);
+          this.log('player', `?? ${field.name}: ?${dmg} HP`, 'status', dmg);
+        }
+        field.endTurnDamage.currentTurn = turn + 1;
+      }
+      if (field.turnsLeft !== null) field.turnsLeft -= 1;
+    }
+    this.ctx.battlefieldEffects = this.ctx.battlefieldEffects.filter(f => f.turnsLeft === null || f.turnsLeft > 0);
+  }
+
+  private tickPlayerForms() {
+    for (const form of this.ctx.playerForms) {
+      if (form.turnsLeft !== null) form.turnsLeft -= 1;
+    }
+    const expired = this.ctx.playerForms.filter(f => f.turnsLeft !== null && f.turnsLeft <= 0);
+    for (const form of expired) {
+      if (form.key === 'titan') {
+        const originalHpMax = Number(form.payload?.originalHpMax ?? this.ctx.player.hpMax);
+        this.ctx.player.hpMax = originalHpMax;
+        this.ctx.player.hpCurrent = Math.min(this.ctx.player.hpCurrent, originalHpMax);
+        this.log('system', '?? A forma Tit? terminou.', 'info');
+      }
+    }
+    this.ctx.playerForms = this.ctx.playerForms.filter(f => f.turnsLeft === null || f.turnsLeft > 0);
   }
 
   private tickPlayerStatus(): boolean {
@@ -867,6 +1441,7 @@ export class BattleEngine {
         this.ctx.player.hpCurrent = Math.max(0, this.ctx.player.hpCurrent - result.damage);
       } else {
         this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - result.damage);
+        this.maybeActivateBossPhase2();
       }
     }
 
@@ -942,6 +1517,87 @@ export class BattleEngine {
 
   // ─── Private: PP helper ──────────────────────────────────────────────────────
 
+  /**
+   * Merge forge buffs onto the attribute-derived modifier set.
+   * Multiplicative effects compound on top of attributes; additive effects
+   * are clamped using the same caps that attributeModifiers enforces.
+   */
+  static applyBuffsToMods(
+    base: AttributeModifiers,
+    buffs: ActiveBuffInput[],
+  ): AttributeModifiers {
+    if (!buffs.length) return base;
+    const out: AttributeModifiers = { ...base };
+    for (const b of buffs) {
+      const v = Number(b.effect_value) || 0;
+      switch (b.effect) {
+        case 'physical_dmg':     out.physicalDmgMult += v; break;
+        case 'magic_dmg':        out.magicalDmgMult  += v; break;
+        case 'crit_bonus':       out.critBonus       = Math.min(0.95, out.critBonus + v); break;
+        case 'evade_bonus':      out.evadeBonus      = Math.min(0.80, out.evadeBonus + v); break;
+        case 'proc_bonus':       out.procMult        += v; break;
+        case 'damage_reduction': out.damageTakenMult = Math.max(0.05, out.damageTakenMult * (1 - v)); break;
+      }
+    }
+    return out;
+  }
+
+  /** Apply a forge consumable effect mid-battle. Returns the updated context. */
+  useConsumable(c: ConsumableInput, abilityId?: string): BattleContext {
+    if (this.ctx.phase !== 'PLAYER_TURN') return this.snapshot();
+
+    const label = c.name || c.key;
+    switch (c.effect) {
+      case 'heal_flat': {
+        const gain = Math.min(c.effect_value, this.ctx.player.hpMax - this.ctx.player.hpCurrent);
+        this.ctx.player.hpCurrent += gain;
+        this.log('player', `${label} — +${gain} HP.`, 'effect', gain);
+        break;
+      }
+      case 'heal_percent': {
+        const amount = Math.floor(this.ctx.player.hpMax * c.effect_value);
+        const gain = Math.min(amount, this.ctx.player.hpMax - this.ctx.player.hpCurrent);
+        this.ctx.player.hpCurrent += gain;
+        this.log('player', `${label} — +${gain} HP.`, 'effect', gain);
+        break;
+      }
+      case 'cure': {
+        const removed = this.ctx.playerStatus?.type ?? null;
+        this.ctx.playerStatus = null;
+        this.log('player', removed ? `${label} — status (${removed}) removido.` : `${label} — sem status.`, 'effect');
+        break;
+      }
+      case 'revive': {
+        if (this.ctx.player.hpCurrent <= 0) {
+          this.ctx.player.hpCurrent = Math.floor(this.ctx.player.hpMax * 0.5);
+          this.log('player', `${label} — reviveu com 50% HP.`, 'effect');
+        } else {
+          this.ctx.reviveCharges += 1;
+          this.log('player', `${label} — guardia contra morte ativa.`, 'effect');
+        }
+        break;
+      }
+      case 'recharge': {
+        const pp = abilityId ? this.ctx.abilityPP[abilityId] : null;
+        if (pp) {
+          pp.current = pp.max;
+          const ability = this.ctx.equippedAbilities.find(a => a.id === abilityId);
+          this.log('player', `${label} — PP de "${ability?.name ?? 'ataque'}" restaurado.`, 'effect');
+        } else {
+          for (const id of Object.keys(this.ctx.abilityPP)) {
+            const slot = this.ctx.abilityPP[id];
+            slot.current = slot.max;
+          }
+          this.log('player', `${label} — todos os PP restaurados.`, 'effect');
+        }
+        break;
+      }
+    }
+
+    this.ctx.phase = 'ENEMY_TURN';
+    return this.snapshot();
+  }
+
   /** Returns how many uses (PP) an ability starts with, based on its tier. */
   static getMaxPP(ability: Ability): number {
     switch (ability.tier) {
@@ -985,12 +1641,44 @@ export class BattleEngine {
   // ─── Private: rewards ────────────────────────────────────────────────────────
 
   private computeRewards() {
-    const baseXP = this.ctx.enemy.level * 20 * (this.ctx.enemy.isBoss ? 3 : 1);
-    const bonus  = Math.floor(baseXP * 0.1 * (this.ctx.turn < 5 ? 1.5 : 1)); // speed bonus
+    // Patch 2.2: rewards now derive from floor depth (+ enemy level for XP).
+    // See enemyScaling.ts for the full curve and tunables. Speed bonus (early
+    // wins) remains as a 10% XP kicker so fast clears still feel rewarding.
+    const floor   = this.ctx.enemy.floorNumber ?? 1;
+    const isBoss  = !!this.ctx.enemy.isBoss;
+    const baseXP  = computeXpReward(floor, this.ctx.enemy.level, isBoss);
+    const bonus   = Math.floor(baseXP * 0.1 * (this.ctx.turn < 5 ? 1.5 : 1));
     this.ctx.rewards = {
       xp:    baseXP + bonus,
-      coins: this.ctx.enemy.isBoss ? this.ctx.enemy.level * 10 : this.ctx.enemy.level * 3,
+      coins: computeCoinReward(floor, isBoss),
     };
+  }
+
+  /**
+   * Patch 2.2 — Boss phase-2 trigger.
+   * Once a boss drops below BOSS_PHASE2_HP_THRESHOLD, latch on a
+   * permanent damageTakenMult so subsequent hits do less damage.
+   * Logged exactly once for clarity.
+   */
+  private maybeActivateBossPhase2() {
+    if (this.ctx.bossPhase2Active) return;
+    if (!this.ctx.enemy.isBoss) return;
+    const hpFraction = this.ctx.enemy.hpCurrent / Math.max(1, this.ctx.enemy.hpMax);
+    if (hpFraction > BOSS_PHASE2_HP_THRESHOLD) return;
+    if (this.ctx.enemy.hpCurrent <= 0) return; // boss already dead — skip
+
+    this.ctx.bossPhase2Active = true;
+    // Apply damage reduction by lowering the enemy's damageTakenMult.
+    // identityModifiers is a fresh object so this mutation is safe.
+    this.ctx.enemyMods = {
+      ...this.ctx.enemyMods,
+      damageTakenMult: this.ctx.enemyMods.damageTakenMult * (1 - BOSS_PHASE2_DAMAGE_REDUCTION),
+    };
+    this.log(
+      'system',
+      `🛡️ ${this.ctx.enemy.name} entrou em modo defensivo! Dano recebido −${Math.round(BOSS_PHASE2_DAMAGE_REDUCTION * 100)}%.`,
+      'effect',
+    );
   }
 
   // ─── Private: logging ────────────────────────────────────────────────────────
@@ -1019,6 +1707,12 @@ export class BattleEngine {
       log:               [...this.ctx.log],
       equippedAbilities: [...this.ctx.equippedAbilities],
       abilityPP:         ppCopy,
+      battlefieldEffects: this.ctx.battlefieldEffects.map(f => ({ ...f, outgoingElementMult: { ...f.outgoingElementMult }, incomingElementMult: { ...f.incomingElementMult }, endTurnDamage: f.endTurnDamage ? { ...f.endTurnDamage } : undefined })),
+      playerForms: this.ctx.playerForms.map(f => ({ ...f, payload: f.payload ? { ...f.payload } : undefined })),
+      elementOverrides: this.ctx.elementOverrides.map(o => ({ ...o })),
+      enemyMarks: this.ctx.enemyMarks.map(m => ({ ...m })),
+      executionRules: this.ctx.executionRules.map(r => ({ ...r })),
+      queuedFollowUps: this.ctx.queuedFollowUps.map(f => ({ ...f })),
     };
   }
 

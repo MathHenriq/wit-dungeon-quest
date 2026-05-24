@@ -1,20 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Loader2, ArrowLeft, X, Star, Lock, CheckCircle, Zap, Package, Hammer } from "lucide-react";
+import { Loader2, ArrowLeft, X, Star, Lock, CheckCircle, Zap, Package, Hammer, Gem, ArrowRightLeft, Info } from "lucide-react";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { ChestSection } from "@/components/student/ChestSection";
 import { CraftPanel } from "@/components/student/CraftPanel";
+import { ForgePanel } from "@/components/student/ForgePanel";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
 import type { ShopItem, InventoryItem, Student, ItemCategory, ItemRarity } from "@/types";
 import { toast } from "sonner";
+import { supabaseStudent } from "@/integrations/supabase/studentClient";
+import { useEquippedSkins, resolveItemImage } from "@/hooks/useEquippedSkins";
 
 // ─── Rarity ──────────────────────────────────────────────────────────────────
 
 function getRarity(item: ShopItem): ItemRarity {
+  // Prefer the explicit rarity column (set for all seeded items).
   if (item.rarity && item.rarity in RARITY) return item.rarity;
-  if (item.cost >= 500) return "legendary";
-  if (item.cost >= 300) return "epic";
-  if (item.cost >= 150) return "rare";
-  if (item.cost >= 50)  return "uncommon";
+  // Fallback aligned with Patch 2.4 pricing curve.
+  if (item.cost >= 4000) return "legendary";
+  if (item.cost >= 1500) return "epic";
+  if (item.cost >=  600) return "rare";
+  if (item.cost >=  250) return "uncommon";
   return "common";
 }
 
@@ -536,7 +541,7 @@ const EMBERS = Array.from({ length: 14 }, (_, i) => ({
 
 // ─── Category config ──────────────────────────────────────────────────────────
 
-type ShopTab = 'loja' | 'baus' | 'forja';
+type ShopTab = 'loja' | 'premium' | 'baus' | 'forja';
 type RarityFilter = ItemRarity | 'all';
 
 const CATEGORIES: { key: ItemCategory | 'all'; label: string; iconId: string }[] = [
@@ -549,6 +554,10 @@ const CATEGORIES: { key: ItemCategory | 'all'; label: string; iconId: string }[]
   { key: 'token',      label: 'Token',      iconId: 'scroll' },
 ];
 
+// Patch 2.4: Mítica and ??? are no longer sold by the shop — they drop
+// only via chests. The filter pills for them were removed so they don't
+// show up as "0 items" tabs. Items of those rarities are also stripped
+// from the shop's visible item list (see filteredItems below).
 const RARITY_FILTERS: { key: RarityFilter; label: string }[] = [
   { key: 'all',       label: 'Todas' },
   { key: 'common',    label: 'Comum' },
@@ -556,9 +565,9 @@ const RARITY_FILTERS: { key: RarityFilter; label: string }[] = [
   { key: 'rare',      label: 'Rara' },
   { key: 'epic',      label: 'Epica' },
   { key: 'legendary', label: 'Lendaria' },
-  { key: 'mythic',    label: 'Mitica' },
-  { key: 'unknown',   label: '???' },
 ];
+
+const SHOP_HIDDEN_RARITIES: ReadonlySet<ItemRarity> = new Set(['mythic', 'unknown']);
 
 function formatPrice(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -605,6 +614,8 @@ function ItemDetailSheet({
   const r = RARITY[rarity];
   const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
   const activeAttrs = ATTRIBUTES.filter(a => (item[a.key] ?? 0) > 0);
+  const { skinsByBaseId } = useEquippedSkins();
+  const effectiveImage = resolveItemImage(item, skinsByBaseId);
   const locked = belowLevel || (owned && item.category !== 'token');
   const hasDiamondOption = (item.diamond_cost ?? 0) > 0;
 
@@ -646,8 +657,8 @@ function ItemDetailSheet({
 
             <div className="greed-image-wrapper">
               <div className="greed-image-container" style={{ height: 220 }}>
-                {item.image_url ? (
-                  <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                {effectiveImage ? (
+                  <img src={effectiveImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
                   <div style={{ color: '#fff' }}>
                     <GameIcon id={meta.iconId} size={80} />
@@ -778,6 +789,8 @@ function ItemCard({
   const r = RARITY[rarity];
   const meta = CATEGORY_META[item.category] ?? CATEGORY_META.colecao;
   const activeAttrs = ATTRIBUTES.filter(a => (item[a.key] ?? 0) > 0);
+  const { skinsByBaseId } = useEquippedSkins();
+  const effectiveImage = resolveItemImage(item, skinsByBaseId);
 
   const statusLabel = owned && item.category !== 'token'
     ? { text: 'Adquirido', color: '#059669' }
@@ -798,8 +811,8 @@ function ItemCard({
       onClick={onClick}
     >
       <div className="arcane-art">
-        {item.image_url ? (
-          <img src={item.image_url} alt={item.name} />
+        {effectiveImage ? (
+          <img src={effectiveImage} alt={item.name} />
         ) : (
           <div className="arcane-art-fallback">
             <GameIcon id={meta.iconId} size={64} />
@@ -868,14 +881,23 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
   const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
   const [buying, setBuying] = useState(false);
   const [buyingWithDiamonds, setBuyingWithDiamonds] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertAmount, setConvertAmount] = useState<number>(1);
+  const [converting, setConverting] = useState(false);
 
   const ownedItemIds = new Set(inventory.map(i => i.item_id));
 
   const filteredItems = items.filter(item => {
+    // Patch 2.4: hide Mítica + ??? from the shop entirely (chest-only).
+    // Patch 3.4: hide premium cards — they live in the Premium tab.
+    if (item.is_premium) return false;
+    if (SHOP_HIDDEN_RARITIES.has(getRarity(item))) return false;
     const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
     const matchesRarity = activeRarity === 'all' || getRarity(item) === activeRarity;
     return matchesCategory && matchesRarity;
   });
+
+  const premiumItems = items.filter(item => item.is_premium);
 
   const handleBuy = useCallback(async () => {
     if (!selectedItem) return;
@@ -898,6 +920,34 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
       setBuyingWithDiamonds(false);
     }
   }, [selectedItem, onPurchaseWithDiamonds]);
+
+  const handleConvert = useCallback(async () => {
+    const amount = Math.max(1, Math.floor(convertAmount));
+    if (amount <= 0) return;
+    if ((student.diamonds ?? 0) < amount) {
+      toast.error("Diamantes insuficientes");
+      return;
+    }
+    setConverting(true);
+    try {
+      const { data, error } = await supabaseStudent.rpc('convert_diamonds_to_coins', { p_amount: amount });
+      if (error) {
+        toast.error("Falha na conversão", { description: error.message });
+        return;
+      }
+      const result = data as { success: boolean; error?: string; coins_gained?: number };
+      if (!result?.success) {
+        toast.error("Conversão não realizada", { description: result?.error ?? "Erro desconhecido" });
+        return;
+      }
+      toast.success(`+${result.coins_gained} moedas`, { description: `${amount} diamante(s) convertido(s).` });
+      setConvertOpen(false);
+      setConvertAmount(1);
+      onCoinsChanged();
+    } finally {
+      setConverting(false);
+    }
+  }, [convertAmount, student.diamonds, onCoinsChanged]);
 
   // Close detail on Escape
   useEffect(() => {
@@ -1035,13 +1085,13 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
           </span>
         </div>
 
-        {/* Diamonds */}
+        {/* Diamonds + convert */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 7,
           background: 'rgba(99,179,237,0.08)',
           border: '1px solid rgba(99,179,237,0.25)',
-          borderRadius: 10, padding: '6px 14px',
-        }} title="Diamantes — conquistados em sala de aula">
+          borderRadius: 10, padding: '6px 8px 6px 14px', marginLeft: 8,
+        }} title="Diamantes — vêm de atividades no GSA e prêmios. Convertem em moeda, mas perdem o status premium.">
           <GameIcon id="gem" size={16} />
           <span style={{
             fontFamily: "'Share Tech Mono', monospace",
@@ -1049,6 +1099,25 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
           }}>
             {formatPrice(student.diamonds ?? 0)}
           </span>
+          <button
+            onClick={() => { setConvertAmount(1); setConvertOpen(true); }}
+            disabled={(student.diamonds ?? 0) <= 0}
+            title="Converter diamantes em moedas (1:5)"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              marginLeft: 4,
+              padding: '3px 8px', borderRadius: 6,
+              background: (student.diamonds ?? 0) > 0 ? 'rgba(99,179,237,0.18)' : 'rgba(99,179,237,0.06)',
+              border: '1px solid rgba(99,179,237,0.35)',
+              color: '#63b3ed', cursor: (student.diamonds ?? 0) > 0 ? 'pointer' : 'not-allowed',
+              fontFamily: "'Exo 2', sans-serif", fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              transition: 'all 0.15s ease',
+              opacity: (student.diamonds ?? 0) > 0 ? 1 : 0.5,
+            }}
+          >
+            <ArrowRightLeft size={11} /> 1:5
+          </button>
         </div>
       </div>
 
@@ -1061,9 +1130,11 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
         flexShrink: 0,
       }}>
         {([
-          { key: 'loja',  label: 'Loja',  icon: <GameIcon id="store" size={14} /> },
-          { key: 'baus',  label: 'Baús',  icon: <GameIcon id="chest" size={14} /> },
-          { key: 'forja', label: 'Forja', icon: <Hammer size={13} /> },
+          { key: 'loja',    label: 'Loja',    icon: <GameIcon id="store" size={14} /> },
+          // Premium tab hidden (Wave B) — items stay in DB, just no UI for now.
+          // { key: 'premium', label: 'Premium', icon: <Gem size={13} /> },
+          { key: 'baus',    label: 'Baús',    icon: <GameIcon id="chest" size={14} /> },
+          { key: 'forja',   label: 'Forja',   icon: <Hammer size={13} /> },
         ] as const).map(tab => (
           <button
             key={tab.key}
@@ -1084,6 +1155,32 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
         {/* ── LOJA TAB ── */}
         {activeTab === 'loja' && (
           <div>
+            {/* Patch 2.4: chest-only rarities notice */}
+            <div style={{
+              padding: '10px 20px',
+              background: 'linear-gradient(90deg, rgba(240,80,80,0.05), rgba(75,85,99,0.05))',
+              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: 10, letterSpacing: '1.5px',
+              color: 'rgba(255,255,255,0.55)',
+            }}>
+              <span style={{
+                padding: '2px 7px', borderRadius: 4,
+                background: 'rgba(240,80,80,0.12)',
+                border: '1px solid rgba(240,80,80,0.3)',
+                color: '#f87171',
+              }}>MITICA</span>
+              <span style={{
+                padding: '2px 7px', borderRadius: 4,
+                background: 'rgba(75,85,99,0.18)',
+                border: '1px solid rgba(120,120,120,0.4)',
+                color: '#a8a8a8',
+              }}>???</span>
+              <span>agora apenas via baus</span>
+              <span style={{ opacity: 0.4, marginLeft: 'auto' }}>chest_drop_only</span>
+            </div>
+
             {/* Category filter */}
             <div style={{
               display: 'flex', gap: 8, padding: '14px 20px 12px',
@@ -1094,9 +1191,11 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
               backdropFilter: 'blur(12px)',
             }}>
               {CATEGORIES.map(cat => {
+                // Patch 2.4: exclude hidden rarities so category counts agree with the grid.
+                const shopItems = items.filter(i => !SHOP_HIDDEN_RARITIES.has(getRarity(i)));
                 const count = cat.key === 'all'
-                  ? items.length
-                  : items.filter(i => i.category === cat.key).length;
+                  ? shopItems.length
+                  : shopItems.filter(i => i.category === cat.key).length;
                 if (count === 0 && cat.key !== 'all') return null;
                 return (
                   <button
@@ -1131,6 +1230,9 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
             }}>
               {RARITY_FILTERS.map(filter => {
                 const count = items.filter(item => {
+                  // Match the visibility rule used by filteredItems so the
+                  // pill counts agree with what's actually displayed.
+                  if (SHOP_HIDDEN_RARITIES.has(getRarity(item))) return false;
                   const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
                   const matchesRarity = filter.key === 'all' || getRarity(item) === filter.key;
                   return matchesCategory && matchesRarity;
@@ -1203,6 +1305,98 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
           </div>
         )}
 
+        {/* ── PREMIUM TAB ── */}
+        {activeTab === 'premium' && (
+          <div style={{ padding: '20px 20px 80px' }}>
+            {/* Intro card */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 14,
+              background: 'linear-gradient(135deg, rgba(99,179,237,0.08), rgba(124,58,237,0.06))',
+              border: '1px solid rgba(99,179,237,0.25)',
+              borderRadius: 14, padding: '16px 18px', marginBottom: 24,
+            }}>
+              <div style={{
+                flexShrink: 0, width: 38, height: 38, borderRadius: 10,
+                background: 'rgba(99,179,237,0.18)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#63b3ed',
+              }}>
+                <Gem size={20} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: "'Cinzel', serif", fontSize: 14, fontWeight: 700,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: '#cfe7ff', marginBottom: 6,
+                }}>
+                  Loja Premium
+                </div>
+                <div style={{
+                  fontFamily: "'Exo 2', sans-serif", fontSize: 12.5, lineHeight: 1.5,
+                  color: 'rgba(255,255,255,0.65)',
+                }}>
+                  Cartas exclusivas e baús especiais comprados apenas com diamantes.
+                  Diamantes vêm de atividades no GSA e prêmios. Você pode convertê-los
+                  em moedas (1:5), mas perdem o status premium nessa troca.
+                </div>
+              </div>
+            </div>
+
+            {/* Premium cards grid */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
+              fontFamily: "'Cinzel', serif", fontSize: 12, fontWeight: 700,
+              letterSpacing: '0.2em', textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.55)',
+            }}>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(99,179,237,0.4))' }} />
+              <span>Cartas Premium</span>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(99,179,237,0.4), transparent)' }} />
+            </div>
+            {premiumItems.length === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '40px 20px',
+                color: 'rgba(255,255,255,0.3)',
+                fontFamily: "'Exo 2', sans-serif", fontSize: 13,
+              }}>
+                Nenhuma carta premium disponível no momento.
+              </div>
+            ) : (
+              <div className="arcane-grid" style={{ marginBottom: 32 }}>
+                {premiumItems.map((item, idx) => {
+                  const owned = ownedItemIds.has(item.id);
+                  const cantAfford = (student.diamonds ?? 0) < (item.diamond_cost ?? 0);
+                  const belowLevel = student.level < item.min_level;
+                  return (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      owned={owned}
+                      cantAfford={cantAfford}
+                      belowLevel={belowLevel}
+                      index={idx}
+                      onClick={() => setSelectedItem(item)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Premium chests */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
+              fontFamily: "'Cinzel', serif", fontSize: 12, fontWeight: 700,
+              letterSpacing: '0.2em', textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.55)',
+            }}>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, rgba(99,179,237,0.4))' }} />
+              <span>Baús Premium</span>
+              <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(99,179,237,0.4), transparent)' }} />
+            </div>
+            <ChestSection student={student} onCoinsChanged={onCoinsChanged} diamondOnly />
+          </div>
+        )}
+
         {/* ── BAÚS TAB ── */}
         {activeTab === 'baus' && (
           <div style={{ padding: '24px 20px 80px' }}>
@@ -1213,10 +1407,193 @@ export function ShopScreen({ items, inventory, student, onPurchase, onPurchaseWi
         {/* ── FORJA TAB ── */}
         {activeTab === 'forja' && (
           <div style={{ padding: '24px 20px 80px' }}>
+            {/* Patch 3.3: materials-based forge first; legacy skill-tree craft below */}
+            <ForgePanel />
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '24px 0' }} />
             <CraftPanel studentId={student.id} teacherId={student.teacher_id} onCoinsChanged={onCoinsChanged} />
           </div>
         )}
       </div>
+
+      {/* ── Diamond → Coin conversion modal ── */}
+      {convertOpen && (() => {
+        const ownedDiamonds = student.diamonds ?? 0;
+        const amount = Math.max(1, Math.min(ownedDiamonds, Math.floor(convertAmount || 0)));
+        const gainedCoins = amount * 5;
+        const insufficient = ownedDiamonds < amount;
+        return (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 70,
+            background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20,
+            animation: 'shop-card-in 0.25s cubic-bezier(0.22,1,0.36,1) both',
+          }} onClick={() => !converting && setConvertOpen(false)}>
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: 'relative',
+                width: '100%', maxWidth: 460,
+                background: 'linear-gradient(180deg, #0c1220 0%, #060912 100%)',
+                border: '1px solid rgba(99,179,237,0.35)',
+                borderRadius: 16, padding: 24,
+                boxShadow: '0 30px 80px rgba(0,0,0,0.7), 0 0 40px rgba(99,179,237,0.15)',
+                color: '#e6f0ff',
+                fontFamily: "'Exo 2', sans-serif",
+              }}
+            >
+              <button
+                onClick={() => setConvertOpen(false)}
+                style={{
+                  position: 'absolute', top: 12, right: 12,
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, width: 30, height: 30,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+                }}
+              >
+                <X size={16} />
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <ArrowRightLeft size={18} style={{ color: '#63b3ed' }} />
+                <h2 style={{
+                  margin: 0, fontFamily: "'Cinzel', serif", fontSize: 18, fontWeight: 700,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: '#cfe7ff',
+                }}>Converter Diamantes</h2>
+              </div>
+              <p style={{
+                margin: '0 0 16px', fontSize: 12.5, lineHeight: 1.5,
+                color: 'rgba(255,255,255,0.55)',
+              }}>
+                Cada diamante vira <strong style={{ color: '#fbbf24' }}>5 moedas</strong>.
+                Conversão é <strong>permanente</strong>: você perde o status premium dos diamantes trocados.
+              </p>
+
+              {/* Wallet snapshot */}
+              <div style={{
+                display: 'flex', gap: 10, marginBottom: 18,
+                padding: 12,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 10,
+              }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <GameIcon id="gem" size={14} />
+                  <span style={{ fontSize: 11, opacity: 0.6, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Saldo</span>
+                  <span style={{ marginLeft: 'auto', fontFamily: "'Share Tech Mono', monospace", color: '#63b3ed', fontWeight: 700 }}>
+                    {ownedDiamonds}
+                  </span>
+                </div>
+                <div style={{ width: 1, background: 'rgba(255,255,255,0.08)' }} />
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <GameIcon id="coin" size={14} />
+                  <span style={{ fontSize: 11, opacity: 0.6, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Atuais</span>
+                  <span style={{ marginLeft: 'auto', fontFamily: "'Share Tech Mono', monospace", color: '#f59e0b', fontWeight: 700 }}>
+                    {student.coins}
+                  </span>
+                </div>
+              </div>
+
+              {/* Amount input */}
+              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
+                Quantidade de diamantes
+              </label>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={ownedDiamonds}
+                  value={convertAmount}
+                  onChange={e => setConvertAmount(Math.max(1, Number(e.target.value) || 1))}
+                  disabled={converting || ownedDiamonds <= 0}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(0,0,0,0.4)',
+                    border: '1px solid rgba(99,179,237,0.3)',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    color: '#fff',
+                    fontFamily: "'Share Tech Mono', monospace",
+                    fontSize: 16,
+                    outline: 'none',
+                  }}
+                />
+                {[1, 5, 10].filter(n => n <= ownedDiamonds).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setConvertAmount(n)}
+                    disabled={converting}
+                    style={{
+                      padding: '0 12px', borderRadius: 8,
+                      background: 'rgba(99,179,237,0.1)',
+                      border: '1px solid rgba(99,179,237,0.3)',
+                      color: '#63b3ed', cursor: 'pointer',
+                      fontWeight: 700, fontSize: 12,
+                    }}
+                  >{n}</button>
+                ))}
+                {ownedDiamonds > 0 && (
+                  <button
+                    onClick={() => setConvertAmount(ownedDiamonds)}
+                    disabled={converting}
+                    style={{
+                      padding: '0 12px', borderRadius: 8,
+                      background: 'rgba(99,179,237,0.18)',
+                      border: '1px solid rgba(99,179,237,0.4)',
+                      color: '#cfe7ff', cursor: 'pointer',
+                      fontWeight: 700, fontSize: 12,
+                    }}
+                  >Max</button>
+                )}
+              </div>
+
+              {/* Preview */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+                padding: '14px 16px', marginBottom: 20,
+                background: 'linear-gradient(90deg, rgba(99,179,237,0.08), rgba(245,158,11,0.08))',
+                border: '1px solid rgba(245,158,11,0.18)',
+                borderRadius: 10,
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#63b3ed', fontWeight: 700 }}>
+                  <GameIcon id="gem" size={16} /> {amount}
+                </span>
+                <ArrowRightLeft size={14} style={{ opacity: 0.6 }} />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontWeight: 700, fontFamily: "'Share Tech Mono', monospace" }}>
+                  <GameIcon id="coin" size={16} /> +{gainedCoins}
+                </span>
+              </div>
+
+              <button
+                onClick={handleConvert}
+                disabled={converting || insufficient || ownedDiamonds <= 0}
+                style={{
+                  width: '100%', padding: '12px 16px', borderRadius: 10,
+                  background: 'linear-gradient(90deg, #63b3ed, #f59e0b)',
+                  border: 'none', color: '#0a0a14', cursor: converting ? 'wait' : 'pointer',
+                  fontFamily: "'Exo 2', sans-serif", fontWeight: 800, fontSize: 14,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  opacity: (converting || insufficient || ownedDiamonds <= 0) ? 0.6 : 1,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {converting ? (<><Loader2 size={14} className="animate-spin" /> Convertendo...</>) : 'Confirmar conversão'}
+              </button>
+
+              <p style={{
+                margin: '12px 0 0', textAlign: 'center', fontSize: 11,
+                color: 'rgba(255,255,255,0.35)', letterSpacing: '0.05em',
+                display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center', width: '100%',
+              }}>
+                <Info size={11} /> Operação irreversível.
+              </p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Item Detail Sheet ── */}
       {selectedItem && (() => {

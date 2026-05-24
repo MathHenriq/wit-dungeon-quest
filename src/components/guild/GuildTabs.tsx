@@ -12,6 +12,7 @@ const TABS: { id: GuildTab; label: string }[] = [
   { id: 'chat',        label: 'Chat'          },
   { id: 'members',     label: 'Membros'       },
   { id: 'missions',    label: 'Missões'       },
+  { id: 'raid',        label: 'Raid'          },
   { id: 'development', label: 'Progresso'     },
   { id: 'ranking',     label: 'Ranking'       },
 ];

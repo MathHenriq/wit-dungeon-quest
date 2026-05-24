@@ -8,6 +8,12 @@ import { useBattleEngine } from '@/hooks/useBattleEngine';
 import type { PvPBattleEngineControls } from '@/hooks/usePvPBattleEngine';
 import { FALLBACK_SPRITE_URL } from '@/lib/sprites/getEnemySprite';
 import './PokemonBattle.css';
+import { useCardActivation, type CardRarity } from './CardActivationAnimation';
+import { BattleBackdrop, pickBackdropForRarity, type BackdropKey } from './BattleBackdrop';
+import { ActiveModifiersHUD } from './ActiveModifiersHUD';
+import { useDamagePopups, type PopupKind } from './DamagePopups';
+import { supabaseStudent } from '@/integrations/supabase/studentClient';
+import { useEquippedSkins, resolveItemImage } from '@/hooks/useEquippedSkins';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -16,7 +22,7 @@ interface BattleScreenProps {
   enemy:             BattleEnemy;
   equippedAbilities: Ability[];
   equippedItem?:     ShopItem | null;
-  onVictory:         (xp: number, coins: number) => void;
+  onVictory:         (xp: number, coins: number, meta?: { isFlawless: boolean }) => void;
   onDefeat:          () => void;
   onFled?:           () => void;
   /** PvP: pass external engine so auto-enemy-turns are disabled */
@@ -27,6 +33,8 @@ interface BattleScreenProps {
   onSurrender?:      () => void;
   /** PvP: replaces "TURNO DO INIMIGO" label and hides flee/items */
   pvpMode?:          boolean;
+  /** Guild raid phase (1–4). Drives extra boss mechanics in BattleEngine. */
+  raidPhase?:        number;
 }
 
 // ─── Items ────────────────────────────────────────────────────────────────────
@@ -87,13 +95,89 @@ export function BattleScreen({
   onPlayerAttack,
   onSurrender,
   pvpMode = false,
+  raidPhase,
 }: BattleScreenProps) {
   const internalEngine = useBattleEngine();
   const { ctx, startBattle, playerAttack, useItem, flee } = engineOverride ?? internalEngine;
+  // Forge consumables only flow through the internal engine (PvP excluded).
+  const consumables   = engineOverride ? [] : internalEngine.consumables;
+  const useConsumable = engineOverride ? null : internalEngine.useConsumable;
+  const { skinsByBaseId } = useEquippedSkins();
+
+  // Patch 6.1: cinematic activation for Legendary+ equipment cards.
+  const sfxMuted = (typeof window !== "undefined" ? localStorage.getItem("wit:sfx_muted") : "1") !== "0";
+  const { play: playCardActivation, overlay: cardActivationOverlay } = useCardActivation(sfxMuted);
+
+  // Patch 6.2: dramatic backdrop swaps when a Legendary+ card fires.
+  const [backdropKey, setBackdropKey] = useState<BackdropKey>("default");
+
+  // Patch 6.4: damage popup host.
+  const { push: pushDamage, host: damageHost } = useDamagePopups();
+  const lastLogIdxRef = useRef(0);
+
+  // Patch 6.4: translate new ctx.log entries into floating popups.
+  useEffect(() => {
+    const log = ctx?.log;
+    if (!log) return;
+    if (log.length <= lastLogIdxRef.current) {
+      // Log shrunk (battle restart) — reset.
+      if (log.length < lastLogIdxRef.current) lastLogIdxRef.current = log.length;
+      return;
+    }
+
+    for (let i = lastLogIdxRef.current; i < log.length; i++) {
+      const entry = log[i];
+      if (entry.actor === 'system') continue;
+      const damageSide: 'player' | 'enemy' = entry.actor === 'player' ? 'enemy' : 'player';
+
+      // ── Damage popups ──
+      if (entry.type === 'damage' && entry.value && entry.value > 0) {
+        // Crit detection: same actor logged "Acerto crítico" within last 3 entries.
+        let isCrit = false;
+        for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+          if (log[j].actor !== entry.actor) break;
+          if (log[j].message.includes('crítico')) { isCrit = true; break; }
+        }
+        let kind: PopupKind = 'physical';
+        if (isCrit) kind = 'crit';
+        else if (entry.actor === 'player' && lastUsedAbilityRef.current?.damageType === 'Magical') kind = 'magical';
+        pushDamage({ side: damageSide, kind, value: entry.value });
+        continue;
+      }
+
+      // ── Miss / evade popups ──
+      if (entry.type === 'info' && /Errou|Desviou|desviou/.test(entry.message)) {
+        // Player evaded enemy attack → "Você desviou!" with actor='enemy' → popup on player side.
+        const playerEvaded = /Você desviou/i.test(entry.message);
+        const side: 'player' | 'enemy' = playerEvaded ? 'player' : damageSide;
+        const label = playerEvaded || /Desviou/.test(entry.message) ? 'DESVIOU' : 'ERROU';
+        pushDamage({ side, kind: 'miss', value: 0, label });
+        continue;
+      }
+
+      // ── Heal popups ──
+      if (entry.type === 'effect' && entry.value && entry.value > 0 &&
+          /Recuperou|Absorveu|💚|↩️/.test(entry.message)) {
+        const side: 'player' | 'enemy' = entry.actor === 'player' ? 'player' : 'enemy';
+        pushDamage({ side, kind: 'heal', value: entry.value });
+        continue;
+      }
+    }
+
+    lastLogIdxRef.current = log.length;
+  }, [ctx?.log?.length, pushDamage]); // eslint-disable-line
+  useEffect(() => {
+    // Reset to default backdrop the moment a battle ends — keeps the next
+    // encounter starting on neutral ground.
+    if (ctx?.phase === 'VICTORY' || ctx?.phase === 'DEFEAT' || ctx?.phase === 'FLED') {
+      setBackdropKey("default");
+    }
+  }, [ctx?.phase]);
 
   // Menu state
   const [menu, setMenu] = useState<'main' | 'fight' | 'item'>('main');
   const [confirmSurrender, setConfirmSurrender] = useState(false);
+  const [animatingCardId, setAnimatingCardId] = useState<string | null>(null);
 
   // Shake states
   const [shakePlayer, setShakePlayer] = useState(false);
@@ -135,7 +219,7 @@ export function BattleScreen({
   // ── Start battle (only when using the internal engine) ─────────────────────
   useEffect(() => {
     if (!engineOverride) {
-      internalEngine.startBattle(player, enemy, equippedAbilities, equippedItem);
+      internalEngine.startBattle(player, enemy, equippedAbilities, equippedItem, raidPhase);
     }
   }, []); // eslint-disable-line
 
@@ -225,7 +309,8 @@ export function BattleScreen({
   useEffect(() => {
     if (!ctx) return;
     if (ctx.phase === 'VICTORY') {
-      const t = setTimeout(() => onVictory(ctx.rewards?.xp ?? 0, ctx.rewards?.coins ?? 0), 2200);
+      const isFlawless = ctx.player.hpCurrent >= ctx.player.hpMax;
+      const t = setTimeout(() => onVictory(ctx.rewards?.xp ?? 0, ctx.rewards?.coins ?? 0, { isFlawless }), 2200);
       return () => clearTimeout(t);
     }
     if (ctx.phase === 'DEFEAT') {
@@ -268,6 +353,27 @@ export function BattleScreen({
 
   return (
     <div className="poke-scene" data-element={activeElement}>
+
+      {/* Patch 6.1: cinematic card activation overlay (renders nothing when idle). */}
+      {cardActivationOverlay}
+
+      {/* Patch 6.2: dramatic battle backdrop. Sits between the page bg and
+          combat HUD. Crossfades when backdropKey changes. */}
+      <BattleBackdrop activeKey={backdropKey} />
+
+      {/* Patch 6.4: floating damage / heal / miss numbers. */}
+      {damageHost}
+
+      {/* Patch 6.3: HUD lateral de modificadores ativos. Reativo ao ctx. */}
+      <ActiveModifiersHUD
+        playerName={ctx.player.name}
+        enemyName={ctx.enemy.name}
+        playerStatus={ctx.playerStatus}
+        enemyStatus={ctx.enemyStatus}
+        playerStatuses={ctx.playerStatuses}
+        enemyStatuses={ctx.enemyStatuses}
+        raidPhase={ctx.raidPhase}
+      />
 
       {/* ── Background ──────────────────────────────────────────────────────── */}
       <div className="poke-bg" />
@@ -519,42 +625,252 @@ export function BattleScreen({
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.15 }}
             >
+              {!pvpMode && useConsumable && consumables.length > 0 && (
+                <div
+                  style={{
+                    gridColumn: 'span 2',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    padding: '8px 10px',
+                    marginBottom: 4,
+                    borderRadius: 10,
+                    background: 'rgba(15,23,42,0.55)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(96,200,248,0.22)',
+                    boxShadow: '0 0 20px rgba(96,200,248,0.08) inset',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "'Orbitron', sans-serif",
+                      fontSize: '0.55rem',
+                      letterSpacing: 2,
+                      color: 'rgba(96,200,248,0.85)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Consumíveis
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {consumables.map((c) => (
+                      <button
+                        key={c.key}
+                        disabled={c.quantity <= 0}
+                        onClick={() => {
+                          void useConsumable(c.key);
+                          setMenu('main');
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          padding: '6px 10px',
+                          borderRadius: 8,
+                          border: '1px solid rgba(148,163,184,0.25)',
+                          background: 'rgba(30,41,59,0.65)',
+                          color: '#e2e8f0',
+                          fontFamily: "'Orbitron', sans-serif",
+                          fontSize: '0.6rem',
+                          letterSpacing: 0.5,
+                          cursor: c.quantity > 0 ? 'pointer' : 'not-allowed',
+                          opacity: c.quantity > 0 ? 1 : 0.4,
+                        }}
+                      >
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.name}
+                        </span>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            gap: 6,
+                            alignItems: 'center',
+                            fontSize: '0.55rem',
+                          }}
+                        >
+                          <span style={{ color: 'rgba(148,163,184,0.85)' }}>×{c.quantity}</span>
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 6,
+                              background: 'rgba(96,200,248,0.18)',
+                              border: '1px solid rgba(96,200,248,0.4)',
+                              color: '#60c8f8',
+                              letterSpacing: 1.2,
+                            }}
+                          >
+                            USAR
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {ctx.equippedAbilities.slice(0, 4).map((ability) => {
                 const meta    = ELEMENT_META[ability.elementName];
                 const pp      = ctx.abilityPP[ability.id];
                 const hasPP   = (pp?.current ?? 0) > 0;
+                const isAnimating = animatingCardId === ability.id;
+                
                 return (
-                  <button
+                  <motion.div
+                    layout
                     key={ability.id}
-                    className="poke-skill-btn"
-                    disabled={!hasPP}
-                    style={{ '--el-color': meta?.color ?? 'rgba(0,229,255,0.5)' } as React.CSSProperties}
-                    onClick={() => {
-                      lastUsedAbilityRef.current = ability;
-                      if (elementTimerRef.current) clearTimeout(elementTimerRef.current);
-                      setActiveElement('');
-                      requestAnimationFrame(() => {
-                        setActiveElement(ability.elementName);
-                        elementTimerRef.current = setTimeout(() => setActiveElement(''), 1500);
-                      });
-                      playerAttack(ability.id);
-                      onPlayerAttack?.(ability.id);
-                      setMenu('main');
+                    style={isAnimating ? {
+                      position: 'fixed',
+                      top: '50%',
+                      left: '50%',
+                      marginTop: '-90px',
+                      marginLeft: '-130px',
+                      width: '260px',
+                      height: '180px',
+                      zIndex: 50,
+                    } : {
+                      position: 'relative',
+                      width: '100%',
+                      zIndex: 1,
                     }}
+                    animate={{
+                      rotateY: isAnimating ? 360 : 0,
+                      scale: isAnimating ? 1.1 : 1,
+                    }}
+                    transition={{ duration: 0.6, type: "spring", bounce: 0.2 }}
+                    className="group"
                   >
-                    <span className="poke-skill-name">{ability.name}</span>
-                    <div className="poke-skill-meta">
-                      <span
-                        className="poke-skill-type"
-                        style={{ background: meta?.color ? `${meta.color}33` : 'rgba(255,255,255,0.1)', color: meta?.color ?? '#e2e8f0' }}
+                    <button
+                      disabled={!hasPP || animatingCardId !== null}
+                      onClick={async () => {
+                        setAnimatingCardId(ability.id);
+                        lastUsedAbilityRef.current = ability;
+
+                        // Simulate card activation delay
+                        setTimeout(async () => {
+                          if ((ability.tier ?? 0) >= 3) {
+                            void supabaseStudent.rpc('increment_daily_counter', { p_type: 'rare_card_uses', p_amount: 1 });
+                          }
+                          // Patch 6.1b — show ALARM panel for every ability,
+                          // tier maps to rarity tone.
+                          const t = ability.tier ?? 1;
+                          const rar: CardRarity =
+                            t >= 6 ? 'unknown'
+                            : t === 5 ? 'mythic'
+                            : t === 4 ? 'legendary'
+                            : t === 3 ? 'rare'
+                            : t === 2 ? 'uncommon'
+                            : 'common';
+                          await playCardActivation({
+                            rarity: rar,
+                            cardName: ability.name,
+                            cardImage: null,
+                            description: ability.description,
+                          });
+                          
+                          if (elementTimerRef.current) clearTimeout(elementTimerRef.current);
+                          setActiveElement('');
+                          requestAnimationFrame(() => {
+                            setActiveElement(ability.elementName);
+                            elementTimerRef.current = setTimeout(() => setActiveElement(''), 1500);
+                          });
+                          
+                          playerAttack(ability.id);
+                          onPlayerAttack?.(ability.id);
+                          
+                          setTimeout(() => {
+                             setAnimatingCardId(null);
+                             setMenu('main');
+                          }, 400); // Wait for hit effect
+                        }, 1000); // Wait for card pull animation
+                      }}
+                      className="w-full h-full text-left rounded-xl border p-3 flex flex-col gap-2 transition-all shadow-lg overflow-hidden"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(2,6,23,0.95) 100%)`,
+                        borderColor: meta?.color ? `${meta.color}66` : 'rgba(255,255,255,0.2)',
+                        boxShadow: `0 4px 20px rgba(0,0,0,0.5), inset 0 0 12px ${meta?.color ? meta.color + '22' : 'transparent'}`,
+                        opacity: hasPP ? 1 : 0.5,
+                        cursor: hasPP && !animatingCardId ? 'pointer' : 'not-allowed',
+                      }}
+                    >
+                      {/* Glow Overlay */}
+                      <div 
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        style={{ background: `radial-gradient(circle at 50% -20%, ${meta?.color}44 0%, transparent 70%)` }}
+                      />
+                      
+                      {/* Element Strip */}
+                      <div 
+                        className="absolute left-0 top-0 bottom-0 w-1"
+                        style={{ background: meta?.color ?? '#fff', boxShadow: `0 0 10px ${meta?.color}` }}
+                      />
+
+                      {/* Header */}
+                      <div className="flex items-start justify-between relative z-10 pl-2">
+                        <div>
+                          <h4 className="font-['Rajdhani'] font-bold text-[#f8fafc] text-[0.8rem] leading-tight">
+                            {ability.name}
+                          </h4>
+                          <span className="text-[0.6rem] font-['Orbitron'] font-semibold" style={{ color: meta?.color }}>
+                            {meta?.icon} {ability.elementName}
+                          </span>
+                        </div>
+                        <div className="text-[0.55rem] px-1.5 py-0.5 rounded-sm font-['Orbitron'] border" style={{ color: meta?.color, borderColor: `${meta?.color}44`, backgroundColor: `${meta?.color}11` }}>
+                          {ability.damageType === 'Physical' ? 'FÍS' : ability.damageType === 'Special' ? 'MAG' : 'SUP'}
+                        </div>
+                      </div>
+
+                      {/* Power / Accuracy */}
+                      <div className="flex gap-3 text-[0.6rem] font-semibold text-slate-300 relative z-10 pl-2">
+                        {ability.damageType !== 'Status' && (
+                          <span className="flex items-center gap-1">
+                            <span className="text-red-400">⚔</span> {ability.baseDamage}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <span className="text-slate-400">🎯</span> {ability.accuracy}%
+                        </span>
+                      </div>
+
+                      {/* PP Bar / Uses */}
+                      <div className="mt-auto relative z-10 pl-2">
+                        <div className="flex justify-between text-[0.55rem] font-['Orbitron'] text-slate-400 mb-1">
+                          <span>ENERGIA</span>
+                          <span style={{ color: hasPP ? '#67e8f9' : '#f87171' }}>{pp?.current ?? 0} / {pp?.max ?? 0}</span>
+                        </div>
+                        <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all"
+                            style={{ 
+                              width: `${((pp?.current ?? 0) / (pp?.max ?? 1)) * 100}%`,
+                              background: hasPP ? '#00e5ff' : '#f87171',
+                              boxShadow: `0 0 5px ${hasPP ? '#00e5ff' : '#f87171'}`
+                            }}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Single Use Label if PP is 1 */}
+                      {(pp?.max === 1) && (
+                        <div className="absolute bottom-2 right-2 text-[0.5rem] font-bold text-red-400 bg-red-400/10 border border-red-400/30 px-1 rounded">
+                          USO ÚNICO
+                        </div>
+                      )}
+                    </button>
+                    
+                    {/* Discard Animation Layer (only if it was the last use and is animating) */}
+                    {isAnimating && (pp?.current === 1) && (
+                      <motion.div
+                        className="absolute inset-0 bg-red-500/20 rounded-xl border-2 border-red-500 flex items-center justify-center z-20 pointer-events-none"
+                        initial={{ opacity: 0, scale: 1 }}
+                        animate={{ opacity: [0, 1, 0], scale: [1, 1.1, 0.8], filter: ['blur(0px)', 'blur(0px)', 'blur(4px)'] }}
+                        transition={{ delay: 0.8, duration: 0.4 }}
                       >
-                        {meta?.icon} {ability.elementName}
-                      </span>
-                      <span className="poke-skill-cost">
-                        PP {pp?.current ?? 0}/{pp?.max ?? 0}
-                      </span>
-                    </div>
-                  </button>
+                        <span className="font-['Rajdhani'] font-bold text-red-500 text-xl tracking-widest bg-black/50 px-2 rounded">DESCARTADA</span>
+                      </motion.div>
+                    )}
+                  </motion.div>
                 );
               })}
 
@@ -567,48 +883,156 @@ export function BattleScreen({
 
               {/* 5th slot: equipment-granted ability */}
               {!pvpMode && ctx.equippedItem?.ability_key && (() => {
-                const item        = ctx.equippedItem;
+                const item         = ctx.equippedItem;
+                const skinImage    = resolveItemImage(item, skinsByBaseId);
                 const onCooldown  = ctx.equipmentCooldown > 0;
-                const usedOnce    = !!(
-                  (item.ability_config as Record<string, unknown> | null | undefined)?.once_per_battle
-                  && ctx.equipmentUsed
-                );
+                const isSingleUse = !!((item.ability_config as Record<string, unknown> | null | undefined)?.once_per_battle);
+                const usedOnce    = isSingleUse && ctx.equipmentUsed;
                 const disabled    = onCooldown || usedOnce;
                 const label       = item.ability_name ?? item.name;
                 const subline     = usedOnce
-                  ? 'utilizada'
+                  ? 'UTILIZADA'
                   : onCooldown
-                    ? `recarga ${ctx.equipmentCooldown}t`
-                    : item.ability_mode === 'unique' ? 'única' : 'combo';
+                    ? `RECARGA ${ctx.equipmentCooldown}T`
+                    : item.ability_mode === 'unique' ? 'ÚNICA' : 'COMBO';
+                    
+                const isAnimating = animatingCardId === 'equip-skill';
+
                 return (
-                  <button
+                  <motion.div
+                    layout
                     key="equip-skill"
-                    className="poke-skill-btn poke-skill-btn--equip"
-                    disabled={disabled}
-                    onClick={() => {
-                      internalEngine.useEquipmentAbility();
-                      setMenu('main');
+                    style={isAnimating ? {
+                      position: 'fixed',
+                      top: '50%',
+                      left: '50%',
+                      marginTop: '-190px',
+                      marginLeft: '-140px',
+                      width: '280px',
+                      height: '380px',
+                      zIndex: 50,
+                    } : {
+                      position: 'relative',
+                      width: '100%',
+                      gridColumn: '1 / -1',
+                      zIndex: 1,
                     }}
+                    animate={{
+                      rotateY: isAnimating ? 360 : 0,
+                      scale: isAnimating ? 1.1 : 1,
+                    }}
+                    transition={{ duration: 0.6, type: "spring", bounce: 0.2 }}
+                    className="group"
                   >
-                    {/* Item thumbnail */}
-                    <span className="poke-equip-icon">
-                      {item.image_url
-                        ? <img src={item.image_url} alt={item.name} className="poke-equip-img" />
-                        : <span className="poke-equip-emoji">{item.icon ?? '🗡️'}</span>
-                      }
-                    </span>
+                    <button
+                      disabled={disabled || animatingCardId !== null}
+                      onClick={async () => {
+                        setAnimatingCardId('equip-skill');
+                        
+                        setTimeout(async () => {
+                          // Patch 6.1: cinematic for every rarity before applying effect.
+                          const rar = (item.rarity ?? 'common') as CardRarity;
+                          if (['legendary','mythic','unknown','epic','rare','uncommon','common'].includes(rar)) {
+                            await playCardActivation({
+                              rarity: rar,
+                              cardName: item.name,
+                              cardImage: skinImage ?? null,
+                              description: item.ability_description ?? undefined,
+                            });
+                          }
+                          // Patch 6.2: swap battle backdrop on rare+ activations.
+                          if (['rare','epic','legendary','mythic','unknown'].includes(rar)) {
+                            let nextKey = pickBackdropForRarity(rar);
+                            const lowerName = item.name.toLowerCase();
+                            if (lowerName.includes("expansão") || lowerName.includes("domínio") || lowerName.includes("dominio")) {
+                              nextKey = "expansao_dominio" as any;
+                            } else if (lowerName.includes("instinto") || lowerName.includes("superior") || lowerName.includes("goku")) {
+                              nextKey = "instinto_superior" as any;
+                            } else if (lowerName.includes("soro") || lowerName.includes("titã") || lowerName.includes("titan") || lowerName.includes("tita")) {
+                              nextKey = "soro_tita" as any;
+                            }
+                            setBackdropKey(nextKey);
+                            void supabaseStudent.rpc('unlock_backdrop', { p_key: nextKey });
+                          }
+                          internalEngine.useEquipmentAbility();
+                          
+                          setTimeout(() => {
+                             setAnimatingCardId(null);
+                             setMenu('main');
+                          }, 400);
+                        }, 1000);
+                      }}
+                      className={`w-full text-left rounded-xl border p-3 flex transition-all shadow-lg overflow-hidden ${
+                        isAnimating ? 'flex-col items-center justify-center h-full' : 'items-center gap-3'
+                      }`}
+                      style={{
+                        background: `linear-gradient(135deg, rgba(30,20,10,0.9) 0%, rgba(15,10,5,0.95) 100%)`,
+                        borderColor: '#f59e0b66',
+                        boxShadow: `0 4px 20px rgba(0,0,0,0.5), inset 0 0 12px rgba(245,158,11,0.15)`,
+                        opacity: disabled ? 0.5 : 1,
+                        cursor: (disabled || animatingCardId) ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {/* Glow Overlay */}
+                      <div 
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        style={{ background: `radial-gradient(circle at 50% -20%, rgba(245,158,11,0.3) 0%, transparent 70%)` }}
+                      />
+                      
+                      {/* Element Strip */}
+                      <div 
+                        className="absolute left-0 top-0 bottom-0 w-1"
+                        style={{ background: '#f59e0b', boxShadow: `0 0 10px #f59e0b` }}
+                      />
 
-                    {/* Text block */}
-                    <span className="poke-equip-text">
-                      <span className="poke-equip-item-name">{item.name}</span>
-                      <span className="poke-equip-ability-name">{label}</span>
-                    </span>
+                      {/* Item thumbnail */}
+                      <div className={`rounded border border-amber-500/30 bg-black/50 flex items-center justify-center overflow-hidden shrink-0 relative z-10 transition-all duration-700 ${
+                        isAnimating ? 'w-32 h-32 mb-4 shadow-[0_0_30px_rgba(245,158,11,0.4)]' : 'w-10 h-10'
+                      }`}>
+                        {skinImage
+                          ? <img src={skinImage} alt={item.name} className="w-full h-full object-contain" />
+                          : <span className={isAnimating ? 'text-6xl' : 'text-xl'}>{item.icon ?? '🗡️'}</span>
+                        }
+                      </div>
 
-                    {/* Status badge */}
-                    <span className={`poke-equip-badge${disabled ? ' poke-equip-badge--off' : ''}`}>
-                      {subline}
-                    </span>
-                  </button>
+                      {/* Text block */}
+                      <div className={`flex-1 min-w-0 relative z-10 flex flex-col justify-center transition-all duration-700 ${
+                        isAnimating ? 'items-center text-center gap-2' : ''
+                      }`}>
+                        <span className={`font-['Rajdhani'] font-bold text-amber-400 uppercase tracking-wider block transition-all ${
+                          isAnimating ? 'text-2xl drop-shadow-[0_0_8px_rgba(245,158,11,0.8)] whitespace-normal' : 'text-[0.85rem] truncate'
+                        }`}>
+                          {item.name}
+                        </span>
+                        <span className={`font-['Orbitron'] text-slate-300 block transition-all ${
+                          isAnimating ? 'text-[0.85rem] whitespace-normal' : 'text-[0.6rem] truncate'
+                        }`}>
+                          {label}
+                        </span>
+                      </div>
+
+                      {/* Status badge */}
+                      <div className={`shrink-0 relative z-10 transition-all ${isAnimating ? 'mt-4' : ''}`}>
+                        <span className={`px-2 py-1 rounded font-['Orbitron'] font-bold tracking-widest border transition-all ${
+                          isAnimating ? 'text-xs' : 'text-[0.55rem]'
+                        } ${disabled ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'}`}>
+                          {subline}
+                        </span>
+                      </div>
+                    </button>
+                    
+                    {/* Discard Animation Layer */}
+                    {isAnimating && isSingleUse && (
+                      <motion.div
+                        className="absolute inset-0 bg-red-500/20 rounded-xl border-2 border-red-500 flex items-center justify-center z-20 pointer-events-none"
+                        initial={{ opacity: 0, scale: 1 }}
+                        animate={{ opacity: [0, 1, 0], scale: [1, 1.1, 0.8], filter: ['blur(0px)', 'blur(0px)', 'blur(4px)'] }}
+                        transition={{ delay: 0.8, duration: 0.4 }}
+                      >
+                        <span className="font-['Rajdhani'] font-bold text-red-500 text-xl tracking-widest bg-black/50 px-2 rounded">CONSUMIDO</span>
+                      </motion.div>
+                    )}
+                  </motion.div>
                 );
               })()}
 
@@ -634,10 +1058,10 @@ export function BattleScreen({
                 style={{
                   gridColumn: 'span 2',
                   textAlign: 'center',
-                  fontFamily: "'Press Start 2P', monospace",
-                  fontSize: '0.45rem',
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontSize: '0.7rem',
                   letterSpacing: 3,
-                  color: 'rgba(0,229,255,0.5)',
+                  color: 'rgba(0,229,255,0.7)',
                 }}
               >
                 AGUARDANDO...

@@ -63,7 +63,7 @@ export function TimeCapsule({ student }: Props) {
         const client = student.user_id ? supabaseStudent : supabaseAnon;
         const { data } = await (client as typeof supabaseAnon)
           .from('time_capsules')
-          .select('*')
+          .select('id, message, goals, snapshot_data, sealed_at, open_date, opened, is_active')
           .eq('student_id', student.id)
           .maybeSingle();
 
@@ -143,6 +143,7 @@ export function TimeCapsule({ student }: Props) {
         .update({ opened: true, opened_at: new Date().toISOString() })
         .eq('id', capsule.id);
       setCapsule(prev => prev ? { ...prev, opened: true } : prev);
+      void supabaseStudent.rpc('increment_daily_counter', { p_type: 'capsule_opens', p_amount: 1 });
     } catch (err: unknown) {
       toast.error((err as Error).message ?? 'Erro ao abrir cápsula.');
     } finally {

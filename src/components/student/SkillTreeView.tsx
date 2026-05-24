@@ -330,6 +330,7 @@ export function SkillTreeView({ studentId, teacherId }: SkillTreeViewProps) {
     } else {
       toast.success(`${node.name} concluído!`);
     }
+    void supabaseStudent.rpc("increment_daily_counter", { p_type: "skills_unlocked", p_amount: 1 });
 
     // Refresh progress
     const { data: refreshed } = await supabaseStudent

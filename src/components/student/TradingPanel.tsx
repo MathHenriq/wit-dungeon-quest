@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabaseAnon } from "@/integrations/supabase/anonClient";
+import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import type { Student, InventoryItem, ShopItem } from "@/types";
 import { ArrowLeftRight, Loader2, CheckCircle, X, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -61,7 +62,7 @@ export function TradingPanel({ student, classmates: classmatesProp, inventory, o
       // Pending incoming
       const { data: pendingData } = await supabaseAnon
         .from('trades')
-        .select('*')
+        .select('id, teacher_id, proposer_id, receiver_id, proposer_item_id, receiver_item_id, status, created_at, resolved_at')
         .eq('receiver_id', student.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -69,7 +70,7 @@ export function TradingPanel({ student, classmates: classmatesProp, inventory, o
       // History
       const { data: histData } = await supabaseAnon
         .from('trades')
-        .select('*')
+        .select('id, teacher_id, proposer_id, receiver_id, proposer_item_id, receiver_item_id, status, created_at, resolved_at')
         .or(`proposer_id.eq.${student.id},receiver_id.eq.${student.id}`)
         .in('status', ['accepted', 'rejected', 'cancelled'])
         .order('resolved_at', { ascending: false })
@@ -82,7 +83,9 @@ export function TradingPanel({ student, classmates: classmatesProp, inventory, o
 
       const [{ data: items }, { data: students }] = await Promise.all([
         itemIds.length > 0
-          ? supabaseAnon.from('shop_items').select('*').in('id', itemIds)
+          ? supabaseAnon.from('shop_items')
+              .select('id, teacher_id, name, description, category, cost, diamond_cost, min_level, rarity, icon, image_url, is_active, is_premium, source_anime, ability_mode, ability_key, ability_name, ability_description, ability_config, created_at, attr_forca, attr_destreza, attr_inteligencia, attr_carisma, attr_agilidade, attr_resistencia')
+              .in('id', itemIds)
           : Promise.resolve({ data: [] }),
         supabaseAnon.from('students').select('id, name, character_name').in('id', studentIds),
       ]);
@@ -150,13 +153,21 @@ export function TradingPanel({ student, classmates: classmatesProp, inventory, o
 
   async function handleAccept(tradeId: string) {
     const { data, error } = await supabaseAnon.rpc('execute_trade', { p_trade_id: tradeId });
-    if (error || !(data as { success: boolean }).success) {
-      toast.error((data as { error?: string })?.error ?? 'Erro ao aceitar troca.');
-    } else {
-      toast.success('Troca realizada!');
+    const result = data as { success?: boolean; error?: string } | null;
+    if (error) {
+      toast.error(error.message ?? 'Erro ao aceitar troca.');
       loadTrades();
-      onInventoryChanged?.();
+      return;
     }
+    if (!result?.success) {
+      toast.error(result?.error ?? 'Erro ao aceitar troca.');
+      loadTrades();
+      return;
+    }
+    toast.success('Troca realizada!');
+    void supabaseStudent.rpc('increment_daily_counter', { p_type: 'trades_done', p_amount: 1 });
+    loadTrades();
+    onInventoryChanged?.();
   }
 
   async function handleReject(tradeId: string) {

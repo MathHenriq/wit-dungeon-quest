@@ -489,9 +489,26 @@ function MissionRow({ mission, status, isRequesting, onRequest }: MissionRowProp
       </div>
 
       <div className="mb-mission-body">
-        <div className="mb-mission-title">{mission.title}</div>
+        <div className="mb-mission-title">
+          {(mission as Mission & { event_id?: string | null }).event_id && (
+            <span style={{
+              display: "inline-block", marginRight: 6, padding: "1px 7px",
+              fontSize: 9, fontWeight: 800, letterSpacing: "0.18em",
+              borderRadius: 999, background: "rgba(245,158,11,0.18)",
+              color: "#f5c84b", border: "1px solid rgba(245,158,11,0.45)",
+              verticalAlign: "middle",
+            }}>EVENTO</span>
+          )}
+          {mission.title}
+        </div>
         {mission.description && (
           <div className="mb-mission-desc">{mission.description}</div>
+        )}
+        {(mission as Mission & { condition_type?: string | null; condition_target?: number | null }).condition_type && (
+          <div className="mb-mission-desc" style={{ marginTop: 4, fontSize: 11, opacity: 0.65 }}>
+            Auto-completa: {(mission as Mission & { condition_type?: string | null }).condition_type} ≥{" "}
+            {(mission as Mission & { condition_target?: number | null }).condition_target}
+          </div>
         )}
       </div>
 

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { InventoryItemEx, EquipSlotType } from './inventory-types';
 import { getDefaultSlot } from './inventory-types';
 import { getRarity, getIconPath, formatAttrs, getSellPrice, SLOT_CONFIG } from './inventory-utils';
+import { CardSkinSelector } from './CardSkinSelector';
+import { supabaseStudent } from '@/integrations/supabase/studentClient';
 
 interface ItemDetailPanelProps {
   inv:        InventoryItemEx;
@@ -25,6 +27,11 @@ const ATTR_LABELS: Record<string, string> = {
 
 export function ItemDetailPanel({ inv, isEquipped, equippedSlot, onEquip, onUnequip, onSell, onTrade, onClose }: ItemDetailPanelProps) {
   const shopItem  = inv.item;
+  // Count each open of the detail panel as one card examination (daily quest).
+  useEffect(() => {
+    if (!shopItem) return;
+    void supabaseStudent.rpc('increment_daily_counter', { p_type: 'cards_examined', p_amount: 1 });
+  }, [shopItem?.id]);
   if (!shopItem) return null;
 
   const rarity    = getRarity(shopItem);
@@ -117,6 +124,13 @@ export function ItemDetailPanel({ inv, isEquipped, equippedSlot, onEquip, onUneq
           </button>
         )}
       </div>
+
+      {/* Patch 5.5: skins for this base card. Hidden automatically when
+          no skins are defined (component renders an "empty" state itself). */}
+      <CardSkinSelector
+        baseCardId={shopItem.id}
+        baseCardImage={shopItem.image_url}
+      />
     </div>
   );
 }

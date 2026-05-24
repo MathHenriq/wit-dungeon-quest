@@ -7,6 +7,7 @@ import { GuildChat }         from './GuildChat';
 import { GuildMembers }      from './GuildMembers';
 import { GuildMissions }     from './GuildMissions';
 import { GuildRanking }      from './GuildRanking';
+import { GuildRaidPanel }    from './GuildRaidPanel';
 import { GuildDevelopment }  from './GuildDevelopment';
 import { GuildCreate }       from './GuildCreate';
 import { GuildSearch }       from './GuildSearch';
@@ -165,6 +166,14 @@ export function Guild({ student, onBack }: GuildProps) {
 
           {activeTab === 'ranking' && (
             <GuildRanking currentGuildId={myGuild.id} />
+          )}
+
+          {activeTab === 'raid' && (
+            <GuildRaidPanel
+              studentId={student.id}
+              studentLevel={student.level}
+              guildId={myGuild.id}
+            />
           )}
 
           {activeTab === 'requests' && canManage && (

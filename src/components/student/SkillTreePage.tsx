@@ -5,6 +5,8 @@ import type { BattleCharacter, ElementType } from '@/types/character';
 import { ELEMENT_META } from '@/types/character';
 import { useAbilities, useEquippedAbilities, useEquipAbility, useUnequipAbility, groupByElement } from '@/hooks/useAbilities';
 import { useDistributePoints } from '@/hooks/useCharacter';
+import { useClassProfile } from '@/hooks/useClassProfile';
+import { applyClassVariant } from '@/lib/skills/abilityVariants';
 import { SkillTreeCanvas } from './SkillTreeCanvas';
 import { SkillDetailPanel } from './SkillDetailPanel';
 import type { Ability } from '@/types/character';
@@ -16,15 +18,29 @@ import '@/styles/skilltree.css';
 
 interface SkillTreePageProps {
   character: BattleCharacter;
+  studentId?: string;
   onBack: () => void;
 }
 
-export function SkillTreePage({ character, onBack }: SkillTreePageProps) {
+export function SkillTreePage({ character, studentId, onBack }: SkillTreePageProps) {
   const [selectedAbility, setSelectedAbility] = useState<Ability | null>(null);
   const [filterElement, setFilterElement] = useState<ElementType | null>(null);
 
   // Data
-  const { data: abilities = [], isLoading: loadingAbilities } = useAbilities();
+  const { data: rawAbilities = [], isLoading: loadingAbilities } = useAbilities();
+  const { data: classProfile } = useClassProfile(studentId ?? character.studentId);
+  const wave11Class = classProfile?.classType ?? null;
+
+  const abilities = useMemo(
+    () => (wave11Class ? rawAbilities.map(a => applyClassVariant(a, wave11Class)) : rawAbilities),
+    [rawAbilities, wave11Class],
+  );
+
+  // Keep selected ability in sync with class-variant names when class loads
+  const selectedAbilityResolved = useMemo(
+    () => (selectedAbility ? abilities.find(a => a.id === selectedAbility.id) ?? selectedAbility : null),
+    [abilities, selectedAbility],
+  );
   const { data: equipped = [], isLoading: loadingEquipped } = useEquippedAbilities(character.id);
   const equipMutation = useEquipAbility(character.id);
   const unequipMutation = useUnequipAbility(character.id);
@@ -83,7 +99,7 @@ export function SkillTreePage({ character, onBack }: SkillTreePageProps) {
     );
   }
 
-  const selectedSlot = selectedAbility ? equippedMap.get(selectedAbility.id) : undefined;
+  const selectedSlot = selectedAbilityResolved ? equippedMap.get(selectedAbilityResolved.id) : undefined;
 
   return (
     <div className="skill-tree-root">
@@ -230,9 +246,9 @@ export function SkillTreePage({ character, onBack }: SkillTreePageProps) {
 
       {/* ── Detail panel ───────────────────────────────────────── */}
       <SkillDetailPanel
-        ability={selectedAbility}
+        ability={selectedAbilityResolved}
         character={character}
-        isEquipped={selectedAbility ? !!equippedMap.get(selectedAbility.id) : false}
+        isEquipped={selectedAbilityResolved ? !!equippedMap.get(selectedAbilityResolved.id) : false}
         equippedSlot={selectedSlot}
         occupiedSlots={equipped.map(e => e.slot)}
         onEquip={handleEquip}

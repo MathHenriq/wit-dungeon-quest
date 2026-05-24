@@ -1,5 +1,8 @@
 export { BattleEngine }                                   from './BattleEngine';
-export type { BattleContext, BattlePhase, BattleEnemy, BattleLogEntry, ItemEffect } from './BattleEngine';
+export type {
+  BattleContext, BattlePhase, BattleEnemy, BattleLogEntry, ItemEffect,
+  ActiveBuffInput, ConsumableInput, BuffEffectKey, ConsumableEffectKey,
+} from './BattleEngine';
 
 export { getTypeEffectiveness, getEffectivenessLabel, getEffectivenessLevel, getAttackerMatchups } from './typeEffectiveness';
 

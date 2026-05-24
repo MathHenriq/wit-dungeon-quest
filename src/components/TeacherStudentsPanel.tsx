@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Coins, TrendingUp, Package, X, Loader2, Swords, Link2, Copy, Check, RotateCcw } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Package, X, Loader2, Swords, Link2, Copy, Check, RotateCcw, KeyRound, Move, Ban, Sparkles, Clock } from "lucide-react";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { ProfilePhoto } from "./ProfilePhoto";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
 import type { Student, Class, InventoryItem, AttrKey } from "@/types";
+import { teacherApi } from "@/hooks/useAdmin";
 
 interface TeacherStudentsPanelProps {
   teacherId: string;
@@ -385,6 +386,10 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
   const [isDeleting, setIsDeleting] = useState(false);
   const [inventoryStudent, setInventoryStudent] = useState<Student | null>(null);
   const [attrsStudent, setAttrsStudent] = useState<Student | null>(null);
+  const [pwdTarget, setPwdTarget] = useState<Student | null>(null);
+  const [moveTarget, setMoveTarget] = useState<Student | null>(null);
+  const [xpTarget, setXpTarget] = useState<Student | null>(null);
+  const [suspendTarget, setSuspendTarget] = useState<Student | null>(null);
 
   const filteredStudents = selectedClass
     ? students.filter(s => s.class_id === selectedClass)
@@ -426,63 +431,23 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
     }
   };
 
-  const updateCoins = async (studentId: string, newCoins: number) => {
-    const { error } = await supabase
-      .from("students")
-      .update({ coins: Math.max(0, newCoins) })
-      .eq("id", studentId);
-
-    if (error) {
-      toast.error("Erro ao atualizar moedas");
-    } else {
-      toast.success("Moedas atualizadas!");
-      onDataChanged();
-    }
-  };
-
-  const updateDiamonds = async (studentId: string, newDiamonds: number) => {
-    const { error } = await supabase
-      .from("students")
-      .update({ diamonds: Math.max(0, newDiamonds) })
-      .eq("id", studentId);
-
-    if (error) {
-      toast.error("Erro ao atualizar diamantes");
-    } else {
-      toast.success("Diamantes atualizados!");
-      onDataChanged();
-    }
-  };
-
-  const updateLevel = async (studentId: string, newLevel: number) => {
-    const { error } = await supabase
-      .from("students")
-      .update({ level: Math.max(1, newLevel) })
-      .eq("id", studentId);
-
-    if (error) {
-      toast.error("Erro ao atualizar nível");
-    } else {
-      toast.success("Nível atualizado!");
-      onDataChanged();
-    }
-  };
+  // Currency / level controls intentionally removed from the teacher panel.
+  // Moedas, diamantes e cartas são prerrogativa do master (painel admin).
+  // Nível é derivado de XP via auto_level_up trigger — use o modal de XP.
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
 
     try {
-      const { error } = await supabase.from("students").delete().eq("id", deleteTarget.id);
-
-      if (error) {
-        toast.error("Erro ao excluir aluno", { description: error.message });
-      } else {
-        toast.success(`Aluno "${deleteTarget.character_name || deleteTarget.name}" excluído!`);
-        onDataChanged();
-      }
-    } catch {
-      toast.error("Erro inesperado ao excluir");
+      // Goes through the teacher_delete_student RPC: enforces ownership
+      // server-side, cleans the linked character row, and writes the
+      // action to the audit log so the master can see who deleted what.
+      await teacherApi.deleteStudent(deleteTarget.id);
+      toast.success(`Aluno "${deleteTarget.character_name || deleteTarget.name}" excluído!`);
+      onDataChanged();
+    } catch (err) {
+      toast.error("Erro ao excluir aluno", { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setIsDeleting(false);
       setDeleteTarget(null);
@@ -550,38 +515,23 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.2)' }}>
-                  <Coins className="text-yellow-400" size={14} />
-                  <input
-                    type="number"
-                    value={student.coins}
-                    onChange={e => updateCoins(student.id, parseInt(e.target.value) || 0)}
-                    className="w-16 text-center text-sm font-bold text-yellow-400 bg-transparent outline-none"
-                    style={{ fontFamily: 'Rajdhani, sans-serif' }}
-                  />
-                </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(99,179,237,0.06)', border: '1px solid rgba(99,179,237,0.25)' }} title="Diamantes (ganhos em sala de aula)">
-                  <GameIcon id="gem" size={14} />
-                  <input
-                    type="number"
-                    value={student.diamonds ?? 0}
-                    onChange={e => updateDiamonds(student.id, parseInt(e.target.value) || 0)}
-                    className="w-14 text-center text-sm font-bold bg-transparent outline-none"
-                    style={{ fontFamily: 'Rajdhani, sans-serif', color: '#63b3ed' }}
-                    min={0}
-                  />
-                </div>
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)' }}>
+                {/* Currency / diamonds intentionally NOT exposed here — those belong to the master panel only. */}
+                {/* Level shown read-only; teachers adjust progression via the XP modal (Sparkles icon). */}
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)' }} title="Nível derivado de XP — use o botão XP para ajustar">
                   <TrendingUp className="text-cyan-400" size={14} />
-                  <input
-                    type="number"
-                    value={student.level}
-                    onChange={e => updateLevel(student.id, parseInt(e.target.value) || 1)}
-                    className="w-12 text-center text-sm font-bold text-cyan-400 bg-transparent outline-none"
-                    min={1}
-                    style={{ fontFamily: 'Rajdhani, sans-serif' }}
-                  />
+                  <span className="w-12 text-center text-sm font-bold text-cyan-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
+                    Lv {student.level}
+                  </span>
                 </div>
+                {(student as Student & { suspended_until?: string | null }).suspended_until && (
+                  <span
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold"
+                    style={{ background: 'rgba(220,80,80,0.12)', border: '1px solid rgba(220,80,80,0.3)', color: 'rgb(255,180,180)' }}
+                    title={`Suspenso até ${new Date(((student as Student & { suspended_until?: string }).suspended_until!)).toLocaleString('pt-BR')}`}
+                  >
+                    <Ban size={12} /> SUSPENSO
+                  </span>
+                )}
                 <button
                   onClick={() => setInventoryStudent(student)}
                   className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
@@ -596,7 +546,36 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
                 >
                   <Swords size={16} />
                 </button>
+                <button
+                  onClick={() => setXpTarget(student)}
+                  className="p-2 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition-colors"
+                  title="Ajustar XP (recalcula o nível)"
+                >
+                  <Sparkles size={16} />
+                </button>
                 <InviteButton studentId={student.id} studentName={student.character_name || student.name} />
+                <button
+                  onClick={() => setMoveTarget(student)}
+                  className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+                  title="Mover para outra turma sua"
+                >
+                  <Move size={16} />
+                </button>
+                <button
+                  onClick={() => setSuspendTarget(student)}
+                  className="p-2 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-colors"
+                  title={(student as Student & { suspended_until?: string | null }).suspended_until ? "Gerenciar suspensão" : "Suspender acesso"}
+                >
+                  <Ban size={16} />
+                </button>
+                <button
+                  onClick={() => setPwdTarget(student)}
+                  disabled={!student.user_id}
+                  className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={student.user_id ? "Redefinir senha do aluno" : "Aluno ainda sem login"}
+                >
+                  <KeyRound size={16} />
+                </button>
                 <button
                   onClick={() => setDeleteTarget(student)}
                   className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
@@ -619,6 +598,38 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
         isLoading={isDeleting}
       />
 
+      {pwdTarget && (
+        <TeacherResetStudentPasswordModal
+          target={pwdTarget}
+          onClose={() => setPwdTarget(null)}
+        />
+      )}
+
+      {moveTarget && (
+        <TeacherMoveStudentModal
+          target={moveTarget}
+          ownClasses={classes}
+          onClose={() => setMoveTarget(null)}
+          onMoved={() => { setMoveTarget(null); onDataChanged(); }}
+        />
+      )}
+
+      {xpTarget && (
+        <TeacherAdjustXpModal
+          target={xpTarget}
+          onClose={() => setXpTarget(null)}
+          onAdjusted={() => { setXpTarget(null); onDataChanged(); }}
+        />
+      )}
+
+      {suspendTarget && (
+        <TeacherSuspendStudentModal
+          target={suspendTarget}
+          onClose={() => setSuspendTarget(null)}
+          onChanged={() => { setSuspendTarget(null); onDataChanged(); }}
+        />
+      )}
+
       {inventoryStudent && (
         <StudentInventoryModal
           student={inventoryStudent}
@@ -633,6 +644,277 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
           onSaved={onDataChanged}
         />
       )}
+    </div>
+  );
+}
+
+// ── Reset student password (teacher-scoped) ────────────────────
+function TeacherResetStudentPasswordModal({
+  target, onClose,
+}: { target: Student; onClose: () => void }) {
+  const [pwd, setPwd] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (pwd.length < 6) { toast.error("Senha precisa ter pelo menos 6 caracteres."); return; }
+    setBusy(true);
+    try {
+      await teacherApi.resetStudentPassword(target.id, pwd);
+      toast.success(`Senha de ${target.character_name || target.name} redefinida.`);
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <KeyRound size={16} className="text-blue-400" />
+            <span>Redefinir senha — {target.character_name || target.name}</span>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-secondary"><X size={16} /></button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          A nova senha vale imediatamente. Anote e passe para o aluno.
+        </p>
+        <input
+          type="text"
+          value={pwd}
+          onChange={e => setPwd(e.target.value)}
+          placeholder="ex: Wit2026!"
+          className="w-full px-3 py-2 rounded bg-secondary text-sm outline-none"
+          autoFocus
+        />
+        <button
+          onClick={() => void submit()}
+          disabled={busy}
+          className="w-full mt-3 py-2 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-sm font-medium flex items-center justify-center gap-2"
+        >
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+          {busy ? "Aplicando…" : "Redefinir"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Move student between own classes (teacher-scoped) ──────────
+function TeacherMoveStudentModal({
+  target, ownClasses, onClose, onMoved,
+}: {
+  target: Student;
+  ownClasses: Class[];
+  onClose: () => void;
+  onMoved: () => void;
+}) {
+  const [classId, setClassId] = useState(target.class_id ?? "");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!classId || classId === target.class_id) { onClose(); return; }
+    setBusy(true);
+    try {
+      await teacherApi.moveStudentToOwnClass(target.id, classId);
+      toast.success(`${target.character_name || target.name} movido(a) de turma.`);
+      onMoved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Move size={16} className="text-cyan-400" />
+            <span>Mover de turma — {target.character_name || target.name}</span>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-secondary"><X size={16} /></button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Você só pode mover o aluno entre as suas próprias turmas.
+        </p>
+        <select
+          value={classId}
+          onChange={e => setClassId(e.target.value)}
+          className="w-full px-3 py-2 rounded bg-secondary text-sm outline-none"
+        >
+          {ownClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <button
+          onClick={() => void submit()}
+          disabled={busy}
+          className="w-full mt-3 py-2 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-sm font-medium flex items-center justify-center gap-2"
+        >
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Move size={14} />}
+          {busy ? "Movendo…" : "Mover"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Adjust XP (teacher-scoped). Level recomputes via auto_level_up trigger ──
+function TeacherAdjustXpModal({
+  target, onClose, onAdjusted,
+}: { target: Student; onClose: () => void; onAdjusted: () => void }) {
+  const [delta, setDelta] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+  const currentXp = (target as Student & { xp?: number }).xp ?? 0;
+
+  async function submit() {
+    const n = Number(delta);
+    if (!Number.isFinite(n) || n === 0) { toast.error("Informe um delta diferente de zero."); return; }
+    if (!Number.isInteger(n)) { toast.error("Use apenas inteiros."); return; }
+    setBusy(true);
+    try {
+      const newXp = await teacherApi.adjustXp(target.id, n);
+      const sign = n > 0 ? "+" : "";
+      toast.success(`${target.character_name || target.name}: ${sign}${n} XP → ${newXp}`);
+      onAdjusted();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Sparkles size={16} className="text-violet-400" />
+            <span>Ajustar XP — {target.character_name || target.name}</span>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-secondary"><X size={16} /></button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          XP atual: <strong>{currentXp}</strong>. Positivo soma, negativo desconta. O nível é recalculado automaticamente; não vai abaixo de zero.
+        </p>
+        <input
+          type="number"
+          value={delta}
+          onChange={e => setDelta(e.target.value)}
+          placeholder="ex: 100  ou  -50"
+          className="w-full px-3 py-2 rounded bg-secondary text-sm outline-none"
+          autoFocus
+        />
+        <button
+          onClick={() => void submit()}
+          disabled={busy}
+          className="w-full mt-3 py-2 rounded bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 text-sm font-medium flex items-center justify-center gap-2"
+        >
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          {busy ? "Aplicando…" : "Aplicar ajuste"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Suspend / Unsuspend student (teacher-scoped) ─────────────
+function TeacherSuspendStudentModal({
+  target, onClose, onChanged,
+}: { target: Student; onClose: () => void; onChanged: () => void }) {
+  const suspendedUntilStr = (target as Student & { suspended_until?: string | null }).suspended_until ?? null;
+  const isCurrentlySuspended = !!suspendedUntilStr && new Date(suspendedUntilStr).getTime() > Date.now();
+  const [days, setDays] = useState<string>("3");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function suspend() {
+    const n = Number(days);
+    if (!Number.isInteger(n) || n < 1 || n > 365) { toast.error("Dias entre 1 e 365."); return; }
+    setBusy(true);
+    try {
+      const until = await teacherApi.suspendStudent(target.id, n, reason.trim());
+      toast.success(`${target.character_name || target.name} suspenso até ${new Date(until).toLocaleDateString("pt-BR")}.`);
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally { setBusy(false); }
+  }
+
+  async function unsuspend() {
+    setBusy(true);
+    try {
+      await teacherApi.unsuspendStudent(target.id);
+      toast.success("Suspensão removida.");
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Ban size={16} className="text-orange-400" />
+            <span>Suspensão — {target.character_name || target.name}</span>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-secondary"><X size={16} /></button>
+        </div>
+
+        {isCurrentlySuspended ? (
+          <>
+            <div className="rounded-lg p-3 mb-3" style={{ background: "rgba(220,80,80,0.1)", border: "1px solid rgba(220,80,80,0.3)", color: "rgb(255,200,200)" }}>
+              <div className="flex items-center gap-2 text-sm font-semibold mb-1">
+                <Clock size={14} /> Atualmente suspenso
+              </div>
+              <p className="text-xs">Até {new Date(suspendedUntilStr!).toLocaleString("pt-BR")}.</p>
+              {(target as Student & { suspended_reason?: string | null }).suspended_reason && (
+                <p className="text-xs italic mt-1">"{(target as Student & { suspended_reason?: string | null }).suspended_reason}"</p>
+              )}
+            </div>
+            <button
+              onClick={() => void unsuspend()}
+              disabled={busy}
+              className="w-full py-2 rounded bg-green-500/20 hover:bg-green-500/30 text-green-300 text-sm font-medium flex items-center justify-center gap-2"
+            >
+              {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {busy ? "Removendo…" : "Remover suspensão agora"}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-xs text-muted-foreground mb-3">
+              Enquanto suspenso, o aluno pode fazer login mas vê apenas a tela de "Acesso Suspenso" — não acessa o jogo.
+            </p>
+            <label className="text-xs text-muted-foreground block mb-1">Dias (1–365)</label>
+            <input
+              type="number" min={1} max={365}
+              value={days}
+              onChange={e => setDays(e.target.value)}
+              className="w-full px-3 py-2 rounded bg-secondary text-sm outline-none mb-3"
+            />
+            <label className="text-xs text-muted-foreground block mb-1">Motivo (opcional, visível ao aluno)</label>
+            <textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 rounded bg-secondary text-sm outline-none resize-none"
+              placeholder="ex: descumprimento de regras em sala"
+            />
+            <button
+              onClick={() => void suspend()}
+              disabled={busy}
+              className="w-full mt-3 py-2 rounded bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 text-sm font-medium flex items-center justify-center gap-2"
+            >
+              {busy ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+              {busy ? "Aplicando…" : "Suspender"}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

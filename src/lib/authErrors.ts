@@ -1,7 +1,16 @@
 // Maps Supabase Auth error codes/messages to friendly Portuguese messages
 // shown to students. Keep wording short — most of these end up in toast titles.
 
-type SupabaseAuthError = { code?: string; message?: string; status?: number } | null | undefined;
+type SupabaseAuthError = { code?: string; message?: string; status?: number; name?: string } | null | undefined;
+
+/** True when the failure looks like a network/CORS/offline glitch. */
+export function isNetworkError(err: SupabaseAuthError | unknown): boolean {
+  if (!err) return false;
+  const e = err as { name?: string; message?: string };
+  if (e.name === "TypeError" && /fetch/i.test(e.message ?? "")) return true;
+  if (/failed to fetch|networkerror|network request failed|load failed/i.test(e.message ?? "")) return true;
+  return false;
+}
 
 export function describeSignUpError(err: SupabaseAuthError): string {
   if (!err) return "Não foi possível criar a conta. Tente novamente.";
@@ -26,8 +35,10 @@ export function describeSignUpError(err: SupabaseAuthError): string {
 
 export function describeLoginError(err: SupabaseAuthError): string {
   if (!err) return "Não foi possível entrar. Tente novamente.";
+  if (isNetworkError(err)) return "Erro de conexão. Tente novamente.";
   const code = err.code ?? "";
   if (code === "invalid_credentials") {
+    // Default fallback when caller didn't drill down via auth_email_exists.
     return "Email ou senha incorretos.";
   }
   if (code === "email_not_confirmed") {
@@ -37,7 +48,7 @@ export function describeLoginError(err: SupabaseAuthError): string {
     return "Muitas tentativas em pouco tempo. Aguarde 1 minuto e tente de novo.";
   }
   if (code === "user_banned") {
-    return "Conta bloqueada. Fale com seu professor.";
+    return "Conta suspensa pelo professor.";
   }
   return err.message || "Erro ao entrar.";
 }

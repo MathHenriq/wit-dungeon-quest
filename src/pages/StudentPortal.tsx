@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 // UI transformation: new sidebar layout
 import { Link } from "react-router-dom";
@@ -10,6 +10,9 @@ import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { MissionBoard } from "@/components/MissionBoard";
 import { ClassRanking } from "@/components/ClassRanking";
+import { WeeklyRankingsScreen } from "@/components/student/WeeklyRankingsScreen";
+import { SchoolFeedScreen } from "@/components/student/SchoolFeedScreen";
+import { ProfileCardOpenerProvider } from "@/components/student/ProfileCard";
 import { StudentTitleBadge, AttendanceCrown } from "@/components/StudentTitleBadge";
 import { AincradBackground } from "@/components/ui/AincradBackground";
 import { DungeonLoadingScreen } from "@/components/student/DungeonLoadingScreen";
@@ -18,10 +21,25 @@ import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentNavigation, type StudentTab } from "@/components/student/StudentNavigation";
 import { DirectorMap } from "@/components/student/DirectorMap";
 import { OnboardingFlow } from "@/components/student/OnboardingFlow";
-import { HeroScreen } from "@/components/student/HeroScreen";
-import { ShopScreen } from "@/components/student/ShopScreen";
+// Onda 11.4 — segundo gate (após o legacy character_name): exige class_type da Season 2.
+// Aliasado para não colidir com a função local ClassSelectionScreen (subcomponente do onboarding legacy).
+import { ClassSelectionScreen as Wave11ClassSelectionScreen } from "@/pages/ClassSelectionScreen";
+import { useClassProfile } from "@/hooks/useClassProfile";
+// Onda 11.8 — terceiro gate: tutorial de combate.
+import { Wave11TutorialBattleScreen } from "@/pages/Wave11TutorialBattleScreen";
+import { Patch11Welcome } from "@/components/student/Patch11Welcome";
+import { VaultOpeningModal } from "@/components/student/VaultOpeningModal";
+// Lazy: HeroScreen (~600 lines + Inventory/Tickets/Backdrop/Title panels) and
+// ShopScreen (~1500 lines + ForgePanel/CraftPanel/ChestSection) are only
+// reached after the student picks those tabs. Splitting them keeps the
+// initial StudentPortal chunk lean.
+const HeroScreen = lazy(() =>
+  import("@/components/student/HeroScreen").then(m => ({ default: m.HeroScreen }))
+);
+const ShopScreen = lazy(() =>
+  import("@/components/student/ShopScreen").then(m => ({ default: m.ShopScreen }))
+);
 import { ProgressRanking } from "@/components/student/ProgressRanking";
-import { GlobalRanking } from "@/components/student/GlobalRanking";
 import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { Guild } from "@/components/guild/Guild";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
@@ -39,6 +57,7 @@ import { ClassWarBanner } from "@/components/student/ClassWarBanner";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { describeLoginError, describeSignUpError, validateEmail, validatePassword } from "@/lib/authErrors";
+import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import {
   Sword,
   Shield,
@@ -50,6 +69,8 @@ import {
   Mail,
   Lock,
   Flame,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import type { InventoryItem } from "@/types";
 import { toast } from "sonner";
@@ -69,7 +90,20 @@ function LoginScreen({
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmTouched, setConfirmTouched] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset confirm-password state when switching tabs.
+  useEffect(() => {
+    setConfirmPassword("");
+    setConfirmTouched(false);
+    setShowConfirmPwd(false);
+  }, [isLogin]);
+
+  const passwordsMismatch = !isLogin && confirmTouched && confirmPassword.length > 0 && confirmPassword !== password;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,11 +113,34 @@ function LoginScreen({
     const passwordError = validatePassword(password);
     if (passwordError) { toast.error(passwordError); return; }
 
+    if (!isLogin) {
+      if (!confirmPassword) { toast.error("Confirme a senha."); return; }
+      if (confirmPassword !== password) { toast.error("As senhas não coincidem."); return; }
+    }
+
     setIsSubmitting(true);
     try {
       if (isLogin) {
         const { error } = await onEmailLogin(email, password);
-        if (error) toast.error(describeLoginError(error as Parameters<typeof describeLoginError>[0]));
+        if (error) {
+          // Drill down on invalid_credentials: ask the DB whether the email even
+          // exists, so we can show "Email não cadastrado" vs "Senha incorreta".
+          const e = error as { code?: string };
+          if (e?.code === "invalid_credentials") {
+            try {
+              const { data: exists } = await supabaseStudent.rpc("auth_email_exists", { p_email: email.trim() });
+              if (exists === false) {
+                toast.error("Email não cadastrado.");
+                return;
+              }
+              if (exists === true) {
+                toast.error("Senha incorreta.");
+                return;
+              }
+            } catch { /* fall through to generic */ }
+          }
+          toast.error(describeLoginError(error as Parameters<typeof describeLoginError>[0]));
+        }
       } else {
         const { error } = await onEmailSignUp(email, password);
         if (error) {
@@ -99,12 +156,19 @@ function LoginScreen({
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
-      {/* Video background — replaces AincradBackground on login */}
-      <div className="login-video-background">
-        <video autoPlay loop muted playsInline className="login-background-video">
-          <source src="/videos/login-bg.mp4" type="video/mp4" />
-        </video>
-      </div>
+      {/* MP4 background video. CSS aurora fica como fallback (até carregar / sem suporte). */}
+      <div className="login-video-background" aria-hidden="true" />
+      <video
+        className="fixed inset-0 w-full h-full object-cover z-0"
+        style={{ filter: 'blur(14px) brightness(0.55)' }}
+        src="/videos/login-bg.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+      />
+      <div className="fixed inset-0 z-0 bg-black/40" aria-hidden="true" />
       <div className="relative z-10 w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -148,17 +212,72 @@ function LoginScreen({
               <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
             </div>
             <div className="relative">
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              <input type={showPwd ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="Senha" required minLength={6}
-                className="w-full px-4 py-3 pl-10 rounded-lg text-sm"
+                className="w-full px-4 py-3 pl-10 pr-10 rounded-lg text-sm"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)', outline: 'none' }}
                 onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
                 onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
               />
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+              <button
+                type="button"
+                onClick={() => setShowPwd(s => !s)}
+                aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                tabIndex={-1}
+              >
+                {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-            <button type="submit" disabled={isSubmitting}
-              className="btn-cyber w-full justify-center">
+
+            {!isLogin && (
+              <div>
+                <div className="relative">
+                  <input
+                    type={showConfirmPwd ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    onBlur={() => setConfirmTouched(true)}
+                    placeholder="Confirmar senha"
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3 pl-10 pr-10 rounded-lg text-sm"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${passwordsMismatch ? 'rgba(220,80,80,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                      color: 'rgba(255,255,255,0.85)',
+                      outline: 'none',
+                    }}
+                    onFocus={e => { if (!passwordsMismatch) e.target.style.borderColor = 'rgba(0,229,255,0.4)'; }}
+                  />
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPwd(s => !s)}
+                    aria-label={showConfirmPwd ? "Ocultar senha" : "Mostrar senha"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {passwordsMismatch && (
+                  <p
+                    className="text-xs mt-1.5 ml-1"
+                    style={{ color: 'rgb(255,160,160)', fontFamily: 'Exo 2, sans-serif', letterSpacing: '0.3px' }}
+                  >
+                    As senhas não coincidem.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting || passwordsMismatch || (!isLogin && confirmPassword.length === 0)}
+              className="btn-cyber w-full justify-center"
+            >
               {isSubmitting ? <><Loader2 size={16} className="animate-spin" /> Aguarde...</> : isLogin ? "Entrar" : "Criar conta"}
             </button>
           </form>
@@ -371,6 +490,52 @@ function PendingScreen({
 }
 
 // ─────────────────────────────────────────────
+// Suspended screen — blocks dashboard while suspended_until > now()
+// ─────────────────────────────────────────────
+function SuspendedScreen({
+  studentName, suspendedUntil, reason, onLogout,
+}: {
+  studentName: string;
+  suspendedUntil: string;
+  reason: string | null;
+  onLogout: () => void;
+}) {
+  const until = new Date(suspendedUntil);
+  const untilLabel = until.toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" });
+  const remainingMs = until.getTime() - Date.now();
+  const remainingDays = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+
+  return (
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      <AincradBackground scene="default" />
+      <div className="relative z-10 holo-panel max-w-sm w-full text-center p-8" style={{ borderColor: "rgba(220,80,80,0.3)" }}>
+        <svg viewBox="0 0 100 100" className="w-16 h-16 mx-auto mb-4">
+          <polygon points="50,5 93,27.5 93,72.5 50,95 7,72.5 7,27.5" fill="none" stroke="rgb(255,160,160)" strokeWidth="1.5"/>
+          <line x1="35" y1="35" x2="65" y2="65" stroke="rgb(255,160,160)" strokeWidth="2" />
+          <line x1="65" y1="35" x2="35" y2="65" stroke="rgb(255,160,160)" strokeWidth="2" />
+        </svg>
+        <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "Rajdhani, sans-serif", letterSpacing: "2px", color: "rgb(255,180,180)" }}>
+          ACESSO SUSPENSO
+        </h2>
+        <p className="text-white/60 text-sm mb-2">
+          Olá, <strong className="text-white/80">{studentName}</strong>. Seu acesso foi suspenso pelo professor.
+        </p>
+        <p className="text-white/70 text-sm mb-2">
+          Liberação em <strong>{remainingDays}</strong> dia(s) — <span className="text-white/50">{untilLabel}</span>.
+        </p>
+        {reason && (
+          <p className="text-white/50 text-xs italic mt-3 mb-1">"{reason}"</p>
+        )}
+        <button onClick={onLogout} className="btn-cyber mt-6 mx-auto">
+          <LogOut size={14} />
+          Sair
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
 
@@ -412,6 +577,9 @@ export default function StudentPortal() {
 
   const { data: battleCharacter, isLoading: isLoadingCharacter } = useBattleCharacter(authUser?.id);
 
+  // Onda 11.4 — usado pelo gate de classe pós-login (abaixo do gate legacy).
+  const { data: classProfile, isLoading: isLoadingClassProfile, refetch: refetchClassProfile } = useClassProfile(student?.id ?? null);
+
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<StudentTab>("director");
 
@@ -423,6 +591,7 @@ export default function StudentPortal() {
   const [showEntrance, setShowEntrance] = useState(false);
   const [entranceDone, setEntranceDone] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
+  const [patch11Dismissed, setPatch11Dismissed] = useState(false);
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
   const [battleKey, setBattleKey] = useState(0);
   const [bossTabKey, setBossTabKey] = useState(0);
@@ -442,6 +611,35 @@ export default function StudentPortal() {
       setShowEntrance(true);
     }
   }, [authState, student, entranceDone]);
+
+  // Patch 4.3: pending weekly rewards inbox — one toast per row, then claim
+  // them all so they don't fire again on next login.
+  useEffect(() => {
+    if (authState !== "active" || !student) return;
+    let cancelled = false;
+    (async () => {
+      // Patch 5.4: re-check event missions on login (catches floor_reached /
+      // card_obtained progress that happened while offline).
+      void supabaseStudent.rpc("check_my_event_missions");
+      // Patch 8.2: title conditions sweep on login (cheap when nothing new).
+      void supabaseStudent.rpc("check_my_title_conditions");
+      // Patch 8.3: banner conditions sweep on login.
+      void supabaseStudent.rpc("check_my_banner_conditions");
+      // Patch 8.4: ensure today's daily quests exist + bump login counter.
+      void supabaseStudent.rpc("ensure_my_daily_quests");
+      void supabaseStudent.rpc("increment_daily_counter", { p_type: "login", p_amount: 1 });
+      void supabaseStudent.rpc("increment_daily_counter", { p_type: "login_streak", p_amount: 1 });
+      const { data, error } = await supabaseStudent.rpc("get_my_pending_rewards");
+      if (cancelled || error || !data) return;
+      const rows = data as Array<{ id: string; kind: string; title: string; body: string | null }>;
+      if (rows.length === 0) return;
+      rows.forEach((r, i) => {
+        setTimeout(() => toast.success(r.title, { description: r.body ?? undefined, duration: 8000 }), i * 700);
+      });
+      await supabaseStudent.rpc("claim_my_pending_rewards", { p_ids: null });
+    })();
+    return () => { cancelled = true; };
+  }, [authState, student?.id]);
 
   // Lazy-load tab data on first visit
   useEffect(() => {
@@ -501,6 +699,17 @@ export default function StudentPortal() {
     );
   }
 
+  if (authState === "suspended" && student) {
+    return (
+      <SuspendedScreen
+        studentName={student.character_name || student.name}
+        suspendedUntil={student.suspended_until ?? new Date().toISOString()}
+        reason={student.suspended_reason ?? null}
+        onLogout={logout}
+      />
+    );
+  }
+
   if (authState === "pending" || !student) {
     return (
       <PendingScreen
@@ -515,6 +724,31 @@ export default function StudentPortal() {
 
   if (!student.character_name) {
     return <OnboardingFlow student={student} onComplete={refreshStudent} />;
+  }
+
+  // Onda 11.4 — gate da Season 2: exige class_type preenchido.
+  // Aguarda o fetch terminar para não piscar a tela enquanto carrega.
+  if (!isLoadingClassProfile && !classProfile?.classType) {
+    return (
+      <Wave11ClassSelectionScreen
+        student={student}
+        onComplete={() => { void refetchClassProfile(); void refreshStudent(); }}
+      />
+    );
+  }
+
+  // Onda 11.8 — gate do tutorial de combate (apenas após class_type definido).
+  if (
+    !isLoadingClassProfile
+    && classProfile?.classType
+    && !((student as unknown as { tutorial_completed?: boolean }).tutorial_completed)
+  ) {
+    return (
+      <Wave11TutorialBattleScreen
+        student={student}
+        onComplete={() => { void refreshStudent(); }}
+      />
+    );
   }
 
   const handleChallengeRequest = async (challengeId: string) => {
@@ -544,10 +778,19 @@ export default function StudentPortal() {
   const isDirector = activeTab === 'director';
   const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'bosses' ? 'quests' : activeTab === 'skills' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : activeTab === 'guild' ? 'home' : 'home';
 
+  // Patch 2.7 — Season 2 welcome modal. Fires when the student has been
+  // wiped by `SELECT apply_patch11_wipe();` (sets wiped_at_patch_1_1)
+  // AND hasn't dismissed the modal yet (seen_patch_1_1 is false). Once
+  // closed, mark_patch11_seen() flips the flag server-side so it never
+  // re-fires. patch11Dismissed is local optimism while we refresh.
+  const showPatch11 = !!student.wiped_at_patch_1_1
+                   && !student.seen_patch_1_1
+                   && !patch11Dismissed;
+
   const TAB_LABELS: Record<string, string> = {
     challenges: 'Quests', missions: 'Missões', bosses: 'Bosses',
     guild: 'Guilda', skills: 'Skills', shop: 'Loja',
-    ranking: 'Ranking', character: 'Herói', capsule: 'Cápsula', pvp: 'PvP Arena', trading: 'Trading',
+    ranking: 'Ranking', character: 'Herói', capsule: 'Cápsula', pvp: 'PvP Arena', trading: 'Trading', mural: 'Mural',
   };
 
   const sharedOverlays = (
@@ -573,6 +816,18 @@ export default function StudentPortal() {
       {showAccessibility && (
         <AccessibilitySettings onClose={() => setShowAccessibility(false)} />
       )}
+      {showPatch11 && (
+        <Patch11Welcome
+          refund={student.patch_1_1_refund ?? 250}
+          onDismissed={() => {
+            setPatch11Dismissed(true);
+            // Pull the fresh students row so seen_patch_1_1 reflects server state.
+            void refreshStudent();
+          }}
+        />
+      )}
+      {/* Patch 5.3: cinematic vault openings auto-detect unread vaults on mount */}
+      <VaultOpeningModal />
     </>
   );
 
@@ -626,7 +881,7 @@ export default function StudentPortal() {
               <Loader2 className="animate-spin mr-3" size={24} /> Carregando habilidades...
             </div>
           ) : battleCharacter ? (
-            <SkillTreePage character={battleCharacter} onBack={() => setActiveTab('director')} />
+            <SkillTreePage character={battleCharacter} studentId={student.id} onBack={() => setActiveTab('director')} />
           ) : (
             <div className="flex items-center justify-center h-full text-white/60 bg-[#020611]">
               <p>Erro ao carregar sistema de habilidades</p>
@@ -647,9 +902,14 @@ export default function StudentPortal() {
 
     if (activeTab === 'character') {
       return (
-        <div className="fixed inset-0 overflow-y-auto" style={{ background: '#04060a' }}>
+        // No overflow-y here — HeroScreen owns its own scroll container so
+        // the inner wheel events behave predictably (a single scrollable
+        // ancestor, not two stacked ones competing).
+        <div className="fixed inset-0" style={{ background: '#04060a' }}>
           {sharedOverlays}
-          <HeroScreen student={student} inventory={inventory} onUpdate={async () => { await Promise.all([refreshStudent(), refreshInventory()]); }} onBack={() => setActiveTab('director')} />
+          <Suspense fallback={<DungeonLoadingScreen />}>
+            <HeroScreen student={student} inventory={inventory} onUpdate={async () => { await Promise.all([refreshStudent(), refreshInventory()]); }} onBack={() => setActiveTab('director')} />
+          </Suspense>
         </div>
       );
     }
@@ -681,6 +941,7 @@ export default function StudentPortal() {
       return (
         <div className="fixed inset-0">
           {sharedOverlays}
+          <Suspense fallback={<DungeonLoadingScreen />}>
           <ShopScreen
             items={shopItems}
             inventory={inventory}
@@ -706,6 +967,7 @@ export default function StudentPortal() {
             onCoinsChanged={refreshStudent}
             onBack={() => setActiveTab('director')}
           />
+          </Suspense>
         </div>
       );
     }
@@ -863,7 +1125,12 @@ export default function StudentPortal() {
 
         {/* Ranking Tab */}
         {activeTab === "ranking" && (
-          <GlobalRanking student={student} />
+          <WeeklyRankingsScreen student={student} />
+        )}
+
+        {/* Patch 8.1: Mural de Feitos da Escola */}
+        {activeTab === "mural" && (
+          <SchoolFeedScreen />
         )}
 
         {/* Time Capsule Tab */}
@@ -886,8 +1153,10 @@ export default function StudentPortal() {
   } // end getTabContent
 
   return (
-    <PvpChallengeProvider student={student} isInBattle={!!activeBossId}>
-      {getTabContent()}
-    </PvpChallengeProvider>
+    <ProfileCardOpenerProvider>
+      <PvpChallengeProvider student={student} isInBattle={!!activeBossId}>
+        {getTabContent()}
+      </PvpChallengeProvider>
+    </ProfileCardOpenerProvider>
   );
 }

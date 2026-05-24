@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Search, Bell, ChevronRight, Home, X } from "lucide-react";
 import type { StudentTab } from "@/components/student/StudentNavigation";
+import { DailyCoinBar } from "@/components/student/DailyCoinBar";
+import { ActiveEventBanner } from "@/components/student/ActiveEventBanner";
 
 const TAB_LABELS: Record<StudentTab, string> = {
   challenges: "Quests",
@@ -180,6 +182,16 @@ export function StudentHeader({ activeTab }: StudentHeaderProps) {
               </kbd>
             </button>
           )}
+        </div>
+
+        {/* ── Active event banner (Patch 5.1) ─────────────── */}
+        <div className="hidden md:block">
+          <ActiveEventBanner />
+        </div>
+
+        {/* ── Daily coin cap bar (Patch 2.3) ─────────────── */}
+        <div className="hidden md:block">
+          <DailyCoinBar compact />
         </div>
 
         {/* ── Notifications ─────────────── */}

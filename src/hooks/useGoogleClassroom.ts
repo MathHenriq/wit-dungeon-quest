@@ -57,6 +57,7 @@ async function classroomFetch(path: string, accessToken: string) {
       headers: { Authorization: `Bearer ${accessToken}` },
       signal: controller.signal,
     });
+    if (res.status === 401) throw new Error("TOKEN_EXPIRED");
     if (res.status === 403) throw new Error("PERMISSION_DENIED");
     if (!res.ok) throw new Error(`Classroom API error: ${res.status}`);
     return res.json();
@@ -73,32 +74,86 @@ export function useGoogleClassroom(teacherId: string | undefined) {
   const [importedCourseIds, setImportedCourseIds] = useState<Set<string>>(new Set());
   const [linkedActivities, setLinkedActivities] = useState<ActivityLink[]>([]);
 
-  // Get the current Google access token — session first, then DB fallback
-  const getAccessToken = useCallback(async (): Promise<string | null> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.provider_token) return session.provider_token;
-
-    // Fallback: use stored token from DB (valid ~1h from last connect)
+  // Try to refresh the stored refresh_token via Edge Function. Returns the
+  // new access_token on success, or null if the teacher needs to reconnect
+  // (e.g. no refresh_token saved, or Google revoked it).
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     if (!teacherId) return null;
-    const { data } = await supabase
-      .from("google_classroom_connections")
-      .select("access_token")
-      .eq("teacher_id", teacherId)
-      .maybeSingle();
-    return data?.access_token ?? null;
+    try {
+      const { data, error } = await supabase.functions.invoke<{ ok: boolean; access_token?: string }>(
+        "gsa-refresh-token",
+        { body: { teacher_id: teacherId } },
+      );
+      if (error || !data?.access_token) return null;
+      return data.access_token;
+    } catch {
+      return null;
+    }
   }, [teacherId]);
 
-  // Save a working token to DB so it survives session changes
-  const persistToken = useCallback(async (token: string) => {
+  // Get the current Google access token — DB first (with auto-refresh when
+  // stale), then live session as a fallback for the very first connect.
+  const getAccessToken = useCallback(async (): Promise<string | null> => {
+    if (teacherId) {
+      const { data } = await supabase
+        .from("google_classroom_connections")
+        .select("access_token, token_expires_at, refresh_token")
+        .eq("teacher_id", teacherId)
+        .maybeSingle();
+
+      if (data) {
+        const expiresAt = data.token_expires_at ? Date.parse(data.token_expires_at) : 0;
+        const staleIn   = expiresAt - Date.now();
+        // Refresh if expiring within 5 min and we have a refresh_token.
+        if (data.refresh_token && (!expiresAt || staleIn < 5 * 60 * 1000)) {
+          const fresh = await refreshAccessToken();
+          if (fresh) return fresh;
+        }
+        if (data.access_token && staleIn > 0) return data.access_token;
+      }
+    }
+
+    // First-connect path: read the freshly-issued provider_token from session.
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.provider_token ?? null;
+  }, [teacherId, refreshAccessToken]);
+
+  // Persist a freshly-issued token bundle. Called right after the OAuth
+  // callback so we capture refresh_token + expires_at while they're still
+  // present on the session object.
+  const persistToken = useCallback(async (token: string, refreshToken?: string | null, expiresIn?: number | null) => {
     if (!teacherId) return;
+    const payload: Record<string, unknown> = {
+      teacher_id: teacherId,
+      access_token: token,
+      last_sync_at: new Date().toISOString(),
+    };
+    if (refreshToken) payload.refresh_token = refreshToken;
+    if (typeof expiresIn === "number" && expiresIn > 0) {
+      payload.token_expires_at = new Date(Date.now() + expiresIn * 1000).toISOString();
+    }
     await supabase
       .from("google_classroom_connections")
-      .upsert({
-        teacher_id: teacherId,
-        access_token: token,
-        last_sync_at: new Date().toISOString(),
-      });
+      .upsert(payload);
   }, [teacherId]);
+
+  // Wrap classroomFetch with a single retry-after-refresh on TOKEN_EXPIRED.
+  // Every call site routes through this so we don't have to repeat the
+  // try/refresh/retry dance.
+  const apiCall = useCallback(async <T = unknown>(path: string): Promise<T> => {
+    const token = await getAccessToken();
+    if (!token) throw new Error("NO_TOKEN");
+    try {
+      return await classroomFetch(path, token) as T;
+    } catch (err) {
+      if (err instanceof Error && err.message === "TOKEN_EXPIRED") {
+        const fresh = await refreshAccessToken();
+        if (!fresh) throw new Error("NO_TOKEN");
+        return await classroomFetch(path, fresh) as T;
+      }
+      throw err;
+    }
+  }, [getAccessToken, refreshAccessToken]);
 
   const loadLinkedActivities = useCallback(async () => {
     if (!teacherId) return;
@@ -130,14 +185,43 @@ export function useGoogleClassroom(teacherId: string | undefined) {
   const checkConnection = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Drain the OAuth callback: if the session still carries provider_token
+      // / provider_refresh_token (only available right after the redirect from
+      // Google), capture them BEFORE doing anything else. This is the single
+      // moment the refresh_token is exposed to the client.
+      const { data: { session } } = await supabase.auth.getSession();
+      const sessionWithProvider = session as (typeof session & {
+        provider_token?: string | null;
+        provider_refresh_token?: string | null;
+        expires_in?: number | null;
+      }) | null;
+      if (teacherId && sessionWithProvider?.provider_token) {
+        await persistToken(
+          sessionWithProvider.provider_token,
+          sessionWithProvider.provider_refresh_token ?? null,
+          // Google access tokens last 3600s; Supabase's session.expires_in is
+          // for the Supabase JWT, not provider. Use 3600 as a safe default.
+          3600,
+        );
+      }
+
       const token = await getAccessToken();
       if (!token) { setIsConnected(false); return; }
 
-      await classroomFetch("/courses?courseStates=ACTIVE&pageSize=1", token);
+      try {
+        await classroomFetch("/courses?courseStates=ACTIVE&pageSize=1", token);
+      } catch (err) {
+        // Token went stale between fetch and use — refresh once and retry.
+        if (err instanceof Error && err.message === "TOKEN_EXPIRED") {
+          const fresh = await refreshAccessToken();
+          if (!fresh) throw err;
+          await classroomFetch("/courses?courseStates=ACTIVE&pageSize=1", fresh);
+        } else {
+          throw err;
+        }
+      }
       setIsConnected(true);
 
-      // Persist the working token so it survives re-logins
-      void persistToken(token);
       void loadLinkedActivities();
       void scanImportedCourses();
     } catch {
@@ -145,7 +229,7 @@ export function useGoogleClassroom(teacherId: string | undefined) {
     } finally {
       setIsLoading(false);
     }
-  }, [getAccessToken, persistToken, loadLinkedActivities]);
+  }, [getAccessToken, persistToken, refreshAccessToken, loadLinkedActivities, scanImportedCourses, teacherId]);
 
   useEffect(() => {
     if (teacherId) checkConnection();
@@ -173,28 +257,22 @@ export function useGoogleClassroom(teacherId: string | undefined) {
   };
 
   const fetchCourses = useCallback(async () => {
-    const token = await getAccessToken();
-    if (!token) throw new Error("NO_TOKEN");
-
-    const data = await classroomFetch("/courses?courseStates=ACTIVE", token);
+    const data = await apiCall<{ courses?: ClassroomCourse[] }>("/courses?courseStates=ACTIVE");
     const list: ClassroomCourse[] = (data.courses ?? []).filter(
       (c: ClassroomCourse) => c.courseState === "ACTIVE"
     );
     setCourses(list);
     return list;
-  }, [getAccessToken]);
+  }, [apiCall]);
 
   const fetchStudents = useCallback(async (courseId: string): Promise<ClassroomStudent[]> => {
-    const token = await getAccessToken();
-    if (!token) throw new Error("NO_TOKEN");
-
-    const data = await classroomFetch(`/courses/${courseId}/students`, token);
-    return (data.students ?? []).map((s: { userId: string; profile?: { name?: { fullName?: string }; emailAddress?: string } }) => ({
+    const data = await apiCall<{ students?: Array<{ userId: string; profile?: { name?: { fullName?: string }; emailAddress?: string } }> }>(`/courses/${courseId}/students`);
+    return (data.students ?? []).map((s) => ({
       userId: s.userId,
       fullName: s.profile?.name?.fullName ?? "Sem nome",
       emailAddress: s.profile?.emailAddress ?? "",
     }));
-  }, [getAccessToken]);
+  }, [apiCall]);
 
   const importCourse = useCallback(async (course: ClassroomCourse, onStudentsStep?: () => void): Promise<ImportResult> => {
     if (!teacherId) throw new Error("Sem professor autenticado");
@@ -278,16 +356,13 @@ export function useGoogleClassroom(teacherId: string | undefined) {
   }, [teacherId, fetchStudents, getAccessToken, persistToken]);
 
   const fetchCoursework = useCallback(async (courseId: string): Promise<ClassroomCoursework[]> => {
-    const token = await getAccessToken();
-    if (!token) throw new Error("NO_TOKEN");
-    const data = await classroomFetch(
-      `/courses/${courseId}/courseWork?orderBy=updateTime%20desc&pageSize=20`,
-      token
+    const data = await apiCall<{ courseWork?: ClassroomCoursework[] }>(
+      `/courses/${courseId}/courseWork?orderBy=updateTime%20desc&pageSize=20`
     );
     return ((data.courseWork ?? []) as ClassroomCoursework[]).filter(
       (cw) => cw.state === "PUBLISHED"
     );
-  }, [getAccessToken]);
+  }, [apiCall]);
 
   const linkActivity = useCallback(async (
     course: ClassroomCourse,
@@ -320,12 +395,8 @@ export function useGoogleClassroom(teacherId: string | undefined) {
   }, [loadLinkedActivities]);
 
   const syncActivity = useCallback(async (link: ActivityLink): Promise<SyncResult> => {
-    const token = await getAccessToken();
-    if (!token) throw new Error("NO_TOKEN");
-
-    const data = await classroomFetch(
-      `/courses/${link.course_id}/courseWork/${link.coursework_id}/studentSubmissions`,
-      token
+    const data = await apiCall<{ studentSubmissions?: Array<{ userId: string; state: string }> }>(
+      `/courses/${link.course_id}/courseWork/${link.coursework_id}/studentSubmissions`
     );
 
     const submissions: Array<{ userId: string; state: string }> = data.studentSubmissions ?? [];
@@ -363,7 +434,7 @@ export function useGoogleClassroom(teacherId: string | undefined) {
 
     await loadLinkedActivities();
     return { rewarded, skipped, notFound };
-  }, [getAccessToken, teacherId, loadLinkedActivities]);
+  }, [apiCall, teacherId, loadLinkedActivities]);
 
   return {
     isConnected,

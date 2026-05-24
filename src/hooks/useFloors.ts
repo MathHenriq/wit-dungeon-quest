@@ -108,8 +108,10 @@ function rowToEnemy(r: any, index: number = 0): FloorEnemy {
 }
 
 function rowToProgress(r: any): FloorProgress {
+  // character_progress uses a composite PK (character_id, floor_id) — there is
+  // no surrogate `id` column. We synthesize one for FloorProgress consumers.
   return {
-    id:              String(r.id),
+    id:              `${r.character_id}-${r.floor_id}`,
     characterId:     String(r.character_id),
     floorId:         String(r.floor_id),
     enemiesDefeated: r.enemies_defeated ?? 0,
@@ -133,7 +135,7 @@ export function useFloors() {
     queryFn: async () => {
       const { data, error } = await studentSupabase
         .from('floors')
-        .select('*')
+        .select('id, floor_number, name, theme, level_min, level_max, lore, created_at')
         .order('floor_number', { ascending: true });
       if (error) throw error;
       return (data ?? []).map(rowToFloor);
@@ -155,7 +157,7 @@ export function useFloorEnemies(floorId: string | null) {
     queryFn: async () => {
       const { data, error } = await studentSupabase
         .from('enemies')
-        .select('*')
+        .select('id, floor_id, name, level, is_boss, lore, hp_max, def_fisica, def_magica, velocidade, element_type, ability_1, ability_2, ability_3, ability_4, special_ability_name, special_ability_effect, special_trigger, position_x, position_y, icon_type')
         .eq('floor_id', floorId!)
         .order('is_boss', { ascending: true });
       if (error) throw error;
@@ -177,7 +179,7 @@ export function useFloorProgress(characterId: string | null) {
     queryFn: async () => {
       const { data, error } = await studentSupabase
         .from('character_progress')
-        .select('*')
+        .select('character_id, floor_id, enemies_defeated, boss_defeated, completed_at')
         .eq('character_id', characterId!);
       if (error) throw error;
       return (data ?? []).map(rowToProgress);
@@ -318,50 +320,21 @@ export function useRecordEnemyDefeat() {
 
   return useMutation({
     mutationFn: async ({ characterId, floorId, enemyId, isBoss }: RecordDefeatInput & { enemyId: string }) => {
-      // 1. Record the individual defeat first
-      const { error: individualErr } = await studentSupabase
-        .from('floor_enemy_defeats')
-        .upsert({ character_id: characterId, enemy_id: enemyId }, { onConflict: 'character_id,enemy_id' });
-      
-      if (individualErr) throw individualErr;
+      // SECURITY DEFINER RPC. The previous client-side direct-INSERT path
+      // failed silently for some users because of an RLS quirk on
+      // floor_enemy_defeats — the throw aborted the progress upsert and
+      // boss_defeated never flipped, so the next floor stayed locked.
+      const { data, error } = await studentSupabase.rpc('record_enemy_defeat' as never, {
+        p_character_id: characterId,
+        p_floor_id:     Number(floorId),
+        p_enemy_id:     enemyId,
+        p_is_boss:      isBoss,
+      } as never);
 
-      // 2. Get the updated real count of unique non-boss enemies defeated on this floor
-      // We use Number(floorId) to match INTEGER column in DB
-      const { count: realDefeatedCount } = await studentSupabase
-        .from('floor_enemy_defeats')
-        .select('enemy_id, enemies!inner(floor_id, is_boss)', { count: 'exact', head: true })
-        .eq('character_id', characterId)
-        .eq('enemies.floor_id', Number(floorId))
-        .eq('enemies.is_boss', false);
+      if (error) throw error;
+      const res = data as { success?: boolean; error?: string } | null;
+      if (!res?.success) throw new Error(res?.error ?? 'record_enemy_defeat_failed');
 
-      // 3. Fetch existing progress record for summary
-      const { data: existing } = await studentSupabase
-        .from('character_progress')
-        .select('boss_defeated, completed_at')
-        .eq('character_id', characterId)
-        .eq('floor_id', Number(floorId))
-        .maybeSingle();
-
-      const prevBoss        = existing?.boss_defeated    ?? false;
-      const prevCompletedAt = existing?.completed_at      ?? null;
-
-      const newEnemies      = realDefeatedCount ?? 0;
-      const newBoss         = isBoss || prevBoss;
-      const newCompletedAt  = (isBoss && !prevBoss) ? new Date().toISOString() : prevCompletedAt;
-
-      // 4. Update the summary progress
-      const { error: summaryErr } = await studentSupabase
-        .from('character_progress')
-        .upsert({
-          character_id:     characterId,
-          floor_id:         Number(floorId),
-          enemies_defeated: newEnemies,
-          boss_defeated:    newBoss,
-          completed_at:     newCompletedAt,
-        }, { onConflict: 'character_id,floor_id' });
-
-      if (summaryErr) throw summaryErr;
-      
       return { characterId, floorId, enemyId };
     },
     onSuccess: (_data, { characterId, floorId }) => {

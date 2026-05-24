@@ -17,9 +17,11 @@ import {
   Flame,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import type { Student } from "@/types";
 import { GameIcon } from "@/components/icons/GameIcon";
+import { useOpenProfileCard } from "@/components/student/ProfileCard";
 
 export type StudentTab =
   | "director"
@@ -34,7 +36,8 @@ export type StudentTab =
   | "dungeon"
   | "capsule"
   | "pvp"
-  | "trading";
+  | "trading"
+  | "mural";
 
 const NAV_ITEMS: {
   id: StudentTab;
@@ -52,6 +55,7 @@ const NAV_ITEMS: {
   { id: "shop",       label: "Loja",     Icon: Store },
   { id: "trading",    label: "Trading",  Icon: ArrowLeftRight },
   { id: "ranking",    label: "Rank",     Icon: Trophy },
+  { id: "mural",      label: "Mural",    Icon: Sparkles },
   { id: "character",  label: "Herói",    Icon: User },
   { id: "capsule",    label: "Cápsula",  Icon: Clock },
 ];
@@ -134,6 +138,7 @@ export function StudentNavigation({
 }: StudentNavigationProps) {
   const [collapsed, setCollapsed] = useState(false);
   const sidebarWidth = collapsed ? 72 : 240;
+  const openProfileCard = useOpenProfileCard();
 
   return (
     <>
@@ -274,10 +279,17 @@ export function StudentNavigation({
             flexShrink: 0,
           }}
         >
-          <Avatar student={student} />
+          <button
+            onClick={() => openProfileCard(student.id)}
+            title="Ver card do perfil"
+            style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            <Avatar student={student} />
+          </button>
           {!collapsed && (
             <div style={{ minWidth: 0 }}>
               <p
+                onClick={() => openProfileCard(student.id)}
                 style={{
                   fontFamily: "Rajdhani, sans-serif",
                   fontWeight: 700,
@@ -286,6 +298,7 @@ export function StudentNavigation({
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
+                  cursor: "pointer",
                 }}
               >
                 {student.character_name || student.name}

@@ -272,6 +272,7 @@ export function useGuild(studentId: string, teacherId: string) {
       content:   content.trim(),
       post_type: 'message',
     });
+    void supabaseStudent.rpc("increment_daily_counter", { p_type: "guild_posts", p_amount: 1 });
     await loadPosts(myGuild.id);
   };
 

@@ -66,10 +66,31 @@ interface PvpChallengeContextValue {
   pendingOpponent: PvpOpponentInfo | null;
   battleData: PvpBattleData | null;
   challengeTimer: number;
+  /** Outgoing challenge countdown (seconds until auto-cancel). 0 when no outgoing. */
+  outgoingTimer: number;
+  /** While true, accept/load is in progress and a "loading" overlay can show. */
+  isLoadingBattle: boolean;
   sendChallenge: (opponent: PvpOpponentInfo) => Promise<void>;
   acceptChallenge: () => Promise<void>;
   declineChallenge: () => Promise<void>;
   cancelChallenge: () => Promise<void>;
+}
+
+/**
+ * Lightweight telemetry hook for PvP. Goes to:
+ *   - console.info (always, with [PvP] tag)
+ *   - action_log via RPC (fire-and-forget; failure is non-blocking)
+ * Anything passed in `extra` gets serialized to JSONB payload.
+ */
+function pvpTelemetry(event: string, extra: Record<string, unknown> = {}): void {
+  console.info(`[PvP] ${event}`, extra);
+  void supabaseStudent.rpc('log_action', {
+    p_action:       `pvp_${event}`,
+    p_target_table: 'pvp_matches',
+    p_target_id:    (extra.match_id as string) ?? null,
+    p_target_label: (extra.label as string) ?? null,
+    p_payload:      extra as never,
+  }).then(() => undefined, () => undefined);
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -137,6 +158,8 @@ function rowToCharacter(row: any): BattleCharacter {
   return {
     id:           row.id,
     userId:       row.user_id,
+    // Onda 11.3 — row.id vem de get_pvp_opponent_data(p_student_id=...) ⇒ é o student.id.
+    studentId:    row.id,
     name:         row.name         ?? 'Aventureiro',
     class:        row.class        ?? 'Guerreiro',
     level:        row.level        ?? 1,
@@ -257,7 +280,9 @@ const CSS = `
 const CLASS_COLOR: Record<string, string> = {
   Mago: '#9b6dff', Arqueiro: '#4ade80', Curandeiro: '#38d9e8', Guerreiro: '#ff6b35',
 };
-const CHALLENGE_TIMEOUT = 30;
+const CHALLENGE_TIMEOUT = 30;          // incoming challenge auto-decline (sec)
+const OUTGOING_TIMEOUT  = 60;          // outgoing challenge auto-cancel  (sec)
+const BATTLE_LOAD_TIMEOUT_MS = 12_000; // fetch battle data within this or bail
 
 function GlobalChallengeBanner({
   opponent,
@@ -603,6 +628,8 @@ export function PvpChallengeProvider({
   const [pendingOpponent,   setPendingOpponent]   = useState<PvpOpponentInfo | null>(null);
   const [battleData,        setBattleData]        = useState<PvpBattleData | null>(null);
   const [challengeTimer,    setChallengeTimer]    = useState(CHALLENGE_TIMEOUT);
+  const [outgoingTimer,     setOutgoingTimer]     = useState(0);
+  const [isLoadingBattle,   setIsLoadingBattle]   = useState(false);
 
   // Refs so realtime callbacks always have fresh values without recreating the channel
   const outgoingRef     = useRef<PvpChallenge | null>(null);
@@ -610,7 +637,9 @@ export function PvpChallengeProvider({
   const isInBattleRef   = useRef(isInBattle);
   const battleDataRef   = useRef<PvpBattleData | null>(null);
   const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null);
+  const outgoingTimerRef= useRef<ReturnType<typeof setInterval> | null>(null);
   const autoDeclinedRef = useRef<string | null>(null);
+  const autoCanceledRef = useRef<string | null>(null);
 
   useEffect(() => { outgoingRef.current   = outgoingChallenge; }, [outgoingChallenge]);
   useEffect(() => { pendingOppRef.current = pendingOpponent;   }, [pendingOpponent]);
@@ -639,6 +668,7 @@ export function PvpChallengeProvider({
     if (autoDeclinedRef.current === incomingChallenge.id) return;
     autoDeclinedRef.current = incomingChallenge.id;
     stopTimer();
+    pvpTelemetry('challenge_auto_declined', { match_id: incomingChallenge.id });
     supabaseStudent
       .from('pvp_matches')
       .update({ status: 'declined' })
@@ -646,7 +676,123 @@ export function PvpChallengeProvider({
       .then(() => { setIncomingChallenge(null); setPendingOpponent(null); });
   }, [challengeTimer, incomingChallenge?.id]);
 
+  // ── Outgoing challenge timer (auto-cancel if opponent doesn't respond) ────
+
+  function stopOutgoingTimer() {
+    if (outgoingTimerRef.current) {
+      clearInterval(outgoingTimerRef.current);
+      outgoingTimerRef.current = null;
+    }
+    setOutgoingTimer(0);
+  }
+
+  useEffect(() => {
+    if (!outgoingChallenge) { stopOutgoingTimer(); return; }
+    setOutgoingTimer(OUTGOING_TIMEOUT);
+    if (outgoingTimerRef.current) clearInterval(outgoingTimerRef.current);
+    outgoingTimerRef.current = setInterval(() => setOutgoingTimer(t => Math.max(0, t - 1)), 1000);
+    return () => { if (outgoingTimerRef.current) clearInterval(outgoingTimerRef.current); };
+  }, [outgoingChallenge?.id]);
+
+  // Auto-cancel outgoing at zero
+  useEffect(() => {
+    if (outgoingTimer !== 0 || !outgoingChallenge) return;
+    if (autoCanceledRef.current === outgoingChallenge.id) return;
+    autoCanceledRef.current = outgoingChallenge.id;
+    stopOutgoingTimer();
+    pvpTelemetry('challenge_auto_canceled', { match_id: outgoingChallenge.id });
+    supabaseStudent
+      .from('pvp_matches')
+      .update({ status: 'declined' })
+      .eq('id', outgoingChallenge.id)
+      .then(() => { setOutgoingChallenge(null); setPendingOpponent(null); });
+  }, [outgoingTimer, outgoingChallenge?.id]);
+
+  // ── Battle data loader (single source of truth) ───────────────────────────
+  //
+  // Why this exists
+  //   Historic bug: acceptChallenge and the challenger-side realtime listener
+  //   each fetched all the battle data independently and set battleData even
+  //   when the RPC returned null. The fallback PvpBattleOverlay then ran a
+  //   deterministic "simulator" that finished in 4s and wrote an ELO loss —
+  //   that's the "ao desafio ser aceito, o desafiante perde instantaneamente"
+  //   symptom users hit. We now require BOTH characters to load (with a hard
+  //   12s timeout) or we bail cleanly, canceling the match without any ELO
+  //   side-effects.
+  async function loadBattleData(
+    matchId: string,
+    opponentStudentId: string,
+    opp: PvpOpponentInfo,
+    iAmChallenger: boolean,
+  ): Promise<PvpBattleData | null> {
+    setIsLoadingBattle(true);
+    try {
+      const timeout = new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error('BATTLE_LOAD_TIMEOUT')), BATTLE_LOAD_TIMEOUT_MS)
+      );
+      const work = Promise.all([
+        fetchCharacterStats(student.id),
+        fetchCharacterStats(opponentStudentId),
+        fetchMyStats(student.id),
+        fetchFullBattleData(student.id),
+        fetchFullBattleData(opponentStudentId),
+      ]);
+      const [myChar, oppChar, myStats, myFull, oppFull] = await Promise.race([work, timeout]) as Awaited<typeof work>;
+
+      // Hard guard: we need BOTH full character bundles. Anything less means
+      // the engine would either crash or fall back to the dumb simulator.
+      if (!myFull?.char || !oppFull?.char) {
+        pvpTelemetry('battle_data_missing', {
+          match_id: matchId,
+          has_my_full: !!myFull?.char,
+          has_opp_full: !!oppFull?.char,
+          i_am_challenger: iAmChallenger,
+        });
+        return null;
+      }
+
+      return {
+        matchId,
+        opponent: { ...opp, ...(oppChar ?? {}) },
+        myBattleStats: myChar ?? statsFromStudent(student),
+        myLevel:       student.level,
+        myStats,
+        iAmChallenger,
+        myChar:        myFull.char,
+        myAbilities:   myFull.abilities,
+        oppChar:       oppFull.char,
+        oppAbilities:  oppFull.abilities,
+      };
+    } catch (err) {
+      pvpTelemetry('battle_data_error', {
+        match_id: matchId,
+        error: err instanceof Error ? err.message : String(err),
+        i_am_challenger: iAmChallenger,
+      });
+      return null;
+    } finally {
+      setIsLoadingBattle(false);
+    }
+  }
+
+  // Cancel a match cleanly without touching ELO. Used when battle data fails
+  // to load so neither side gets penalized.
+  async function abortMatch(matchId: string, reason: string) {
+    pvpTelemetry('match_aborted', { match_id: matchId, reason });
+    await supabaseStudent
+      .from('pvp_matches')
+      .update({ status: 'declined' })
+      .eq('id', matchId);
+  }
+
   // ── Realtime channel (permanent for the session) ──────────────────────────
+  //
+  // Reconnect strategy
+  //   We treat the channel as a permanent subscription for the lifetime of
+  //   the provider. On CHANNEL_ERROR / CLOSED, Supabase's JS client will
+  //   auto-retry, but we also re-subscribe explicitly to be defensive
+  //   against half-open WebSocket states (Wi-Fi flip, sleep, etc.). The
+  //   subscribe callback logs each state transition for diagnosability.
 
   useEffect(() => {
     const channel = supabaseStudent
@@ -683,40 +829,41 @@ export function PvpChallengeProvider({
       }, async (payload) => {
         const match = payload.new as PvpChallenge;
         const currentOutgoing = outgoingRef.current;
-        
+
         // Match I initiated got updated
         if (match.status === 'accepted' && currentOutgoing?.id === match.id) {
+          pvpTelemetry('challenger_received_accept', { match_id: match.id });
           setOutgoingChallenge(null);
+          stopOutgoingTimer();
           const opp = pendingOppRef.current ?? await fetchOpponentInfo(match.opponent_id);
-          const [myChar, oppChar, myStats, myFull, oppFull] = await Promise.all([
-            fetchCharacterStats(student.id),
-            fetchCharacterStats(match.opponent_id),
-            fetchMyStats(student.id),
-            fetchFullBattleData(student.id),
-            fetchFullBattleData(match.opponent_id),
-          ]);
-          setBattleData({
-            matchId: match.id,
-            opponent: { ...opp, ...(oppChar ?? {}) },
-            myBattleStats: myChar ?? statsFromStudent(student),
-            myLevel: student.level,
-            myStats,
-            iAmChallenger: true,
-            myChar:       myFull?.char,
-            myAbilities:  myFull?.abilities,
-            oppChar:      oppFull?.char,
-            oppAbilities: oppFull?.abilities,
-          });
+          const data = await loadBattleData(match.id, match.opponent_id, opp, true);
+          if (!data) {
+            await abortMatch(match.id, 'challenger_data_load_failed');
+            setPendingOpponent(null);
+            return;
+          }
+          pvpTelemetry('battle_started', { match_id: match.id, side: 'challenger' });
+          setBattleData(data);
         } else if (match.status === 'declined' || match.status === 'finished') {
           // If match was declined or finished by the other side, close my screen
           if (currentOutgoing?.id === match.id || match.id === battleDataRef.current?.matchId) {
+            pvpTelemetry('match_closed_remote', { match_id: match.id, status: match.status });
             setOutgoingChallenge(null);
             setBattleData(null);
             setPendingOpponent(null);
           }
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        // Surface channel state for diagnosability and let Supabase's auto-retry
+        // do its job. Manual re-subscribe would race with the SDK's internal
+        // retry; we just log here.
+        if (status === 'SUBSCRIBED') {
+          pvpTelemetry('realtime_subscribed', {});
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          pvpTelemetry('realtime_disconnected', { status });
+        }
+      });
 
     return () => { channel.unsubscribe(); };
   }, [student.id]);
@@ -740,8 +887,10 @@ export function PvpChallengeProvider({
       .select()
       .single();
     if (!error && data) {
+      pvpTelemetry('challenge_sent', { match_id: (data as PvpChallenge).id, opponent_id: opponent.student_id });
       setOutgoingChallenge(data as PvpChallenge);
     } else {
+      pvpTelemetry('challenge_send_failed', { error: error?.message });
       setPendingOpponent(null);
     }
   }, [student]);
@@ -749,6 +898,7 @@ export function PvpChallengeProvider({
   const acceptChallenge = useCallback(async () => {
     if (!incomingChallenge) return;
     stopTimer();
+    pvpTelemetry('challenge_accepted', { match_id: incomingChallenge.id });
 
     await supabaseStudent
       .from('pvp_matches')
@@ -756,28 +906,21 @@ export function PvpChallengeProvider({
       .eq('id', incomingChallenge.id);
 
     const challenger = pendingOppRef.current ?? await fetchOpponentInfo(incomingChallenge.challenger_id);
-    const [myChar, oppChar, myStats, myFull, oppFull] = await Promise.all([
-      fetchCharacterStats(student.id),
-      fetchCharacterStats(incomingChallenge.challenger_id),
-      fetchMyStats(student.id),
-      fetchFullBattleData(student.id),
-      fetchFullBattleData(incomingChallenge.challenger_id),
-    ]);
+    const data = await loadBattleData(incomingChallenge.id, incomingChallenge.challenger_id, challenger, false);
+
+    if (!data) {
+      // Battle data failed — cancel cleanly so the challenger's listener also
+      // drops back without recording a "phantom" loss against either side.
+      await abortMatch(incomingChallenge.id, 'opponent_data_load_failed');
+      setIncomingChallenge(null);
+      setPendingOpponent(null);
+      return;
+    }
 
     setIncomingChallenge(null);
-    setBattleData({
-      matchId:       incomingChallenge.id,
-      opponent:      { ...challenger, ...(oppChar ?? {}) },
-      myBattleStats: myChar ?? statsFromStudent(student),
-      myLevel:       student.level,
-      myStats,
-      iAmChallenger: false,
-      myChar:        myFull?.char,
-      myAbilities:   myFull?.abilities,
-      oppChar:       oppFull?.char,
-      oppAbilities:  oppFull?.abilities,
-    });
-  }, [incomingChallenge, student]);
+    pvpTelemetry('battle_started', { match_id: incomingChallenge.id, side: 'opponent' });
+    setBattleData(data);
+  }, [incomingChallenge, student]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const declineChallenge = useCallback(async () => {
     if (!incomingChallenge) return;
@@ -830,6 +973,10 @@ export function PvpChallengeProvider({
       updated_at: new Date().toISOString(),
     }, { onConflict: 'student_id' });
 
+    if (won) {
+      void supabaseStudent.rpc('increment_daily_counter', { p_type: 'pvp_wins', p_amount: 1 });
+    }
+
     setBattleData(null);
     setPendingOpponent(null);
   }
@@ -843,6 +990,8 @@ export function PvpChallengeProvider({
       pendingOpponent,
       battleData,
       challengeTimer,
+      outgoingTimer,
+      isLoadingBattle,
       sendChallenge,
       acceptChallenge,
       declineChallenge,
@@ -850,13 +999,23 @@ export function PvpChallengeProvider({
     }}>
       {children}
 
-      {incomingChallenge && pendingOpponent && !battleData && (
+      {incomingChallenge && pendingOpponent && !battleData && !isLoadingBattle && (
         <GlobalChallengeBanner
           opponent={pendingOpponent}
           timer={challengeTimer}
           onAccept={acceptChallenge}
           onDecline={declineChallenge}
         />
+      )}
+
+      {/* Loading overlay while battle data is fetched. Replaces the old silent
+          PvpBattleOverlay simulator fallback that was the root cause of
+          "desafiante perde instantaneamente" — when fetchFullBattleData
+          returned null, the simulator ran for 4s and wrote an ELO loss.
+          Now: show loading; if data fails the loader cancels the match
+          cleanly and no ELO is touched. */}
+      {isLoadingBattle && !battleData && (
+        <BattleLoadingOverlay opponent={pendingOpponent} />
       )}
 
       {battleData && battleData.myChar && battleData.oppChar && (
@@ -874,15 +1033,47 @@ export function PvpChallengeProvider({
           )}
         />
       )}
-
-      {/* Fallback: character data not loaded yet — keep old overlay to avoid blank screen */}
-      {battleData && (!battleData.myChar || !battleData.oppChar) && (
-        <PvpBattleOverlay
-          student={student}
-          battleData={battleData}
-          onFinish={handleFinishBattle}
-        />
-      )}
     </PvpChallengeContext.Provider>
+  );
+}
+
+// ─── Battle loading overlay ───────────────────────────────────────────────────
+// Shown while the engine is gathering both characters' data. Hard-cancels via
+// the load timeout (12s) instead of falling back to the old simulator.
+function BattleLoadingOverlay({ opponent }: { opponent: PvpOpponentInfo | null }) {
+  return (
+    <>
+      <style>{CSS}</style>
+      <div className="pvpctx-fade" style={{
+        position: 'fixed', inset: 0, zIndex: 9998,
+        background: 'linear-gradient(160deg, #04060a 0%, #060c18 55%, #04060a 100%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', gap: 18,
+      }}>
+        <div className="pvpctx-spin" style={{
+          width: 56, height: 56, borderRadius: '50%',
+          border: '3px solid transparent',
+          borderTopColor: '#38d9e8',
+          borderRightColor: '#9b6dff',
+        }} />
+        <div style={{
+          fontFamily: "'Share Tech Mono', monospace",
+          fontSize: 10, letterSpacing: '3px',
+          color: 'rgba(56,217,232,.55)',
+          textAlign: 'center',
+        }}>
+          PREPARANDO BATALHA
+        </div>
+        {opponent && (
+          <div style={{
+            fontFamily: "'Rajdhani', sans-serif",
+            fontSize: 13, color: 'rgba(200,216,240,.6)', letterSpacing: '1px',
+            textAlign: 'center', marginTop: 4,
+          }}>
+            vs {(opponent.character_name ?? opponent.name).toUpperCase()}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

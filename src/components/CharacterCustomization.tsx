@@ -18,7 +18,10 @@ import { toast } from "sonner";
 import type { Student, AttrKey } from "@/types";
 import { ATTRIBUTES } from "@/types";
 import { GameIcon } from "@/components/icons/GameIcon";
+import { AttributePanel } from "@/components/battle/AttributePanel";
 import { useQuery } from "@tanstack/react-query";
+import { useClassProfile } from "@/hooks/useClassProfile";
+import { CLASS_META } from "@/lib/skills/classIcons";
 
 interface CharacterCustomizationProps {
   student: Student;
@@ -98,6 +101,11 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
     },
   });
 
+  // Wave 11 class — owned by ClassSelectionScreen, permanente. Se existir,
+  // sobrescreve visualmente o campo legacy `character_class` no modal.
+  const { data: classProfile } = useClassProfile(student.id);
+  const wave11ClassMeta = classProfile?.classType ? CLASS_META[classProfile.classType] : null;
+
   const [characterName, setCharacterName] = useState(student.character_name || "");
   const [race, setRace] = useState(student.race || "");
   const [characterClass, setCharacterClass] = useState(student.character_class || "");
@@ -173,9 +181,36 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
   };
 
   const handleSave = async () => {
+    if (!student?.id) {
+      toast.error("Erro ao salvar", { description: "ID do aluno não encontrado." });
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const { error } = await supabaseStudent
+      // Primary path: SECURITY DEFINER RPC (resolves the row via auth.uid(),
+      // bypasses the trigger/RLS edge cases that bit legacy/orphan accounts).
+      const rpcResult = await supabaseStudent.rpc("update_my_character", {
+        p_character_name:  characterName.trim(),
+        p_race:            race,
+        p_character_class: characterClass,
+        p_motivation:      motivation.trim(),
+        p_lore:            lore.trim(),
+        p_appearance:      appearance.trim(),
+        p_personality:     personality,
+        p_school_name:     schoolName.trim(),
+      });
+
+      if (!rpcResult.error) {
+        toast.success("Personagem atualizado!");
+        onUpdate();
+        return;
+      }
+
+      // RPC missing (older DB, e.g. local dev) → fall back to direct UPDATE
+      // with .select() so we can detect silent 0-row writes.
+      console.warn("[CharacterCustomization] RPC update_my_character indisponível, fallback para UPDATE direto:", rpcResult.error);
+      const { data: updatedRows, error } = await supabaseStudent
         .from("students")
         .update({
           character_name: characterName.trim() || null,
@@ -187,14 +222,28 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
           personality: personality || null,
           school_name: schoolName.trim() || null,
         })
-        .eq("id", student.id);
+        .eq("id", student.id)
+        .select("id");
 
       if (error) {
+        console.error("[CharacterCustomization] save error:", error);
         toast.error("Erro ao salvar", { description: error.message });
-      } else {
-        toast.success("Personagem atualizado!");
-        onUpdate();
+        return;
       }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        console.error("[CharacterCustomization] UPDATE retornou 0 linhas — RLS/trigger bloqueou silenciosamente. studentId:", student.id);
+        toast.error("Sem permissão para salvar", {
+          description: "Não foi possível atualizar o personagem (0 linhas afetadas). Contate o professor.",
+        });
+        return;
+      }
+
+      toast.success("Personagem atualizado!");
+      onUpdate();
+    } catch (err: unknown) {
+      console.error("[CharacterCustomization] save threw:", err);
+      toast.error("Erro ao salvar", { description: (err as Error)?.message ?? "Erro desconhecido." });
     } finally {
       setIsSaving(false);
     }
@@ -204,31 +253,53 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
     <div className="space-y-6">
       {/* Banner */}
       <div className="holo-panel p-0 overflow-hidden">
-        {/* Banner image area */}
+        {/* Banner: sprite_pixel_front amplified + blurred as a cinematic backdrop.
+            Gradient overlay keeps avatar/name readable on top. */}
         <div className="relative h-36" style={{ background: 'linear-gradient(135deg, rgba(0,229,255,0.08), rgba(124,77,255,0.08))' }}>
-          {student.profile_photo_url && (
-            <img
-              src={student.profile_photo_url}
-              alt="Banner"
-              className="w-full h-full object-cover opacity-40"
-              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+          {(battleCharacter?.sprite_pixel_attack || battleCharacter?.sprite_pixel_front) && (
+            <div
+              aria-hidden
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${battleCharacter.sprite_pixel_attack ?? battleCharacter.sprite_pixel_front})`,
+                backgroundRepeat: 'repeat-x',
+                backgroundPosition: 'center',
+                backgroundSize: 'auto 140%',
+                filter: 'blur(4px) brightness(0.55) saturate(1.1)',
+                imageRendering: 'pixelated',
+              }}
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
         </div>
 
-        {/* Avatar + info row */}
+        {/* Avatar + info row — uses front sprite (pixel art) in a round frame. */}
         <div className="relative px-5 pb-4">
           <div className="absolute -top-12 left-5">
-            <div className="ring-2 ring-cyan-400/30 rounded-full" style={{ boxShadow: '0 0 20px rgba(0,229,255,0.15)' }}>
-              <ProfilePhoto
-                studentId={student.id}
-                currentPhotoUrl={student.profile_photo_url || null}
-                onUpdate={onUpdate}
-                size="lg"
-                editable={true}
-                uploadClient={supabaseStudent}
-              />
+            <div
+              className="ring-2 ring-cyan-400/30 rounded-full overflow-hidden w-24 h-24 bg-secondary flex items-center justify-center"
+              style={{ boxShadow: '0 0 20px rgba(0,229,255,0.15)' }}
+            >
+              {battleCharacter?.sprite_pixel_front ? (
+                <img
+                  src={battleCharacter.sprite_pixel_front}
+                  alt="Avatar"
+                  className="w-full h-full"
+                  style={{ objectFit: 'contain', imageRendering: 'pixelated' }}
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                // Fallback: keep the old uploader so legacy accounts can still
+                // set a placeholder image until a sprite is generated.
+                <ProfilePhoto
+                  studentId={student.id}
+                  currentPhotoUrl={student.profile_photo_url || null}
+                  onUpdate={onUpdate}
+                  size="lg"
+                  editable={false}
+                  uploadClient={supabaseStudent}
+                />
+              )}
             </div>
           </div>
 
@@ -237,8 +308,8 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
               {characterName || student.name}
             </h2>
             <p className="text-white/40 text-sm">
-              {race && characterClass
-                ? `${race} • ${characterClass}`
+              {race && (wave11ClassMeta || characterClass)
+                ? `${race} • ${wave11ClassMeta ? wave11ClassMeta.label : characterClass}`
                 : "Configure seu personagem abaixo"}
             </p>
           </div>
@@ -291,17 +362,41 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
             <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">
               Classe
             </label>
-            <select
-              value={characterClass}
-              onChange={(e) => setCharacterClass(e.target.value)}
-              className="px-4 py-3 rounded-lg text-sm transition-colors"
-              style={inputStyle}
-            >
-              <option value="">Selecione uma classe...</option>
-              {CHARACTER_CLASSES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            {wave11ClassMeta ? (
+              // Wave 11 onboarding owns the class (permanente). Show it read-only
+              // with the canonical label + color from CLASS_META so the user
+              // sees the same identity used everywhere else in the game.
+              <div
+                className="px-4 py-3 rounded-lg text-sm flex items-center justify-between"
+                style={{
+                  ...inputStyle,
+                  color: wave11ClassMeta.color,
+                  borderColor: `${wave11ClassMeta.color}55`,
+                  background: `${wave11ClassMeta.color}10`,
+                  cursor: 'not-allowed',
+                }}
+                title="Classe definida no onboarding. Não pode ser alterada."
+              >
+                <span style={{ fontFamily: 'Orbitron, sans-serif', letterSpacing: '2px', fontWeight: 700 }}>
+                  {wave11ClassMeta.label.toUpperCase()}
+                </span>
+                <span className="text-[10px] uppercase tracking-widest opacity-60">
+                  Permanente
+                </span>
+              </div>
+            ) : (
+              <select
+                value={characterClass}
+                onChange={(e) => setCharacterClass(e.target.value)}
+                className="px-4 py-3 rounded-lg text-sm transition-colors"
+                style={inputStyle}
+              >
+                <option value="">Selecione uma classe...</option>
+                {CHARACTER_CLASSES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div>
@@ -521,6 +616,24 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
             Voce tem {pendingPoints} {pendingPoints === 1 ? "ponto" : "pontos"} para distribuir! Use os botoes + acima.
           </p>
         )}
+
+        {/* Patch 2.1: live preview of how each attribute translates to in-battle
+            effect. Reads pendingAttrs (local edit state) so the values shown
+            update instantly as the student spends points — no DB round-trip.
+            Adapter strips the `attr_` prefix used in the students table. */}
+        <div className="mt-4">
+          <AttributePanel
+            attributes={{
+              forca:        pendingAttrs.attr_forca,
+              destreza:     pendingAttrs.attr_destreza,
+              inteligencia: pendingAttrs.attr_inteligencia,
+              carisma:      pendingAttrs.attr_carisma,
+              agilidade:    pendingAttrs.attr_agilidade,
+              resistencia:  pendingAttrs.attr_resistencia,
+            }}
+            title="EFEITO EM BATALHA"
+          />
+        </div>
       </div>
 
       {/* Info Note */}

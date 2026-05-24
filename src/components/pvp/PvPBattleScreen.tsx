@@ -61,7 +61,9 @@ export function PvPBattleScreen({
     started.current = true;
 
     const oppAsEnemy = charToEnemy(oppChar, oppAbilities);
-    const initial = engine.startBattle(myChar, oppAsEnemy, myAbilities);
+    // Onda 11.3 — passa o studentId do oponente pra carregar classe/passivas/elemento dele.
+    // O hook sobrescreve o elementType 'Fire' hardcoded em charToEnemy() pelo elemento real.
+    const initial = engine.startBattle(myChar, oppAsEnemy, myAbilities, oppChar.studentId ?? null);
 
     // If engine determined opponent goes first (ENEMY_TURN) we just wait.
     // The opponent's engine will also start, see PLAYER_TURN, and broadcast their first attack.

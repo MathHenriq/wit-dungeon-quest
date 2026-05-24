@@ -83,5 +83,13 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'student insert failed', detail: studentErr.message }, 400);
   }
 
+  await admin.rpc('log_action', {
+    p_action:       'admin_create_student',
+    p_target_table: 'students',
+    p_target_id:    student?.id ?? null,
+    p_target_label: name.trim(),
+    p_payload:      { class_id, teacher_id: klass.teacher_id, auth_user_id: authUserId, email: email.trim().toLowerCase() },
+  });
+
   return jsonResponse({ ok: true, student, auth_user_id: authUserId });
 });

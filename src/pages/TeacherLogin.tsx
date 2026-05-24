@@ -3,20 +3,35 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { AincradBackground } from "@/components/ui/AincradBackground";
-import { Sword, Shield, Mail, Lock, User, Loader2, ChevronDown } from "lucide-react";
+import { Sword, Shield, Mail, Lock, User, Loader2, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { describeLoginError, describeSignUpError } from "@/lib/authErrors";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function TeacherLogin() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmTouched, setConfirmTouched] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const { signIn, signUp, loginWithGoogle, teacher, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Reset confirm-password when switching tabs
+  useEffect(() => {
+    setConfirmPassword("");
+    setConfirmTouched(false);
+    setShowConfirmPwd(false);
+  }, [isLogin]);
+
+  const passwordsMismatch = !isLogin && confirmTouched && confirmPassword.length > 0 && confirmPassword !== password;
 
   // Navigate to dashboard once teacher is resolved
   useEffect(() => {
@@ -37,18 +52,30 @@ export default function TeacherLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLogin) {
+      if (!confirmPassword) { toast.error("Confirme a senha."); return; }
+      if (confirmPassword !== password) { toast.error("As senhas não coincidem."); return; }
+    }
     setIsLoading(true);
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          toast.error("Erro ao entrar", { description: error.message });
+          const e = error as { code?: string };
+          if (e?.code === "invalid_credentials") {
+            try {
+              const { data: exists } = await supabase.rpc("auth_email_exists", { p_email: email.trim() });
+              if (exists === false) { toast.error("Email não cadastrado."); return; }
+              if (exists === true) { toast.error("Senha incorreta."); return; }
+            } catch { /* fall through */ }
+          }
+          toast.error(describeLoginError(error as Parameters<typeof describeLoginError>[0]));
         }
         // On success: onAuthStateChange resolves teacher → useEffect navigates
       } else {
         const { error } = await signUp(email, password, name);
         if (error) {
-          toast.error("Erro ao cadastrar", { description: error.message });
+          toast.error(describeSignUpError(error as Parameters<typeof describeSignUpError>[0]));
         } else {
           toast.success("Conta criada!", { description: "Verifique seu email para confirmar o cadastro." });
         }
@@ -60,12 +87,19 @@ export default function TeacherLogin() {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
-      {/* Video background instead of AincradBackground */}
-      <div className="login-video-background">
-        <video autoPlay loop muted playsInline className="login-background-video">
-          <source src="/videos/login-bg.mp4" type="video/mp4" />
-        </video>
-      </div>
+      {/* MP4 background video. CSS aurora fica como fallback (até carregar / sem suporte). */}
+      <div className="login-video-background" aria-hidden="true" />
+      <video
+        className="fixed inset-0 w-full h-full object-cover z-0"
+        style={{ filter: 'blur(14px) brightness(0.55)' }}
+        src="/videos/login-bg.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+      />
+      <div className="fixed inset-0 z-0 bg-black/40" aria-hidden="true" />
       <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -192,22 +226,71 @@ export default function TeacherLogin() {
                     <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">Senha</label>
                     <div className="relative">
                       <input
-                        type="password"
+                        type={showPwd ? "text" : "password"}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
                         minLength={6}
-                        className="w-full px-4 py-3 pl-11 rounded-lg outline-none transition-all text-white/85 text-sm"
+                        className="w-full px-4 py-3 pl-11 pr-11 rounded-lg outline-none transition-all text-white/85 text-sm"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                       />
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                      <button
+                        type="button"
+                        onClick={() => setShowPwd(s => !s)}
+                        aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
                     </div>
                   </div>
 
+                  {!isLogin && (
+                    <div>
+                      <label className="block text-xs font-semibold mb-2 text-white/50 uppercase tracking-wider">Confirmar senha</label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPwd ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={e => setConfirmPassword(e.target.value)}
+                          onBlur={() => setConfirmTouched(true)}
+                          placeholder="••••••••"
+                          required
+                          minLength={6}
+                          className="w-full px-4 py-3 pl-11 pr-11 rounded-lg outline-none transition-all text-white/85 text-sm"
+                          style={{
+                            background: 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${passwordsMismatch ? 'rgba(220,80,80,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                          }}
+                        />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPwd(s => !s)}
+                          aria-label={showConfirmPwd ? "Ocultar senha" : "Mostrar senha"}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                          tabIndex={-1}
+                        >
+                          {showConfirmPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      {passwordsMismatch && (
+                        <p
+                          className="text-xs mt-1.5 ml-1"
+                          style={{ color: 'rgb(255,160,160)', fontFamily: 'Exo 2, sans-serif', letterSpacing: '0.3px' }}
+                        >
+                          As senhas não coincidem.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || passwordsMismatch || (!isLogin && confirmPassword.length === 0)}
                     className="btn-cyber w-full py-3 justify-center"
                   >
                     {isLoading ? (

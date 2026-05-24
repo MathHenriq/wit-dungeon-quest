@@ -5,6 +5,7 @@ import { InventoryHUD }        from './InventoryHUD';
 import { CharacterEquip }      from './CharacterEquip';
 import { ItemDetailPanel }     from './ItemDetailPanel';
 import { InventoryTabs }       from './InventoryTabs';
+import { MaterialsTab }        from './MaterialsTab';
 import { EquipmentTab }        from './EquipmentTab';
 import { ConsumablesTab }      from './ConsumablesTab';
 import { CosmeticsTab }        from './CosmeticsTab';
@@ -137,6 +138,9 @@ export function Inventory({ student, inventory, onBack, onRefresh }: InventoryPr
             selectedId={selectedInv?.id ?? null}
             onSelect={handleSelect}
           />
+        )}
+        {activeTab === 'material' && (
+          <MaterialsTab />
         )}
       </div>
 

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   POKEMON BATTLE SCENE — Pixel Edition
+   RPG BATTLE SCENE — Premium Edition
    ═══════════════════════════════════════════════════════ */
 
 /* ── Scene container ──────────────────────────────────── */
@@ -10,53 +10,37 @@
   min-height: 500px;
   overflow: hidden;
   border-radius: 0;
-  font-family: 'Press Start 2P', monospace;
+  font-family: 'Rajdhani', 'Orbitron', 'Inter', sans-serif;
   user-select: none;
-  image-rendering: pixelated;
+  background-color: #030712;
 }
 
 /* ── Background ───────────────────────────────────────── */
 .poke-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    #2a0a48 0%,
-    #3e1272 18%,
-    #2c1878 32%,
-    #1e285a 42%,
-    #152438 50%,
-    #111e2e 55%,
-    #182438 60%,
-    #14202c 100%
-  );
+  background: radial-gradient(circle at 50% 30%, #0f172a 0%, #020617 80%);
   z-index: 0;
+  overflow: hidden;
 }
 
-/* Star field */
+/* Grid lines for a high-tech/system look */
 .poke-bg::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.8) 0%, transparent 100%),
-    radial-gradient(1px 1px at 45% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
-    radial-gradient(1px 1px at 72% 15%, rgba(255,255,255,0.7) 0%, transparent 100%),
-    radial-gradient(1px 1px at 88%  8%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1px 1px at 30% 35%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 60% 30%, rgba(255,255,255,0.6) 0%, transparent 100%),
-    radial-gradient(1px 1px at  5% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1px 1px at 95% 25%, rgba(255,255,255,0.7) 0%, transparent 100%);
+  inset: -50%;
+  background-image: 
+    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  transform: perspective(600px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+  animation: grid-move 20s linear infinite;
+  pointer-events: none;
 }
 
-/* Floor line — alinhada com topo do painel (210px fixo) */
-.poke-bg::after {
-  content: '';
-  position: absolute;
-  bottom: 210px;
-  left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0,229,255,0.2), rgba(100,60,200,0.25), transparent);
+@keyframes grid-move {
+  0% { transform: perspective(600px) rotateX(60deg) translateY(0) translateZ(-200px); }
+  100% { transform: perspective(600px) rotateX(60deg) translateY(60px) translateZ(-200px); }
 }
 
 /* ── Platforms ────────────────────────────────────────── */
@@ -64,26 +48,27 @@
   position: absolute;
   border-radius: 50%;
   z-index: 1;
+  transform: scaleY(0.4);
 }
 
 .poke-platform-enemy {
-  width: 240px;
-  height: 44px;
-  right: 10%;
-  top: 44%;
-  background: radial-gradient(ellipse, rgba(80,40,160,0.55) 0%, rgba(40,20,80,0.2) 60%, transparent 100%);
-  border: 2px solid rgba(120,60,220,0.35);
-  box-shadow: 0 0 30px rgba(100,40,200,0.25);
+  width: 320px;
+  height: 320px;
+  right: 8%;
+  top: 35%;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 40%, transparent 70%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.2), inset 0 0 20px rgba(239, 68, 68, 0.2);
 }
 
 .poke-platform-player {
-  width: 220px;
-  height: 38px;
-  left: 8%;
-  bottom: 228px;
-  background: radial-gradient(ellipse, rgba(0,150,255,0.45) 0%, rgba(0,80,180,0.18) 60%, transparent 100%);
-  border: 2px solid rgba(0,200,255,0.3);
-  box-shadow: 0 0 25px rgba(0,150,255,0.18);
+  width: 280px;
+  height: 280px;
+  left: 6%;
+  bottom: 120px;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.15) 0%, rgba(0, 229, 255, 0.05) 40%, transparent 70%);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 40px rgba(0, 229, 255, 0.2), inset 0 0 20px rgba(0, 229, 255, 0.2);
 }
 
 /* ── Sprites ──────────────────────────────────────────── */
@@ -96,28 +81,25 @@
 }
 
 .poke-sprite-enemy {
-  width: 170px;
-  height: 210px;
-  right: 14%;
-  /* Alinha os pés do sprite com a superfície da plataforma:
-     plataforma em top: 44%, sprite tem 210px de altura → top = 44% - 185px */
-  top: calc(44% - 185px);
+  width: 200px;
+  height: 240px;
+  right: 12%;
+  top: calc(35% - 210px);
 }
 
 .poke-sprite-player {
-  width: 170px;
-  height: 210px;
+  width: 200px;
+  height: 240px;
   left: 8%;
-  bottom: 236px;
+  bottom: 240px;
 }
 
 .poke-sprite-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.9));
+  filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
+  transition: transform 0.2s ease-out;
 }
 
 /* Placeholder when no sprite image exists */
@@ -131,463 +113,278 @@
 }
 
 .poke-sprite-placeholder span {
-  font-size: 7rem;
+  font-size: 8rem;
   line-height: 1;
-  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.85));
-  /* subtle pixelated look — no CSS filter needed, emoji is clean */
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.7));
 }
 
 .poke-sprite-placeholder--enemy span {
-  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.85)) drop-shadow(0 0 18px rgba(112,40,200,0.5));
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.7)) drop-shadow(0 0 30px rgba(239, 68, 68, 0.4));
 }
 
 .poke-sprite-placeholder--player span {
   transform: scaleX(-1);
-  filter: drop-shadow(0 6px 20px rgba(0,0,0,0.85)) drop-shadow(0 0 14px rgba(0,150,255,0.4));
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.7)) drop-shadow(0 0 30px rgba(0, 229, 255, 0.4));
 }
 
-/* ── HP Boxes — Pokémon pixel style ──────────────────── */
+/* ── HP Boxes — Holographic System Style ──────────────── */
 .poke-hpbox {
   position: absolute;
   z-index: 3;
-  background: #131828;
-  border: 0;
-  /* pixel border: inner dark, outer bright, outermost shadow */
-  box-shadow:
-    0 0 0 2px #0d111e,
-    0 0 0 4px rgba(0,229,255,0.6),
-    0 0 0 5px #0d111e,
-    4px 4px 0 5px rgba(0,0,0,0.5);
-  padding: 11px 16px 11px 16px;
-  min-width: 240px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-top: 2px solid rgba(0, 229, 255, 0.5);
+  border-radius: 12px 2px 12px 2px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 229, 255, 0.1) inset;
+  padding: 14px 20px;
+  min-width: 260px;
+  transform: skewX(-5deg);
 }
 
 .poke-hpbox-enemy {
-  top: 8%;
-  left: 4%;
+  top: 12%;
+  left: 6%;
+  border-top-color: rgba(239, 68, 68, 0.5);
+  border-color: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(239, 68, 68, 0.1) inset;
 }
 
 .poke-hpbox-player {
-  right: 4%;
-  bottom: 228px;
+  right: 6%;
+  bottom: 240px;
 }
 
 .poke-hpbox-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  transform: skewX(5deg);
 }
 
 .poke-hpbox-name {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.05em;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #e8eaf0;
-  line-height: 1.4;
+  color: #f8fafc;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 .poke-hpbox-level {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.5rem;
-  color: #8fb0d0;
-  line-height: 1.4;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(0, 229, 255, 0.8);
+}
+
+.poke-hpbox-enemy .poke-hpbox-level {
+  color: rgba(239, 68, 68, 0.8);
 }
 
 /* ── HP bar row ── */
 .poke-hpbar-row {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 12px;
+  transform: skewX(5deg);
 }
 
 .poke-hpbar-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.42rem;
-  color: #48b0e8;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
   flex-shrink: 0;
-  line-height: 1;
 }
 
 .poke-hpbar-track {
   flex: 1;
-  height: 8px;
-  background: #1a1a2e;
-  border: 0;
-  box-shadow: 0 0 0 2px #080810, 0 0 0 3px rgba(255,255,255,0.15);
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
   overflow: hidden;
   position: relative;
-  image-rendering: pixelated;
-}
-
-/* stepped inner shadow for depth */
-.poke-hpbar-track::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: rgba(0,0,0,0.4);
-  z-index: 1;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .poke-hpbar-fill {
   height: 100%;
-  border-radius: 0;
-  transition: width 0.5s steps(20, end), background-color 0.5s ease-out;
+  border-radius: 4px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease;
   position: relative;
-  z-index: 0;
-  /* pixelated sheen */
-  background-image: repeating-linear-gradient(
-    90deg,
-    transparent,
-    transparent 3px,
-    rgba(255,255,255,0.08) 3px,
-    rgba(255,255,255,0.08) 4px
-  );
+  box-shadow: 0 0 10px currentColor;
+}
+
+.poke-hpbar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: bar-shine 2s linear infinite;
+}
+
+@keyframes bar-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .poke-hpbar-nums {
   text-align: right;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.42rem;
-  color: #8fb0d0;
-  margin-top: 6px;
-  letter-spacing: 0.5px;
-}
-
-/* ── Energy bar (player) ── */
-.poke-energy-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
   margin-top: 8px;
-}
-
-.poke-energy-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.38rem;
-  color: #48b0e8;
-  flex-shrink: 0;
-}
-
-.poke-energy-track {
-  flex: 1;
-  height: 5px;
-  background: #1a1a2e;
-  box-shadow: 0 0 0 2px #080810, 0 0 0 3px rgba(0,229,255,0.2);
-  overflow: hidden;
-}
-
-.poke-energy-fill {
-  height: 100%;
-  background: #00e5ff;
-  background-image: repeating-linear-gradient(
-    90deg,
-    transparent,
-    transparent 3px,
-    rgba(255,255,255,0.15) 3px,
-    rgba(255,255,255,0.15) 4px
-  );
-  transition: width 0.4s steps(16, end);
+  letter-spacing: 1px;
+  transform: skewX(5deg);
 }
 
 /* Status badge */
 .poke-status-badge {
-  display: inline-block;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.35rem;
-  padding: 2px 5px;
-  background: #1a1a2e;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
   color: #e2e8f0;
-  margin-left: 8px;
+  margin-left: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
 /* ── Turn indicator ───────────────────────────────────── */
 .poke-turn-badge {
   position: absolute;
-  top: 3%;
+  top: 4%;
   left: 50%;
   transform: translateX(-50%);
   z-index: 4;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.42rem;
-  letter-spacing: 2px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  color: rgba(0,229,255,0.85);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 8px 24px;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
   white-space: nowrap;
 }
 
-/* ── Dialog + Action area ─────────────────────────────── */
+/* ── Bottom HUD ─────────────────────────────── */
 .poke-bottom {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 210px;
+  height: 220px;
   z-index: 5;
   display: flex;
-  gap: 0;
+  gap: 20px;
+  padding: 0 40px 20px 40px;
+  align-items: flex-end;
+  background: linear-gradient(to top, rgba(2, 6, 23, 0.95), transparent);
 }
 
-/* ── Element attack overlay (covers entire poke-bottom) ── */
+/* ── Element attack overlay (VFX) ── */
 .poke-element-overlay {
   position: absolute;
-  inset: 0;
+  inset: -100vh -100vw;
   pointer-events: none;
   z-index: 10;
   opacity: 0;
+  mix-blend-mode: screen;
 }
 
-/* ─ Fire ─ */
-@keyframes poke-fire-flicker {
-  0%   { opacity: 0; }
-  5%   { opacity: 1; background: linear-gradient(0deg, rgba(255,60,0,0.55) 0%, rgba(255,130,0,0.3) 40%, rgba(255,80,0,0.1) 75%, transparent 100%); }
-  25%  { background: linear-gradient(0deg, rgba(220,40,0,0.65) 0%, rgba(255,100,0,0.35) 45%, rgba(255,60,0,0.12) 78%, transparent 100%); }
-  50%  { background: linear-gradient(0deg, rgba(255,80,0,0.5) 0%, rgba(255,160,20,0.28) 50%, rgba(255,100,0,0.08) 80%, transparent 100%); }
-  75%  { background: linear-gradient(0deg, rgba(200,30,0,0.6) 0%, rgba(255,80,0,0.32) 42%, rgba(255,50,0,0.1) 76%, transparent 100%); }
-  90%  { opacity: 0.6; }
+/* Modern Fire */
+@keyframes modern-fire {
+  0%   { opacity: 0; background: radial-gradient(circle at 50% 50%, rgba(255,80,0,0) 0%, transparent 60%); }
+  10%  { opacity: 1; background: radial-gradient(circle at 50% 50%, rgba(255,80,0,0.6) 0%, rgba(255,30,0,0.2) 60%, transparent 80%); }
+  50%  { background: radial-gradient(circle at 50% 50%, rgba(255,120,0,0.8) 0%, rgba(255,60,0,0.3) 50%, transparent 80%); }
+  90%  { opacity: 0.8; }
   100% { opacity: 0; }
 }
-
-@keyframes poke-fire-sparks {
-  0%   { box-shadow: none; opacity: 0; }
-  10%  { opacity: 1;
-         box-shadow:
-           20px -30px 0 2px #ff6000, 80px -55px 0 1px #ff8800,
-           160px -40px 0 2px #ff4400, 240px -65px 0 1px #ffaa00,
-           340px -35px 0 2px #ff6000, 420px -60px 0 1px #ff8800,
-           520px -45px 0 2px #ff3300, 620px -70px 0 1px #ff9900; }
-  60%  { opacity: 0.3;
-         box-shadow:
-           20px -80px 0 1px transparent, 80px -110px 0 1px transparent,
-           160px -90px 0 1px transparent, 240px -120px 0 1px transparent,
-           340px -85px 0 1px transparent, 420px -115px 0 1px transparent,
-           520px -95px 0 1px transparent, 620px -125px 0 1px transparent; }
-  100% { opacity: 0; }
-}
-
 .poke-scene[data-element="Fire"] .poke-element-overlay {
-  animation: poke-fire-flicker 1.4s ease-out forwards;
+  animation: modern-fire 1.2s ease-out forwards;
 }
 
-.poke-scene[data-element="Fire"] .poke-element-overlay::after {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 0; right: 0;
-  height: 20px;
-  animation: poke-fire-sparks 1.4s ease-out forwards;
-}
-
-/* ─ Electric ─ */
-@keyframes poke-electric-flash {
-  0%            { opacity: 0; background: rgba(248,208,48,0); }
-  5%            { opacity: 1; background: rgba(248,208,48,0.4); }
-  10%           { opacity: 0.1; background: rgba(248,208,48,0.05); }
-  20%           { opacity: 1; background: rgba(255,240,80,0.35); }
-  25%           { opacity: 0.05; }
-  40%           { opacity: 0.9; background: rgba(255,255,150,0.3); }
-  45%           { opacity: 0; }
-  60%           { opacity: 0.7; background: rgba(248,208,48,0.25); }
-  65%           { opacity: 0; }
-  80%           { opacity: 0.4; background: rgba(248,208,48,0.15); }
-  100%          { opacity: 0; }
-}
-
-@keyframes poke-electric-lines {
-  0%   { opacity: 0; }
-  10%  { opacity: 1;
-         box-shadow:
-           30px -20px 0 1px #ffe040, 90px -40px 0 1px #fff080,
-           180px -25px 0 1px #ffe040, 280px -50px 0 1px #ffff80,
-           380px -30px 0 1px #ffe040, 500px -45px 0 1px #fff080; }
-  30%  { opacity: 0.2; }
-  40%  { opacity: 0.8;
-         box-shadow:
-           50px -35px 0 1px #fff080, 130px -55px 0 1px #ffe040,
-           220px -40px 0 1px #ffff80, 310px -60px 0 1px #ffe040,
-           410px -45px 0 1px #fff080, 540px -65px 0 1px #ffe040; }
+/* Modern Electric */
+@keyframes modern-electric {
+  0%   { opacity: 0; background: rgba(0,229,255,0); }
+  5%   { opacity: 1; background: rgba(0,229,255,0.4); box-shadow: inset 0 0 100px rgba(0,229,255,0.8); }
+  10%  { opacity: 0.2; }
+  15%  { opacity: 1; background: rgba(255,255,255,0.6); box-shadow: inset 0 0 200px rgba(0,229,255,1); }
+  25%  { opacity: 0; }
+  40%  { opacity: 0.8; background: rgba(0,229,255,0.3); }
   100% { opacity: 0; }
 }
-
 .poke-scene[data-element="Electric"] .poke-element-overlay {
-  animation: poke-electric-flash 1.2s ease-out forwards;
+  animation: modern-electric 1s ease-out forwards;
 }
 
-.poke-scene[data-element="Electric"] .poke-element-overlay::after {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 0; right: 0;
-  height: 10px;
-  animation: poke-electric-lines 1.2s ease-out forwards;
-}
-
-/* ─ Water ─ */
-@keyframes poke-water-wave {
-  0%   { opacity: 0; background: rgba(74,144,226,0); }
-  8%   { opacity: 1; background: linear-gradient(180deg, transparent, rgba(74,144,226,0.35) 40%, rgba(0,150,255,0.2) 100%); }
-  50%  { background: linear-gradient(180deg, transparent, rgba(30,100,200,0.3) 40%, rgba(0,120,255,0.18) 100%); }
-  80%  { opacity: 0.4; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Water"] .poke-element-overlay {
-  animation: poke-water-wave 1.3s ease-out forwards;
-}
-
-/* ─ Ice ─ */
-@keyframes poke-ice-frost {
-  0%   { opacity: 0; background: rgba(152,216,216,0); }
-  10%  { opacity: 1; background: linear-gradient(180deg, rgba(152,216,216,0.1) 0%, rgba(100,200,240,0.35) 50%, rgba(180,230,255,0.25) 100%); }
-  50%  { background: linear-gradient(180deg, rgba(200,240,255,0.08) 0%, rgba(100,180,220,0.3) 50%, rgba(180,230,255,0.2) 100%); }
-  80%  { opacity: 0.5; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Ice"] .poke-element-overlay {
-  animation: poke-ice-frost 1.4s ease-out forwards;
-}
-
-/* ─ Poison ─ */
-@keyframes poke-poison-bubble {
-  0%   { opacity: 0; background: rgba(160,64,160,0); }
-  8%   { opacity: 1; background: linear-gradient(180deg, transparent, rgba(140,40,180,0.35) 50%, rgba(100,20,140,0.25) 100%); }
-  50%  { background: linear-gradient(180deg, transparent, rgba(160,60,200,0.3) 50%, rgba(120,30,160,0.2) 100%); }
-  80%  { opacity: 0.4; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Poison"] .poke-element-overlay {
-  animation: poke-poison-bubble 1.3s ease-out forwards;
-}
-
-/* ─ Grass ─ */
-@keyframes poke-grass-glow {
+/* Modern Water */
+@keyframes modern-water {
   0%   { opacity: 0; }
-  8%   { opacity: 1; background: linear-gradient(180deg, transparent, rgba(60,160,40,0.3) 50%, rgba(80,200,60,0.2) 100%); }
-  50%  { background: linear-gradient(180deg, transparent, rgba(80,180,50,0.25) 50%, rgba(100,220,80,0.15) 100%); }
-  80%  { opacity: 0.4; }
+  20%  { opacity: 1; background: radial-gradient(circle at 50% 100%, rgba(14,165,233,0.5) 0%, transparent 70%); }
+  60%  { background: radial-gradient(circle at 50% 50%, rgba(56,189,248,0.4) 0%, rgba(2,132,199,0.2) 60%, transparent 80%); }
   100% { opacity: 0; }
 }
-
-.poke-scene[data-element="Grass"] .poke-element-overlay {
-  animation: poke-grass-glow 1.3s ease-out forwards;
+.poke-scene[data-element="Water"] .poke-element-overlay {
+  animation: modern-water 1.3s ease-out forwards;
 }
 
-/* ─ Dark ─ */
-@keyframes poke-dark-pulse {
-  0%   { opacity: 0; background: rgba(0,0,0,0); }
-  8%   { opacity: 1; background: rgba(0,0,0,0.55); }
-  35%  { background: rgba(30,10,50,0.4); }
-  60%  { background: rgba(0,0,0,0.35); }
-  80%  { opacity: 0.5; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Dark"] .poke-element-overlay {
-  animation: poke-dark-pulse 1.3s ease-out forwards;
-}
-
-/* ─ Ghost ─ */
-@keyframes poke-ghost-wisp {
-  0%   { opacity: 0; background: rgba(112,88,152,0); }
-  8%   { opacity: 1; background: linear-gradient(180deg, transparent, rgba(112,88,200,0.35) 50%, rgba(80,60,160,0.25) 100%); }
-  50%  { background: linear-gradient(180deg, transparent, rgba(130,100,220,0.28) 50%, rgba(90,70,180,0.2) 100%); }
-  80%  { opacity: 0.3; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Ghost"] .poke-element-overlay {
-  animation: poke-ghost-wisp 1.4s ease-out forwards;
-}
-
-/* ─ Fighting ─ */
-@keyframes poke-fighting-impact {
-  0%   { opacity: 0; background: rgba(192,48,40,0); }
-  5%   { opacity: 1; background: rgba(200,40,40,0.45); }
-  15%  { opacity: 0.1; }
-  30%  { opacity: 0.9; background: rgba(220,60,20,0.4); }
-  45%  { opacity: 0; }
-  60%  { opacity: 0.7; background: rgba(180,30,30,0.35); }
-  75%  { opacity: 0; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Fighting"] .poke-element-overlay {
-  animation: poke-fighting-impact 1.1s ease-out forwards;
-}
-
-/* ─ Steel ─ */
-@keyframes poke-steel-sheen {
-  0%   { opacity: 0; background: rgba(184,184,208,0); }
-  8%   { opacity: 1; background: linear-gradient(135deg, transparent 30%, rgba(200,200,220,0.5) 50%, transparent 70%); }
-  30%  { background: linear-gradient(135deg, transparent 20%, rgba(180,180,210,0.4) 50%, transparent 80%); }
-  60%  { background: linear-gradient(135deg, transparent 40%, rgba(210,210,230,0.3) 60%, transparent 80%); }
-  80%  { opacity: 0.3; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Steel"] .poke-element-overlay {
-  animation: poke-steel-sheen 1.2s ease-out forwards;
-}
-
-/* ─ Ground ─ */
-@keyframes poke-ground-dust {
-  0%   { opacity: 0; background: rgba(224,192,104,0); }
-  8%   { opacity: 1; background: linear-gradient(0deg, rgba(224,192,104,0.45) 0%, rgba(180,140,60,0.25) 50%, transparent 80%); }
-  50%  { background: linear-gradient(0deg, rgba(200,160,80,0.35) 0%, rgba(160,120,40,0.2) 50%, transparent 80%); }
-  80%  { opacity: 0.4; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Ground"] .poke-element-overlay {
-  animation: poke-ground-dust 1.3s ease-out forwards;
-}
-
-/* ─ Flying ─ */
-@keyframes poke-flying-wind {
-  0%   { opacity: 0; background: rgba(168,144,240,0); }
-  8%   { opacity: 1; background: linear-gradient(180deg, rgba(168,144,240,0.25) 0%, rgba(120,100,200,0.2) 50%, transparent 100%); }
-  50%  { background: linear-gradient(180deg, rgba(150,120,220,0.2) 0%, rgba(100,80,180,0.15) 50%, transparent 100%); }
-  80%  { opacity: 0.3; }
-  100% { opacity: 0; }
-}
-
-.poke-scene[data-element="Flying"] .poke-element-overlay {
-  animation: poke-flying-wind 1.3s ease-out forwards;
-}
+/* Other elements fall back to simple colored glows for now, but all modernized to screen blend and radial gradients */
+.poke-scene[data-element="Ice"] .poke-element-overlay { animation: modern-water 1.3s ease-out forwards; filter: hue-rotate(20deg) brightness(1.5); }
+.poke-scene[data-element="Grass"] .poke-element-overlay { animation: modern-water 1.3s ease-out forwards; filter: hue-rotate(100deg); }
+.poke-scene[data-element="Poison"] .poke-element-overlay { animation: modern-water 1.3s ease-out forwards; filter: hue-rotate(220deg); }
+.poke-scene[data-element="Dark"] .poke-element-overlay { animation: modern-water 1.3s ease-out forwards; filter: grayscale(1) brightness(0.2); mix-blend-mode: multiply; }
+.poke-scene[data-element="Ghost"] .poke-element-overlay { animation: modern-water 1.3s ease-out forwards; filter: hue-rotate(260deg); }
 
 /* ── Dialog ───────────────────────────────────────────── */
 .poke-dialog {
-  flex: 1;
-  background: #0e1226;
-  border-top: 4px solid rgba(0,229,255,0.5);
-  border-right: 2px solid rgba(0,229,255,0.2);
-  padding: 16px 22px 14px 22px;
+  flex: 0 0 35%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  border-top: 2px solid rgba(0, 229, 255, 0.4);
+  border-radius: 8px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 4px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* Log history (past entries) */
+/* Log history */
 .poke-log-history {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .poke-log-entry {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.44rem;
-  color: rgba(255,255,255,0.52);
-  line-height: 1.9;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -598,26 +395,28 @@
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 36px;
-  background: linear-gradient(to bottom, #0e1226, transparent);
+  height: 60px;
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.9), transparent);
   pointer-events: none;
   z-index: 1;
 }
 
 .poke-dialog-text {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.58rem;
-  color: #e8eaf0;
-  line-height: 2;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #f8fafc;
+  line-height: 1.5;
   position: relative;
   z-index: 2;
+  text-shadow: 0 0 10px rgba(255,255,255,0.2);
 }
 
 .poke-dialog-cursor {
   display: inline-block;
-  margin-left: 3px;
-  color: rgba(0,229,255,0.9);
-  animation: poke-blink 0.9s step-end infinite;
+  margin-left: 6px;
+  color: #00e5ff;
+  animation: poke-blink 1s step-end infinite;
 }
 
 @keyframes poke-blink {
@@ -628,387 +427,183 @@
 /* ── Action menu ──────────────────────────────────────── */
 .poke-actions {
   flex: 1;
-  background: #0c1020;
-  border-top: 4px solid rgba(0,229,255,0.5);
-  border-left: 2px solid rgba(0,229,255,0.2);
+  height: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
+  grid-template-rows: 1fr 1fr;
+  gap: 16px;
 }
 
 .poke-action-btn {
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid rgba(0,229,255,0.1);
-  border-right: 2px solid rgba(0,229,255,0.1);
-  color: #e8eaf0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 8px;
+  color: #f8fafc;
   cursor: pointer;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.55rem;
-  letter-spacing: 1px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  transition: background 0.12s, color 0.12s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.poke-action-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.4s ease;
 }
 
 .poke-action-btn:hover:not(:disabled) {
-  background: rgba(0,229,255,0.1);
-  color: #67e8f9;
+  background: rgba(0, 229, 255, 0.15);
+  border-color: rgba(0, 229, 255, 0.6);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.2), inset 0 0 10px rgba(0, 229, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.poke-action-btn:hover:not(:disabled)::after {
+  left: 200%;
 }
 
 .poke-action-btn:active:not(:disabled) {
-  background: rgba(0,229,255,0.18);
+  transform: translateY(1px);
 }
 
 .poke-action-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
   cursor: not-allowed;
+  filter: grayscale(1);
 }
 
-.poke-action-btn:nth-child(2n)  { border-right: none; }
-.poke-action-btn:nth-child(n+3) { border-bottom: none; }
-
-/* ── Skill / Fight menu ───────────────────────────────── */
+/* ── Skill / Fight menu (Cards container) ─────────────── */
 .poke-skills {
   flex: 1;
-  background: #0c1020;
-  border-top: 4px solid rgba(0,229,255,0.5);
-  border-left: 2px solid rgba(0,229,255,0.2);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr auto auto;
-  gap: 0;
-  overflow: hidden;
-}
-
-/* ── Skill cards — element-tinted ── */
-.poke-skill-btn {
-  --el-color: rgba(0,229,255,0.5);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 10px 14px;
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--el-color) 10%, transparent) 0%,
-    transparent 100%);
-  border: none;
-  border-bottom: 2px solid color-mix(in srgb, var(--el-color) 28%, transparent);
-  border-right: 2px solid color-mix(in srgb, var(--el-color) 28%, transparent);
-  cursor: pointer;
-  text-align: left;
-  position: relative;
-  overflow: hidden;
-  animation: poke-skill-pulse 2.8s ease-in-out infinite;
-  transition: background 0.15s;
-}
-
-/* shimmer sweep on hover */
-.poke-skill-btn::before {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0;
-  left: -80%;
-  width: 60%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--el-color) 22%, transparent),
-    transparent
-  );
-  transform: skewX(-15deg);
-  transition: left 0.45s ease;
-  pointer-events: none;
-}
-
-.poke-skill-btn:hover:not(:disabled)::before { left: 140%; }
-
-.poke-skill-btn:nth-child(2n) { border-right: none; }
-.poke-skill-btn:nth-child(3), .poke-skill-btn:nth-child(4) { border-bottom: none; }
-
-/* ── 5th slot: equipment item ability ─────────────────────────────────────── */
-/*   Inherits all .poke-skill-btn base styles — only overrides layout/color   */
-.poke-skill-btn--equip {
-  --el-color: #f59e0b;          /* amber — drives tint, border, hover via base */
-  grid-column: 1 / -1;
-  flex-direction: row;          /* override column → row for icon + text layout */
-  align-items: center;
-  gap: 10px;
-  border-right: none;
-  border-bottom: none;
-  border-top: 2px solid color-mix(in srgb, #f59e0b 38%, transparent);
-}
-
-/* Item thumbnail */
-.poke-equip-icon {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 5px;
-  border: 1px solid rgba(245,158,11,0.45);
-  background: rgba(0,0,0,0.40);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-.poke-equip-img {
-  width: 100%;
   height: 100%;
-  object-fit: contain;
-  image-rendering: pixelated;
-}
-.poke-equip-emoji {
-  font-size: 17px;
-  line-height: 1;
-}
-
-/* Text block */
-.poke-equip-text {
-  flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
-  min-width: 0;
-}
-.poke-equip-item-name {
-  font-size: 7px;
-  color: #fbbf24;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.poke-equip-ability-name {
-  font-size: 6px;
-  color: rgba(255,255,255,0.55);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Status badge */
-.poke-equip-badge {
-  flex-shrink: 0;
-  font-size: 6px;
-  padding: 3px 7px;
-  border-radius: 4px;
-  background: color-mix(in srgb, #f59e0b 20%, transparent);
-  color: #fbbf24;
-  border: 1px solid color-mix(in srgb, #f59e0b 38%, transparent);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.poke-equip-badge--off {
-  background: rgba(80,80,80,0.25);
-  color: rgba(255,255,255,0.30);
-  border-color: rgba(100,100,100,0.25);
-}
-
-.poke-skill-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--el-color) 22%, transparent) 0%,
-    color-mix(in srgb, var(--el-color) 8%, transparent) 100%);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--el-color) 55%, transparent),
-    0 0 14px color-mix(in srgb, var(--el-color) 28%, transparent);
-}
-
-.poke-skill-btn:active:not(:disabled) {
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--el-color) 32%, transparent) 0%,
-    color-mix(in srgb, var(--el-color) 12%, transparent) 100%);
-}
-
-.poke-skill-btn:disabled {
-  opacity: 0.28;
-  cursor: not-allowed;
-  animation: none;
-}
-
-@keyframes poke-skill-pulse {
-  0%, 100% {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color) 18%, transparent);
-  }
-  50% {
-    box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--el-color) 42%, transparent),
-      0 0 10px color-mix(in srgb, var(--el-color) 18%, transparent);
-  }
-}
-
-.poke-skill-name {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.48rem;
-  color: #e8eaf0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  line-height: 1.7;
-  margin-bottom: 5px;
-}
-
-.poke-skill-meta {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.poke-skill-type {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.36rem;
-  padding: 2px 5px;
-  background: color-mix(in srgb, var(--el-color) 25%, #04060f);
-  color: var(--el-color);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color) 40%, transparent);
-}
-
-.poke-skill-cost {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.36rem;
-  color: rgba(0,229,255,0.7);
-}
-
-.poke-back-btn {
-  grid-column: span 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  background: transparent;
-  border: none;
-  border-top: 2px solid rgba(0,229,255,0.15);
-  color: rgba(0,229,255,0.6);
-  cursor: pointer;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.42rem;
-  letter-spacing: 2px;
-  transition: color 0.12s, background 0.12s;
-}
-
-.poke-back-btn:hover {
-  color: #67e8f9;
-  background: rgba(0,229,255,0.06);
-}
-
-/* ── End overlay ──────────────────────────────────────── */
-.poke-end-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: 16px;
-  z-index: 20;
-  background: rgba(0,0,0,0.78);
-  backdrop-filter: blur(4px);
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding-bottom: 4px;
 }
 
-.poke-end-icon { font-size: 4rem; }
-
-.poke-end-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 1.5rem;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  line-height: 1.5;
+/* The actual Card styles will be in TSX via Framer Motion / Tailwind, 
+   but we leave .poke-skill-btn empty or as a fallback if needed. */
+.poke-skill-btn {
+  display: none; /* We will replace this in React */
 }
 
-.poke-end-rewards {
-  display: flex;
-  gap: 20px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.55rem;
-  color: #cbd5e1;
-  letter-spacing: 1px;
-  line-height: 2;
+/* Equip Button Fallback (If needed) */
+.poke-skill-btn--equip {
+  display: none;
 }
 
-/* ── Item modal ───────────────────────────────────────── */
+/* ── Item modal (botão ITEM na batalha) ──────────────────────────────────── */
 .poke-item-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 40;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 80;
 }
 
 .poke-item-modal {
   position: fixed;
-  left: 50%; top: 50%;
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 50;
-  width: 300px;
-  background: #060814;
-  box-shadow: 0 0 0 3px rgba(0,229,255,0.5), 0 0 0 5px #060814, 8px 8px 0 5px rgba(0,0,0,0.6);
-  padding: 20px;
+  z-index: 81;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 320px;
+  max-width: 90vw;
+  padding: 22px 24px 18px;
+  background: linear-gradient(180deg, rgba(10, 18, 38, 0.96) 0%, rgba(6, 12, 26, 0.98) 100%);
+  border: 2px solid rgba(0, 229, 255, 0.45);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 0 36px rgba(0, 229, 255, 0.25),
+    0 24px 60px rgba(0, 0, 0, 0.7);
+  color: #f8fafc;
+  font-family: 'Rajdhani', sans-serif;
 }
 
 .poke-item-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.55rem;
-  color: #67e8f9;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
   letter-spacing: 2px;
   text-transform: uppercase;
+  text-align: center;
+  color: #00e5ff;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.55);
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.18);
   margin-bottom: 4px;
 }
 
 .poke-item-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.04);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: 8px;
   color: #e2e8f0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.42rem;
+  transition: all 0.18s ease;
   text-align: left;
-  border: none;
-  transition: background 0.15s;
-  line-height: 1.8;
 }
 
-.poke-item-btn:hover {
-  background: rgba(0,229,255,0.1);
-  box-shadow: 0 0 0 1px rgba(0,229,255,0.35);
+.poke-item-btn:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.55);
+  transform: translateX(2px);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.18);
+}
+
+.poke-item-btn:active:not(:disabled) {
+  transform: translateX(2px) scale(0.98);
 }
 
 .poke-cancel-btn {
-  padding: 8px;
+  margin-top: 6px;
+  padding: 10px 14px;
   background: transparent;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
-  color: #64748b;
-  cursor: pointer;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.38rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
   letter-spacing: 1px;
-  border: none;
-  transition: color 0.15s;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.18s ease;
 }
 
-.poke-cancel-btn:hover { color: #94a3b8; }
-
-/* ── Enemy element glow ───────────────────────────────── */
-.poke-element-glow {
-  position: absolute;
-  top: 0; right: 0;
-  width: 260px; height: 260px;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 1;
+.poke-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.25);
 }

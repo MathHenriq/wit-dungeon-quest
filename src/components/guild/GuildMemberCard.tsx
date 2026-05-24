@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GuildMember, Student } from '@/types';
 import { ROLE_COLORS, ROLE_LABELS, canKickMember, type GuildRole } from './guild-types';
+import { useOpenProfileCard } from '@/components/student/ProfileCard';
 
 interface GuildMemberCardProps {
   member:  GuildMember;
@@ -26,9 +27,15 @@ export function GuildMemberCard({ member, isSelf, myRole, onKick }: GuildMemberC
   const isLeader  = role === 'lider';
 
   const showKick = !isSelf && myRole !== null && canKickMember(myRole, role);
+  const openProfile = useOpenProfileCard();
+  const targetId = s?.id ?? member.student_id;
 
   return (
-    <div className={`guild-member-card${isLeader ? ' guild-member-card--leader' : ''}`}>
+    <div
+      className={`guild-member-card${isLeader ? ' guild-member-card--leader' : ''}`}
+      style={{ cursor: targetId ? 'pointer' : undefined }}
+      onClick={() => { if (targetId) openProfile(targetId); }}
+    >
       <div
         className="guild-member-card__avatar"
         style={{
@@ -67,7 +74,7 @@ export function GuildMemberCard({ member, isSelf, myRole, onKick }: GuildMemberC
       {showKick && onKick && (
         <button
           className="guild-member-card__kick"
-          onClick={() => onKick(member.id)}
+          onClick={(e) => { e.stopPropagation(); onKick(member.id); }}
           title={`Expulsar ${displayName}`}
         >
           ✕
