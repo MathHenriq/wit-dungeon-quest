@@ -490,7 +490,14 @@ export class BattleEngine {
       const baseDmg  = Math.floor(result.damage * wetMod * this.getOutgoingFieldMultiplier(effectiveAbility.elementName) * this.getPlayerFormDamageMultiplier(effectiveAbility.damageType));
       // Patch 2.0 — Monarch aura (Kamish's Wrath): mult cumulativo de cada phase HP do boss derrubada
       const monarchScaled = Math.floor(baseDmg * this.ctx.monarchAttrMult);
-      const finalDmg = this.applyEquipStatusAmp(monarchScaled, effectiveAbility.damageType);
+      // Patch 2.0 — Requiem amplify (Requiem Arrow): próxima ability ×2 e consome o buff
+      let requiemScaled = monarchScaled;
+      if (this.ctx.requiemNextAmplify) {
+        requiemScaled = monarchScaled * 2;
+        this.ctx.requiemNextAmplify = false;
+        this.log('player', '🏹 REQUIEM AMPLIFY — dano ×2 aplicado.', 'effect');
+      }
+      const finalDmg = this.applyEquipStatusAmp(requiemScaled, effectiveAbility.damageType);
       this.ctx.enemy.hpCurrent = Math.max(0, this.ctx.enemy.hpCurrent - finalDmg);
       this.applyEquipStatusLifesteal(finalDmg);
       this.onPlayerDamageDealt(finalDmg, result.effectiveness, effectiveAbility);

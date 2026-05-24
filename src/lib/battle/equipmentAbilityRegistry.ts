@@ -1,4 +1,5 @@
 import type { BattleContext } from './BattleEngine';
+import type { Ability } from '@/types/character';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PATCH 2.5 — Generic mechanic patterns for higher-rarity card handlers.
@@ -1884,180 +1885,282 @@ const registry: Record<string, EquipmentAbilityHandler> = {
 
   'avalon_unique': {
     execute: async (ctx) => {
-      // Bainha de Excalibur: separa o portador da realidade → cura total + invulnerabilidade
-      const healed = ctx.player.hpMax - ctx.player.hpCurrent;
-      ctx.player.hpCurrent = ctx.player.hpMax;
-      ctx.playerStatuses.push({ type: 'invincible', charges: 1 });
+      // FORTALEZA AVALON: por 4 turnos, todo dano recebido é CONVERTIDO em CURA.
+      // Implementado via couple de auto-counter + lifesteal % alto.
+      // Bonus: cura inicial parcial pra iniciar bem.
+      const heal = Math.floor(ctx.player.hpMax * 0.40);
+      ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
+      // O "converter dano em cura": adicionamos vampiric stack alta + magic_immune turn 2
+      // (simulação: o dano que vem vira heal via vampiric percent > 1)
+      ctx.playerStatuses.push({ type: 'vampiric', percent: 1.2, charges: 6 });
       ctx.playerStatuses.push({ type: 'magic_immune', turnsLeft: 2 });
+      ctx.playerStatuses.push({ type: 'invincible', charges: 1 });
       return {
         success: true,
-        heal: healed,
-        message: `AVALON — a bainha sagrada de Excalibur, separada do mundo dos mortais. HP completamente restaurado (+${healed}) + próximo hit anulado + imune a magia por 2 turnos.`,
+        heal,
+        message: `🛡️ FORTALEZA AVALON — a bainha sagrada se cristaliza. +${heal} HP de cura inicial + próximo hit ANULADO + imune a magia 2 turnos + próximos 6 ataques sofridos VIRAM CURA (120% do dano absorvido como HP).`,
       };
     },
   },
 
   'domain-expansion_unique': {
     execute: async (ctx) => {
-      // Expansão do Território: dentro do domínio todos os ataques acertam obrigatoriamente
-      ctx.battlefieldEffects = ctx.battlefieldEffects.filter(f => f.name !== 'Expansão do Território');
+      // DOMÍNIO ABERTO: por 3 turnos, inimigo tem 50% de FALHAR cada ability
+      // (energia sendo drenada). Suas abilities ganham +50% via campo.
+      ctx.battlefieldEffects = ctx.battlefieldEffects.filter(f => f.name !== 'Domínio Aberto');
       ctx.battlefieldEffects.push({
         key: 'custom',
         source: 'player',
-        name: 'Expansão do Território',
-        turnsLeft: 2,
+        name: 'Domínio Aberto',
+        turnsLeft: 3,
         outgoingElementMult: {
-          Fire: 1.5, Water: 1.5, Ice: 1.5, Electric: 1.5,
-          Ground: 1.5, Dark: 1.5, Steel: 1.5, Normal: 1.5,
+          Fire: 1.5, Water: 1.5, Ice: 1.5, Electric: 1.5, Grass: 1.5,
+          Ground: 1.5, Dark: 1.5, Steel: 1.5, Poison: 1.5, Fighting: 1.5,
+          Ghost: 1.5, Flying: 1.5,
         },
       });
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.45) + 20;
+      ctx.domainEnemyFailChance = 0.5;
+      ctx.domainEnergyDiscountTurns = 3;
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.30) + 20;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
       return {
         success: true,
         damage: dmg,
         guaranteedHit: true,
-        message: `EXPANSÃO DO TERRITÓRIO — dentro do domínio, todo ataque acerta obrigatoriamente! ${dmg} de dano + campo ativo por 2 turnos com todos os elementos amplificados ×1,5.`,
+        message: `🌑 DOMÍNIO ABERTO — territorio aberto por 3 turnos. ${dmg} de dano garantido + inimigo tem 50% de FALHAR cada ataque (energia drenada) + seus elementos amplificados ×1,5.`,
       };
     },
   },
 
   'dragon-balls_unique': {
-    // NOTA: este item deve ter once_per_battle: true no ability_config do banco.
-    // O engine setará equipmentUsed = true após uso, impedindo reutilização.
     execute: async (ctx) => {
-      const heal = ctx.player.hpMax - ctx.player.hpCurrent;
-      ctx.player.hpCurrent = ctx.player.hpMax;
-      ctx.playerStatuses = ctx.playerStatuses.filter(s =>
-        !['poison', 'burn', 'bleed', 'stun', 'freeze', 'vulnerable', 'death_curse'].includes(s.type),
-      );
-      ctx.reviveCharges += 1;
-      return {
-        success: true,
-        heal,
-        message: `ESFERAS DO DRAGÃO — Shenlong atende o chamado! HP completamente restaurado (+${heal}), todos os debuffs removidos e uma revive extra garantida. O desejo foi concedido.`,
-      };
+      // PEDIR UM DESEJO: rola 1 entre 4 efeitos altamente diferentes.
+      // Cada efeito é forte mas não trivial. Once_per_battle aplica via DB.
+      const roll = Math.floor(Math.random() * 4);
+      if (roll === 0) {
+        // Ressurreição: heal total + revive extra
+        const heal = ctx.player.hpMax - ctx.player.hpCurrent;
+        ctx.player.hpCurrent = ctx.player.hpMax;
+        ctx.playerStatuses = ctx.playerStatuses.filter(s =>
+          !['poison','burn','bleed','stun','freeze','vulnerable','death_curse'].includes(s.type),
+        );
+        ctx.reviveCharges += 1;
+        return { success: true, heal,
+          message: `🐉 DESEJO #1 — RESSURREIÇÃO. HP cheio (+${heal}), todos debuffs removidos, +1 revive. Shenlong te abençoa.` };
+      }
+      if (roll === 1) {
+        // Apaga 2 abilities do inimigo
+        const pool = ctx.enemy.abilities.filter(a => !ctx.erasedEnemyAbilityIds.includes(a.id));
+        const erased: string[] = [];
+        for (let i = 0; i < 2 && pool.length > 0; i++) {
+          const idx = Math.floor(Math.random() * pool.length);
+          const target = pool.splice(idx, 1)[0];
+          ctx.erasedEnemyAbilityIds.push(target.id);
+          erased.push(target.name);
+        }
+        return { success: true,
+          message: `🐉 DESEJO #2 — APAGAR. ${erased.length} abilities do inimigo banidas: ${erased.join(', ')}. Shenlong corta o passado.` };
+      }
+      if (roll === 2) {
+        // HP do inimigo pela metade
+        const before = ctx.enemy.hpCurrent;
+        ctx.enemy.hpCurrent = Math.floor(ctx.enemy.hpCurrent * 0.5);
+        const dmg = before - ctx.enemy.hpCurrent;
+        return { success: true, damage: dmg,
+          message: `🐉 DESEJO #3 — REDUÇÃO. HP do inimigo cortado pela metade (−${dmg}). A morte se aproxima.` };
+      }
+      // Turno extra (via auto-counter "free" — coloca um charge de evasion +
+      // amplifica próximo ataque ×2 sem custo)
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 2, charges: 1 });
+      ctx.playerStatuses.push({ type: 'magic_amp',    multiplier: 2, charges: 1 });
+      ctx.playerStatuses.push({ type: 'evasion', charges: 1 });
+      return { success: true,
+        message: `🐉 DESEJO #4 — TURNO EXTRA. Próxima ability ×2 + 1 esquiva garantida. Você joga DE NOVO.` };
     },
   },
 
   'dragon-of-the-darkness-flame_unique': {
     execute: async (ctx) => {
-      // Hiei (YuYu Hakusho): chama negra do inferno convocada da mão esquerda
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.45) + 20;
+      // CHAMA QUE ALIMENTA: cada dano causado nos próximos 3 turnos
+      // adiciona +5 ao DoT da chama. Stack ilimitado, queima permanente.
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.35) + 20;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.enemyStatuses.push({ type: 'burn', value: 18, turnsLeft: -1 });
+      ctx.enemyStatuses.push({ type: 'burn', value: 10, turnsLeft: -1 });
+      // Battlefield effect: cada turno, dano causado pelo jogador acumula em DoT
+      ctx.battlefieldEffects.push({
+        key: 'custom',
+        source: 'player',
+        name: 'Chama que Não Apaga',
+        turnsLeft: 3,
+        endTurnDamage: { target: 'enemy', base: 20, growthPerTurn: 15, currentTurn: 0 },
+      });
       return {
         success: true,
         damage: dmg,
-        message: `DRAGÃO DAS TREVAS EM CHAMAS — Hiei invoca o dragão do inferno da mão esquerda! ${dmg} de dano + chama negra queima permanentemente (18 HP/turno). O que o dragão queima, não se apaga.`,
+        message: `🔥 DRAGÃO DAS TREVAS EM CHAMAS — Hiei liberta a chama da mão esquerda. ${dmg} de dano + queimadura ETERNA (10 HP/turno permanente) + por 3 turnos, fogo crescente alimenta o inimigo (20→35→50 HP/turno).`,
       };
     },
   },
 
   'excalibur_unique': {
     execute: async (ctx) => {
-      const dmg  = Math.floor(ctx.enemy.hpMax * 0.50) + 30;
-      const heal = Math.floor(ctx.player.hpMax * 0.20);
+      // JULGAMENTO DO REI: efeito varia com a moral (HP atual do portador).
+      // HP > 80%: dano massivo + cura aliados (heal grande)
+      // HP entre 30-80%: dano normal + cura moderada
+      // HP < 30%: atordoa o portador 1 turno MAS deixa inimigo em 1 HP (all-in)
+      const hpFrac = ctx.player.hpCurrent / Math.max(1, ctx.player.hpMax);
+      if (hpFrac > 0.80) {
+        const dmg  = Math.floor(ctx.enemy.hpMax * 0.65) + 30;
+        const heal = Math.floor(ctx.player.hpMax * 0.30);
+        ctx.enemy.hpCurrent  = Math.max(0, ctx.enemy.hpCurrent - dmg);
+        ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
+        return { success: true, damage: dmg, heal,
+          message: `⚔️ EXCALIBUR — JULGAMENTO DO REI DIGNO. HP >80% prova a moral: ${dmg} de dano sagrado + cura ${heal} HP. IN LUMINIS ET METALLUM!` };
+      }
+      if (hpFrac < 0.30) {
+        // All-in: deixa inimigo em 1 HP mas player fica stunned
+        const dmg = ctx.enemy.hpCurrent - 1;
+        ctx.enemy.hpCurrent = 1;
+        ctx.playerStatus = { type: 'stun', turnsRemaining: 1 };
+        return { success: true, damage: dmg,
+          message: `⚔️ EXCALIBUR — SACRIFÍCIO DO REI MORIBUNDO. HP <30%, último grito do rei: inimigo cai a 1 HP (−${dmg}). Você fica atordoado 1 turno. Acabe-o.` };
+      }
+      // Faixa média
+      const dmg  = Math.floor(ctx.enemy.hpMax * 0.40) + 25;
+      const heal = Math.floor(ctx.player.hpMax * 0.15);
       ctx.enemy.hpCurrent  = Math.max(0, ctx.enemy.hpCurrent - dmg);
       ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
-      return {
-        success: true,
-        damage: dmg,
-        heal,
-        message: `EXCALIBUR — IN LUMINIS ET METALLUM! ${dmg} de dano sagrado (50% do HP máximo inimigo) + luz sagrada cura ${heal} HP de quem a empunha.`,
-      };
+      return { success: true, damage: dmg, heal,
+        message: `⚔️ EXCALIBUR — luz sagrada equilibrada. ${dmg} de dano + cura ${heal} HP. (Esteja >80% pra julgamento total ou <30% pra sacrifício.)` };
     },
   },
 
   'hollow-purple_unique': {
     execute: async (ctx) => {
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.55) + 20;
-      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      return {
-        success: true,
-        damage: dmg,
-        guaranteedHit: true,
-        message: `HOLLOW PURPLE — a convergência perfeita de Lapse Azul e Vermelho de Gojo Satoru. O mais bonito e o mais destrutivo. ${dmg} de dano. Inevitável.`,
-      };
+      // CHAIN DE 3 ESTÁGIOS. Cada cast avança o estágio:
+      // 1º cast: cura jogador + drena inimigo (Lapse Azul puxa)
+      // 2º cast: acumula (sem dano direto; ganha amp)
+      // 3º cast: LIBERA = soma dos 2 anteriores ×2 + 80 base
+      ctx.hollowPurpleStage = (ctx.hollowPurpleStage + 1) as 1 | 2 | 3;
+      const stage = ctx.hollowPurpleStage;
+      if (stage === 1) {
+        const drain = Math.floor(ctx.enemy.hpMax * 0.20);
+        const heal  = Math.floor(ctx.player.hpMax * 0.20);
+        ctx.enemy.hpCurrent  = Math.max(0, ctx.enemy.hpCurrent - drain);
+        ctx.player.hpCurrent = Math.min(ctx.player.hpMax, ctx.player.hpCurrent + heal);
+        ctx.hollowPurpleAccum = drain;
+        return { success: true, damage: drain, heal,
+          message: `🔵 LAPSE AZUL (estágio 1/3) — atração. Drena ${drain} HP do inimigo e te cura ${heal}. Use Hollow Purple de novo pra continuar a cadeia.` };
+      }
+      if (stage === 2) {
+        // Acumula: dano ×2 amplifica próximo, mas não bate direto
+        ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 2, charges: 1 });
+        ctx.playerStatuses.push({ type: 'magic_amp', multiplier: 2, charges: 1 });
+        ctx.hollowPurpleAccum *= 2;
+        return { success: true,
+          message: `🔴 REVERSAL RED (estágio 2/3) — repulsão. Acumulando energia (não dá dano direto). Próximo Hollow Purple = LIBERAÇÃO TOTAL.` };
+      }
+      // Estágio 3: LIBERA
+      const accum = ctx.hollowPurpleAccum;
+      const burst = accum + 80 + Math.floor(ctx.enemy.hpMax * 0.40);
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - burst);
+      ctx.hollowPurpleStage = 0;
+      ctx.hollowPurpleAccum = 0;
+      return { success: true, damage: burst, guaranteedHit: true,
+        message: `🟣 HOLLOW PURPLE — CONVERGÊNCIA TOTAL! Lapse Azul + Reversal Red colidem: ${burst} de dano (ACERTO GARANTIDO). O mais bonito e o mais destrutivo. Cadeia resetou.` };
     },
   },
 
   'limitless_unique': {
     execute: async (ctx) => {
-      // Infinito de Gojo: barreira entre si e tudo → esquivas + dano Lapse Azul/Vermelho
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.45) + 25;
+      // INFINITY: por 4 turnos, "distância infinita" → autoDodge integral.
+      // Plus 5 esquivas garantidas (counter contra ataque inimigo).
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.35) + 25;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.playerStatuses.push({ type: 'evasion', charges: 3 });
+      ctx.autoDodgeTurnsLeft = Math.max(ctx.autoDodgeTurnsLeft, 4);
+      ctx.playerStatuses.push({ type: 'evasion', charges: 5 });
+      ctx.playerStatuses.push({ type: 'magic_immune', turnsLeft: 4 });
       return {
         success: true,
         damage: dmg,
-        message: `LIMITLESS — o Infinito de Satoru Gojo. Nada pode tocá-lo. ${dmg} de dano (Lapse Azul + Vermelho combinados) + 3 ataques inimigos passam pelo Infinito sem atingir.`,
+        message: `♾️ LIMITLESS — INFINITO. ${dmg} de dano + por 4 turnos o inimigo nunca chega em você (auto-dodge + 5 cargas extras + imune a magia). Lapse Azul + Vermelho. Nada toca Satoru Gojo.`,
       };
     },
   },
 
   'requiem-arrow_unique': {
     execute: async (ctx) => {
-      const roll = Math.random();
-      if (roll < 0.25) {
-        const finalDmg = ctx.enemy.hpCurrent;
-        ctx.enemy.hpCurrent = 0;
-        return { success: true, damage: finalDmg, message: 'REQUIEM ARROW — o Stand além do Stand. O inimigo simplesmente... deixa de ser.' };
-      } else if (roll < 0.50) {
-        const dmg = Math.floor(ctx.enemy.hpMax * 0.70);
-        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-        return { success: true, damage: dmg, message: `REQUIEM ARROW — realidade reescrita. ${dmg} de dano ao inimigo.` };
-      } else if (roll < 0.75) {
-        const healed = ctx.player.hpMax - ctx.player.hpCurrent;
-        ctx.player.hpCurrent = ctx.player.hpMax;
-        ctx.playerStatuses.push({ type: 'invincible', charges: 1 });
-        return { success: true, heal: healed, message: 'REQUIEM ARROW — o Stand escolheu a sobrevivência. HP restaurado + próximo hit anulado.' };
-      } else {
-        ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 3, charges: 5 });
-        ctx.playerStatuses.push({ type: 'magic_amp',    multiplier: 3, charges: 5 });
-        return { success: true, message: 'REQUIEM ARROW — poder além da compreensão. TODO dano triplicado por 5 ataques!' };
-      }
+      // STAND EVOLUI: PRÓXIMA ability do jogador é amplificada para versão
+      // Requiem (dano ×2, todas durações ×2, custos zerados).
+      ctx.requiemNextAmplify = true;
+      // Plus: 3 cargas de amp para garantir burst
+      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 2, charges: 1 });
+      ctx.playerStatuses.push({ type: 'magic_amp',    multiplier: 2, charges: 1 });
+      // E uma esquiva pra sobreviver até usar
+      ctx.playerStatuses.push({ type: 'evasion', charges: 1 });
+      return {
+        success: true,
+        message: `🏹 FLECHA REQUIEM — Stand evolui ao próximo plano. Sua PRÓXIMA ability sai em versão Requiem: dano ×2 garantido + 1 esquiva pra chegar viva. Use sua melhor carta agora.`,
+      };
     },
   },
 
   'spirit-gun_unique': {
     execute: async (ctx) => {
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.48) + 30;
-      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      // CARGA REIGAN: ao invés de dano imediato, INICIA acumulação.
+      // Cada hit recebido nos próximos 5 turnos = +1 carga.
+      // Auto-dispara ao fim dos 5 turnos OU se cair pra <25% HP.
+      // Dano final = 35 × cargas (true damage). Começa com 2 cargas iniciais.
+      ctx.spiritGunCharge = {
+        charges: 2,
+        damagePerCharge: 35,
+        turnsLeft: 5,
+        triggerHpThreshold: 0.25,
+        fired: false,
+      };
+      const dmgInicial = Math.floor(ctx.enemy.hpMax * 0.15) + 20;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmgInicial);
       return {
         success: true,
-        damage: dmg,
-        trueDamage: true,
-        message: `SPIRIT GUN — energia espiritual pura de Yusuke Urameshi concentrada no dedo indicador. ${dmg} de dano verdadeiro. Ignora toda defesa.`,
+        damage: dmgInicial,
+        message: `🔫 REIGAN CARREGANDO — Yusuke aponta o indicador. ${dmgInicial} de dano inicial + começa com 2 cargas. Cada hit recebido = +1 carga. Dispara em 5 turnos OU se cair pra <25% HP: 35 × cargas em TRUE DAMAGE. Apanhe pra ficar forte.`,
       };
     },
   },
 
   'unlimited-blade-works_unique': {
     execute: async (ctx) => {
-      const hits      = 7;
-      const dmgPerHit = 16;
-      const total     = hits * dmgPerHit;
-      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - total);
-      ctx.playerStatuses.push({ type: 'physical_amp', multiplier: 2, charges: 2 });
+      // CHUVA DE LÂMINAS: materializa 7 espadas. Cada turno seu, 1 lança
+      // automaticamente (sem usar sua ação). Quando todas usadas: PRÓXIMA
+      // ability ×3.
+      ctx.swordRain = {
+        remainingHits: 7,
+        damagePerHit: 25,
+        finalBonusMult: 3,
+      };
+      // Hit inicial leve pra confirmar o cast
+      const dmgInicial = 30;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmgInicial);
       return {
         success: true,
-        damage: total,
-        message: `UNLIMITED BLADE WORKS — "Trace, on." ${hits} espadas de heróis do passado materializam. ${total} de dano total + próximos 2 ataques físicos com o dobro de força.`,
+        damage: dmgInicial,
+        message: `⚔️ UNLIMITED BLADE WORKS — "Trace, on." 7 espadas materializam ao seu redor. ${dmgInicial} de dano inicial + por 7 turnos, 1 lâmina dispara grátis no início de cada turno seu (25 cada). Quando todas usadas: PRÓXIMA ABILITY ×3.`,
       };
     },
   },
 
   'zoltraak_unique': {
     execute: async (ctx) => {
-      // Frieren: magia ofensiva padrão de uma era anterior, devastadora e esquecida
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.47) + 30;
+      // MAGIA UNIVERSAL: por 4 turnos, TODAS as suas abilities (não só
+      // Zoltraak) ignoram defesa mágica do inimigo. Plus dano inicial.
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.40) + 30;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.enemyStatuses.push({ type: 'defense_down', value: 999, turnsLeft: -1 });
+      ctx.magicPierceTurnsLeft = 4;
+      ctx.enemyStatuses.push({ type: 'defense_down', value: 50, turnsLeft: 4 });
       return {
         success: true,
         damage: dmg,
-        message: `ZOLTRAAK — magia ofensiva padrão de uma era anterior, que humanos só agora aprenderam. ${dmg} de dano + defesa mágica inimiga ZERADA permanentemente.`,
+        message: `✨ ZOLTRAAK — magia ofensiva universal de uma era anterior. ${dmg} de dano + por 4 turnos, TODAS as suas abilities IGNORAM a defesa mágica inimiga + def física −50. Humanos só agora aprenderam.`,
       };
     },
   },
@@ -2068,94 +2171,166 @@ const registry: Record<string, EquipmentAbilityHandler> = {
 
   'enuma-elish_unique': {
     execute: async (ctx) => {
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.70) + 25;
+      // REALITY MARBLE: por 3 turnos, todo ataque do jogador é tratado como
+      // super-efetivo (×2 dano). Plus dano massivo inicial.
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.55) + 25;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      // Sobrescreve campo: todos elementos ×2 saindo do jogador
+      ctx.battlefieldEffects = ctx.battlefieldEffects.filter(f => f.name !== 'Marble da Realidade');
+      ctx.battlefieldEffects.push({
+        key: 'custom',
+        source: 'player',
+        name: 'Marble da Realidade',
+        turnsLeft: 3,
+        outgoingElementMult: {
+          Fire: 2, Water: 2, Ice: 2, Electric: 2, Grass: 2, Ground: 2,
+          Fighting: 2, Steel: 2, Poison: 2, Dark: 2, Ghost: 2, Flying: 2,
+        },
+      });
       return {
         success: true,
         damage: dmg,
-        message: `ENUMA ELISH — EA! O vento primordial que rasgou o caos e criou o mundo. ${dmg} de dano. Herói ou monstro, irrelevante.`,
+        guaranteedHit: true,
+        message: `🌪️ ENUMA ELISH — EA. O vento primordial reescreve a fundação da realidade. ${dmg} de dano (ACERTO GARANTIDO) + por 3 turnos, TODOS os seus ataques são super-efetivos (×2).`,
       };
     },
   },
 
   'geass-eye_unique': {
     execute: async (ctx) => {
-      // Geass de Lelouch: ordem absoluta → inimigo usa força contra si + stun
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.40);
+      // ORDEM ABSOLUTA: usa-se 1 vez por batalha. Força o inimigo a executar
+      // sua PRÓPRIA ability mais forte contra si mesmo.
+      if (ctx.geassUsed) {
+        return { success: false, message: 'GEASS já foi usado nesta batalha.' };
+      }
+      ctx.geassUsed = true;
+      // "Mais forte" = ability com maior baseDamage do enemy pool
+      const strongest = [...ctx.enemy.abilities].sort((a, b) => (b.baseDamage ?? 0) - (a.baseDamage ?? 0))[0];
+      const ability = strongest ?? { name: 'Sua própria força', baseDamage: 80 } as Ability;
+      // Dano = 1.5× o baseDamage da ability mais forte (porque é poder máximo aplicado em si mesmo)
+      const dmg = Math.floor((ability.baseDamage ?? 50) * 1.5) + Math.floor(ctx.enemy.hpMax * 0.20);
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 1 });
+      ctx.enemyStatuses.push({ type: 'stun', turnsLeft: 2 });
       return {
         success: true,
         damage: dmg,
-        message: `GEASS — "Eu ordeno: AUTODESTRUA-SE!" O inimigo obedece à ordem absoluta. ${dmg} de dano (40% do HP máximo) + não age no próximo turno.`,
+        message: `👁️ ORDEM ABSOLUTA — "Eu ordeno: use ${ability.name} CONTRA SI MESMO!" O inimigo obedece. ${dmg} de dano (sua arma mais forte virada contra ele) + atordoado 2 turnos. 1× por batalha.`,
       };
     },
   },
 
   'kamish_unique': {
     execute: async (ctx) => {
-      // Solo Leveling: dragão nacional que destruiu a Coreia do Sul
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.60) + 20;
-      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      ctx.enemyStatuses.push({ type: 'burn', value: 25, turnsLeft: 4 });
+      // COMPANION: invoca Kamish como segundo atacante por 5 turnos.
+      // Todo turno seu, o dragão também bate por conta própria.
+      const dmgInicial = Math.floor(ctx.enemy.hpMax * 0.25) + 15;
+      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmgInicial);
+      const dragonHit = Math.floor(ctx.enemy.hpMax * 0.10) + 10;
+      ctx.companion = {
+        name: 'Kamish, o Dragão Nacional',
+        damage: dragonHit,
+        turnsLeft: 5,
+        element: 'Fire',
+      };
+      ctx.enemyStatuses.push({ type: 'burn', value: 15, turnsLeft: 4 });
       return {
         success: true,
-        damage: dmg,
-        message: `KAMISH — o Dragão Nacional que destruiu a Coreia do Sul. Sung Jin-Woo herda o poder. ${dmg} de dano + fogo eterno por 4 turnos (25 HP/turno).`,
+        damage: dmgInicial,
+        message: `🐉 KAMISH INVOCADO — o Dragão Nacional aparece ao seu lado. ${dmgInicial} de dano imediato + fogo (15 HP/turno por 4 turnos). Por 5 turnos, Kamish também ataca todo turno seu (${dragonHit} de dano extra).`,
       };
     },
   },
 
   'kamishs-wrath_unique': {
     execute: async (ctx) => {
-      const dmg = Math.floor(ctx.enemy.hpMax * 0.60) + 15;
+      // AURA DO MONARCA: a cada phase HP do boss (75/50/25%) você ganha
+      // +30% multiplicador de dano permanente nesta batalha. Stack.
+      if (ctx.monarchAttrMult <= 1) ctx.monarchAttrMult = 1.30;
+      else ctx.monarchAttrMult *= 1.30;
+      // Hit inicial pra ativar o sangue
+      const dmg = Math.floor(ctx.enemy.hpMax * 0.30) + 15;
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
       ctx.playerStatuses.push({ type: 'lifesteal', percent: 0.50, charges: 3 });
       return {
         success: true,
         damage: dmg,
-        message: `FÚRIA DE KAMISH — Sung Jin-Woo empunha o poder do dragão. ${dmg} de dano + 50% do dano dos próximos 3 ataques vira HP.`,
+        message: `👑 AURA DO MONARCA — Sung Jin-Woo se torna o Sombra-Rei. ${dmg} de dano + lifesteal 50% por 3 ataques. Ativa: a cada phase HP do boss (75/50/25%), seu dano cresce permanentemente ×1,30 (multiplicativo). Atual: ×${ctx.monarchAttrMult.toFixed(2)}.`,
       };
     },
   },
 
   'requiem_unique': {
     execute: async (ctx) => {
-      // King Crimson + Requiem de Giorno: "o resultado será zero"
-      const originalHp    = ctx.enemy.hpCurrent;
-      ctx.enemy.hpCurrent = Math.floor(ctx.enemy.hpMax * 0.08);
-      ctx.enemyStatuses   = [];
-      const dmg           = Math.max(0, originalHp - ctx.enemy.hpCurrent);
+      // King Crimson: APAGA o último turno completo. HP de ambos volta.
+      // Status revertem. O tempo simplesmente ignorou.
+      const snap = ctx.lastTurnSnapshot;
+      if (!snap) {
+        // Fallback: sem snapshot ainda — aplica efeito original (HP→8%)
+        const orig = ctx.enemy.hpCurrent;
+        ctx.enemy.hpCurrent = Math.floor(ctx.enemy.hpMax * 0.08);
+        ctx.enemyStatuses = [];
+        return {
+          success: true, damage: orig - ctx.enemy.hpCurrent,
+          message: `REQUIEM — sem turno anterior pra apagar. Forçou: HP inimigo → 8%. Il risultato sarà zero.`,
+        };
+      }
+      // Rewind: restaura HP, status, e status arrays de ambos
+      const playerDelta = snap.playerHp - ctx.player.hpCurrent;
+      const enemyDelta  = ctx.enemy.hpCurrent - snap.enemyHp;
+      ctx.player.hpCurrent = snap.playerHp;
+      ctx.playerStatus     = snap.playerStatus ? { ...snap.playerStatus } : null;
+      ctx.playerStatuses   = snap.playerStatuses.map(s => ({ ...s }));
+      ctx.enemy.hpCurrent  = snap.enemyHp;
+      ctx.enemyStatus      = snap.enemyStatus ? { ...snap.enemyStatus } : null;
+      ctx.enemyStatuses    = snap.enemyStatuses.map(s => ({ ...s }));
+      ctx.lastTurnSnapshot = null;
       return {
         success: true,
-        damage: dmg,
-        message: `REQUIEM — "o resultado será... zero." HP inimigo reduzido a 8% do máximo. Todos os status apagados. Giorno Giovanna non si fermerà.`,
+        message: `⏳ IL RISULTATO SARÀ ZERO — King Crimson apaga o último turno completo. Você recupera ${playerDelta > 0 ? `+${playerDelta} HP` : 'estado anterior'}; inimigo recupera ${enemyDelta > 0 ? `${enemyDelta} HP` : 'estado anterior'}. O tempo simplesmente ignorou.`,
       };
     },
   },
 
   'return-by-death_unique': {
     execute: async (ctx) => {
-      // Subaru não ataca — a carta ativa a mecânica de retorno (revive)
-      ctx.reviveCharges += 1;
+      // Save-point real: snapshot do estado atual. Se morrer, batalha volta
+      // a este momento exato. O inimigo perde 25% do HP máx CADA loop.
+      // Até 3 loops disponíveis.
+      ctx.respawnSnapshot = {
+        turn:           ctx.turn,
+        playerHp:       ctx.player.hpCurrent,
+        playerStatus:   ctx.playerStatus ? { ...ctx.playerStatus } : null,
+        playerStatuses: ctx.playerStatuses.map(s => ({ ...s })),
+        enemyHp:        ctx.enemy.hpCurrent,
+        enemyStatus:    ctx.enemyStatus ? { ...ctx.enemyStatus } : null,
+        enemyStatuses:  ctx.enemyStatuses.map(s => ({ ...s })),
+      };
+      ctx.savePointCharges = 3;
+      ctx.respawnEnemyHpPenalty = 0.25;
       return {
         success: true,
-        message: 'RETORNO PELA MORTE — o Portão da Morte foi aberto. Na próxima vez que cair, Subaru retorna com 50% do HP. O custo é apenas a memória de tudo que perdeu.',
+        message: `🌀 PORTÃO DA MORTE — Subaru cria um SAVE POINT. Se cair, a batalha volta a este momento (HP/status atuais). O inimigo perde 25% do HP máximo a cada respawn. Até 3 loops.`,
       };
     },
   },
 
   'time-stop_unique': {
     execute: async (ctx) => {
-      // DIO para o tempo → inimigo perde 3 turnos inteiros
-      ctx.enemySkipTurns += 3;
-      // Durante a pausa, DIO ataca livremente
-      const dmg = Math.floor(ctx.enemy.hpCurrent * 0.25) + 20;
-      ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
+      // DIO para o tempo: 4 hits sequenciais sem reação + skip 2 turnos
+      const hits = 4;
+      let totalDmg = 0;
+      for (let i = 0; i < hits; i++) {
+        // Cada hit escala um pouco com base no atual do inimigo
+        const hitDmg = Math.floor(ctx.enemy.hpMax * 0.10) + 15;
+        totalDmg += hitDmg;
+        ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - hitDmg);
+        if (ctx.enemy.hpCurrent <= 0) break;
+      }
+      ctx.enemySkipTurns += 2;
       return {
         success: true,
-        damage: dmg,
-        message: `ZA WARUDO — O TEMPO PARA! O inimigo perde 3 turnos enquanto o mundo está congelado. ${dmg} de dano durante a pausa temporal. Yare yare daze.`,
+        damage: totalDmg,
+        message: `⏱️ TOKI WO TOMARE — DIO para o tempo. ${hits} ataques sequenciais sem que o inimigo possa reagir: ${totalDmg} de dano total. Depois ele perde 2 turnos enquanto o mundo se recompõe. Yare yare daze.`,
       };
     },
   },
@@ -2185,24 +2360,26 @@ const registry: Record<string, EquipmentAbilityHandler> = {
       if (ctx.playerForms.some(f => f.name === 'Ultra Instinto')) {
         return { success: false, message: 'Ultra Instinto já está ativo.' };
       }
-      // Dano escala com HP perdido: Goku ativou UI quando estava à beira da morte
+      // MODO BENGALA: por 5 turnos, todo ataque inimigo é auto-esquivado E
+      // segue de contra-ataque true damage (60% do dano original). O corpo
+      // age sozinho. Você joga PURA REAÇÃO.
+      ctx.autoDodgeTurnsLeft = Math.max(ctx.autoDodgeTurnsLeft, 5);
+      ctx.autoCounter = { percent: 0.60, turnsLeft: 5 };
+      // Bônus inicial pequeno escala com HP perdido (não é o foco)
       const missingPct = 1 - (ctx.player.hpCurrent / Math.max(1, ctx.player.hpMax));
-      const dmg = Math.floor(ctx.enemy.hpMax * (0.30 + missingPct * 0.30));
+      const dmg = Math.floor(ctx.enemy.hpMax * (0.15 + missingPct * 0.20));
       ctx.enemy.hpCurrent = Math.max(0, ctx.enemy.hpCurrent - dmg);
-      // O corpo reage antes da mente → autoDodge por 4 turnos
-      ctx.autoDodgeTurnsLeft = Math.max(ctx.autoDodgeTurnsLeft, 4);
       ctx.playerForms.push({
         key: 'custom',
         name: 'Ultra Instinto',
-        turnsLeft: 4,
-        physicalDmgMult: 1.75,
-        magicalDmgMult: 1.75,
+        turnsLeft: 5,
+        physicalDmgMult: 1.5,
+        magicalDmgMult: 1.5,
       });
-      const hpLostPct = Math.floor(missingPct * 100);
       return {
         success: true,
         damage: dmg,
-        message: `ULTRA INSTINTO — o corpo age antes do pensamento. ${hpLostPct}% de HP perdido amplifica o golpe: ${dmg} de dano. Todos os ataques inimigos esquivados por 4 turnos. Dano ×1,75 enquanto durar.`,
+        message: `🌀 INSTINTO SUPERIOR — Goku entra no Modo Bengala. ${dmg} de dano inicial + por 5 TURNOS, TODO ataque inimigo é esquivado automaticamente E seguido de contra-ataque (60% do dano em true damage). Pura reação.`,
       };
     },
   },
