@@ -230,7 +230,8 @@ export function BattleDungeonView({
   const rewards: BattleRewards | null = phase.type === 'victory' ? {
     xp:       phase.xp,
     coins:    phase.coins,
-    diamonds: phase.enemy.isBoss ? Math.floor(Math.random() * 3) + 1 : 0,
+    // Patch 2.0 — batalhas NÃO dão diamantes (só prêmio do professor).
+    diamonds: 0,
     items:    [],
   } : null;
 

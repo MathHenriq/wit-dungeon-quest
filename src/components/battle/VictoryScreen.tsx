@@ -106,29 +106,13 @@ export function VictoryScreen({ rewards, xpReward, drops, onContinue }: VictoryS
             <span className="text-2xl font-black text-blue-600">+{rewards.xp}</span>
           </div>
 
-          {/* Moedas e Diamantes */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🪙</span>
-                <span className="font-bold text-yellow-800 text-sm">Moedas</span>
-              </div>
-              <span className="text-xl font-black text-yellow-700">+{rewards.coins}</span>
+          {/* Moedas (Patch 2.0 — diamantes não vêm de batalhas, só do professor) */}
+          <div className="flex items-center justify-between bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🪙</span>
+              <span className="font-bold text-yellow-800 text-sm">Moedas</span>
             </div>
-
-            {rewards.diamonds > 0 ? (
-              <div className="flex items-center justify-between bg-cyan-50 border border-cyan-200 rounded-xl p-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">💎</span>
-                  <span className="font-bold text-cyan-800 text-sm">Diamantes</span>
-                </div>
-                <span className="text-xl font-black text-cyan-700">+{rewards.diamonds}</span>
-              </div>
-            ) : (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-center text-gray-400 text-sm">
-                Sem diamantes
-              </div>
-            )}
+            <span className="text-xl font-black text-yellow-700">+{rewards.coins}</span>
           </div>
 
           {/* Drops temáticos do inimigo */}

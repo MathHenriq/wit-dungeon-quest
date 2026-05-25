@@ -23,14 +23,9 @@ export function calculateCoinReward(enemyLevel: number, isBoss: boolean): number
   return Math.floor(coins);
 }
 
-export function calculateDiamondReward(isBoss: boolean, bossLevel: number): number {
-  if (!isBoss) return 0;
-  let diamonds = Math.floor(Math.random() * 3) + 1;
-  // 10% chance de bônus proporcional ao nível
-  if (Math.random() < 0.1) {
-    diamonds += Math.floor(bossLevel / 10);
-  }
-  return diamonds;
+export function calculateDiamondReward(_isBoss: boolean, _bossLevel: number): number {
+  // Patch 2.0 — diamantes NÃO vêm de batalhas (apenas do professor).
+  return 0;
 }
 
 export async function generateLoot(floorId: number, isBoss: boolean): Promise<LootDrop[]> {

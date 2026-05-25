@@ -2046,19 +2046,6 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
     } as unknown as StudentTitle);
   }, [student.id]);
 
-  // Wave 11 owns the class now. Fall back to legacy character_class only for
-  // accounts that haven't gone through the new onboarding yet.
-  // NOTE: must be declared BEFORE the useEffect below, which depends on
-  // `wave11Class` — otherwise the dep array hits a Temporal Dead Zone and
-  // the HeroScreen never renders.
-  const { data: classProfile } = useClassProfile(student.id);
-  const wave11Class = classProfile?.classType ?? null;
-  const wave11ClassMeta = wave11Class ? CLASS_META[wave11Class] : null;
-  const effectiveClassLabel = wave11ClassMeta?.label ?? student.character_class ?? null;
-  const classColor = wave11ClassMeta?.color
-    ?? CLASS_COLOR[student.character_class ?? ""]
-    ?? "#4a9eff";
-
   useEffect(() => {
     // Pet
     supabaseStudent.from("student_pets").select("*, pet_type:pet_types(*)").eq("student_id", student.id).eq("is_active", true).maybeSingle()
@@ -2144,6 +2131,15 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
   }, [battleCharacter]);
 
   const inventoryX = inventory as InventoryItemX[];
+  // Wave 11 owns the class now. Fall back to legacy character_class only for
+  // accounts that haven't gone through the new onboarding yet.
+  const { data: classProfile } = useClassProfile(student.id);
+  const wave11Class = classProfile?.classType ?? null;
+  const wave11ClassMeta = wave11Class ? CLASS_META[wave11Class] : null;
+  const effectiveClassLabel = wave11ClassMeta?.label ?? student.character_class ?? null;
+  const classColor = wave11ClassMeta?.color
+    ?? CLASS_COLOR[student.character_class ?? ""]
+    ?? "#4a9eff";
 
   const attrSum = (student.attr_forca ?? 0)+(student.attr_destreza ?? 0)+(student.attr_inteligencia ?? 0)+(student.attr_carisma ?? 0)+(student.attr_agilidade ?? 0)+(student.attr_resistencia ?? 0);
   const equippedItems = inventoryX.filter(i => i.is_equipped && i.item);
