@@ -203,11 +203,18 @@ export function useFloorMap({ enemies: init, onEnemyEncounter }: UseFloorMapOpti
 
   // ── derived ────────────────────────────────────────────────────────────────
 
-  const bossUnlocked = isBossUnlocked(enemies);
+  // ── derived ────────────────────────────────────────────────────────────────
+  const [bossUnlocked, setBossUnlocked] = useState(isBossUnlocked(enemies));
   const progress     = getProgress(enemies);
   const isActuallyDone = progress.total > 0 &&
                          progress.defeated === progress.total &&
                          enemies.find(e => e.isBoss)?.defeated === true;
+
+  // Keep boss unlock status in sync with enemies state
+  useEffect(() => {
+    setBossUnlocked(isBossUnlocked(enemies));
+  }, [enemies]);
+
 
   const floorDone = isActuallyDone && !dismissedComplete;
 

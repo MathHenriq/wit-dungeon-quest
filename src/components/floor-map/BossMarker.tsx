@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 
 function CrownIcon({ locked }: { locked: boolean }) {
-  const c = locked ? 'rgba(180,60,60,0.55)' : 'rgba(201,164,74,0.85)';
-  const s = locked ? 'rgba(140,30,30,0.4)'  : 'rgba(150,110,20,0.6)';
+  // Use gold color for unlocked, muted for locked
+  const c = locked ? 'rgba(180,60,60,0.55)' : 'rgba(212,175,55,0.85)';
+  const s = locked ? 'rgba(140,30,30,0.4)'  : 'rgba(212,175,55,0.6)';
   return (
     <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
       <rect x="4" y="18" width="20" height="4" rx="1" fill={s} />
@@ -39,7 +40,7 @@ export function BossMarker({ x, y, name, level, locked }: BossMarkerProps) {
         <CrownIcon locked={locked} />
 
         {/* Locked: rotating dashed ring */}
-        {locked && <div className="fm-boss__shield" />}
+{locked && <div className="fm-boss__shield" />}
       </div>
 
       {/* Unlocked: orbiting particles */}
@@ -57,7 +58,7 @@ export function BossMarker({ x, y, name, level, locked }: BossMarkerProps) {
         </>
       )}
 
-      {locked && showTip && (
+{locked && showTip && (
         <div className="fm-boss__lock-tip">
           Derrote todos os inimigos primeiro
         </div>
