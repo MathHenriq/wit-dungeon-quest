@@ -12,6 +12,7 @@ import { MissionBoard } from "@/components/MissionBoard";
 import { ClassRanking } from "@/components/ClassRanking";
 import { WeeklyRankingsScreen } from "@/components/student/WeeklyRankingsScreen";
 import { SchoolFeedScreen } from "@/components/student/SchoolFeedScreen";
+import { CardTicketsPanel } from "@/components/student/CardTicketsPanel";
 import { ProfileCardOpenerProvider } from "@/components/student/ProfileCard";
 import { StudentTitleBadge, AttendanceCrown } from "@/components/StudentTitleBadge";
 import { AincradBackground } from "@/components/ui/AincradBackground";
@@ -27,7 +28,6 @@ import { ClassSelectionScreen as Wave11ClassSelectionScreen } from "@/pages/Clas
 import { useClassProfile } from "@/hooks/useClassProfile";
 // Onda 11.8 — terceiro gate: tutorial de combate.
 import { Wave11TutorialBattleScreen } from "@/pages/Wave11TutorialBattleScreen";
-import { Patch11Welcome } from "@/components/student/Patch11Welcome";
 import { VaultOpeningModal } from "@/components/student/VaultOpeningModal";
 // Lazy: HeroScreen (~600 lines + Inventory/Tickets/Backdrop/Title panels) and
 // ShopScreen (~1500 lines + ForgePanel/CraftPanel/ChestSection) are only
@@ -591,7 +591,6 @@ export default function StudentPortal() {
   const [showEntrance, setShowEntrance] = useState(false);
   const [entranceDone, setEntranceDone] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
-  const [patch11Dismissed, setPatch11Dismissed] = useState(false);
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
   const [battleKey, setBattleKey] = useState(0);
   const [bossTabKey, setBossTabKey] = useState(0);
@@ -778,19 +777,10 @@ export default function StudentPortal() {
   const isDirector = activeTab === 'director';
   const bgScene = activeTab === 'challenges' ? 'quests' : activeTab === 'bosses' ? 'quests' : activeTab === 'skills' ? 'quests' : activeTab === 'ranking' ? 'ranking' : activeTab === 'shop' ? 'shop' : activeTab === 'character' ? 'character' : activeTab === 'guild' ? 'home' : 'home';
 
-  // Patch 2.7 — Season 2 welcome modal. Fires when the student has been
-  // wiped by `SELECT apply_patch11_wipe();` (sets wiped_at_patch_1_1)
-  // AND hasn't dismissed the modal yet (seen_patch_1_1 is false). Once
-  // closed, mark_patch11_seen() flips the flag server-side so it never
-  // re-fires. patch11Dismissed is local optimism while we refresh.
-  const showPatch11 = !!student.wiped_at_patch_1_1
-                   && !student.seen_patch_1_1
-                   && !patch11Dismissed;
-
   const TAB_LABELS: Record<string, string> = {
     challenges: 'Quests', missions: 'Missões', bosses: 'Bosses',
     guild: 'Guilda', skills: 'Skills', shop: 'Loja',
-    ranking: 'Ranking', character: 'Herói', capsule: 'Cápsula', pvp: 'PvP Arena', trading: 'Trading', mural: 'Mural',
+    ranking: 'Ranking', character: 'Herói', capsule: 'Cápsula', pvp: 'PvP Arena', trading: 'Trading', mural: 'Mural', cards: 'Cartas',
   };
 
   const sharedOverlays = (
@@ -815,16 +805,6 @@ export default function StudentPortal() {
       )}
       {showAccessibility && (
         <AccessibilitySettings onClose={() => setShowAccessibility(false)} />
-      )}
-      {showPatch11 && (
-        <Patch11Welcome
-          refund={student.patch_1_1_refund ?? 250}
-          onDismissed={() => {
-            setPatch11Dismissed(true);
-            // Pull the fresh students row so seen_patch_1_1 reflects server state.
-            void refreshStudent();
-          }}
-        />
       )}
       {/* Patch 5.3: cinematic vault openings auto-detect unread vaults on mount */}
       <VaultOpeningModal />
@@ -1131,6 +1111,11 @@ export default function StudentPortal() {
         {/* Patch 8.1: Mural de Feitos da Escola */}
         {activeTab === "mural" && (
           <SchoolFeedScreen />
+        )}
+
+        {/* Top-1 weekly card tickets */}
+        {activeTab === "cards" && (
+          <CardTicketsPanel />
         )}
 
         {/* Time Capsule Tab */}
