@@ -79,12 +79,17 @@ export function useGuild(studentId: string, teacherId: string) {
   }, []);
 
   const loadPendingRequests = useCallback(async (guildId: string) => {
-    const { data } = await supabaseStudent
+    // Disambiguate the embed: guild_join_requests has two FKs to students
+    // (student_id + resolved_by). Without the explicit constraint name
+    // PostgREST throws PGRST201 ("more than one relationship found"), the
+    // query fails, and leaders silently see no pending requests.
+    const { data, error } = await supabaseStudent
       .from("guild_join_requests")
-      .select("*, student:students(name, character_name, character_class, level)")
+      .select("*, student:students!guild_join_requests_student_id_fkey(name, character_name, character_class, level)")
       .eq("guild_id", guildId)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
+    if (error) console.error("[useGuild] loadPendingRequests failed:", error);
     setPendingRequests((data || []) as unknown as GuildJoinRequest[]);
   }, []);
 

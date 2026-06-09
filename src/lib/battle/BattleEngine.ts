@@ -336,7 +336,14 @@ export class BattleEngine {
 
   // ─── Start ──────────────────────────────────────────────────────────────────
 
-  start(): BattleContext {
+  /**
+   * @param forcePlayerFirst When non-null, overrides the speed-based turn
+   *   order. PvP passes this so BOTH clients agree on who acts first even on
+   *   an agility tie (challenger wins ties). Without it, `agilidade >= velocidade`
+   *   makes a tie resolve to PLAYER_TURN on *both* sides → both act as "first"
+   *   → desync. Post-wipe everyone shares agilidade=10, so ties are the norm.
+   */
+  start(forcePlayerFirst?: boolean | null): BattleContext {
     this.log('system', `⚔️ Batalha iniciada!`, 'info');
     this.log('system', `${this.ctx.player.name} vs ${this.ctx.enemy.name}!`, 'info');
 
@@ -384,8 +391,12 @@ export class BattleEngine {
     }
 
     // Turn order: firstStrike (passive iniciativa) força o jogador primeiro.
+    // forcePlayerFirst (PvP) tem prioridade máxima para manter os dois clientes
+    // em acordo sobre quem começa (evita dessincronia em empate de agilidade).
     const passiveFirstStrike = !!(this.ctx.playerPassives && this.ctx.playerPassives.firstStrike);
-    const playerFirst = passiveFirstStrike || this.ctx.player.agilidade >= this.ctx.enemy.velocidade;
+    const playerFirst = forcePlayerFirst != null
+      ? forcePlayerFirst
+      : (passiveFirstStrike || this.ctx.player.agilidade >= this.ctx.enemy.velocidade);
     this.ctx.phase = playerFirst ? 'PLAYER_TURN' : 'ENEMY_TURN';
 
     if (passiveFirstStrike) {

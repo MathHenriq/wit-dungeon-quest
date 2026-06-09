@@ -54,6 +54,31 @@ export function PvPBattleScreen({
   const engine  = usePvPBattleEngine();
   const started = useRef(false);
   const channelRef = useRef<ReturnType<typeof supabaseStudent.channel> | null>(null);
+  // Realtime handshake: the opponent may not have subscribed yet when the
+  // first-mover picks a card. Broadcasts to a channel with no listener are
+  // dropped, so the slower side would wait on "AGUARDANDO..." forever (cards
+  // never appear). We exchange a hello on subscribe and buffer any action
+  // until we know the opponent is listening.
+  const oppReadyRef     = useRef(false);
+  const pendingActionRef = useRef<BroadcastAction | null>(null);
+
+  function rawSend(payload: BroadcastAction) {
+    channelRef.current?.send({ type: 'broadcast', event: 'pvp_action', payload });
+  }
+
+  function sendAction(payload: BroadcastAction) {
+    if (oppReadyRef.current) rawSend(payload);
+    else pendingActionRef.current = payload; // flush once the opponent says hello
+  }
+
+  function markOppReady() {
+    if (oppReadyRef.current) return;
+    oppReadyRef.current = true;
+    if (pendingActionRef.current) {
+      rawSend(pendingActionRef.current);
+      pendingActionRef.current = null;
+    }
+  }
 
   // Start battle once on mount
   useEffect(() => {
@@ -63,7 +88,8 @@ export function PvPBattleScreen({
     const oppAsEnemy = charToEnemy(oppChar, oppAbilities);
     // Onda 11.3 — passa o studentId do oponente pra carregar classe/passivas/elemento dele.
     // O hook sobrescreve o elementType 'Fire' hardcoded em charToEnemy() pelo elemento real.
-    const initial = engine.startBattle(myChar, oppAsEnemy, myAbilities, oppChar.studentId ?? null);
+    // iAmChallenger desempata o primeiro turno deterministicamente nos dois clientes.
+    const initial = engine.startBattle(myChar, oppAsEnemy, myAbilities, oppChar.studentId ?? null, iAmChallenger);
 
     // If engine determined opponent goes first (ENEMY_TURN) we just wait.
     // The opponent's engine will also start, see PLAYER_TURN, and broadcast their first attack.
@@ -76,31 +102,38 @@ export function PvPBattleScreen({
       .channel(`pvp_battle_${matchId}`)
       .on('broadcast', { event: 'pvp_action' }, ({ payload }: { payload: BroadcastAction }) => {
         if (payload.type === 'ATTACK') {
+          markOppReady(); // any inbound action also proves the opponent is live
           engine.applyEnemyAction(payload.abilityId);
         } else if (payload.type === 'SURRENDER') {
           onFinish(true); // opponent surrendered → I win
         }
       })
-      .subscribe();
+      // Presence handshake so neither side's first action is dropped.
+      .on('broadcast', { event: 'pvp_hello' }, () => {
+        markOppReady();
+        channelRef.current?.send({ type: 'broadcast', event: 'pvp_hello_ack', payload: {} });
+      })
+      .on('broadcast', { event: 'pvp_hello_ack' }, () => markOppReady())
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channelRef.current?.send({ type: 'broadcast', event: 'pvp_hello', payload: {} });
+        }
+      });
 
     channelRef.current = channel;
-    return () => { supabaseStudent.removeChannel(channel); };
+    return () => {
+      oppReadyRef.current = false;
+      pendingActionRef.current = null;
+      supabaseStudent.removeChannel(channel);
+    };
   }, [matchId]); // eslint-disable-line
 
   function handlePlayerAttack(abilityId: string) {
-    channelRef.current?.send({
-      type:    'broadcast',
-      event:   'pvp_action',
-      payload: { type: 'ATTACK', abilityId } satisfies BroadcastAction,
-    });
+    sendAction({ type: 'ATTACK', abilityId });
   }
 
   function handleSurrender() {
-    channelRef.current?.send({
-      type:    'broadcast',
-      event:   'pvp_action',
-      payload: { type: 'SURRENDER' } satisfies BroadcastAction,
-    });
+    sendAction({ type: 'SURRENDER' });
     onFinish(false); // I surrendered → I lose
   }
 

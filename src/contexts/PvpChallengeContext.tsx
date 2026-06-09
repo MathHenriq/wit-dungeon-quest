@@ -203,6 +203,11 @@ async function fetchFullBattleData(studentId: string): Promise<{ char: BattleCha
   if (!raw.character) return null;
 
   const char = rowToCharacter(raw.character);
+  // get_pvp_opponent_data returns row_to_json(characters), so raw.character.id
+  // is the CHARACTER id — rowToCharacter wrongly used it as studentId. The real
+  // student id is the argument we just queried with. Without this, the PvP
+  // engine loads class/element/passives for the wrong id (silently disabled).
+  char.studentId = studentId;
   const abilities: Ability[] = (raw.abilities ?? []).map((a: any) => ({
     id:           a.id,
     name:         a.name,

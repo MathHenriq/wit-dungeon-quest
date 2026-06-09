@@ -51,6 +51,10 @@ export function usePvPBattleEngine() {
       equippedAbilities: Ability[],
       /** Onda 11.3 — opcional para preservar callers legacy; quando undefined, PvP usa só passivas do lado do `player`. */
       opponentStudentId?: string | null,
+      /** PvP — quem eu sou na partida. Usado como desempate determinístico do
+       *  primeiro turno para os dois clientes concordarem (desafiante começa em
+       *  empate de agilidade). undefined = caller legacy (decide por velocidade). */
+      iAmChallenger?: boolean,
     ) => {
       const [pSide, eSide] = await Promise.all([
         loadSide(player.studentId),
@@ -71,7 +75,18 @@ export function usePvPBattleEngine() {
         eSide.classType, eSide.passives,
       );
       engineRef.current = engine;
-      const initial = engine.start();
+      // Desempate determinístico do primeiro turno em PvP: mais ágil começa;
+      // em empate, o desafiante começa. Ambos os clientes calculam o mesmo
+      // resultado (cada lado conhece a própria agilidade, a do oponente e se é
+      // o desafiante), garantindo exatamente UM PLAYER_TURN inicial.
+      const forcePlayerFirst = iAmChallenger === undefined
+        ? null
+        : (player.agilidade > enemyWithElement.velocidade
+            ? true
+            : player.agilidade < enemyWithElement.velocidade
+              ? false
+              : iAmChallenger); // empate → desafiante começa
+      const initial = engine.start(forcePlayerFirst);
       setCtx(initial);
       return initial;
     },
