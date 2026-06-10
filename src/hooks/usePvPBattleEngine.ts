@@ -43,6 +43,11 @@ async function loadSide(studentId: string | null | undefined): Promise<SideData>
 export function usePvPBattleEngine() {
   const engineRef = useRef<BattleEngine | null>(null);
   const [ctx, setCtx] = useState<BattleContext | null>(null);
+  // Enemy actions can arrive over realtime BEFORE startBattle() finishes its
+  // async loadSide() round-trips (engineRef still null). Without buffering, that
+  // first opponent move is silently dropped and the slower side deadlocks. We
+  // queue early actions and replay them once the engine exists.
+  const pendingEnemyActionsRef = useRef<string[]>([]);
 
   const startBattle = useCallback(
     async (
@@ -86,7 +91,12 @@ export function usePvPBattleEngine() {
             : player.agilidade < enemyWithElement.velocidade
               ? false
               : iAmChallenger); // empate → desafiante começa
-      const initial = engine.start(forcePlayerFirst);
+      let initial = engine.start(forcePlayerFirst);
+      // Replay any opponent actions that arrived while we were still loading.
+      if (pendingEnemyActionsRef.current.length) {
+        for (const id of pendingEnemyActionsRef.current) initial = engine.enemyAttackWith(id);
+        pendingEnemyActionsRef.current = [];
+      }
       setCtx(initial);
       return initial;
     },
@@ -101,7 +111,7 @@ export function usePvPBattleEngine() {
   }, []);
 
   const applyEnemyAction = useCallback((abilityId: string) => {
-    if (!engineRef.current) return;
+    if (!engineRef.current) { pendingEnemyActionsRef.current.push(abilityId); return; }
     const result = engineRef.current.enemyAttackWith(abilityId);
     setCtx(result);
   }, []);

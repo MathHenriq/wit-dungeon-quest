@@ -12,7 +12,7 @@
 // blocking, dup row, etc.) and the admin needs to register a student
 // manually.
 
-import { handleCors, jsonResponse, requireAdmin } from '../_shared/admin.ts';
+import { handleCors, isMasterAdminUserId, jsonResponse, requireAdmin } from '../_shared/admin.ts';
 
 interface Body {
   class_id?: string;
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
   const ctx = await requireAdmin(req);
   if (ctx instanceof Response) return ctx;
-  const { admin } = ctx;
+  const { admin, callerUserId } = ctx;
 
   let body: Body;
   try { body = await req.json(); } catch { return jsonResponse({ error: 'invalid JSON body' }, 400); }
@@ -48,6 +48,18 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (klassErr) return jsonResponse({ error: 'class lookup failed', detail: klassErr.message }, 500);
   if (!klass) return jsonResponse({ error: 'class not found' }, 404);
+  if (!isMasterAdminUserId(callerUserId)) {
+    const { data: callerTeacher, error: callerErr } = await admin
+      .from('teachers')
+      .select('id')
+      .eq('user_id', callerUserId)
+      .maybeSingle();
+    if (callerErr) return jsonResponse({ error: 'teacher lookup failed', detail: callerErr.message }, 500);
+    if (!callerTeacher) return jsonResponse({ error: 'forbidden: caller is not a teacher' }, 403);
+    if (klass.teacher_id !== callerTeacher.id) {
+      return jsonResponse({ error: 'forbidden: class is not yours' }, 403);
+    }
+  }
 
   // 2) Create the auth user (email_confirm = true so they can sign in immediately).
   const { data: created, error: createErr } = await admin.auth.admin.createUser({

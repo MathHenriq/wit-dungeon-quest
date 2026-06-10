@@ -4,7 +4,7 @@
 // students, challenges, shop_items, etc.), any orphan character rows,
 // and the auth.users entry. Refuses to delete the calling admin.
 
-import { handleCors, jsonResponse, requireAdmin } from '../_shared/admin.ts';
+import { handleCors, isMasterAdminUserId, jsonResponse, requireAdmin } from '../_shared/admin.ts';
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -13,15 +13,19 @@ Deno.serve(async (req) => {
 
   const ctx = await requireAdmin(req);
   if (ctx instanceof Response) return ctx;
-  const { admin } = ctx;
+  const { admin, callerUserId } = ctx;
+  if (!isMasterAdminUserId(callerUserId)) {
+    return jsonResponse({ error: 'forbidden: only master admins can delete teachers' }, 403);
+  }
 
   let body: { teacher_id?: string };
   try { body = await req.json(); } catch { return jsonResponse({ error: 'invalid JSON body' }, 400); }
   const teacherId = body.teacher_id;
   if (!teacherId) return jsonResponse({ error: 'teacher_id required' }, 400);
 
-  const { data: authUserId, error: rpcErr } = await admin.rpc('admin_delete_teacher', {
+  const { data: authUserId, error: rpcErr } = await admin.rpc('admin_delete_teacher_as', {
     p_teacher_id: teacherId,
+    p_caller_user_id: callerUserId,
   });
   if (rpcErr) return jsonResponse({ error: 'delete failed', detail: rpcErr.message }, 400);
 

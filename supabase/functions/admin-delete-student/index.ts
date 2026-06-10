@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
   const ctx = await requireAdmin(req);
   if (ctx instanceof Response) return ctx;
-  const { admin } = ctx;
+  const { admin, callerUserId } = ctx;
 
   let body: { student_id?: string };
   try { body = await req.json(); } catch { return jsonResponse({ error: 'invalid JSON body' }, 400); }
@@ -20,8 +20,9 @@ Deno.serve(async (req) => {
   if (!studentId) return jsonResponse({ error: 'student_id required' }, 400);
 
   // RPC: deletes student + character, returns the auth user_id (or null).
-  const { data: authUserId, error: rpcErr } = await admin.rpc('admin_delete_student', {
+  const { data: authUserId, error: rpcErr } = await admin.rpc('admin_delete_student_as', {
     p_student_id: studentId,
+    p_caller_user_id: callerUserId,
   });
   if (rpcErr) return jsonResponse({ error: 'delete failed', detail: rpcErr.message }, 400);
 

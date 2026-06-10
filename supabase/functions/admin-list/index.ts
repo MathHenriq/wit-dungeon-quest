@@ -4,11 +4,28 @@
 // round-trip:  all teachers (with email), all classes, all students
 // (with email).  Admin-only.
 
-import { handleCors, jsonResponse, requireAdmin } from '../_shared/admin.ts';
+import { handleCors, isMasterAdminUserId, jsonResponse, requireAdmin, type AdminContext } from '../_shared/admin.ts';
 
-interface AuthUserLite {
-  id: string;
-  email: string | null;
+async function mapAuthEmailsById(
+  admin: AdminContext['admin'],
+  userIds: string[],
+): Promise<Map<string, string | null>> {
+  const emailById = new Map<string, string | null>();
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+
+  // auth.admin.listUsers() can fail for the whole project if GoTrue hits a
+  // bad auth row. Fetching by id keeps the admin panel usable and still gives
+  // e-mails for the rows being rendered.
+  const batchSize = 10;
+  for (let i = 0; i < uniqueIds.length; i += batchSize) {
+    const batch = uniqueIds.slice(i, i + batchSize);
+    await Promise.all(batch.map(async (id) => {
+      const { data, error } = await admin.auth.admin.getUserById(id);
+      if (!error) emailById.set(id, data.user?.email ?? null);
+    }));
+  }
+
+  return emailById;
 }
 
 Deno.serve(async (req) => {
@@ -18,31 +35,52 @@ Deno.serve(async (req) => {
 
   const ctx = await requireAdmin(req);
   if (ctx instanceof Response) return ctx;
-  const { admin } = ctx;
+  const { admin, callerUserId } = ctx;
+
+  const { data: callerTeacher, error: callerTeacherErr } = await admin
+    .from('teachers')
+    .select('id')
+    .eq('user_id', callerUserId)
+    .maybeSingle();
+  if (callerTeacherErr) return jsonResponse({ error: 'teacher lookup failed', detail: callerTeacherErr.message }, 500);
+  if (!callerTeacher) return jsonResponse({ error: 'forbidden: caller is not a teacher' }, 403);
+
+  const isMaster = isMasterAdminUserId(callerUserId);
+
+  const teachersQuery = admin
+    .from('teachers')
+    .select('id, name, user_id, is_admin, created_at')
+    .order('name');
+  const classesQuery = admin
+    .from('classes')
+    .select('id, name, teacher_id, biome, description, created_at')
+    .order('name');
+  const studentsQuery = admin
+    .from('students')
+    .select('id, name, class_id, teacher_id, user_id, status, level, xp, created_at')
+    .order('name');
+
+  if (!isMaster) {
+    teachersQuery.eq('id', callerTeacher.id);
+    classesQuery.eq('teacher_id', callerTeacher.id);
+    studentsQuery.eq('teacher_id', callerTeacher.id);
+  }
 
   const [teachersRes, classesRes, studentsRes] = await Promise.all([
-    admin.from('teachers').select('id, name, user_id, is_admin, created_at').order('name'),
-    admin.from('classes').select('id, name, teacher_id, biome, description, created_at').order('name'),
-    admin.from('students').select('id, name, class_id, teacher_id, user_id, status, level, xp, created_at').order('name'),
+    teachersQuery,
+    classesQuery,
+    studentsQuery,
   ]);
 
   for (const r of [teachersRes, classesRes, studentsRes]) {
     if (r.error) return jsonResponse({ error: 'list failed', detail: r.error.message }, 500);
   }
 
-  // Pull every auth user once, then join emails locally.  listUsers paginates;
-  // this project has < a few thousand users, so we walk pages until empty.
-  const emailById = new Map<string, string | null>();
-  let page = 1;
-  for (;;) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) return jsonResponse({ error: 'auth list failed', detail: error.message }, 500);
-    const users: AuthUserLite[] = (data.users ?? []).map(u => ({ id: u.id, email: u.email ?? null }));
-    if (users.length === 0) break;
-    for (const u of users) emailById.set(u.id, u.email);
-    if (users.length < 1000) break;
-    page += 1;
-  }
+  const authUserIds = [
+    ...(teachersRes.data ?? []).map(t => t.user_id),
+    ...(studentsRes.data ?? []).map(s => s.user_id),
+  ].filter((id): id is string => Boolean(id));
+  const emailById = await mapAuthEmailsById(admin, authUserIds);
 
   const teachers = (teachersRes.data ?? []).map(t => ({
     ...t,

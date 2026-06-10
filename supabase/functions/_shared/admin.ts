@@ -35,6 +35,17 @@ export function handleCors(req: Request): Response | null {
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+const MASTER_ADMIN_USER_IDS = new Set([
+  // wit.matheusmacedo@educbarueri.sp.gov.br
+  '43e51ee5-50e6-410b-b1a4-a3023ec37494',
+  // matheus.candidomacedo@hotmail.com
+  'b5c8d6b2-b606-4930-aa12-0631570f28e7',
+]);
+
+export function isMasterAdminUserId(userId: string): boolean {
+  return MASTER_ADMIN_USER_IDS.has(userId);
+}
+
 export function adminClient(): SupabaseClient {
   return createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },

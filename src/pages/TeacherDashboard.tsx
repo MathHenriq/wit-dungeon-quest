@@ -25,13 +25,14 @@ import { TeacherAIGenerator } from "@/components/TeacherAIGenerator";
 import { TeacherTimeCapsulePanel } from "@/components/TeacherTimeCapsulePanel";
 import { TeacherClassWarPanel } from "@/components/TeacherClassWarPanel";
 import { TeacherBulkAdjustPanel } from "@/components/TeacherBulkAdjustPanel";
+import { TeacherCardProposalsPanel } from "@/components/TeacherCardProposalsPanel";
 import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users, BookOpen, Clock, LogOut, Coins, Shield, Sword, CalendarCheck,
   Sparkles, Award, UserPlus, ShoppingBag, Loader2, BarChart3, GraduationCap,
   Swords, Users2, Heart, Network, Hammer, Package, BrainCircuit,
   Swords as SwordsIcon, Monitor, Search, Menu, X, ChevronRight, Settings2,
-  ShieldAlert,
+  ShieldAlert, Crown,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -40,7 +41,7 @@ type TabId =
   | "bulk" | "requests" | "pending" | "shop" | "classes" | "students" | "challenges"
   | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses"
   | "guilds" | "guild-missions" | "pets" | "skills" | "craft" | "chests" | "ia"
-  | "capsule" | "classwar";
+  | "capsule" | "classwar" | "cards";
 
 interface NavItem {
   id: TabId;
@@ -192,6 +193,7 @@ export default function TeacherDashboard() {
       label: "Economia",
       items: [
         { id: "shop",   label: "Loja",       icon: ShoppingBag, description: "Itens disponíveis para os alunos comprarem com moedas" },
+        { id: "cards",  label: "Cartas dos Campeões", icon: Crown, description: "Aprovar ou recusar cartas propostas pelos Top 1 da semana", accent: "gold" },
         { id: "chests", label: "Baús",       icon: Package,     description: "Baús com drops aleatórios — definir tier, custo e taxas de drop" },
         { id: "reward", label: "Recompensa", icon: Coins,       description: "Configurar quanto vale uma presença / missão padrão" },
         { id: "pets",   label: "Pets",       icon: Heart,       description: "Pets adotáveis pelos alunos com bônus passivos" },
@@ -522,6 +524,10 @@ export default function TeacherDashboard() {
             <div className="card-fantasy max-w-3xl">
               <TeacherClassWarPanel teacherId={teacher.id} classes={classes} />
             </div>
+          )}
+
+          {activeTab === "cards" && teacher && (
+            <TeacherCardProposalsPanel teacherId={teacher.id} />
           )}
 
           <footer className="mt-10 pt-4 border-t border-border text-center">

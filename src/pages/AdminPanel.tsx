@@ -182,6 +182,7 @@ export default function AdminPanel() {
           <StudentsTab
             students={students} classes={classes} teachers={teachers}
             loading={loading} onChanged={load}
+            onDeleted={(id) => setStudents(prev => prev.filter(s => s.id !== id))}
           />
         </TabsContent>
 
@@ -232,13 +233,14 @@ export default function AdminPanel() {
 // STUDENTS TAB
 // =====================================================
 function StudentsTab({
-  students, classes, teachers, loading, onChanged,
+  students, classes, teachers, loading, onChanged, onDeleted,
 }: {
   students: AdminStudentRow[];
   classes: AdminClassRow[];
   teachers: AdminTeacherRow[];
   loading: boolean;
   onChanged: () => void | Promise<void>;
+  onDeleted: (id: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState<string>("");
@@ -272,7 +274,8 @@ function StudentsTab({
       const r = await adminApi.deleteStudent(s.id);
       if (r.warning) toast.warning(r.warning);
       else toast.success(`${s.name} deletado.`);
-      await onChanged();
+      onDeleted(s.id);
+      void onChanged();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {

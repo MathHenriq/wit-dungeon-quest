@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Crown,
 } from "lucide-react";
 import type { Student } from "@/types";
 import { GameIcon } from "@/components/icons/GameIcon";
@@ -37,7 +38,8 @@ export type StudentTab =
   | "capsule"
   | "pvp"
   | "trading"
-  | "mural";
+  | "mural"
+  | "cards";
 
 const NAV_ITEMS: {
   id: StudentTab;
@@ -57,6 +59,7 @@ const NAV_ITEMS: {
   { id: "ranking",    label: "Rank",     Icon: Trophy },
   { id: "mural",      label: "Mural",    Icon: Sparkles },
   { id: "character",  label: "Herói",    Icon: User },
+  { id: "cards",      label: "Cartas",   Icon: Crown },
   { id: "capsule",    label: "Cápsula",  Icon: Clock },
 ];
 

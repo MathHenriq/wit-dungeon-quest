@@ -645,11 +645,31 @@ export function PvpChallengeProvider({
   const outgoingTimerRef= useRef<ReturnType<typeof setInterval> | null>(null);
   const autoDeclinedRef = useRef<string | null>(null);
   const autoCanceledRef = useRef<string | null>(null);
+  const incomingRef     = useRef<PvpChallenge | null>(null);
+  // Guards the challenger-side "opponent accepted → load battle" transition so
+  // realtime and the polling fallback can't both fire it for the same match.
+  const acceptInFlightRef = useRef<string | null>(null);
+  // Guards match resolution so onFinish + the in-battle poll can't double-resolve.
+  const resolvedRef     = useRef<string | null>(null);
+  // In-flight guard: prevents concurrent resolveMatch calls for the same match.
+  // Separate from resolvedRef so a failed write doesn't permanently disable the poll.
+  const resolvingRef    = useRef<string | null>(null);
+  // Wall-clock when the current battle screen opened (catch-all deadlock timeout).
+  const battleOpenedAtRef = useRef<number>(0);
+  // Mirror so the poll can pause while battle data is loading (avoids racing the
+  // accept/begin transition and clearing the opponent name mid-load).
+  const isLoadingBattleRef = useRef(false);
 
   useEffect(() => { outgoingRef.current   = outgoingChallenge; }, [outgoingChallenge]);
   useEffect(() => { pendingOppRef.current = pendingOpponent;   }, [pendingOpponent]);
   useEffect(() => { isInBattleRef.current = isInBattle;        }, [isInBattle]);
   useEffect(() => { battleDataRef.current = battleData;        }, [battleData]);
+  useEffect(() => { incomingRef.current   = incomingChallenge; }, [incomingChallenge]);
+  useEffect(() => { isLoadingBattleRef.current = isLoadingBattle; }, [isLoadingBattle]);
+  useEffect(() => {
+    // Stamp when a battle opens; reset the resolution guard for the new match.
+    if (battleData) { battleOpenedAtRef.current = Date.now(); resolvedRef.current = null; }
+  }, [battleData?.matchId]);
 
   // ── Timer management ──────────────────────────────────────────────────────
 
@@ -790,6 +810,45 @@ export function PvpChallengeProvider({
       .eq('id', matchId);
   }
 
+  // Show an incoming challenge banner. Shared by realtime + the polling
+  // fallback. Idempotent: ignores duplicates and anything not still pending.
+  async function showIncomingChallenge(match: PvpChallenge, source: string) {
+    if (match.status !== 'pending' || isInBattleRef.current) return;
+    if (incomingRef.current?.id === match.id) return;          // already showing it
+    if (outgoingRef.current || battleDataRef.current) return;  // busy elsewhere
+    if (autoDeclinedRef.current === match.id) return;          // already gave up on it
+    const info = await fetchOpponentInfo(match.challenger_id);
+    setIncomingChallenge(match);
+    setPendingOpponent(info);
+    pvpTelemetry('incoming_challenge_shown', { match_id: match.id, source });
+  }
+
+  // Challenger side: the opponent accepted → load both characters and enter
+  // battle. Shared by realtime + the polling fallback, guarded so only ONE
+  // path runs it per match (prevents double battle / double ELO).
+  async function beginBattleAsChallenger(match: PvpChallenge, source: string) {
+    if (acceptInFlightRef.current === match.id) return;        // already transitioning
+    if (battleDataRef.current?.matchId === match.id) return;   // already in this battle
+    if (outgoingRef.current?.id !== match.id) return;          // not my live outgoing
+    acceptInFlightRef.current = match.id;                      // claim it (synchronous)
+    pvpTelemetry('challenger_received_accept', { match_id: match.id, source });
+    setOutgoingChallenge(null);
+    stopOutgoingTimer();
+    try {
+      const opp = pendingOppRef.current ?? await fetchOpponentInfo(match.opponent_id);
+      const data = await loadBattleData(match.id, match.opponent_id, opp, true);
+      if (!data) {
+        await abortMatch(match.id, 'challenger_data_load_failed');
+        setPendingOpponent(null);
+        return;
+      }
+      pvpTelemetry('battle_started', { match_id: match.id, side: 'challenger' });
+      setBattleData(data);
+    } finally {
+      acceptInFlightRef.current = null;
+    }
+  }
+
   // ── Realtime channel (permanent for the session) ──────────────────────────
   //
   // Reconnect strategy
@@ -808,22 +867,27 @@ export function PvpChallengeProvider({
         filter: `opponent_id=eq.${student.id}`,
       }, async (payload) => {
         const match = payload.new as PvpChallenge;
-        
+
         // Handle new challenge (INSERT)
         if (payload.eventType === 'INSERT') {
-          if (match.status !== 'pending' || isInBattleRef.current) return;
-          const info = await fetchOpponentInfo(match.challenger_id);
-          setIncomingChallenge(match);
-          setPendingOpponent(info);
+          await showIncomingChallenge(match, 'realtime');
           return;
         }
 
         // Handle match updates (UPDATE) - like the challenger finishing the match
         if (payload.eventType === 'UPDATE') {
-          if (match.status === 'finished' || match.status === 'declined') {
-            setIncomingChallenge(null);
-            setBattleData(null);
-            setPendingOpponent(null);
+          if (match.status === 'finished') {
+            if (incomingRef.current?.id === match.id) { setIncomingChallenge(null); setPendingOpponent(null); }
+            const bd = battleDataRef.current;
+            // Route through resolveMatch so ELO is always scored, even when the
+            // opponent's terminal write arrives here first (the old path just did
+            // setBattleData(null) which skipped ELO entirely for the loser side).
+            if (bd?.matchId === match.id) void resolveMatch(bd, match.winner_id === student.id);
+          } else if (match.status === 'declined') {
+            if (incomingRef.current?.id === match.id) { setIncomingChallenge(null); setPendingOpponent(null); }
+            if (battleDataRef.current?.matchId === match.id) {
+              resolvedRef.current = match.id; setBattleData(null); setPendingOpponent(null);
+            }
           }
         }
       })
@@ -836,27 +900,19 @@ export function PvpChallengeProvider({
         const currentOutgoing = outgoingRef.current;
 
         // Match I initiated got updated
-        if (match.status === 'accepted' && currentOutgoing?.id === match.id) {
-          pvpTelemetry('challenger_received_accept', { match_id: match.id });
-          setOutgoingChallenge(null);
-          stopOutgoingTimer();
-          const opp = pendingOppRef.current ?? await fetchOpponentInfo(match.opponent_id);
-          const data = await loadBattleData(match.id, match.opponent_id, opp, true);
-          if (!data) {
-            await abortMatch(match.id, 'challenger_data_load_failed');
-            setPendingOpponent(null);
-            return;
+        if (match.status === 'accepted') {
+          await beginBattleAsChallenger(match, 'realtime');
+        } else if (match.status === 'finished') {
+          const bd = battleDataRef.current;
+          if (bd?.matchId === match.id) {
+            pvpTelemetry('match_closed_remote', { match_id: match.id, status: 'finished' });
+            void resolveMatch(bd, match.winner_id === student.id);
+          } else if (currentOutgoing?.id === match.id) {
+            setOutgoingChallenge(null); setPendingOpponent(null);
           }
-          pvpTelemetry('battle_started', { match_id: match.id, side: 'challenger' });
-          setBattleData(data);
-        } else if (match.status === 'declined' || match.status === 'finished') {
-          // If match was declined or finished by the other side, close my screen
-          if (currentOutgoing?.id === match.id || match.id === battleDataRef.current?.matchId) {
-            pvpTelemetry('match_closed_remote', { match_id: match.id, status: match.status });
-            setOutgoingChallenge(null);
-            setBattleData(null);
-            setPendingOpponent(null);
-          }
+        } else if (match.status === 'declined') {
+          pvpTelemetry('match_closed_remote', { match_id: match.id, status: 'declined' });
+          setOutgoingChallenge(null); setBattleData(null); setPendingOpponent(null);
         }
       })
       .subscribe((status) => {
@@ -872,6 +928,107 @@ export function PvpChallengeProvider({
 
     return () => { channel.unsubscribe(); };
   }, [student.id]);
+
+  // ── Polling fallback (realtime is unreliable in classrooms) ────────────────
+  //
+  // Telemetry showed ~99% of challenges auto-cancelled: the opponent's realtime
+  // channel kept dropping (CHANNEL_ERROR/CLOSED), so the INSERT event that pops
+  // the incoming-challenge banner never arrived and the 60s timeout fired. We
+  // reconcile state from the DB every few seconds so PvP no longer depends on
+  // realtime being healthy. All transitions go through the same guarded helpers
+  // the realtime handlers use, so the two paths can't double-fire.
+  useEffect(() => {
+    const POLL_MS = 4000;
+    let stopped = false;
+
+    async function tick() {
+      if (stopped) return;
+
+      // In-battle deadlock backstop: while a battle is live, in-battle moves are
+      // exchanged over realtime broadcast (no replay). If a move is dropped or
+      // the two engines disagree on the winner, one side can hang forever. We
+      // reconcile the terminal state from the DB: whoever finished first wrote
+      // the winner; the other side ends here. Also exits if the match was
+      // aborted/declined, or after a hard timeout as a last resort.
+      const bd = battleDataRef.current;
+      if (bd) {
+        if (resolvedRef.current === bd.matchId) return;
+        try {
+          const { data } = await supabaseStudent
+            .from('pvp_matches')
+            .select('status, winner_id')
+            .eq('id', bd.matchId)
+            .maybeSingle();
+          const row = data as { status: string; winner_id: string | null } | null;
+          if (row?.status === 'finished') {
+            await resolveMatch(bd, row.winner_id === student.id);
+          } else if (row?.status === 'declined' || row?.status === 'cancelled') {
+            resolvedRef.current = bd.matchId;       // exit cleanly, no ELO
+            setBattleData(null);
+            setPendingOpponent(null);
+          } else if (Date.now() - battleOpenedAtRef.current > 180_000) {
+            // 3-min catch-all: a battle should never run this long. Abort with
+            // no ELO so neither side is stranded if every realtime path failed.
+            pvpTelemetry('battle_timeout_abort', { match_id: bd.matchId });
+            await abortMatch(bd.matchId, 'battle_timeout');
+            resolvedRef.current = bd.matchId;
+            setBattleData(null);
+            setPendingOpponent(null);
+          }
+        } catch { /* transient — next tick retries */ }
+        return;
+      }
+
+      if (isInBattleRef.current || isLoadingBattleRef.current) return;
+      try {
+        // A) Outgoing: did the opponent accept / decline my challenge?
+        const out = outgoingRef.current;
+        if (out) {
+          const { data } = await supabaseStudent
+            .from('pvp_matches')
+            .select('*')
+            .eq('id', out.id)
+            .maybeSingle();
+          const m = data as PvpChallenge | null;
+          if (m?.status === 'accepted') {
+            await beginBattleAsChallenger(m, 'poll');
+          } else if (m?.status === 'declined' || m?.status === 'finished') {
+            setOutgoingChallenge(null);
+            setPendingOpponent(null);
+          }
+          return; // while I have an outgoing challenge, don't also pull incoming
+        }
+
+        // B) Incoming: a pending challenge where I'm the opponent.
+        if (!incomingRef.current) {
+          const { data } = await supabaseStudent
+            .from('pvp_matches')
+            .select('*')
+            .eq('opponent_id', student.id)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (data) await showIncomingChallenge(data as PvpChallenge, 'poll');
+        } else {
+          // I'm showing a banner — make sure it's still pending (opponent may
+          // have cancelled). If it's gone, clear so the banner doesn't linger.
+          const { data } = await supabaseStudent
+            .from('pvp_matches')
+            .select('id, status')
+            .eq('id', incomingRef.current.id)
+            .maybeSingle();
+          if (data && data.status !== 'pending') {
+            setIncomingChallenge(null);
+            setPendingOpponent(null);
+          }
+        }
+      } catch { /* transient — next tick retries */ }
+    }
+
+    const id = setInterval(tick, POLL_MS);
+    return () => { stopped = true; clearInterval(id); };
+  }, [student.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup timer on unmount
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
@@ -949,41 +1106,91 @@ export function PvpChallengeProvider({
     setPendingOpponent(null);
   }, []);
 
-  // ── Battle finish ─────────────────────────────────────────────────────────
+  // ── Battle finish (DB-authoritative, idempotent) ──────────────────────────
+  //
+  // Why this is DB-first instead of trusting the local engine:
+  //   The two clients run independent BattleEngine instances and recompute
+  //   damage with their own Math.random(), so their HP/winner can diverge, and
+  //   a dropped realtime move can leave one side hanging forever. We make the
+  //   pvp_matches row the single source of truth: whoever reaches a terminal
+  //   state first writes the winner (first-writer-wins, guarded by
+  //   `status <> finished`), BOTH sides then read back the authoritative winner
+  //   and score ELO from it. The in-battle poll calls this too, so even if a
+  //   broadcast is lost the loser still gets resolved from the DB within ~4s.
+  async function resolveMatch(bd: PvpBattleData, localWon: boolean) {
+    if (resolvedRef.current === bd.matchId) return;    // already resolved
+    if (resolvingRef.current === bd.matchId) return;   // in-flight — don't double-fire
+    resolvingRef.current = bd.matchId;
 
-  async function handleFinishBattle(won: boolean, myScore: number, oppScore: number) {
-    if (!battleData) return;
-    const { matchId, opponent, myStats, iAmChallenger } = battleData;
+    const { matchId, opponent, iAmChallenger } = bd;
+    const myId  = student.id;
+    const oppId = opponent.student_id;
+    const myScore  = localWon ? 3 : 2;
+    const oppScore = localWon ? 2 : 3;
 
-    // Only challenger writes the match result (no race condition)
-    if (iAmChallenger) {
+    try {
+      // First-writer-wins terminal write. `.neq('status','finished')` means the
+      // second finisher is a no-op, so the winner is whoever got there first.
       await supabaseStudent.from('pvp_matches').update({
         status:           'finished',
-        winner_id:        won ? student.id : opponent.student_id,
-        challenger_score: myScore,
-        opponent_score:   oppScore,
+        winner_id:        localWon ? myId : oppId,
+        challenger_score: iAmChallenger ? myScore : oppScore,
+        opponent_score:   iAmChallenger ? oppScore : myScore,
         finished_at:      new Date().toISOString(),
-      }).eq('id', matchId);
+      }).eq('id', matchId).neq('status', 'finished');
+
+      // Read back the authoritative winner (the other side may have written first).
+      // If this read fails we bail WITHOUT latching resolvedRef so the poll retries.
+      const { data: fresh, error: readError } = await supabaseStudent
+        .from('pvp_matches').select('winner_id').eq('id', matchId).maybeSingle();
+      if (readError || !fresh) {
+        pvpTelemetry('battle_resolve_read_failed', { match_id: matchId, error: readError?.message });
+        return; // resolvedRef stays null → poll retries in ~4s
+      }
+
+      // Latch AFTER confirmed read so a failed write/read doesn't permanently
+      // disable the poll backstop (the critical bug from the second review).
+      resolvedRef.current = matchId;
+
+      const authWinner = fresh.winner_id ?? (localWon ? myId : oppId);
+      const authWon    = authWinner === myId;
+
+      // Fetch fresh stats to avoid stale ELO snapshot captured at battle start.
+      const freshStats = await fetchMyStats(myId);
+      const eloChange  = calculateEloChange(freshStats.rating, opponent.rating, authWon);
+      const newRating  = Math.max(0, freshStats.rating + eloChange);
+      await supabaseStudent.from('pvp_student_stats').upsert({
+        student_id: myId,
+        rating:     newRating,
+        wins:       freshStats.wins   + (authWon ? 1 : 0),
+        losses:     freshStats.losses + (authWon ? 0 : 1),
+        win_streak: authWon ? freshStats.win_streak + 1 : 0,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'student_id' });
+
+      if (authWon) {
+        void supabaseStudent.rpc('increment_daily_counter', { p_type: 'pvp_wins', p_amount: 1 });
+      }
+      pvpTelemetry('battle_resolved', { match_id: matchId, won: authWon });
+    } catch (err) {
+      pvpTelemetry('battle_resolve_error', { match_id: matchId, error: err instanceof Error ? err.message : String(err) });
+      // Don't latch resolvedRef on error — poll will retry on next tick.
+      return;
+    } finally {
+      resolvingRef.current = null;
+      // Clear battle UI only when we confirmed the result (resolvedRef latched).
+      if (resolvedRef.current === matchId) {
+        setBattleData(null);
+        setPendingOpponent(null);
+      }
     }
+  }
 
-    // Both sides update their own ELO independently
-    const eloChange = calculateEloChange(myStats.rating, opponent.rating, won);
-    const newRating  = Math.max(0, myStats.rating + eloChange);
-    await supabaseStudent.from('pvp_student_stats').upsert({
-      student_id: student.id,
-      rating:     newRating,
-      wins:       myStats.wins    + (won ? 1 : 0),
-      losses:     myStats.losses  + (won ? 0 : 1),
-      win_streak: won ? myStats.win_streak + 1 : 0,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'student_id' });
-
-    if (won) {
-      void supabaseStudent.rpc('increment_daily_counter', { p_type: 'pvp_wins', p_amount: 1 });
-    }
-
-    setBattleData(null);
-    setPendingOpponent(null);
+  // Local engine reached a terminal state (victory/defeat/surrender/flee).
+  function handleFinishBattle(won: boolean) {
+    const bd = battleDataRef.current;
+    if (!bd) return;
+    void resolveMatch(bd, won);
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -1031,11 +1238,7 @@ export function PvpChallengeProvider({
           oppChar={battleData.oppChar}
           oppAbilities={battleData.oppAbilities ?? []}
           iAmChallenger={battleData.iAmChallenger}
-          onFinish={(won) => handleFinishBattle(
-            won,
-            won ? 3 : 2,
-            won ? 2 : 3,
-          )}
+          onFinish={(won) => handleFinishBattle(won)}
         />
       )}
     </PvpChallengeContext.Provider>
