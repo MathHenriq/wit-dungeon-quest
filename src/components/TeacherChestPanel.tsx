@@ -21,13 +21,15 @@ const inputStyle = {
   width: '100%',
 };
 
+// Presets rebalanceados (cada linha de drop rates soma exatamente 100%).
+// Progressão de custo e raridade monotônica do Tier 1 → 6.
 const TIER_PRESETS: Record<number, Partial<typeof DEFAULT_FORM>> = {
-  1: { name: 'Baú de Madeira',  costCoins: 50,  costDiamonds: 0,  dropCommon: 80, dropUncommon: 20, dropRare: 0,  dropEpic: 0,  dropLegendary: 0, dropMythic: 0, minItems: 1, maxItems: 1 },
-  2: { name: 'Baú de Ferro',    costCoins: 120, costDiamonds: 0,  dropCommon: 50, dropUncommon: 40, dropRare: 10, dropEpic: 0,  dropLegendary: 0, dropMythic: 0, minItems: 1, maxItems: 1 },
-  3: { name: 'Baú de Prata',    costCoins: 250, costDiamonds: 0,  dropCommon: 0,  dropUncommon: 45, dropRare: 40, dropEpic: 15, dropLegendary: 0, dropMythic: 0, minItems: 1, maxItems: 1 },
-  4: { name: 'Baú de Ouro',     costCoins: 500, costDiamonds: 0,  dropCommon: 0,  dropUncommon: 0,  dropRare: 50, dropEpic: 35, dropLegendary: 15, dropMythic: 0, minItems: 1, maxItems: 2 },
-  5: { name: 'Baú Mítico',      costCoins: 0,   costDiamonds: 50, dropCommon: 0,  dropUncommon: 0,  dropRare: 0,  dropEpic: 50, dropLegendary: 40, dropMythic: 10, minItems: 1, maxItems: 2 },
-  6: { name: 'Baú Lendário',    costCoins: 0,   costDiamonds: 100,dropCommon: 0,  dropUncommon: 0,  dropRare: 0,  dropEpic: 0,  dropLegendary: 60, dropMythic: 30, minItems: 2, maxItems: 3 },
+  1: { name: 'Baú de Madeira',  costCoins: 50,   costDiamonds: 0,  dropCommon: 75, dropUncommon: 22, dropRare: 3,  dropEpic: 0,  dropLegendary: 0,  dropMythic: 0,  minItems: 1, maxItems: 1 },
+  2: { name: 'Baú de Ferro',    costCoins: 150,  costDiamonds: 0,  dropCommon: 45, dropUncommon: 40, dropRare: 13, dropEpic: 2,  dropLegendary: 0,  dropMythic: 0,  minItems: 1, maxItems: 1 },
+  3: { name: 'Baú de Prata',    costCoins: 350,  costDiamonds: 0,  dropCommon: 0,  dropUncommon: 35, dropRare: 45, dropEpic: 18, dropLegendary: 2,  dropMythic: 0,  minItems: 1, maxItems: 1 },
+  4: { name: 'Baú de Ouro',     costCoins: 700,  costDiamonds: 0,  dropCommon: 0,  dropUncommon: 0,  dropRare: 40, dropEpic: 40, dropLegendary: 18, dropMythic: 2,  minItems: 1, maxItems: 2 },
+  5: { name: 'Baú Mítico',      costCoins: 0,    costDiamonds: 60, dropCommon: 0,  dropUncommon: 0,  dropRare: 10, dropEpic: 45, dropLegendary: 35, dropMythic: 10, minItems: 1, maxItems: 2 },
+  6: { name: 'Baú Lendário',    costCoins: 0,    costDiamonds: 120,dropCommon: 0,  dropUncommon: 0,  dropRare: 0,  dropEpic: 25, dropLegendary: 50, dropMythic: 25, minItems: 2, maxItems: 3 },
 };
 
 const DEFAULT_FORM = {
@@ -87,6 +89,10 @@ export function TeacherChestPanel({ teacherId }: TeacherChestPanelProps) {
     setIsSaving(true);
     const payload = {
       teacher_id: teacherId,
+      // chest_key é obrigatório para a RPC open_chest_v2 conseguir abrir o baú.
+      // Sem ele o app cai no caminho legado (open_chest(uuid,uuid)) que foi
+      // removido do banco, resultando em "Erro ao abrir o baú".
+      chest_key: `tchest_${crypto.randomUUID()}`,
       name: form.name.trim(),
       description: form.description.trim() || null,
       tier: form.tier,

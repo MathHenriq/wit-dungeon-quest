@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import {
-  Coins, TrendingUp, Star, Search, Loader2, RotateCcw, Check, Plus, Minus,
+  Coins, Gem, TrendingUp, Star, Search, Loader2, RotateCcw, Check, Plus, Minus,
   Equal, Package, X, Filter, Save, AlertCircle, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,9 +17,10 @@ interface TeacherBulkAdjustPanelProps {
 }
 
 // Editable numeric fields per student
-type EditableKey = "coins" | "level" | "pontos_disponiveis" | AttrKey;
+type EditableKey = "coins" | "diamonds" | "level" | "pontos_disponiveis" | AttrKey;
 const NUMERIC_FIELDS: { key: EditableKey; min: number }[] = [
   { key: "coins",              min: 0 },
+  { key: "diamonds",           min: 0 },
   { key: "level",              min: 1 },
   { key: "pontos_disponiveis", min: 0 },
   { key: "attr_forca",         min: 0 },
@@ -310,8 +311,9 @@ export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems
           <span className="text-xs font-semibold text-purple-300 mr-1">
             Ações para {selected.size} aluno(s):
           </span>
-          <BulkButton icon={Coins}      label="Moedas"  color="text-yellow-400" onClick={() => { setBulkOp({ field: "coins",              mode: "delta" }); setBulkValue(""); }} />
-          <BulkButton icon={TrendingUp} label="Nível"   color="text-cyan-400"   onClick={() => { setBulkOp({ field: "level",              mode: "delta" }); setBulkValue(""); }} />
+          <BulkButton icon={Coins}      label="Moedas"    color="text-yellow-400" onClick={() => { setBulkOp({ field: "coins",              mode: "delta" }); setBulkValue(""); }} />
+          <BulkButton icon={Gem}        label="Diamantes" color="text-sky-400"    onClick={() => { setBulkOp({ field: "diamonds",           mode: "delta" }); setBulkValue(""); }} />
+          <BulkButton icon={TrendingUp} label="Nível"     color="text-cyan-400"   onClick={() => { setBulkOp({ field: "level",              mode: "delta" }); setBulkValue(""); }} />
           <BulkButton icon={Star}       label="Pts"     color="text-amber-400"  onClick={() => { setBulkOp({ field: "pontos_disponiveis", mode: "delta" }); setBulkValue(""); }} />
           <div className="w-px h-5 bg-border mx-1" />
           <BulkButton icon={Plus}    label="Dar item"     color="text-green-400" onClick={() => { setInventoryOp("give");   setPickedItem(""); }} />
@@ -371,6 +373,7 @@ export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems
               </th>
               <th className="px-2 py-2 sticky left-0 bg-card/60 z-[1]">Aluno</th>
               <th className="px-2 py-2"><span className="inline-flex items-center gap-1"><Coins size={12} className="text-yellow-400" /> Moedas</span></th>
+              <th className="px-2 py-2"><span className="inline-flex items-center gap-1"><Gem size={12} className="text-sky-400" /> Diam.</span></th>
               <th className="px-2 py-2"><span className="inline-flex items-center gap-1"><TrendingUp size={12} className="text-cyan-400" /> Nível</span></th>
               <th className="px-2 py-2"><span className="inline-flex items-center gap-1"><Star size={12} className="text-amber-400" /> Pts</span></th>
               {ATTRIBUTES.map(a => (
@@ -383,7 +386,7 @@ export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={12} className="text-center py-10 text-muted-foreground text-sm">
+              <tr><td colSpan={13} className="text-center py-10 text-muted-foreground text-sm">
                 Nenhum aluno encontrado.
               </td></tr>
             )}
@@ -409,7 +412,7 @@ export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems
                       </div>
                     </div>
                   </td>
-                  {NUMERIC_FIELDS.slice(0, 3).map(f => (
+                  {NUMERIC_FIELDS.slice(0, 4).map(f => (
                     <td key={f.key} className="px-2 py-1.5">
                       <NumberCell
                         value={getValue(s, f.key)}
@@ -677,6 +680,7 @@ function StudentInventoryDetails({ student, onClose, onChanged }: { student: Stu
 function labelFor(field: EditableKey): string {
   const map: Record<EditableKey, string> = {
     coins: "moedas",
+    diamonds: "diamantes",
     level: "nível",
     pontos_disponiveis: "pontos disponíveis",
     attr_forca: "Força",
