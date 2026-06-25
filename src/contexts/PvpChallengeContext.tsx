@@ -108,18 +108,41 @@ export function usePvpChallenge(): PvpChallengeContextValue {
 async function fetchCharacterStats(studentId: string): Promise<BattleStats | null> {
   const { data: stud } = await supabaseStudent
     .from('students')
-    .select('user_id')
+    .select('user_id, attr_forca, attr_destreza, attr_inteligencia, attr_carisma, attr_agilidade, attr_resistencia')
     .eq('id', studentId)
     .maybeSingle();
-  if (!stud?.user_id) return null;
+  if (!stud) return null;
 
-  const { data: char } = await supabaseStudent
-    .from('characters')
-    .select('forca, destreza, inteligencia, carisma, agilidade, resistencia')
-    .eq('user_id', stud.user_id)
-    .maybeSingle();
+  // Preferred source: the battle `characters` row (linked by user_id).
+  if (stud.user_id) {
+    const { data: char } = await supabaseStudent
+      .from('characters')
+      .select('forca, destreza, inteligencia, carisma, agilidade, resistencia')
+      .eq('user_id', stud.user_id)
+      .maybeSingle();
+    if (char) return char as BattleStats;
+  }
 
-  return (char as BattleStats | null);
+  // Fallback: derive battle stats from the student's academic attributes.
+  // Needed so PvP still works (via the simulator) for students who never
+  // opened the Hero screen and therefore have no `characters` row — without
+  // this, get_pvp_opponent_data + fetchCharacterStats both return null and the
+  // accept used to abort silently ("nada acontece ao aceitar o desafio").
+  const s = stud as unknown as Record<string, number | null | undefined>;
+  if (
+    s.attr_forca == null && s.attr_destreza == null && s.attr_inteligencia == null &&
+    s.attr_carisma == null && s.attr_agilidade == null && s.attr_resistencia == null
+  ) {
+    return null;
+  }
+  return {
+    forca:        s.attr_forca        ?? 10,
+    destreza:     s.attr_destreza     ?? 10,
+    inteligencia: s.attr_inteligencia ?? 10,
+    carisma:      s.attr_carisma      ?? 10,
+    agilidade:    s.attr_agilidade    ?? 10,
+    resistencia:  s.attr_resistencia  ?? 10,
+  };
 }
 
 async function fetchOpponentInfo(studentId: string): Promise<PvpOpponentInfo> {
@@ -764,16 +787,22 @@ export function PvpChallengeProvider({
       ]);
       const [myChar, oppChar, myStats, myFull, oppFull] = await Promise.race([work, timeout]) as Awaited<typeof work>;
 
-      // Hard guard: we need BOTH full character bundles. Anything less means
-      // the engine would either crash or fall back to the dumb simulator.
-      if (!myFull?.char || !oppFull?.char) {
-        pvpTelemetry('battle_data_missing', {
+      // When BOTH full character bundles are present we run the interactive
+      // PvPBattleScreen. When either is missing (e.g. a player who never opened
+      // the Hero screen has no `characters` row, so get_pvp_opponent_data returns
+      // null) we no longer abort the accept — we fall back to the attribute-based
+      // PvpBattleOverlay simulator by leaving myChar/oppChar undefined. Battle
+      // stats for the simulator come from fetchCharacterStats (which itself now
+      // falls back to the student's academic attributes), so the result is fair
+      // for both sides instead of the old "instant unfair loss".
+      const haveFullBundles = !!myFull?.char && !!oppFull?.char;
+      if (!haveFullBundles) {
+        pvpTelemetry('battle_data_fallback_simulator', {
           match_id: matchId,
           has_my_full: !!myFull?.char,
           has_opp_full: !!oppFull?.char,
           i_am_challenger: iAmChallenger,
         });
-        return null;
       }
 
       return {
@@ -783,10 +812,10 @@ export function PvpChallengeProvider({
         myLevel:       student.level,
         myStats,
         iAmChallenger,
-        myChar:        myFull.char,
-        myAbilities:   myFull.abilities,
-        oppChar:       oppFull.char,
-        oppAbilities:  oppFull.abilities,
+        myChar:        myFull?.char,
+        myAbilities:   myFull?.abilities,
+        oppChar:       oppFull?.char,
+        oppAbilities:  oppFull?.abilities,
       };
     } catch (err) {
       pvpTelemetry('battle_data_error', {
@@ -1220,12 +1249,12 @@ export function PvpChallengeProvider({
         />
       )}
 
-      {/* Loading overlay while battle data is fetched. Replaces the old silent
-          PvpBattleOverlay simulator fallback that was the root cause of
-          "desafiante perde instantaneamente" — when fetchFullBattleData
-          returned null, the simulator ran for 4s and wrote an ELO loss.
-          Now: show loading; if data fails the loader cancels the match
-          cleanly and no ELO is touched. */}
+      {/* Loading overlay while battle data is fetched. If the fetch fully fails
+          or times out, loadBattleData returns null and the accept aborts. If
+          only the full character bundles are missing, loadBattleData still
+          returns battle data and the PvpBattleOverlay simulator below runs —
+          now fair for both sides (stats fall back to academic attributes), so
+          the old "desafiante perde instantaneamente" unfairness is avoided. */}
       {isLoadingBattle && !battleData && (
         <BattleLoadingOverlay opponent={pendingOpponent} />
       )}
@@ -1239,6 +1268,18 @@ export function PvpChallengeProvider({
           oppAbilities={battleData.oppAbilities ?? []}
           iAmChallenger={battleData.iAmChallenger}
           onFinish={(won) => handleFinishBattle(won)}
+        />
+      )}
+
+      {/* Simulator fallback: full character data was unavailable for one of the
+          players (no `characters` row). Resolve the match via the attribute-based
+          PvpBattleOverlay so the accept doesn't dead-end. Winner is still written
+          DB-authoritatively by resolveMatch (handleFinishBattle). */}
+      {battleData && (!battleData.myChar || !battleData.oppChar) && (
+        <PvpBattleOverlay
+          student={student}
+          battleData={battleData}
+          onFinish={async (won) => handleFinishBattle(won)}
         />
       )}
     </PvpChallengeContext.Provider>

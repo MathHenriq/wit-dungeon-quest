@@ -12,7 +12,7 @@ import { MissionBoard } from "@/components/MissionBoard";
 import { ClassRanking } from "@/components/ClassRanking";
 import { WeeklyRankingsScreen } from "@/components/student/WeeklyRankingsScreen";
 import { SchoolFeedScreen } from "@/components/student/SchoolFeedScreen";
-import { CardTicketsPanel } from "@/components/student/CardTicketsPanel";
+import { CreationTicketsPanel } from "@/components/student/CreationTicketsPanel";
 import { ProfileCardOpenerProvider } from "@/components/student/ProfileCard";
 import { StudentTitleBadge, AttendanceCrown } from "@/components/StudentTitleBadge";
 import { AincradBackground } from "@/components/ui/AincradBackground";
@@ -911,7 +911,7 @@ export default function StudentPortal() {
             student={student}
             inventory={inventory}
             onBack={() => setActiveTab('director')}
-            onInventoryChanged={refreshStudent}
+            onInventoryChanged={async () => { await Promise.all([refreshStudent(), refreshInventory()]); }}
           />
         </div>
       );
@@ -1115,7 +1115,7 @@ export default function StudentPortal() {
 
         {/* Top-1 weekly card tickets */}
         {activeTab === "cards" && (
-          <CardTicketsPanel />
+          <CreationTicketsPanel />
         )}
 
         {/* Time Capsule Tab */}
