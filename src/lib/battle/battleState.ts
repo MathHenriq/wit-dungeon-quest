@@ -40,7 +40,22 @@ export interface ElementOverride {
   onlyDamageType?: 'Physical' | 'Special' | 'Status';
 }
 
-export type MarkKey = 'murasame_death_curse' | 'custom';
+/**
+ * Marcas que uma carta pode colar no inimigo.
+ *
+ * O tipo listava só `murasame_death_curse`, mas o registry empilha e consulta
+ * outras duas. Em runtime funcionava — são comparações de string — só que o
+ * TypeScript marcava `m.key === 'vinland_iron_stack'` como comparação sem
+ * sobreposição, ou seja, não conseguia verificar nada. Com a união completa um
+ * erro de digitação em chave de marca volta a ser pego na compilação.
+ *
+ * Ao criar uma carta com marca nova, acrescente a chave aqui.
+ */
+export type MarkKey =
+  | 'murasame_death_curse'   // Murasame: 5 cargas destravam execução abaixo de 40% HP
+  | 'reaper_mark'            // Foice da Morte: alvo da reaper_aura
+  | 'vinland_iron_stack'     // Punho de Ferro: +20 de dano por carga, até 5
+  | 'custom';
 
 export interface EnemyMark {
   key: MarkKey;

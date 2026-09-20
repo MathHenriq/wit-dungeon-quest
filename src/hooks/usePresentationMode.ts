@@ -72,13 +72,21 @@ export function usePresentationMode(teacherId: string, classId?: string) {
     const ids = (studentIds ?? []).map(s => s.id);
     if (!ids.length) return;
 
-    const { data } = await supabase
+    // A coluna chama-se `message`, nao `achievement` — a query antiga pedia um
+    // campo inexistente, entao o PostgREST devolvia erro, `data` vinha null e o
+    // painel de conquistas do modo apresentacao ficava permanentemente vazio.
+    const { data, error } = await supabase
       .from('achievement_feed')
-      .select('id, student_id, achievement, created_at')
+      .select('id, student_id, message, created_at')
       .in('student_id', ids)
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(20);
+
+    if (error) {
+      console.warn('[usePresentationMode] achievement_feed falhou:', error);
+      return;
+    }
 
     const nameMap: Record<string, { name: string; character_name: string | null }> = {};
     for (const s of studentIds ?? []) nameMap[s.id] = { name: s.name, character_name: s.character_name };
@@ -87,7 +95,7 @@ export function usePresentationMode(teacherId: string, classId?: string) {
       id: a.id,
       student_name: nameMap[a.student_id]?.name ?? 'Aluno',
       character_name: nameMap[a.student_id]?.character_name ?? null,
-      achievement: a.achievement,
+      achievement: a.message,
       created_at: a.created_at,
     })));
   }, [teacherId]);
@@ -105,12 +113,12 @@ export function usePresentationMode(teacherId: string, classId?: string) {
       .channel(`presentation-${teacherId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => loadStudents())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'achievement_feed' }, (payload) => {
-        const row = payload.new as { id: string; student_id: string; achievement: string; created_at: string };
+        const row = payload.new as { id: string; student_id: string; message: string; created_at: string };
         setAchievements(prev => [{
           id: row.id,
           student_name: 'Aluno',
           character_name: null,
-          achievement: row.achievement,
+          achievement: row.message,
           created_at: row.created_at,
         }, ...prev].slice(0, 20));
       })

@@ -6445,6 +6445,10 @@ export type Database = {
       cancel_event: { Args: { p_event_id: string }; Returns: Json }
       check_all_title_conditions: { Args: never; Returns: Json }
       check_element_mastery: { Args: { p_student_id: string }; Returns: Json }
+      check_my_achievements: {
+        Args: { p_grant_diamonds?: boolean }
+        Returns: Json
+      }
       check_my_banner_conditions: { Args: never; Returns: Json }
       check_my_daily_quests: { Args: never; Returns: Json }
       check_my_event_missions: { Args: never; Returns: Json }

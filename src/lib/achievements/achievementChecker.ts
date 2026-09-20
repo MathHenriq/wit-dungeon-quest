@@ -161,3 +161,20 @@ export async function getCharacterAchievements(characterId: string): Promise<Ach
     };
   });
 }
+
+// ─── OBSOLETO ────────────────────────────────────────────────────────────────
+//
+// Este arquivo nunca foi chamado por ninguém e não deve ser. Duas razões:
+//
+//   1. credita em `characters.coins`, mas a fonte de verdade é `students.coins`
+//      (o trigger trg_sync_student_to_character vai de students para characters,
+//      não o contrário);
+//   2. faz read-modify-write de moedas no cliente — o mesmo padrão de corrida
+//      que `apply_battle_rewards` veio corrigir.
+//
+// O caminho vivo é a RPC `check_my_achievements` (migration
+// 20260920140000), consumida pelo hook `useAchievements`. Ela recalcula os
+// totais no servidor, então o aluno não tem número para forjar.
+//
+// A interface `Achievement` acima continua sendo usada como tipo pelo
+// AchievementToast — é só por isso que o arquivo ainda existe.

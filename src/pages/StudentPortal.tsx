@@ -30,6 +30,8 @@ import { useClassProfile } from "@/hooks/useClassProfile";
 import { Wave11TutorialBattleScreen } from "@/pages/Wave11TutorialBattleScreen";
 import { VaultOpeningModal } from "@/components/student/VaultOpeningModal";
 import { Patch11Welcome } from "@/components/student/Patch11Welcome";
+import { AchievementManager } from "@/components/achievements/AchievementToast";
+import { useAchievements } from "@/hooks/useAchievements";
 
 /**
  * Por quantos dias depois de um wipe o aviso ainda faz sentido. Passado isso
@@ -589,6 +591,9 @@ export default function StudentPortal() {
   const [entranceDone, setEntranceDone] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPatchWelcome, setShowPatchWelcome] = useState(false);
+  // Conquistas: 18 estavam semeadas no banco e nenhum aluno tinha desbloqueado
+  // uma sequer, porque nada chamava a verificacao.
+  const { pendentes: conquistas, check: checkConquistas, clear: limparConquistas } = useAchievements();
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
   const [battleKey, setBattleKey] = useState(0);
   const [bossTabKey, setBossTabKey] = useState(0);
@@ -626,6 +631,13 @@ export default function StudentPortal() {
 
     setShowPatchWelcome(true);
   }, [student]);
+
+  // Verifica conquistas ao entrar no portal. Pega tudo que ja estava ganho e
+  // nunca foi creditado — nivel, pontos elementais, vitorias acumuladas.
+  useEffect(() => {
+    if (authState !== "active" || !student) return;
+    void checkConquistas();
+  }, [authState, student?.id, checkConquistas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (error) { toast.error(error); clearError(); }
@@ -840,6 +852,7 @@ export default function StudentPortal() {
           alunos e nenhum deles recebeu a explicação. A trava de recencia
           abaixo mantém aquele wipe antigo em silêncio e faz o mecanismo
           funcionar no próximo. */}
+      <AchievementManager achievements={conquistas} onClear={limparConquistas} />
       {showPatchWelcome && (
         <Patch11Welcome
           refund={0}
@@ -878,7 +891,13 @@ export default function StudentPortal() {
               studentId={student.id}
               teacherId={student.teacher_id}
               classId={student.class_id}
-              onRewardApplied={refreshStudent}
+              onRewardApplied={() => {
+                refreshStudent();
+                // Depois que XP e moedas entraram: pode ter passado de nível ou
+                // batido uma contagem de vitórias. Checar aqui dá o toast na
+                // hora, em vez de só no próximo login.
+                void checkConquistas();
+              }}
               onBack={() => setActiveTab('director')}
             />
           ) : (
