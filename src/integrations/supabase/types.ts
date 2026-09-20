@@ -6394,6 +6394,10 @@ export type Database = {
           out_theme: string
         }[]
       }
+      apply_battle_rewards: {
+        Args: { p_coins: number; p_xp: number }
+        Returns: Json
+      }
       apply_daily_coin_cap: { Args: { p_amount: number }; Returns: Json }
       apply_patch11_wipe: { Args: never; Returns: Json }
       approve_attendance_request: {

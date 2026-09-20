@@ -7,6 +7,9 @@ export interface XPReward {
   levelsGained?: number;
 }
 
+/** Teto de nivel. Espelha o hard cap de public.calculate_level_from_xp. */
+export const MAX_LEVEL = 100;
+
 // XP necessário para sair de `currentLevel` para o próximo
 // Fórmula: 50 * n² + 100 * n  (curva quadrática suavizada)
 // Nível 1→2: 150 XP | 5→6: 1750 XP | 10→11: 6000 XP
@@ -57,7 +60,10 @@ export function processXPGain(
   let remaining = currentXP + xpGained;
   let level = currentLevel;
 
-  while (remaining >= getXPRequiredForLevel(level)) {
+  // O teto tem que bater com public.calculate_level_from_xp, que para em 100.
+  // Sem ele o cliente anunciava nivel 101+ numa tela de vitoria que o banco
+  // nunca confirmava — um level up fantasma a cada batalha, para sempre.
+  while (level < MAX_LEVEL && remaining >= getXPRequiredForLevel(level)) {
     remaining -= getXPRequiredForLevel(level);
     level++;
   }

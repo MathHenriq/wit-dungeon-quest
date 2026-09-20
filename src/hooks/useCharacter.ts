@@ -167,11 +167,11 @@ export function useApplyBattleRewards(characterId: string) {
       // 1. Fetch character to get user_id and base stats
       const { data: char, error: fetchErr } = await supabaseStudent
         .from('characters')
-        .select(
-          'id, user_id, level, xp, coins, free_points, ' +
-          'forca, inteligencia, destreza, carisma, agilidade, resistencia, ' +
-          'hp_max, hp_current, energy_max',
-        )
+        // Must stay a single string literal: PostgREST infers the row type
+        // from it, and a concatenated expression degrades every field to
+        // GenericStringError (which is why char.user_id, char.forca and the
+        // rest all stopped type-checking here).
+        .select('id, user_id, level, xp, coins, free_points, forca, inteligencia, destreza, carisma, agilidade, resistencia, hp_max, hp_current, energy_max')
         .eq('id', characterId)
         .single();
 
@@ -187,50 +187,72 @@ export function useApplyBattleRewards(characterId: string) {
 
       if (studentErr) throw studentErr;
 
-      // 3. Calculate progression using student data.
-      //    Patch 2.3: apply the daily coin cap BEFORE adding to the wallet.
-      //    The RPC atomically (a) decides the multiplier based on today's
-      //    accumulated earnings, (b) increments the daily log, and (c)
-      //    returns the effective coin amount we should actually credit.
-      //    Diamonds are NOT routed through this — only coins.
-      let effectiveCoins = coins;
-      if (coins > 0) {
-        const { data: capResult, error: capErr } = await supabaseStudent
-          .rpc('apply_daily_coin_cap', { p_amount: coins });
-        if (capErr) {
-          console.warn('[useApplyBattleRewards] apply_daily_coin_cap failed; crediting raw amount', capErr);
-        } else if (capResult && typeof (capResult as { effective?: number }).effective === 'number') {
-          effectiveCoins = (capResult as { effective: number }).effective;
-        }
-      }
-
+      // 3. Level-up maths, computed from the pre-battle snapshot.
       const currentLevel  = student.level ?? 1;
       const xpBase        = Math.max(student.xp ?? 0, getTotalXPForLevel(currentLevel));
-      const newTotalXP    = xpBase + xp;
-      const newTotalCoins = (student.coins ?? 0) + effectiveCoins;
 
       const spentOnPastLevels = getTotalXPForLevel(currentLevel);
       const currentLevelXP    = Math.max(0, xpBase - spentOnPastLevels);
       const xpResult          = processXPGain(currentLevel, currentLevelXP, xp);
 
-      // 4. Update Students table (Trigger syncs to characters)
-      const studentUpdate: any = {
-        coins: newTotalCoins,
-        xp:    newTotalXP,
-      };
+      // 4. Credit XP and coins.
+      //
+      //    This used to be a read-modify-write from the client: read coins,
+      //    add in JS, write the total back. Anything that wrote in between was
+      //    silently lost — and in a classroom that is routine, because a
+      //    student finishes a battle at the same moment the teacher grants
+      //    coins from the panel or a shop purchase debits. apply_battle_rewards
+      //    applies the daily cap and does `coins = coins + n` in one
+      //    transaction, so the database serialises the writes instead.
+      const { data: creditData, error: creditErr } = await supabaseStudent
+        .rpc('apply_battle_rewards', { p_xp: xp, p_coins: coins });
 
-      if (xpResult.leveledUp && xpResult.newLevel) {
-        studentUpdate.level = xpResult.newLevel;
+      const rpcMissing =
+        !!creditErr && /could not find|does not exist|PGRST202|42883/i.test(
+          `${creditErr.message ?? ''} ${creditErr.code ?? ''}`,
+        );
+
+      if (creditErr && !rpcMissing) throw creditErr;
+
+      if (rpcMissing) {
+        // The migration adding the RPC has not been pushed yet. Fall back to
+        // the old non-atomic path so the game keeps working, and say so loudly
+        // enough that it gets noticed in the console.
+        console.warn(
+          '[useApplyBattleRewards] apply_battle_rewards ausente — usando caminho antigo, nao atomico. ' +
+          'Rode: npx supabase db push --linked',
+        );
+        let effectiveCoins = coins;
+        if (coins > 0) {
+          const { data: capResult, error: capErr } = await supabaseStudent
+            .rpc('apply_daily_coin_cap', { p_amount: coins });
+          if (capErr) {
+            console.warn('[useApplyBattleRewards] apply_daily_coin_cap failed; crediting raw amount', capErr);
+          } else if (capResult && typeof (capResult as { effective?: number }).effective === 'number') {
+            effectiveCoins = (capResult as { effective: number }).effective;
+          }
+        }
+        const { error: sUpdateErr } = await supabaseStudent
+          .from('students')
+          .update({ coins: (student.coins ?? 0) + effectiveCoins, xp: xpBase + xp })
+          .eq('user_id', char.user_id);
+        if (sUpdateErr) throw sUpdateErr;
+      } else {
+        const credited = creditData as { error?: string } | null;
+        if (credited?.error) throw new Error(`apply_battle_rewards: ${credited.error}`);
       }
 
-      const { error: sUpdateErr } = await supabaseStudent
-        .from('students')
-        .update(studentUpdate)
-        .eq('user_id', char.user_id);
+      // 5. students.level is handled entirely by the database and must NOT be
+      //    written from here. Two triggers make that so:
+      //      - auto_level_up recomputes NEW.level from NEW.xp on every xp change
+      //      - enforce_student_character_update_only raises
+      //        'level can only change via xp gain' if a student touches level
+      //        without also moving xp
+      //    So a standalone level UPDATE throws, and a bundled one is ignored.
+      //    The old code sent level along with coins/xp and the trigger simply
+      //    overwrote it; xpResult below is used only for the victory screen.
 
-      if (sUpdateErr) throw sUpdateErr;
-
-      // 5. Handle character-specific level-up rewards
+      // 6. Handle character-specific level-up rewards
       if (xpResult.leveledUp && xpResult.newLevel) {
         const newLevel     = xpResult.newLevel;
         const levelsGained = xpResult.levelsGained ?? 1;

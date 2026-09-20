@@ -351,13 +351,17 @@ export class BattleEngine {
     // a clear trace in console + battle log. Eventually the HUD will read this.
     const m = this.ctx.playerMods;
     const a = this.ctx.player;
-    console.info('[BattleEngine] Attribute modifiers active for', this.ctx.player.name, {
-      attributes: {
-        forca: a.forca, destreza: a.destreza, inteligencia: a.inteligencia,
-        carisma: a.carisma, agilidade: a.agilidade, resistencia: a.resistencia,
-      },
-      modifiers: m,
-    });
+    // Dev-only: this fired on every single battle start in production, dumping
+    // a full object into the console of every student's browser.
+    if (import.meta.env?.DEV) {
+      console.info('[BattleEngine] Attribute modifiers active for', this.ctx.player.name, {
+        attributes: {
+          forca: a.forca, destreza: a.destreza, inteligencia: a.inteligencia,
+          carisma: a.carisma, agilidade: a.agilidade, resistencia: a.resistencia,
+        },
+        modifiers: m,
+      });
+    }
     const pct = (n: number) => Math.round(n * 100);
     this.log(
       'system',
