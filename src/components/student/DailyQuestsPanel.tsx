@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Swords, Users, BookOpen, Flame, Check, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 
 type Category = "combate" | "social" | "academica";
@@ -32,7 +33,7 @@ interface Payload {
   total: number;
 }
 
-const CAT_META: Record<Category, { label: string; tone: string; Icon: React.FC<{ size?: number }> }> = {
+const CAT_META: Record<Category, { label: string; tone: string; Icon: LucideIcon }> = {
   combate:   { label: "Combate",   tone: "#f05050", Icon: Swords },
   social:    { label: "Social",    tone: "#60c8f8", Icon: Users },
   academica: { label: "Acadêmica", tone: "#4ade80", Icon: BookOpen },
@@ -60,29 +61,39 @@ export function DailyQuestsPanel() {
   }
   if (!data) return null;
 
+  // A student with no row in student_quest_streak yet gets null back, which
+  // renders as a blank number and a NaN-width bar.
+  const streak = Number(data.streak) || 0;
+  const quests = Array.isArray(data.quests) ? data.quests : [];
+
   return (
     <section className="dq-section">
       <style>{CSS}</style>
       <div className="dq-header">
         <Sparkles size={14} style={{ color: "#f5c84b" }} />
         <h3>Quests do Dia</h3>
-        <span className="dq-count">{data.completed}/{data.total}</span>
+        <span className="dq-count">{data.completed ?? 0}/{data.total ?? 0}</span>
       </div>
 
       <div className="dq-streak">
-        <Flame size={14} style={{ color: data.streak > 0 ? "#fbbf24" : "rgba(255,255,255,0.3)" }} />
-        <span className="dq-streak-num">{data.streak}</span>
+        <Flame size={14} style={{ color: streak > 0 ? "#fbbf24" : "rgba(255,255,255,0.3)" }} />
+        <span className="dq-streak-num">{streak}</span>
         <span className="dq-streak-cap">/ 7 dias</span>
-        <div className="dq-streak-bar"><div style={{ width: `${Math.min(100, (data.streak / 7) * 100)}%` }} /></div>
-        {data.streak >= 6 && (
+        <div className="dq-streak-bar"><div style={{ width: `${Math.min(100, (streak / 7) * 100)}%` }} /></div>
+        {streak >= 6 && (
           <span className="dq-streak-hint">Falta 1 dia para o Baú Raro!</span>
         )}
       </div>
 
       <div className="dq-grid">
-        {data.quests.map(q => {
+        {quests.length === 0 && (
+          <div className="dq-card-desc" style={{ opacity: 0.6, textAlign: "center", padding: "10px 0" }}>
+            Nenhuma quest atribuída hoje. Volte amanhã!
+          </div>
+        )}
+        {quests.map(q => {
           const meta = CAT_META[q.category] ?? CAT_META.academica;
-          const pct = Math.min(100, (q.progress / q.condition_value) * 100);
+          const pct = q.condition_value > 0 ? Math.min(100, (q.progress / q.condition_value) * 100) : 0;
           const done = q.completed_at != null;
           return (
             <div

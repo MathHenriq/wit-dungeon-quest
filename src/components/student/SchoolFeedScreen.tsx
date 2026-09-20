@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Eye, Users, Shield, Globe2, Crown, Skull, Mountain, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { useOpenProfileCard } from "@/components/student/ProfileCard";
 
@@ -26,7 +27,7 @@ interface FeedRow {
   viewed_by_me: boolean;
 }
 
-const FILTERS: { key: FilterKey; label: string; Icon: React.FC<{ size?: number }> }[] = [
+const FILTERS: { key: FilterKey; label: string; Icon: LucideIcon }[] = [
   { key: "class",  label: "Minha turma",  Icon: Users },
   { key: "guild",  label: "Minha guilda", Icon: Shield },
   { key: "school", label: "Escola",       Icon: Globe2 },
@@ -49,7 +50,7 @@ function timeAgo(iso: string): string {
   return `${d} d`;
 }
 
-function buildMessage(row: FeedRow): { title: string; body: string; tone: string; Icon: React.FC<{ size?: number }> } {
+function buildMessage(row: FeedRow): { title: string; body: string; tone: string; Icon: LucideIcon } {
   const d = row.event_data;
   switch (row.event_type) {
     case "chest_open_rare": {

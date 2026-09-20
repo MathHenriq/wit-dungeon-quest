@@ -337,6 +337,9 @@ export function BattleDungeonView({
                 const { data: usageData } = await supabaseStudent.rpc('increment_my_card_usage', { p_item_ids: null });
                 const unlocks = ((usageData as { unlocked?: Array<{ skin_name: string }> } | null)?.unlocked) ?? [];
                 unlocks.forEach(u => toast.success(`Nova skin: ${u.skin_name}`, { description: 'Mestria desbloqueada' }));
+              }).catch(err => {
+                // Cosmetic side-quests only — never surface this to the student.
+                console.warn('[BattleDungeonView] post-victory extras failed', err);
               });
 
               // 4. Track Analytics
@@ -347,16 +350,28 @@ export function BattleDungeonView({
               }
 
               // 5. Transition to victory screen once both drop pools resolved.
-              Promise.all([dropsPromise, materialsPromise]).then(([drops, materials]) => {
-                setPhase({ type: 'victory', floor: phase.floor, enemy: phase.enemy, xp, coins, drops });
-                // Lightweight material notification; full inventory tab updates
-                // automatically via React Query invalidation on focus / refetch.
-                if (materials.length > 0) {
-                  for (const m of materials) {
-                    toast.success(`+${m.quantity} ${m.name}`, { description: 'Material adicionado ao inventário' });
+              //    The catch is what keeps a bad connection from trapping the
+              //    student on the battle screen forever: the fight is already
+              //    won and XP/coins are already credited, so a failed drop roll
+              //    must never block the victory screen — show it without drops.
+              Promise.all([dropsPromise, materialsPromise])
+                .catch((err) => {
+                  console.error('[BattleDungeonView] drop rolls failed', err);
+                  toast.error('Não deu pra sortear os drops dessa batalha.', {
+                    description: 'Seu XP e suas moedas foram salvos normalmente.',
+                  });
+                  return [[], []] as [DropResult[], MaterialDrop[]];
+                })
+                .then(([drops, materials]) => {
+                  setPhase({ type: 'victory', floor: phase.floor, enemy: phase.enemy, xp, coins, drops });
+                  // Lightweight material notification; full inventory tab updates
+                  // automatically via React Query invalidation on focus / refetch.
+                  if (materials.length > 0) {
+                    for (const m of materials) {
+                      toast.success(`+${m.quantity} ${m.name}`, { description: 'Material adicionado ao inventário' });
+                    }
                   }
-                }
-              });
+                });
             }}
             onDefeat={() => { winStreakRef.current = 0; setPhase({ type: 'defeat', floor: phase.floor, enemy: phase.enemy }); }}
             // Flee: no rewards, no defeat record — just bounce back to the floor map.

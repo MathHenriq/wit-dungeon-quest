@@ -140,7 +140,7 @@ export function BattleScreen({
         }
         let kind: PopupKind = 'physical';
         if (isCrit) kind = 'crit';
-        else if (entry.actor === 'player' && lastUsedAbilityRef.current?.damageType === 'Magical') kind = 'magical';
+        else if (entry.actor === 'player' && lastUsedAbilityRef.current?.damageType === 'Special') kind = 'magical';
         pushDamage({ side: damageSide, kind, value: entry.value });
         continue;
       }
@@ -821,11 +821,12 @@ export function BattleScreen({
                           }
                           // Patch 6.1b — show ALARM panel for every ability,
                           // tier maps to rarity tone.
+                          // abilities.tier only ever holds 1-4 (48/48/48/12 rows),
+                          // so tier 4 is the top of this scale. Mythic/??? tones
+                          // come from shop_items.rarity on the equipment path.
                           const t = ability.tier ?? 1;
                           const rar: CardRarity =
-                            t >= 6 ? 'unknown'
-                            : t === 5 ? 'mythic'
-                            : t === 4 ? 'legendary'
+                            t === 4 ? 'legendary'
                             : t === 3 ? 'rare'
                             : t === 2 ? 'uncommon'
                             : 'common';

@@ -44,6 +44,7 @@ import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { Guild } from "@/components/guild/Guild";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
 import { DailyDungeon } from "@/components/student/DailyDungeon";
+import { DailyQuestsPanel } from "@/components/student/DailyQuestsPanel";
 import { BattleDungeonView } from "@/components/student/BattleDungeonView";
 import { BattleSkillsView } from "@/components/student/BattleSkillsView";
 import { SkillTreePage } from "@/components/student/SkillTreePage";
@@ -781,6 +782,7 @@ export default function StudentPortal() {
     challenges: 'Quests', missions: 'Missões', bosses: 'Bosses',
     guild: 'Guilda', skills: 'Skills', shop: 'Loja',
     ranking: 'Ranking', character: 'Herói', capsule: 'Cápsula', pvp: 'PvP Arena', trading: 'Trading', mural: 'Mural', cards: 'Cartas',
+    diarias: 'Quests do Dia',
   };
 
   const sharedOverlays = (
@@ -1106,6 +1108,16 @@ export default function StudentPortal() {
         {/* Ranking Tab */}
         {activeTab === "ranking" && (
           <WeeklyRankingsScreen student={student} />
+        )}
+
+        {/* Patch 8.4: quests diárias. O backend já rodava por completo —
+            ensure_my_daily_quests no login e 20 call sites de
+            increment_daily_counter — mas o painel nunca tinha sido montado,
+            então o progresso acumulava sem nenhum aluno conseguir ver. */}
+        {activeTab === "diarias" && (
+          <div style={{ maxWidth: 640, margin: '0 auto' }}>
+            <DailyQuestsPanel />
+          </div>
         )}
 
         {/* Patch 8.1: Mural de Feitos da Escola */}

@@ -20,6 +20,7 @@ import {
   Sparkles,
   Crown,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { Student } from "@/types";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { useOpenProfileCard } from "@/components/student/ProfileCard";
@@ -39,15 +40,17 @@ export type StudentTab =
   | "pvp"
   | "trading"
   | "mural"
-  | "cards";
+  | "cards"
+  | "diarias";
 
 const NAV_ITEMS: {
   id: StudentTab;
   label: string;
-  Icon: React.FC<{ size?: number; className?: string }>;
+  Icon: LucideIcon;
   danger?: boolean;
 }[] = [
   { id: "challenges", label: "Quests",   Icon: Sword },
+  { id: "diarias",    label: "Diárias",  Icon: Flame },
   { id: "missions",   label: "Missões",  Icon: ScrollText },
   { id: "bosses",     label: "Bosses",   Icon: Skull,   danger: true },
   { id: "dungeon",    label: "Dungeon",  Icon: Zap },
@@ -614,7 +617,7 @@ function NavButton({
 }: {
   id: string;
   label: string;
-  Icon: React.FC<{ size?: number }>;
+  Icon: LucideIcon;
   active: boolean;
   color: string;
   activeBg: string;

@@ -148,8 +148,11 @@ export function CardActivationAnimation({
       tl.fromTo(rings,
         { opacity: 0, scale: 0.3 },
         {
-          opacity: (_, _t, idx) => 0.65 - idx * 0.15,
-          scale: (_, _t, idx) => 2 + idx * 0.6,
+          // GSAP function-based values receive (index, target, targets).
+          // This read the third argument — the targets *array* — as the index,
+          // so both values came out NaN and the legendary rings never animated.
+          opacity: (idx: number) => 0.65 - idx * 0.15,
+          scale: (idx: number) => 2 + idx * 0.6,
           duration: dur * 0.6,
           stagger: 0.1,
           ease: "expo.out",

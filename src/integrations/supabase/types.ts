@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -103,6 +103,13 @@ export type Database = {
             foreignKeyName: "achievement_feed_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "achievement_feed_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -144,6 +151,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "achievement_feed"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievement_reactions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "achievement_reactions_student_id_fkey"
@@ -193,6 +207,51 @@ export type Database = {
         }
         Relationships: []
       }
+      action_log: {
+        Row: {
+          action: string
+          actor_name: string | null
+          actor_role: string
+          actor_user_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          id: number
+          payload: Json
+          target_id: string | null
+          target_label: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action: string
+          actor_name?: string | null
+          actor_role: string
+          actor_user_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: number
+          payload?: Json
+          target_id?: string | null
+          target_label?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string
+          actor_name?: string | null
+          actor_role?: string
+          actor_user_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: number
+          payload?: Json
+          target_id?: string | null
+          target_label?: string | null
+          target_table?: string | null
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           class_id: string | null
@@ -233,6 +292,13 @@ export type Database = {
             foreignKeyName: "analytics_events_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "analytics_events_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -244,6 +310,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      banner_catalog: {
+        Row: {
+          condition_payload: Json
+          condition_value: number | null
+          created_at: string
+          description: string | null
+          id: string
+          image_data: Json
+          is_active: boolean
+          key: string
+          name: string
+          rarity: string
+          unlock_condition: string
+        }
+        Insert: {
+          condition_payload?: Json
+          condition_value?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_data?: Json
+          is_active?: boolean
+          key: string
+          name: string
+          rarity?: string
+          unlock_condition: string
+        }
+        Update: {
+          condition_payload?: Json
+          condition_value?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_data?: Json
+          is_active?: boolean
+          key?: string
+          name?: string
+          rarity?: string
+          unlock_condition?: string
+        }
+        Relationships: []
       }
       battle_history: {
         Row: {
@@ -342,6 +450,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "boss_battles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_attempts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "boss_attempts_student_id_fkey"
@@ -467,6 +582,387 @@ export type Database = {
             columns: ["boss_id"]
             isOneToOne: false
             referencedRelation: "boss_battles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boss_raid_attacks: {
+        Row: {
+          damage: number
+          id: string
+          occurred_at: string
+          phase: number
+          raid_id: string
+          student_id: string
+          was_killshot: boolean
+        }
+        Insert: {
+          damage: number
+          id?: string
+          occurred_at?: string
+          phase: number
+          raid_id: string
+          student_id: string
+          was_killshot?: boolean
+        }
+        Update: {
+          damage?: number
+          id?: string
+          occurred_at?: string
+          phase?: number
+          raid_id?: string
+          student_id?: string
+          was_killshot?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boss_raid_attacks_raid_id_fkey"
+            columns: ["raid_id"]
+            isOneToOne: false
+            referencedRelation: "boss_raids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_raid_attacks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "boss_raid_attacks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boss_raid_contributions: {
+        Row: {
+          attacks_count: number
+          damage_dealt: number
+          last_attack_at: string | null
+          raid_id: string
+          student_id: string
+        }
+        Insert: {
+          attacks_count?: number
+          damage_dealt?: number
+          last_attack_at?: string | null
+          raid_id: string
+          student_id: string
+        }
+        Update: {
+          attacks_count?: number
+          damage_dealt?: number
+          last_attack_at?: string | null
+          raid_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boss_raid_contributions_raid_id_fkey"
+            columns: ["raid_id"]
+            isOneToOne: false
+            referencedRelation: "boss_raids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_raid_contributions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "boss_raid_contributions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boss_raid_rewards: {
+        Row: {
+          awarded_at: string
+          chests_awarded: Json
+          coins_awarded: number
+          contribution_pct: number
+          diamonds_awarded: number
+          id: string
+          is_top: boolean
+          raid_id: string
+          student_id: string
+          victory: boolean
+        }
+        Insert: {
+          awarded_at?: string
+          chests_awarded?: Json
+          coins_awarded?: number
+          contribution_pct?: number
+          diamonds_awarded?: number
+          id?: string
+          is_top?: boolean
+          raid_id: string
+          student_id: string
+          victory: boolean
+        }
+        Update: {
+          awarded_at?: string
+          chests_awarded?: Json
+          coins_awarded?: number
+          contribution_pct?: number
+          diamonds_awarded?: number
+          id?: string
+          is_top?: boolean
+          raid_id?: string
+          student_id?: string
+          victory?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boss_raid_rewards_raid_id_fkey"
+            columns: ["raid_id"]
+            isOneToOne: false
+            referencedRelation: "boss_raids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_raid_rewards_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "boss_raid_rewards_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boss_raids: {
+        Row: {
+          boss_id: string
+          boss_name: string
+          boss_sprite: string | null
+          created_at: string
+          created_by: string | null
+          current_hp: number
+          defeated_at: string | null
+          ends_at: string
+          guild_id: string
+          id: string
+          max_attacks_per_member: number
+          phase: number
+          starts_at: string
+          status: string
+          total_hp: number
+        }
+        Insert: {
+          boss_id: string
+          boss_name: string
+          boss_sprite?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_hp: number
+          defeated_at?: string | null
+          ends_at: string
+          guild_id: string
+          id?: string
+          max_attacks_per_member?: number
+          phase?: number
+          starts_at?: string
+          status?: string
+          total_hp: number
+        }
+        Update: {
+          boss_id?: string
+          boss_name?: string
+          boss_sprite?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_hp?: number
+          defeated_at?: string | null
+          ends_at?: string
+          guild_id?: string
+          id?: string
+          max_attacks_per_member?: number
+          phase?: number
+          starts_at?: string
+          status?: string
+          total_hp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boss_raids_boss_id_fkey"
+            columns: ["boss_id"]
+            isOneToOne: false
+            referencedRelation: "enemies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_raids_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guild_ranking_global"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boss_raids_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_creation_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          proposed_effect: string | null
+          proposed_image_url: string | null
+          proposed_lore: string | null
+          proposed_name: string | null
+          proposed_notes: string | null
+          proposed_rarity: string | null
+          ranking_type: string
+          resulting_shop_item_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+          submitted_at: string | null
+          teacher_id: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proposed_effect?: string | null
+          proposed_image_url?: string | null
+          proposed_lore?: string | null
+          proposed_name?: string | null
+          proposed_notes?: string | null
+          proposed_rarity?: string | null
+          ranking_type: string
+          resulting_shop_item_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id: string
+          submitted_at?: string | null
+          teacher_id: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proposed_effect?: string | null
+          proposed_image_url?: string | null
+          proposed_lore?: string | null
+          proposed_name?: string | null
+          proposed_notes?: string | null
+          proposed_rarity?: string | null
+          ranking_type?: string
+          resulting_shop_item_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id?: string
+          submitted_at?: string | null
+          teacher_id?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_creation_tickets_resulting_shop_item_id_fkey"
+            columns: ["resulting_shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_creation_tickets_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_creation_tickets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "card_creation_tickets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_creation_tickets_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_skins: {
+        Row: {
+          base_card_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          unlock_condition: string
+          unlock_payload: Json
+          visual_data: Json
+        }
+        Insert: {
+          base_card_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          unlock_condition: string
+          unlock_payload?: Json
+          visual_data?: Json
+        }
+        Update: {
+          base_card_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          unlock_condition?: string
+          unlock_payload?: Json
+          visual_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_skins_base_card_id_fkey"
+            columns: ["base_card_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
             referencedColumns: ["id"]
           },
         ]
@@ -619,6 +1115,7 @@ export type Database = {
           best_time_seconds: number | null
           boss_defeated: boolean | null
           character_id: string
+          completed_at: string | null
           enemies_defeated: number | null
           floor_id: number
           times_completed: number | null
@@ -627,6 +1124,7 @@ export type Database = {
           best_time_seconds?: number | null
           boss_defeated?: boolean | null
           character_id: string
+          completed_at?: string | null
           enemies_defeated?: number | null
           floor_id: number
           times_completed?: number | null
@@ -635,6 +1133,7 @@ export type Database = {
           best_time_seconds?: number | null
           boss_defeated?: boolean | null
           character_id?: string
+          completed_at?: string | null
           enemies_defeated?: number | null
           floor_id?: number
           times_completed?: number | null
@@ -655,6 +1154,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      character_progress_backup_20260430: {
+        Row: {
+          best_time_seconds: number | null
+          boss_defeated: boolean | null
+          character_id: string | null
+          completed_at: string | null
+          enemies_defeated: number | null
+          floor_id: number | null
+          times_completed: number | null
+        }
+        Insert: {
+          best_time_seconds?: number | null
+          boss_defeated?: boolean | null
+          character_id?: string | null
+          completed_at?: string | null
+          enemies_defeated?: number | null
+          floor_id?: number | null
+          times_completed?: number | null
+        }
+        Update: {
+          best_time_seconds?: number | null
+          boss_defeated?: boolean | null
+          character_id?: string | null
+          completed_at?: string | null
+          enemies_defeated?: number | null
+          floor_id?: number | null
+          times_completed?: number | null
+        }
+        Relationships: []
       }
       characters: {
         Row: {
@@ -773,6 +1302,240 @@ export type Database = {
         }
         Relationships: []
       }
+      characters_relink_backup_20260430: {
+        Row: {
+          agilidade: number | null
+          carisma: number | null
+          class: string | null
+          coins: number | null
+          created_at: string | null
+          destreza: number | null
+          diamonds: number | null
+          energy_max: number | null
+          forca: number | null
+          free_points: number | null
+          hp_current: number | null
+          hp_max: number | null
+          id: string | null
+          inteligencia: number | null
+          level: number | null
+          name: string | null
+          pts_dark: number | null
+          pts_electric: number | null
+          pts_fighting: number | null
+          pts_fire: number | null
+          pts_flying: number | null
+          pts_ghost: number | null
+          pts_grass: number | null
+          pts_ground: number | null
+          pts_ice: number | null
+          pts_poison: number | null
+          pts_steel: number | null
+          pts_water: number | null
+          resistencia: number | null
+          sprite_normal: string | null
+          sprite_pixel_attack: string | null
+          sprite_pixel_back: string | null
+          sprite_pixel_front: string | null
+          updated_at: string | null
+          user_id: string | null
+          xp: number | null
+        }
+        Insert: {
+          agilidade?: number | null
+          carisma?: number | null
+          class?: string | null
+          coins?: number | null
+          created_at?: string | null
+          destreza?: number | null
+          diamonds?: number | null
+          energy_max?: number | null
+          forca?: number | null
+          free_points?: number | null
+          hp_current?: number | null
+          hp_max?: number | null
+          id?: string | null
+          inteligencia?: number | null
+          level?: number | null
+          name?: string | null
+          pts_dark?: number | null
+          pts_electric?: number | null
+          pts_fighting?: number | null
+          pts_fire?: number | null
+          pts_flying?: number | null
+          pts_ghost?: number | null
+          pts_grass?: number | null
+          pts_ground?: number | null
+          pts_ice?: number | null
+          pts_poison?: number | null
+          pts_steel?: number | null
+          pts_water?: number | null
+          resistencia?: number | null
+          sprite_normal?: string | null
+          sprite_pixel_attack?: string | null
+          sprite_pixel_back?: string | null
+          sprite_pixel_front?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          xp?: number | null
+        }
+        Update: {
+          agilidade?: number | null
+          carisma?: number | null
+          class?: string | null
+          coins?: number | null
+          created_at?: string | null
+          destreza?: number | null
+          diamonds?: number | null
+          energy_max?: number | null
+          forca?: number | null
+          free_points?: number | null
+          hp_current?: number | null
+          hp_max?: number | null
+          id?: string | null
+          inteligencia?: number | null
+          level?: number | null
+          name?: string | null
+          pts_dark?: number | null
+          pts_electric?: number | null
+          pts_fighting?: number | null
+          pts_fire?: number | null
+          pts_flying?: number | null
+          pts_ghost?: number | null
+          pts_grass?: number | null
+          pts_ground?: number | null
+          pts_ice?: number | null
+          pts_poison?: number | null
+          pts_steel?: number | null
+          pts_water?: number | null
+          resistencia?: number | null
+          sprite_normal?: string | null
+          sprite_pixel_attack?: string | null
+          sprite_pixel_back?: string | null
+          sprite_pixel_front?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          xp?: number | null
+        }
+        Relationships: []
+      }
+      characters_relink_namepass_backup_20260430: {
+        Row: {
+          agilidade: number | null
+          carisma: number | null
+          class: string | null
+          coins: number | null
+          created_at: string | null
+          destreza: number | null
+          diamonds: number | null
+          energy_max: number | null
+          forca: number | null
+          free_points: number | null
+          hp_current: number | null
+          hp_max: number | null
+          id: string | null
+          inteligencia: number | null
+          level: number | null
+          name: string | null
+          pts_dark: number | null
+          pts_electric: number | null
+          pts_fighting: number | null
+          pts_fire: number | null
+          pts_flying: number | null
+          pts_ghost: number | null
+          pts_grass: number | null
+          pts_ground: number | null
+          pts_ice: number | null
+          pts_poison: number | null
+          pts_steel: number | null
+          pts_water: number | null
+          resistencia: number | null
+          sprite_normal: string | null
+          sprite_pixel_attack: string | null
+          sprite_pixel_back: string | null
+          sprite_pixel_front: string | null
+          updated_at: string | null
+          user_id: string | null
+          xp: number | null
+        }
+        Insert: {
+          agilidade?: number | null
+          carisma?: number | null
+          class?: string | null
+          coins?: number | null
+          created_at?: string | null
+          destreza?: number | null
+          diamonds?: number | null
+          energy_max?: number | null
+          forca?: number | null
+          free_points?: number | null
+          hp_current?: number | null
+          hp_max?: number | null
+          id?: string | null
+          inteligencia?: number | null
+          level?: number | null
+          name?: string | null
+          pts_dark?: number | null
+          pts_electric?: number | null
+          pts_fighting?: number | null
+          pts_fire?: number | null
+          pts_flying?: number | null
+          pts_ghost?: number | null
+          pts_grass?: number | null
+          pts_ground?: number | null
+          pts_ice?: number | null
+          pts_poison?: number | null
+          pts_steel?: number | null
+          pts_water?: number | null
+          resistencia?: number | null
+          sprite_normal?: string | null
+          sprite_pixel_attack?: string | null
+          sprite_pixel_back?: string | null
+          sprite_pixel_front?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          xp?: number | null
+        }
+        Update: {
+          agilidade?: number | null
+          carisma?: number | null
+          class?: string | null
+          coins?: number | null
+          created_at?: string | null
+          destreza?: number | null
+          diamonds?: number | null
+          energy_max?: number | null
+          forca?: number | null
+          free_points?: number | null
+          hp_current?: number | null
+          hp_max?: number | null
+          id?: string | null
+          inteligencia?: number | null
+          level?: number | null
+          name?: string | null
+          pts_dark?: number | null
+          pts_electric?: number | null
+          pts_fighting?: number | null
+          pts_fire?: number | null
+          pts_flying?: number | null
+          pts_ghost?: number | null
+          pts_grass?: number | null
+          pts_ground?: number | null
+          pts_ice?: number | null
+          pts_poison?: number | null
+          pts_steel?: number | null
+          pts_water?: number | null
+          resistencia?: number | null
+          sprite_normal?: string | null
+          sprite_pixel_attack?: string | null
+          sprite_pixel_back?: string | null
+          sprite_pixel_front?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          xp?: number | null
+        }
+        Relationships: []
+      }
       chest_item_pool: {
         Row: {
           chest_type_id: string
@@ -849,10 +1612,35 @@ export type Database = {
             foreignKeyName: "chest_openings_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "chest_openings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
+      }
+      chest_subpercent_weights: {
+        Row: {
+          chest_key: string
+          rarity: string
+          weight_bp: number
+        }
+        Insert: {
+          chest_key: string
+          rarity: string
+          weight_bp: number
+        }
+        Update: {
+          chest_key?: string
+          rarity?: string
+          weight_bp?: number
+        }
+        Relationships: []
       }
       chest_types: {
         Row: {
@@ -860,6 +1648,8 @@ export type Database = {
           bonus_coins_min: number
           bonus_xp_max: number
           bonus_xp_min: number
+          card_pool: Json | null
+          chest_key: string | null
           cost_coins: number
           cost_diamonds: number
           created_at: string
@@ -870,6 +1660,8 @@ export type Database = {
           drop_mythic: number
           drop_rare: number
           drop_uncommon: number
+          drop_unknown: number
+          event_id: string | null
           id: string
           is_active: boolean
           is_limited: boolean
@@ -878,7 +1670,7 @@ export type Database = {
           min_level: number
           name: string
           stock: number | null
-          teacher_id: string
+          teacher_id: string | null
           tier: number
         }
         Insert: {
@@ -886,6 +1678,8 @@ export type Database = {
           bonus_coins_min?: number
           bonus_xp_max?: number
           bonus_xp_min?: number
+          card_pool?: Json | null
+          chest_key?: string | null
           cost_coins?: number
           cost_diamonds?: number
           created_at?: string
@@ -896,6 +1690,8 @@ export type Database = {
           drop_mythic?: number
           drop_rare?: number
           drop_uncommon?: number
+          drop_unknown?: number
+          event_id?: string | null
           id?: string
           is_active?: boolean
           is_limited?: boolean
@@ -904,7 +1700,7 @@ export type Database = {
           min_level?: number
           name: string
           stock?: number | null
-          teacher_id: string
+          teacher_id?: string | null
           tier?: number
         }
         Update: {
@@ -912,6 +1708,8 @@ export type Database = {
           bonus_coins_min?: number
           bonus_xp_max?: number
           bonus_xp_min?: number
+          card_pool?: Json | null
+          chest_key?: string | null
           cost_coins?: number
           cost_diamonds?: number
           created_at?: string
@@ -922,6 +1720,8 @@ export type Database = {
           drop_mythic?: number
           drop_rare?: number
           drop_uncommon?: number
+          drop_unknown?: number
+          event_id?: string | null
           id?: string
           is_active?: boolean
           is_limited?: boolean
@@ -930,10 +1730,17 @@ export type Database = {
           min_level?: number
           name?: string
           stock?: number | null
-          teacher_id?: string
+          teacher_id?: string | null
           tier?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "chest_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chest_types_teacher_id_fkey"
             columns: ["teacher_id"]
@@ -1092,6 +1899,13 @@ export type Database = {
             foreignKeyName: "classroom_activity_completions_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "classroom_activity_completions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -1147,6 +1961,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      consumables: {
+        Row: {
+          created_at: string
+          description: string
+          effect: string
+          effect_value: number
+          icon: string
+          id: string
+          key: string
+          name: string
+          rarity: Database["public"]["Enums"]["material_rarity"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          effect: string
+          effect_value?: number
+          icon?: string
+          id?: string
+          key: string
+          name: string
+          rarity?: Database["public"]["Enums"]["material_rarity"]
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          effect?: string
+          effect_value?: number
+          icon?: string
+          id?: string
+          key?: string
+          name?: string
+          rarity?: Database["public"]["Enums"]["material_rarity"]
+        }
+        Relationships: []
       }
       craft_recipes: {
         Row: {
@@ -1205,6 +2055,88 @@ export type Database = {
           },
         ]
       }
+      creation_tickets: {
+        Row: {
+          card_created_id: string | null
+          created_at: string
+          granted_at: string
+          id: string
+          master_notes: string | null
+          ranking_type: string
+          requested_at: string | null
+          student_id: string
+          used_at: string | null
+          week_start: string
+        }
+        Insert: {
+          card_created_id?: string | null
+          created_at?: string
+          granted_at?: string
+          id?: string
+          master_notes?: string | null
+          ranking_type: string
+          requested_at?: string | null
+          student_id: string
+          used_at?: string | null
+          week_start: string
+        }
+        Update: {
+          card_created_id?: string | null
+          created_at?: string
+          granted_at?: string
+          id?: string
+          master_notes?: string | null
+          ranking_type?: string
+          requested_at?: string | null
+          student_id?: string
+          used_at?: string | null
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creation_tickets_card_created_id_fkey"
+            columns: ["card_created_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creation_tickets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "creation_tickets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_currency_log: {
+        Row: {
+          coins_earned_today: number
+          log_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coins_earned_today?: number
+          log_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coins_earned_today?: number
+          log_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_dungeon_attempts: {
         Row: {
           coins_earned: number
@@ -1241,10 +2173,56 @@ export type Database = {
             foreignKeyName: "daily_dungeon_attempts_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "daily_dungeon_attempts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
+      }
+      daily_quest_pool: {
+        Row: {
+          category: string
+          condition_type: string
+          condition_value: number
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          key: string
+          reward_coins: number
+          reward_diamonds: number
+        }
+        Insert: {
+          category: string
+          condition_type: string
+          condition_value: number
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          key: string
+          reward_coins?: number
+          reward_diamonds?: number
+        }
+        Update: {
+          category?: string
+          condition_type?: string
+          condition_value?: number
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          reward_coins?: number
+          reward_diamonds?: number
+        }
+        Relationships: []
       }
       drop_items: {
         Row: {
@@ -1275,6 +2253,39 @@ export type Database = {
           rarity?: Database["public"]["Enums"]["drop_rarity"]
         }
         Relationships: []
+      }
+      element_mastery_log: {
+        Row: {
+          element: string
+          mastered_at: string
+          student_id: string
+        }
+        Insert: {
+          element: string
+          mastered_at?: string
+          student_id: string
+        }
+        Update: {
+          element?: string
+          mastered_at?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "element_mastery_log_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "element_mastery_log_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       elements: {
         Row: {
@@ -1309,6 +2320,7 @@ export type Database = {
           def_magica: number | null
           description: string | null
           element_type: string | null
+          element_type_secondary: string | null
           floor_id: number | null
           hp_max: number | null
           icon_type: string
@@ -1339,6 +2351,7 @@ export type Database = {
           def_magica?: number | null
           description?: string | null
           element_type?: string | null
+          element_type_secondary?: string | null
           floor_id?: number | null
           hp_max?: number | null
           icon_type?: string
@@ -1369,6 +2382,7 @@ export type Database = {
           def_magica?: number | null
           description?: string | null
           element_type?: string | null
+          element_type_secondary?: string | null
           floor_id?: number | null
           hp_max?: number | null
           icon_type?: string
@@ -1464,6 +2478,218 @@ export type Database = {
             columns: ["enemy_id"]
             isOneToOne: false
             referencedRelation: "enemies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_cards: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          migrated_at: string | null
+          migrated_to_pool: boolean
+          shop_item_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          migrated_at?: string | null
+          migrated_to_pool?: boolean
+          shop_item_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          migrated_at?: string | null
+          migrated_to_pool?: boolean
+          shop_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_cards_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_cards_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_fragments: {
+        Row: {
+          battles_count: number
+          bosses_count: number
+          event_id: string
+          fragments: number
+          last_drop_at: string | null
+          student_id: string
+        }
+        Insert: {
+          battles_count?: number
+          bosses_count?: number
+          event_id: string
+          fragments?: number
+          last_drop_at?: string | null
+          student_id: string
+        }
+        Update: {
+          battles_count?: number
+          bosses_count?: number
+          event_id?: string
+          fragments?: number
+          last_drop_at?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_fragments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_fragments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "event_fragments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_vault_openings: {
+        Row: {
+          event_id: string
+          fragments_total: number
+          id: string
+          opened_at: string
+          rewards: Json
+          shown_at: string | null
+          student_id: string
+        }
+        Insert: {
+          event_id: string
+          fragments_total: number
+          id?: string
+          opened_at?: string
+          rewards?: Json
+          shown_at?: string | null
+          student_id: string
+        }
+        Update: {
+          event_id?: string
+          fragments_total?: number
+          id?: string
+          opened_at?: string
+          rewards?: Json
+          shown_at?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_vault_openings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_vault_openings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "event_vault_openings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          banner_image_url: string | null
+          color_primary: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ended_at: string | null
+          ends_at: string | null
+          event_boss_id: string | null
+          id: string
+          name: string
+          started_at: string | null
+          starts_at: string | null
+          status: string
+          teacher_id: string | null
+          theme: string | null
+        }
+        Insert: {
+          banner_image_url?: string | null
+          color_primary?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ended_at?: string | null
+          ends_at?: string | null
+          event_boss_id?: string | null
+          id?: string
+          name: string
+          started_at?: string | null
+          starts_at?: string | null
+          status?: string
+          teacher_id?: string | null
+          theme?: string | null
+        }
+        Update: {
+          banner_image_url?: string | null
+          color_primary?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ended_at?: string | null
+          ends_at?: string | null
+          event_boss_id?: string | null
+          id?: string
+          name?: string
+          started_at?: string | null
+          starts_at?: string | null
+          status?: string
+          teacher_id?: string | null
+          theme?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_event_boss_id_fkey"
+            columns: ["event_boss_id"]
+            isOneToOne: false
+            referencedRelation: "enemies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
             referencedColumns: ["id"]
           },
         ]
@@ -1597,6 +2823,63 @@ export type Database = {
         }
         Relationships: []
       }
+      forge_recipes: {
+        Row: {
+          buff_id: string | null
+          consumable_id: string | null
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          ingredients: Json
+          key: string
+          name: string
+          rarity: Database["public"]["Enums"]["material_rarity"]
+          result_type: string
+        }
+        Insert: {
+          buff_id?: string | null
+          consumable_id?: string | null
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          ingredients?: Json
+          key: string
+          name: string
+          rarity?: Database["public"]["Enums"]["material_rarity"]
+          result_type: string
+        }
+        Update: {
+          buff_id?: string | null
+          consumable_id?: string | null
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          ingredients?: Json
+          key?: string
+          name?: string
+          rarity?: Database["public"]["Enums"]["material_rarity"]
+          result_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forge_recipes_buff_id_fkey"
+            columns: ["buff_id"]
+            isOneToOne: false
+            referencedRelation: "temporary_buffs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forge_recipes_consumable_id_fkey"
+            columns: ["consumable_id"]
+            isOneToOne: false
+            referencedRelation: "consumables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_classroom_connections: {
         Row: {
           access_token: string
@@ -1638,6 +2921,65 @@ export type Database = {
           },
         ]
       }
+      guild_join_requests: {
+        Row: {
+          created_at: string
+          guild_id: string
+          id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          guild_id: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          guild_id?: string
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guild_join_requests_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guild_ranking_global"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guild_join_requests_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guild_join_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "guild_join_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guild_members: {
         Row: {
           guild_id: string
@@ -1674,6 +3016,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "guilds"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guild_members_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "guild_members_student_id_fkey"
@@ -1773,6 +3122,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "guilds"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guild_posts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "guild_posts_student_id_fkey"
@@ -1946,6 +3302,36 @@ export type Database = {
           },
         ]
       }
+      materials: {
+        Row: {
+          created_at: string
+          description: string
+          icon_url: string | null
+          id: string
+          name: string
+          rarity: Database["public"]["Enums"]["material_rarity"]
+          theme: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          rarity?: Database["public"]["Enums"]["material_rarity"]
+          theme?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          rarity?: Database["public"]["Enums"]["material_rarity"]
+          theme?: string
+        }
+        Relationships: []
+      }
       mentorships: {
         Row: {
           completed_at: string | null
@@ -1979,8 +3365,22 @@ export type Database = {
             foreignKeyName: "mentorships_mentee_id_fkey"
             columns: ["mentee_id"]
             isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "mentorships_mentee_id_fkey"
+            columns: ["mentee_id"]
+            isOneToOne: true
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentorships_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "mentorships_mentor_id_fkey"
@@ -2040,6 +3440,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "teachers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_completions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "mission_completions_student_id_fkey"
@@ -2110,6 +3517,13 @@ export type Database = {
             foreignKeyName: "parent_invites_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "parent_invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -2165,6 +3579,13 @@ export type Database = {
             foreignKeyName: "parent_reports_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "parent_reports_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -2209,6 +3630,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "parent_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_student_links_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "parent_student_links_student_id_fkey"
@@ -2332,8 +3760,22 @@ export type Database = {
             foreignKeyName: "pvp_matches_challenger_id_fkey"
             columns: ["challenger_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "pvp_matches_challenger_id_fkey"
+            columns: ["challenger_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pvp_matches_opponent_id_fkey"
+            columns: ["opponent_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "pvp_matches_opponent_id_fkey"
@@ -2348,6 +3790,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "teachers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pvp_matches_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "pvp_matches_winner_id_fkey"
@@ -2372,6 +3821,13 @@ export type Database = {
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pvp_presence_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
           {
             foreignKeyName: "pvp_presence_student_id_fkey"
             columns: ["student_id"]
@@ -2506,6 +3962,13 @@ export type Database = {
             foreignKeyName: "pvp_student_stats_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "pvp_student_stats_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -2549,6 +4012,125 @@ export type Database = {
           },
         ]
       }
+      school_feed_events: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          event_data: Json
+          event_type: string
+          guild_id: string | null
+          id: string
+          student_id: string
+          teacher_id: string
+          views_count: number
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          event_data?: Json
+          event_type: string
+          guild_id?: string | null
+          id?: string
+          student_id: string
+          teacher_id: string
+          views_count?: number
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          guild_id?: string | null
+          id?: string
+          student_id?: string
+          teacher_id?: string
+          views_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_feed_events_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_feed_events_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guild_ranking_global"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_feed_events_guild_id_fkey"
+            columns: ["guild_id"]
+            isOneToOne: false
+            referencedRelation: "guilds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_feed_events_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "school_feed_events_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_feed_events_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_feed_views: {
+        Row: {
+          event_id: string
+          student_id: string
+          viewed_at: string
+        }
+        Insert: {
+          event_id: string
+          student_id: string
+          viewed_at?: string
+        }
+        Update: {
+          event_id?: string
+          student_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_feed_views_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "school_feed_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_feed_views_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "school_feed_views_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_items: {
         Row: {
           ability_config: Json
@@ -2567,16 +4149,19 @@ export type Database = {
           created_at: string
           description: string | null
           diamond_cost: number
+          event_id: string | null
           icon: string
           id: string
           image_url: string | null
           is_active: boolean
+          is_event_exclusive: boolean
+          is_premium: boolean
           item_type: string
           min_level: number
           name: string
           rarity: string
           source_anime: string | null
-          teacher_id: string
+          teacher_id: string | null
         }
         Insert: {
           ability_config?: Json
@@ -2595,16 +4180,19 @@ export type Database = {
           created_at?: string
           description?: string | null
           diamond_cost?: number
+          event_id?: string | null
           icon?: string
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_event_exclusive?: boolean
+          is_premium?: boolean
           item_type?: string
           min_level?: number
           name: string
           rarity?: string
           source_anime?: string | null
-          teacher_id: string
+          teacher_id?: string | null
         }
         Update: {
           ability_config?: Json
@@ -2623,18 +4211,28 @@ export type Database = {
           created_at?: string
           description?: string | null
           diamond_cost?: number
+          event_id?: string | null
           icon?: string
           id?: string
           image_url?: string | null
           is_active?: boolean
+          is_event_exclusive?: boolean
+          is_premium?: boolean
           item_type?: string
           min_level?: number
           name?: string
           rarity?: string
           source_anime?: string | null
-          teacher_id?: string
+          teacher_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "shop_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shop_items_teacher_id_fkey"
             columns: ["teacher_id"]
@@ -2739,6 +4337,318 @@ export type Database = {
           },
         ]
       }
+      student_active_buffs: {
+        Row: {
+          battles_left: number
+          buff_id: string
+          granted_at: string
+          student_id: string
+        }
+        Insert: {
+          battles_left: number
+          buff_id: string
+          granted_at?: string
+          student_id: string
+        }
+        Update: {
+          battles_left?: number
+          buff_id?: string
+          granted_at?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_active_buffs_buff_id_fkey"
+            columns: ["buff_id"]
+            isOneToOne: false
+            referencedRelation: "temporary_buffs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_active_buffs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_active_buffs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_attribute_points: {
+        Row: {
+          agilidade: number
+          carisma: number
+          destreza: number
+          forca: number
+          inteligencia: number
+          resistencia: number
+          student_id: string
+        }
+        Insert: {
+          agilidade?: number
+          carisma?: number
+          destreza?: number
+          forca?: number
+          inteligencia?: number
+          resistencia?: number
+          student_id: string
+        }
+        Update: {
+          agilidade?: number
+          carisma?: number
+          destreza?: number
+          forca?: number
+          inteligencia?: number
+          resistencia?: number
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_attribute_points_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_attribute_points_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_audit_log: {
+        Row: {
+          changed_at: string
+          changed_by_role: string | null
+          changed_by_user_id: string | null
+          column_name: string
+          id: number
+          new_value: string | null
+          old_value: string | null
+          student_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by_role?: string | null
+          changed_by_user_id?: string | null
+          column_name: string
+          id?: number
+          new_value?: string | null
+          old_value?: string | null
+          student_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by_role?: string | null
+          changed_by_user_id?: string | null
+          column_name?: string
+          id?: number
+          new_value?: string | null
+          old_value?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_audit_log_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_audit_log_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_card_usage: {
+        Row: {
+          shop_item_id: string
+          student_id: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          shop_item_id: string
+          student_id: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          shop_item_id?: string
+          student_id?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_card_usage_shop_item_id_fkey"
+            columns: ["shop_item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_card_usage_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_card_usage_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_chest_grants: {
+        Row: {
+          chest_key: string
+          granted_at: string
+          id: string
+          opened_at: string | null
+          reason: string | null
+          source_payload: Json
+          student_id: string
+        }
+        Insert: {
+          chest_key: string
+          granted_at?: string
+          id?: string
+          opened_at?: string | null
+          reason?: string | null
+          source_payload?: Json
+          student_id: string
+        }
+        Update: {
+          chest_key?: string
+          granted_at?: string
+          id?: string
+          opened_at?: string | null
+          reason?: string | null
+          source_payload?: Json
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_chest_grants_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_chest_grants_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_class_profile: {
+        Row: {
+          chose_class_at: string | null
+          class_type: string | null
+          is_veteran_onboarded: boolean
+          last_element_reset_at: string | null
+          primary_element: string | null
+          secondary_element: string | null
+          student_id: string
+        }
+        Insert: {
+          chose_class_at?: string | null
+          class_type?: string | null
+          is_veteran_onboarded?: boolean
+          last_element_reset_at?: string | null
+          primary_element?: string | null
+          secondary_element?: string | null
+          student_id: string
+        }
+        Update: {
+          chose_class_at?: string | null
+          class_type?: string | null
+          is_veteran_onboarded?: boolean
+          last_element_reset_at?: string | null
+          primary_element?: string | null
+          secondary_element?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_class_profile_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_class_profile_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_consumables: {
+        Row: {
+          consumable_id: string
+          quantity: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          consumable_id: string
+          quantity?: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          consumable_id?: string
+          quantity?: number
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_consumables_consumable_id_fkey"
+            columns: ["consumable_id"]
+            isOneToOne: false
+            referencedRelation: "consumables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_consumables_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_consumables_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_crafts: {
         Row: {
           crafted_at: string
@@ -2768,6 +4678,98 @@ export type Database = {
           },
           {
             foreignKeyName: "student_crafts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_crafts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_daily_counters: {
+        Row: {
+          counter_type: string
+          date: string
+          student_id: string
+          value: number
+        }
+        Insert: {
+          counter_type: string
+          date: string
+          student_id: string
+          value?: number
+        }
+        Update: {
+          counter_type?: string
+          date?: string
+          student_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_daily_counters_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_daily_counters_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_daily_quests: {
+        Row: {
+          assigned_date: string
+          completed_at: string | null
+          id: string
+          progress: number
+          quest_id: string
+          student_id: string
+        }
+        Insert: {
+          assigned_date: string
+          completed_at?: string | null
+          id?: string
+          progress?: number
+          quest_id: string
+          student_id: string
+        }
+        Update: {
+          assigned_date?: string
+          completed_at?: string | null
+          id?: string
+          progress?: number
+          quest_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_daily_quests_quest_id_fkey"
+            columns: ["quest_id"]
+            isOneToOne: false
+            referencedRelation: "daily_quest_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_daily_quests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_daily_quests_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
@@ -2804,6 +4806,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "drop_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_drop_inventory_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "student_drop_inventory_student_id_fkey"
@@ -2861,6 +4870,56 @@ export type Database = {
             foreignKeyName: "student_inventory_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_inventory_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_inventory_materials: {
+        Row: {
+          material_id: string
+          quantity: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          material_id: string
+          quantity?: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          material_id?: string
+          quantity?: number
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_inventory_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_inventory_materials_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_inventory_materials_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -2868,41 +4927,117 @@ export type Database = {
       }
       student_missions: {
         Row: {
+          condition_payload: Json | null
+          condition_target: number | null
+          condition_type: string | null
           created_at: string
           description: string | null
+          event_id: string | null
           id: string
           is_active: boolean
           is_return_mission: boolean
           reward: number
+          reward_chest_key: string | null
+          reward_diamonds: number
+          reward_fragments: number
           teacher_id: string
           title: string
         }
         Insert: {
+          condition_payload?: Json | null
+          condition_target?: number | null
+          condition_type?: string | null
           created_at?: string
           description?: string | null
+          event_id?: string | null
           id?: string
           is_active?: boolean
           is_return_mission?: boolean
           reward?: number
+          reward_chest_key?: string | null
+          reward_diamonds?: number
+          reward_fragments?: number
           teacher_id: string
           title: string
         }
         Update: {
+          condition_payload?: Json | null
+          condition_target?: number | null
+          condition_type?: string | null
           created_at?: string
           description?: string | null
+          event_id?: string | null
           id?: string
           is_active?: boolean
           is_return_mission?: boolean
           reward?: number
+          reward_chest_key?: string | null
+          reward_diamonds?: number
+          reward_fragments?: number
           teacher_id?: string
           title?: string
         }
         Relationships: [
           {
+            foreignKeyName: "student_missions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "student_missions_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_pending_rewards: {
+        Row: {
+          body: string | null
+          claimed_at: string | null
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          student_id: string
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          student_id: string
+          title: string
+        }
+        Update: {
+          body?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          student_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_pending_rewards_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_pending_rewards_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -2948,6 +5083,52 @@ export type Database = {
           },
           {
             foreignKeyName: "student_pets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_pets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_quest_streak: {
+        Row: {
+          current_streak: number
+          last_completed_date: string | null
+          longest_streak: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          current_streak?: number
+          last_completed_date?: string | null
+          longest_streak?: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          current_streak?: number
+          last_completed_date?: string | null
+          longest_streak?: number
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_quest_streak_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_quest_streak_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: true
             referencedRelation: "students"
@@ -3015,6 +5196,46 @@ export type Database = {
             foreignKeyName: "student_requests_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_skill_points: {
+        Row: {
+          available_points: number
+          student_id: string
+          total_earned: number
+        }
+        Insert: {
+          available_points?: number
+          student_id: string
+          total_earned?: number
+        }
+        Update: {
+          available_points?: number
+          student_id?: string
+          total_earned?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_skill_points_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_skill_points_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -3054,6 +5275,13 @@ export type Database = {
             foreignKeyName: "student_skill_progress_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_skill_progress_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -3062,7 +5290,7 @@ export type Database = {
       student_titles: {
         Row: {
           assigned_at: string
-          assigned_by: string
+          assigned_by: string | null
           expires_at: string
           id: string
           student_id: string
@@ -3070,7 +5298,7 @@ export type Database = {
         }
         Insert: {
           assigned_at?: string
-          assigned_by: string
+          assigned_by?: string | null
           expires_at: string
           id?: string
           student_id: string
@@ -3078,7 +5306,7 @@ export type Database = {
         }
         Update: {
           assigned_at?: string
-          assigned_by?: string
+          assigned_by?: string | null
           expires_at?: string
           id?: string
           student_id?: string
@@ -3096,13 +5324,264 @@ export type Database = {
             foreignKeyName: "student_titles_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_titles_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_unlocked_backdrops: {
+        Row: {
+          backdrop_key: string
+          is_favorite: boolean
+          student_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          backdrop_key: string
+          is_favorite?: boolean
+          student_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          backdrop_key?: string
+          is_favorite?: boolean
+          student_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_unlocked_backdrops_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_backdrops_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_unlocked_banners: {
+        Row: {
+          banner_id: string
+          id: string
+          source: string | null
+          student_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          banner_id: string
+          id?: string
+          source?: string | null
+          student_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          banner_id?: string
+          id?: string
+          source?: string | null
+          student_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_unlocked_banners_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "banner_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_banners_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_banners_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_unlocked_evolutions: {
+        Row: {
+          evolution_id: string
+          student_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          evolution_id: string
+          student_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          evolution_id?: string
+          student_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_unlocked_evolutions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_evolutions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_unlocked_skills: {
+        Row: {
+          skill_id: string
+          student_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          skill_id: string
+          student_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          skill_id?: string
+          student_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_unlocked_skills_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_skills_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_unlocked_skins: {
+        Row: {
+          equipped: boolean
+          id: string
+          skin_id: string
+          source: string | null
+          student_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          equipped?: boolean
+          id?: string
+          skin_id: string
+          source?: string | null
+          student_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          equipped?: boolean
+          id?: string
+          skin_id?: string
+          source?: string | null
+          student_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_unlocked_skins_skin_id_fkey"
+            columns: ["skin_id"]
+            isOneToOne: false
+            referencedRelation: "card_skins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_skins_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_skins_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_unlocked_titles: {
+        Row: {
+          id: string
+          is_active: boolean
+          student_id: string
+          title_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean
+          student_id: string
+          title_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          id?: string
+          is_active?: boolean
+          student_id?: string
+          title_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_unlocked_titles_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_titles_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_unlocked_titles_title_id_fkey"
+            columns: ["title_id"]
+            isOneToOne: false
+            referencedRelation: "title_catalog"
             referencedColumns: ["id"]
           },
         ]
       }
       students: {
         Row: {
+          active_banner_key: string | null
           appearance: string | null
           attr_agilidade: number
           attr_carisma: number
@@ -3127,25 +5606,33 @@ export type Database = {
           motivation: string | null
           name: string
           needs_return_mission: boolean
+          patch_1_1_refund: number | null
+          patch_1_1_wipe_v: number
           personality: string | null
           pontos_disponiveis: number
           presencas_consecutivas: number
           profile_photo_url: string | null
           race: string | null
           school_name: string | null
+          seen_patch_1_1: boolean
           status: string
           streak_best: number
           streak_current: number
           streak_last_activity: string | null
+          suspended_reason: string | null
+          suspended_until: string | null
           teacher_id: string
           total_boss_kills: number
           total_crafts: number
           total_missions_completed: number
           total_pvp_wins: number
+          tutorial_completed: boolean
           user_id: string | null
+          wiped_at_patch_1_1: string | null
           xp: number
         }
         Insert: {
+          active_banner_key?: string | null
           appearance?: string | null
           attr_agilidade?: number
           attr_carisma?: number
@@ -3170,25 +5657,33 @@ export type Database = {
           motivation?: string | null
           name: string
           needs_return_mission?: boolean
+          patch_1_1_refund?: number | null
+          patch_1_1_wipe_v?: number
           personality?: string | null
           pontos_disponiveis?: number
           presencas_consecutivas?: number
           profile_photo_url?: string | null
           race?: string | null
           school_name?: string | null
+          seen_patch_1_1?: boolean
           status?: string
           streak_best?: number
           streak_current?: number
           streak_last_activity?: string | null
+          suspended_reason?: string | null
+          suspended_until?: string | null
           teacher_id: string
           total_boss_kills?: number
           total_crafts?: number
           total_missions_completed?: number
           total_pvp_wins?: number
+          tutorial_completed?: boolean
           user_id?: string | null
+          wiped_at_patch_1_1?: string | null
           xp?: number
         }
         Update: {
+          active_banner_key?: string | null
           appearance?: string | null
           attr_agilidade?: number
           attr_carisma?: number
@@ -3213,22 +5708,29 @@ export type Database = {
           motivation?: string | null
           name?: string
           needs_return_mission?: boolean
+          patch_1_1_refund?: number | null
+          patch_1_1_wipe_v?: number
           personality?: string | null
           pontos_disponiveis?: number
           presencas_consecutivas?: number
           profile_photo_url?: string | null
           race?: string | null
           school_name?: string | null
+          seen_patch_1_1?: boolean
           status?: string
           streak_best?: number
           streak_current?: number
           streak_last_activity?: string | null
+          suspended_reason?: string | null
+          suspended_until?: string | null
           teacher_id?: string
           total_boss_kills?: number
           total_crafts?: number
           total_missions_completed?: number
           total_pvp_wins?: number
+          tutorial_completed?: boolean
           user_id?: string | null
+          wiped_at_patch_1_1?: string | null
           xp?: number
         }
         Relationships: [
@@ -3266,6 +5768,30 @@ export type Database = {
           level?: number | null
           name?: string | null
           xp?: number | null
+        }
+        Relationships: []
+      }
+      students_user_id_backup_20260504: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          name: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          status?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3314,20 +5840,62 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_admin: boolean
           name: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          is_admin?: boolean
           name: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          is_admin?: boolean
           name?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      temporary_buffs: {
+        Row: {
+          created_at: string
+          description: string
+          duration_battles: number
+          effect: string
+          effect_value: number
+          icon: string
+          id: string
+          key: string
+          name: string
+          rarity: Database["public"]["Enums"]["material_rarity"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          duration_battles?: number
+          effect: string
+          effect_value?: number
+          icon?: string
+          id?: string
+          key: string
+          name: string
+          rarity?: Database["public"]["Enums"]["material_rarity"]
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          duration_battles?: number
+          effect?: string
+          effect_value?: number
+          icon?: string
+          id?: string
+          key?: string
+          name?: string
+          rarity?: Database["public"]["Enums"]["material_rarity"]
         }
         Relationships: []
       }
@@ -3376,6 +5944,13 @@ export type Database = {
             foreignKeyName: "time_capsules_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "time_capsules_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -3387,6 +5962,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      title_catalog: {
+        Row: {
+          auto_unlock: boolean
+          category: string
+          color: string
+          condition_payload: Json
+          condition_type: string
+          condition_value: number | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+        }
+        Insert: {
+          auto_unlock?: boolean
+          category: string
+          color: string
+          condition_payload?: Json
+          condition_type: string
+          condition_value?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+        }
+        Update: {
+          auto_unlock?: boolean
+          category?: string
+          color?: string
+          condition_payload?: Json
+          condition_type?: string
+          condition_value?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+        }
+        Relationships: []
       }
       trade_items: {
         Row: {
@@ -3466,6 +6086,13 @@ export type Database = {
             foreignKeyName: "trades_proposer_id_fkey"
             columns: ["proposer_id"]
             isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "trades_proposer_id_fkey"
+            columns: ["proposer_id"]
+            isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
@@ -3475,6 +6102,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "shop_items"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "trades_receiver_id_fkey"
@@ -3495,6 +6129,129 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_rankings_snapshot: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          entity_id: string
+          entity_name: string | null
+          id: number
+          position: number
+          ranking_type: string
+          score: number
+          teacher_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_name?: string | null
+          id?: number
+          position: number
+          ranking_type: string
+          score: number
+          teacher_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_name?: string | null
+          id?: number
+          position?: number
+          ranking_type?: string
+          score?: number
+          teacher_id?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_rankings_snapshot_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_rankings_snapshot_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_rewards_log: {
+        Row: {
+          distributed_at: string
+          entity_id: string
+          id: number
+          ranking_type: string
+          reward_kind: string
+          reward_payload: Json
+          week_start: string
+        }
+        Insert: {
+          distributed_at?: string
+          entity_id: string
+          id?: number
+          ranking_type: string
+          reward_kind: string
+          reward_payload?: Json
+          week_start: string
+        }
+        Update: {
+          distributed_at?: string
+          entity_id?: string
+          id?: number
+          ranking_type?: string
+          reward_kind?: string
+          reward_payload?: Json
+          week_start?: string
+        }
+        Relationships: []
+      }
+      weekly_xp_baseline: {
+        Row: {
+          baseline_xp: number
+          captured_at: string
+          student_id: string
+          week_start: string
+        }
+        Insert: {
+          baseline_xp?: number
+          captured_at?: string
+          student_id: string
+          week_start: string
+        }
+        Update: {
+          baseline_xp?: number
+          captured_at?: string
+          student_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_xp_baseline_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "master_wave11_classes_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "weekly_xp_baseline_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -3527,8 +6284,64 @@ export type Database = {
           },
         ]
       }
+      master_wave11_classes_view: {
+        Row: {
+          available_points: number | null
+          chose_class_at: string | null
+          class_id: string | null
+          class_name: string | null
+          elements_mastered: number | null
+          primary_element: string | null
+          secondary_element: string | null
+          skills_unlocked: number | null
+          student_id: string | null
+          student_name: string | null
+          total_earned: number | null
+          wave11_class: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      _brt_today: { Args: never; Returns: string }
+      _bump_quest_streak: {
+        Args: { p_student_id: string; p_today: string }
+        Returns: number
+      }
+      _crypto_rand_int: { Args: { p_n: number }; Returns: number }
+      _emit_feed_event: {
+        Args: { p_event_data: Json; p_event_type: string; p_student_id: string }
+        Returns: string
+      }
+      _frame_for_student: { Args: { p_student_id: string }; Returns: string }
+      _pick_monthly_boss: { Args: { p_month_idx: number }; Returns: string }
+      _raid_phase: {
+        Args: { p_current: number; p_total: number }
+        Returns: number
+      }
+      _spawn_raid_for_guild: {
+        Args: {
+          p_body: string
+          p_boss_id: string
+          p_guild_id: string
+          p_hours: number
+          p_source: string
+          p_title: string
+        }
+        Returns: string
+      }
+      _unlock_title_if_new: {
+        Args: { p_student_id: string; p_title_id: string }
+        Returns: boolean
+      }
       add_class_war_points: {
         Args: { p_class_id: string; p_points: number }
         Returns: undefined
@@ -3536,6 +6349,20 @@ export type Database = {
       add_item_to_inventory: {
         Args: { p_character_id: string; p_item_id: string; p_quantity: number }
         Returns: undefined
+      }
+      admin_assign_student_to_class: {
+        Args: { p_class_id: string; p_student_id: string }
+        Returns: undefined
+      }
+      admin_delete_student: { Args: { p_student_id: string }; Returns: string }
+      admin_delete_student_as: {
+        Args: { p_caller_user_id: string; p_student_id: string }
+        Returns: string
+      }
+      admin_delete_teacher: { Args: { p_teacher_id: string }; Returns: string }
+      admin_delete_teacher_as: {
+        Args: { p_caller_user_id: string; p_teacher_id: string }
+        Returns: string
       }
       apply_battle_drops: {
         Args: { p_enemy_id: string; p_student_id: string }
@@ -3548,6 +6375,27 @@ export type Database = {
           rarity: Database["public"]["Enums"]["drop_rarity"]
         }[]
       }
+      apply_battle_event_fragments: {
+        Args: { p_is_boss?: boolean }
+        Returns: Json
+      }
+      apply_battle_materials: {
+        Args: {
+          p_enemy_id: string
+          p_floor_number?: number
+          p_student_id: string
+        }
+        Returns: {
+          out_icon_url: string
+          out_material_id: string
+          out_name: string
+          out_quantity: number
+          out_rarity: Database["public"]["Enums"]["material_rarity"]
+          out_theme: string
+        }[]
+      }
+      apply_daily_coin_cap: { Args: { p_amount: number }; Returns: Json }
+      apply_patch11_wipe: { Args: never; Returns: Json }
       approve_attendance_request: {
         Args: { p_request_id: string }
         Returns: number
@@ -3560,6 +6408,20 @@ export type Database = {
         Args: { p_completion_id: string }
         Returns: undefined
       }
+      assign_daily_quests_for: {
+        Args: { p_date: string; p_student_id: string }
+        Returns: number
+      }
+      assign_daily_quests_tick: { Args: never; Returns: Json }
+      attach_event_card: {
+        Args: { p_event_id: string; p_shop_item_id: string }
+        Returns: Json
+      }
+      attack_boss_raid: {
+        Args: { p_damage: number; p_raid_id: string }
+        Returns: Json
+      }
+      auth_email_exists: { Args: { p_email: string }; Returns: boolean }
       award_classroom_activity: {
         Args: {
           p_link_id: string
@@ -3569,8 +6431,30 @@ export type Database = {
         }
         Returns: boolean
       }
+      award_skill_points: {
+        Args: { p_points: number; p_student_id: string }
+        Returns: Json
+      }
+      brt_week_start: { Args: { p_at?: string }; Returns: string }
       calculate_guild_score: { Args: { p_guild_id: string }; Returns: number }
       calculate_level_from_xp: { Args: { total_xp: number }; Returns: number }
+      cancel_event: { Args: { p_event_id: string }; Returns: Json }
+      check_all_title_conditions: { Args: never; Returns: Json }
+      check_element_mastery: { Args: { p_student_id: string }; Returns: Json }
+      check_my_banner_conditions: { Args: never; Returns: Json }
+      check_my_daily_quests: { Args: never; Returns: Json }
+      check_my_event_missions: { Args: never; Returns: Json }
+      check_my_title_conditions: { Args: never; Returns: Json }
+      check_title_conditions_for: {
+        Args: { p_student_id: string }
+        Returns: Json
+      }
+      chest_ping: { Args: never; Returns: string }
+      choose_class_and_element: {
+        Args: { p_class: string; p_primary_element: string }
+        Returns: Json
+      }
+      claim_my_pending_rewards: { Args: { p_ids?: string[] }; Returns: number }
       complete_daily_dungeon: {
         Args: {
           p_coins: number
@@ -3582,20 +6466,51 @@ export type Database = {
         }
         Returns: undefined
       }
+      complete_my_tutorial: { Args: never; Returns: Json }
       complete_skill_node: {
         Args: { p_node_id: string; p_student_id: string }
         Returns: Json
       }
+      compute_weekly_rankings: { Args: never; Returns: Json }
+      consume_my_consumable: {
+        Args: { p_consumable_key: string }
+        Returns: Json
+      }
+      convert_diamonds_to_coins: { Args: { p_amount: number }; Returns: Json }
       craft_item: {
         Args: { p_recipe_id: string; p_student_id: string }
+        Returns: Json
+      }
+      create_event: {
+        Args: {
+          p_banner_url?: string
+          p_color?: string
+          p_description: string
+          p_ends_at?: string
+          p_name: string
+          p_starts_at?: string
+          p_theme: string
+        }
         Returns: Json
       }
       create_mentorship: {
         Args: { p_mentee_id: string; p_mentor_id: string; p_teacher_id: string }
         Returns: undefined
       }
+      diag_student_state: { Args: { p_student_id: string }; Returns: Json }
+      distribute_raid_rewards: { Args: { p_raid_id: string }; Returns: Json }
+      distribute_weekly_rewards: {
+        Args: { p_week_start?: string }
+        Returns: Json
+      }
+      end_event: { Args: { p_event_id: string }; Returns: Json }
+      ensure_my_daily_quests: { Args: never; Returns: Json }
+      equip_skin: { Args: { p_skin_id: string }; Returns: Json }
+      event_lifecycle_tick: { Args: never; Returns: Json }
       execute_trade: { Args: { p_trade_id: string }; Returns: Json }
+      expire_raids_tick: { Args: never; Returns: Json }
       finalize_class_war: { Args: { p_war_id: string }; Returns: Json }
+      forge_recipe: { Args: { p_recipe_key: string }; Returns: Json }
       generate_parent_invite: {
         Args: { p_student_id: string }
         Returns: string
@@ -3609,9 +6524,66 @@ export type Database = {
         }
         Returns: string
       }
+      get_active_raid_for_guild: { Args: { p_guild_id: string }; Returns: Json }
       get_analytics_overview: {
         Args: { p_days?: number; p_teacher_id: string }
         Returns: Json
+      }
+      get_audit_alerts: {
+        Args: never
+        Returns: {
+          actor_name: string
+          count: number
+          detail: string
+          kind: string
+          last_seen: string
+          sample_id: number
+          severity: string
+          title: string
+        }[]
+      }
+      get_audit_log_page: {
+        Args: {
+          p_action?: string
+          p_actor_role?: string
+          p_actor_user_id?: string
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_target_id?: string
+          p_target_table?: string
+          p_to?: string
+        }
+        Returns: {
+          action: string
+          actor_name: string
+          actor_role: string
+          actor_user_id: string
+          after_state: Json
+          before_state: Json
+          created_at: string
+          id: number
+          payload: Json
+          target_id: string
+          target_label: string
+          target_table: string
+          total_count: number
+        }[]
+      }
+      get_card_skins_for: {
+        Args: { p_base_card_id: string }
+        Returns: {
+          description: string
+          equipped: boolean
+          name: string
+          skin_id: string
+          unlock_condition: string
+          unlock_payload: Json
+          unlocked: boolean
+          usage_count: number
+          visual_data: Json
+        }[]
       }
       get_class_comparison: {
         Args: { p_days?: number; p_teacher_id: string }
@@ -3621,15 +6593,237 @@ export type Database = {
         Args: { p_class_id?: string; p_days?: number; p_teacher_id: string }
         Returns: Json
       }
+      get_daily_coins_summary: { Args: never; Returns: Json }
       get_engagement_heatmap: {
         Args: { p_days?: number; p_teacher_id: string }
+        Returns: Json
+      }
+      get_event_detail: { Args: { p_event_id: string }; Returns: Json }
+      get_my_backdrops: {
+        Args: never
+        Returns: {
+          backdrop_key: string
+          is_favorite: boolean
+          unlocked_at: string
+        }[]
+      }
+      get_my_banner_catalog: {
+        Args: never
+        Returns: {
+          banner_id: string
+          condition_label: string
+          description: string
+          image_data: Json
+          is_active: boolean
+          key: string
+          name: string
+          rarity: string
+          unlocked: boolean
+        }[]
+      }
+      get_my_card_tickets: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          proposed_effect: string | null
+          proposed_image_url: string | null
+          proposed_lore: string | null
+          proposed_name: string | null
+          proposed_notes: string | null
+          proposed_rarity: string | null
+          ranking_type: string
+          resulting_shop_item_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+          submitted_at: string | null
+          teacher_id: string
+          updated_at: string
+          week_start: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "card_creation_tickets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_my_chest_grants: {
+        Args: never
+        Returns: {
+          chest_key: string
+          granted_at: string
+          id: string
+          reason: string
+        }[]
+      }
+      get_my_creation_tickets: {
+        Args: never
+        Returns: {
+          granted_at: string
+          id: string
+          ranking_type: string
+          requested_at: string
+          status: string
+          used_at: string
+          week_start: string
+        }[]
+      }
+      get_my_daily_quests: { Args: never; Returns: Json }
+      get_my_equipped_skins: {
+        Args: never
+        Returns: {
+          base_card_id: string
+          skin_id: string
+          visual_data: Json
+        }[]
+      }
+      get_my_event_fragments: {
+        Args: never
+        Returns: {
+          color_primary: string
+          ends_at: string
+          event_id: string
+          event_name: string
+          fragments: number
+        }[]
+      }
+      get_my_forge_state: { Args: never; Returns: Json }
+      get_my_materials: {
+        Args: never
+        Returns: {
+          description: string
+          icon_url: string
+          material_id: string
+          name: string
+          quantity: number
+          rarity: Database["public"]["Enums"]["material_rarity"]
+          theme: string
+        }[]
+      }
+      get_my_pending_rewards: {
+        Args: never
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          title: string
+        }[]
+      }
+      get_my_raid_rewards: {
+        Args: never
+        Returns: {
+          awarded_at: string
+          boss_name: string
+          chests_awarded: Json
+          coins_awarded: number
+          contribution_pct: number
+          diamonds_awarded: number
+          is_top: boolean
+          raid_id: string
+          victory: boolean
+        }[]
+      }
+      get_my_titles: {
+        Args: never
+        Returns: {
+          category: string
+          color: string
+          condition_type: string
+          condition_value: number
+          description: string
+          is_active: boolean
+          key: string
+          name: string
+          title_id: string
+          unlocked: boolean
+          unlocked_at: string
+        }[]
+      }
+      get_my_unread_vaults: {
+        Args: never
+        Returns: {
+          color_primary: string
+          event_id: string
+          event_name: string
+          fragments_total: number
+          opened_at: string
+          opening_id: string
+          rewards: Json
+        }[]
+      }
+      get_my_vault_history: {
+        Args: never
+        Returns: {
+          event_id: string
+          event_name: string
+          fragments_total: number
+          opened_at: string
+          rewards: Json
+        }[]
+      }
+      get_my_weekly_positions: {
+        Args: { p_finalized?: boolean }
         Returns: Json
       }
       get_parent_child_summary: {
         Args: { p_days?: number; p_student_id: string }
         Returns: Json
       }
+      get_patch11_status: { Args: never; Returns: Json }
+      get_pending_card_proposals: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          proposed_effect: string | null
+          proposed_image_url: string | null
+          proposed_lore: string | null
+          proposed_name: string | null
+          proposed_notes: string | null
+          proposed_rarity: string | null
+          ranking_type: string
+          resulting_shop_item_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+          submitted_at: string | null
+          teacher_id: string
+          updated_at: string
+          week_start: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "card_creation_tickets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_profile_card: { Args: { p_student_id: string }; Returns: Json }
       get_pvp_opponent_data: { Args: { p_student_id: string }; Returns: Json }
+      get_school_feed: {
+        Args: { p_filter?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          class_id: string
+          created_at: string
+          event_data: Json
+          event_type: string
+          guild_id: string
+          guild_name: string
+          id: string
+          student_id: string
+          student_name: string
+          viewed_by_me: boolean
+          views_count: number
+        }[]
+      }
       get_student_dna: { Args: { p_student_id: string }; Returns: Json }
       get_student_risk_scores: { Args: { p_teacher_id: string }; Returns: Json }
       get_student_teacher_id: {
@@ -3637,6 +6831,24 @@ export type Database = {
         Returns: string
       }
       get_teacher_id: { Args: never; Returns: string }
+      get_weekly_ranking: {
+        Args: {
+          p_class_id?: string
+          p_finalized?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_ranking_type: string
+          p_teacher_id?: string
+        }
+        Returns: {
+          entity_id: string
+          entity_name: string
+          rank: number
+          score: number
+          week_end: string
+          week_start: string
+        }[]
+      }
       give_boss_rewards: {
         Args: { p_coins: number; p_student_id: string; p_xp: number }
         Returns: undefined
@@ -3645,15 +6857,255 @@ export type Database = {
         Args: { p_student_id: string; p_xp: number }
         Returns: Json
       }
+      grant_top1_creation_tickets: {
+        Args: { p_week_start: string }
+        Returns: number
+      }
+      increment_daily_counter: {
+        Args: { p_amount?: number; p_type: string }
+        Returns: Json
+      }
+      increment_my_card_usage: {
+        Args: { p_item_ids?: string[] }
+        Returns: Json
+      }
+      is_caller_admin: { Args: never; Returns: boolean }
+      is_master_admin_user: { Args: { p_user_id: string }; Returns: boolean }
       is_teacher_of_class: { Args: { class_id: string }; Returns: boolean }
       is_teacher_of_student: { Args: { student_id: string }; Returns: boolean }
+      issue_top1_card_tickets: {
+        Args: { p_week_start: string }
+        Returns: number
+      }
+      list_active_events: {
+        Args: never
+        Returns: {
+          banner_image_url: string
+          color_primary: string
+          description: string
+          ends_at: string
+          id: string
+          name: string
+          starts_at: string
+          theme: string
+        }[]
+      }
+      list_event_eligible_items: {
+        Args: { p_event_id: string }
+        Returns: {
+          id: string
+          image_url: string
+          name: string
+          rarity: string
+        }[]
+      }
+      list_event_missions: {
+        Args: { p_event_id: string }
+        Returns: {
+          condition_payload: Json
+          condition_target: number
+          condition_type: string
+          description: string
+          id: string
+          is_active: boolean
+          reward: number
+          reward_chest_key: string
+          reward_diamonds: number
+          reward_fragments: number
+          title: string
+        }[]
+      }
+      list_events_admin: {
+        Args: never
+        Returns: {
+          card_count: number
+          chest_count: number
+          created_at: string
+          ended_at: string
+          ends_at: string
+          id: string
+          name: string
+          started_at: string
+          starts_at: string
+          status: string
+          theme: string
+        }[]
+      }
+      list_open_chest_funcs: { Args: never; Returns: Json }
+      log_action: {
+        Args: {
+          p_action: string
+          p_payload?: Json
+          p_target_id?: string
+          p_target_label?: string
+          p_target_table?: string
+        }
+        Returns: number
+      }
+      log_action_v2: {
+        Args: {
+          p_action: string
+          p_after?: Json
+          p_before?: Json
+          p_payload?: Json
+          p_target_id?: string
+          p_target_label?: string
+          p_target_table?: string
+        }
+        Returns: number
+      }
+      mark_patch11_seen: { Args: never; Returns: undefined }
+      mark_vault_shown: { Args: { p_opening_id: string }; Returns: number }
+      master_adjust_currency: {
+        Args: { p_amount: number; p_currency: string; p_student_id: string }
+        Returns: number
+      }
+      master_create_boss_raid: {
+        Args: {
+          p_boss_id: string
+          p_guild_id: string
+          p_hours?: number
+          p_max_per_member?: number
+          p_total_hp?: number
+        }
+        Returns: Json
+      }
+      master_create_class: {
+        Args: { p_biome?: string; p_name: string; p_teacher_id: string }
+        Returns: string
+      }
+      master_delete_class: {
+        Args: { p_class_id: string; p_reassign_to_class_id?: string }
+        Returns: number
+      }
+      master_grant_skill_points: {
+        Args: { p_points: number; p_student_id: string }
+        Returns: Json
+      }
+      master_grant_skin: {
+        Args: { p_skin_id: string; p_student_id: string }
+        Returns: Json
+      }
+      master_grant_title: {
+        Args: { p_student_id: string; p_title_key: string }
+        Returns: Json
+      }
+      master_list_pending_tickets: {
+        Args: never
+        Returns: {
+          character_name: string
+          class_name: string
+          granted_at: string
+          ranking_type: string
+          requested_at: string
+          status: string
+          student_id: string
+          student_name: string
+          teacher_id: string
+          ticket_id: string
+          used_at: string
+          week_start: string
+        }[]
+      }
+      master_mark_ticket_used: {
+        Args: {
+          p_card_created_id?: string
+          p_notes?: string
+          p_ticket_id: string
+        }
+        Returns: Json
+      }
+      master_reset_class: { Args: { p_student_id: string }; Returns: Json }
+      master_set_admin: {
+        Args: { p_is_admin: boolean; p_teacher_id: string }
+        Returns: undefined
+      }
+      master_set_event_boss: {
+        Args: { p_boss_id: string; p_event_id: string }
+        Returns: Json
+      }
+      master_spawn_card: {
+        Args: { p_item_id: string; p_student_id: string }
+        Returns: string
+      }
+      master_update_class: {
+        Args: { p_biome?: string; p_class_id: string; p_name: string }
+        Returns: undefined
+      }
+      master_update_teacher: {
+        Args: { p_name: string; p_teacher_id: string }
+        Returns: undefined
+      }
+      master_upsert_card_skin: {
+        Args: {
+          p_base_card_id: string
+          p_description?: string
+          p_name: string
+          p_skin_id?: string
+          p_unlock_condition: string
+          p_unlock_payload?: Json
+          p_visual_data?: Json
+        }
+        Returns: Json
+      }
+      master_upsert_event_chest: {
+        Args: {
+          p_card_pool?: Json
+          p_chest_key: string
+          p_cost_coins?: number
+          p_cost_diamonds?: number
+          p_description?: string
+          p_event_id: string
+          p_min_level?: number
+          p_name: string
+          p_tier?: number
+        }
+        Returns: Json
+      }
+      master_upsert_event_mission: {
+        Args: {
+          p_condition_payload?: Json
+          p_condition_target: number
+          p_condition_type: string
+          p_description: string
+          p_event_id: string
+          p_mission_id?: string
+          p_reward_chest_key?: string
+          p_reward_coins?: number
+          p_reward_diamonds?: number
+          p_reward_fragments?: number
+          p_title: string
+        }
+        Returns: Json
+      }
       merge_student: {
         Args: { p_existing_id: string; p_pending_id: string }
         Returns: undefined
       }
       open_chest: {
-        Args: { p_chest_type_id: string; p_student_id: string }
+        Args: { p_chest_key: string; p_count?: number; p_grant_id?: string }
         Returns: Json
+      }
+      open_chest_v2: {
+        Args: { p_chest_key: string; p_count?: number; p_grant_id?: string }
+        Returns: Json
+      }
+      open_event_vault_for: {
+        Args: { p_event_id: string; p_student_id: string }
+        Returns: Json
+      }
+      open_event_vault_for_all: { Args: { p_event_id: string }; Returns: Json }
+      prof_adjust_student_xp: {
+        Args: { p_delta_xp: number; p_student_id: string }
+        Returns: number
+      }
+      prof_suspend_student: {
+        Args: { p_days: number; p_reason: string; p_student_id: string }
+        Returns: string
+      }
+      prof_unsuspend_student: {
+        Args: { p_student_id: string }
+        Returns: undefined
       }
       purchase_item:
         | { Args: { p_item_id: string; p_student_id: string }; Returns: Json }
@@ -3665,22 +7117,176 @@ export type Database = {
             }
             Returns: Json
           }
+      record_enemy_defeat: {
+        Args: {
+          p_character_id: string
+          p_enemy_id: string
+          p_floor_id: number
+          p_is_boss: boolean
+        }
+        Returns: Json
+      }
       redeem_parent_invite: {
         Args: { p_invite_code: string; p_parent_name: string }
         Returns: Json
       }
+      request_creation_ticket: { Args: { p_ticket_id: string }; Returns: Json }
+      reset_skill_element: {
+        Args: { p_element: string; p_total_spent_override?: number }
+        Returns: Json
+      }
+      respond_guild_join_request: {
+        Args: { p_approve: boolean; p_request_id: string }
+        Returns: {
+          created_at: string
+          guild_id: string
+          id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          student_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "guild_join_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_card_proposal: {
+        Args: {
+          p_card_overrides?: Json
+          p_decision: string
+          p_review_notes?: string
+          p_ticket_id: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          proposed_effect: string | null
+          proposed_image_url: string | null
+          proposed_lore: string | null
+          proposed_name: string | null
+          proposed_notes: string | null
+          proposed_rarity: string | null
+          ranking_type: string
+          resulting_shop_item_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+          submitted_at: string | null
+          teacher_id: string
+          updated_at: string
+          week_start: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "card_creation_tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_my_active_banner: { Args: { p_banner_key: string }; Returns: Json }
+      set_my_active_title: { Args: { p_title_id: string }; Returns: Json }
+      spawn_event_boss_raids: { Args: { p_event_id: string }; Returns: Json }
+      spawn_monthly_raids: { Args: never; Returns: Json }
+      spend_attribute_point: { Args: { p_attribute: string }; Returns: Json }
+      start_event: { Args: { p_event_id: string }; Returns: Json }
       student_belongs_to_teacher: {
         Args: { p_student_id: string; p_teacher_id: string }
         Returns: boolean
+      }
+      submit_card_proposal: {
+        Args: {
+          p_effect: string
+          p_image_url?: string
+          p_lore: string
+          p_name: string
+          p_notes?: string
+          p_rarity?: string
+          p_ticket_id: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          proposed_effect: string | null
+          proposed_image_url: string | null
+          proposed_lore: string | null
+          proposed_name: string | null
+          proposed_notes: string | null
+          proposed_rarity: string | null
+          ranking_type: string
+          resulting_shop_item_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+          submitted_at: string | null
+          teacher_id: string
+          updated_at: string
+          week_start: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "card_creation_tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      swap_secondary_element: {
+        Args: {
+          p_new_element: string
+          p_refund?: number
+          p_remove_element?: string
+        }
+        Returns: Json
+      }
+      teacher_delete_student: {
+        Args: { p_student_id: string }
+        Returns: string
+      }
+      teacher_move_student_to_own_class: {
+        Args: { p_class_id: string; p_student_id: string }
+        Returns: undefined
       }
       teacher_reset_skill_points: {
         Args: { p_student_user_id: string }
         Returns: Json
       }
+      tick_my_active_buffs: { Args: never; Returns: number }
+      toggle_favorite_backdrop: { Args: { p_key: string }; Returns: Json }
+      unequip_skin: { Args: { p_skin_id: string }; Returns: Json }
+      unlock_backdrop: { Args: { p_key: string }; Returns: Json }
+      unlock_skill: {
+        Args: {
+          p_cost?: number
+          p_prerequisites?: string[]
+          p_skill_id: string
+        }
+        Returns: Json
+      }
+      update_my_character: {
+        Args: {
+          p_appearance: string
+          p_character_class: string
+          p_character_name: string
+          p_lore: string
+          p_motivation: string
+          p_personality: string
+          p_race: string
+          p_school_name: string
+        }
+        Returns: string
+      }
+      update_my_profile_photo: { Args: { p_url: string }; Returns: string }
       update_student_difficulty: {
         Args: { p_new_difficulty: string; p_student_id: string }
         Returns: undefined
       }
+      view_feed_event: { Args: { p_event_id: string }; Returns: Json }
     }
     Enums: {
       drop_rarity:
@@ -3691,6 +7297,7 @@ export type Database = {
         | "lendario"
         | "mitico"
         | "???"
+      material_rarity: "common" | "uncommon" | "rare" | "epic"
       request_status: "pending" | "approved" | "rejected"
       request_type: "challenge" | "item" | "attendance"
       student_title_type:
@@ -3712,12 +7319,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3741,11 +7348,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3766,11 +7373,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3791,11 +7398,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3808,11 +7415,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3833,6 +7440,7 @@ export const Constants = {
         "mitico",
         "???",
       ],
+      material_rarity: ["common", "uncommon", "rare", "epic"],
       request_status: ["pending", "approved", "rejected"],
       request_type: ["challenge", "item", "attendance"],
       student_title_type: [

@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Crown, Users, Globe2, Swords, Shield, Trophy, CalendarDays, Clock } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { useOpenProfileCard } from "@/components/student/ProfileCard";
 import type { Student } from "@/types";
@@ -29,7 +30,7 @@ interface MyPositions {
   guildas?: { position: number; score: number };
 }
 
-const TABS: { key: RankingType; label: string; Icon: React.FC<{ size?: number }>; tone: string }[] = [
+const TABS: { key: RankingType; label: string; Icon: LucideIcon; tone: string }[] = [
   { key: "sala",    label: "Sala",    Icon: Users,   tone: "#60c8f8" },
   { key: "geral",   label: "Geral",   Icon: Globe2,  tone: "#f5c84b" },
   { key: "pvp",     label: "PvP",     Icon: Swords,  tone: "#f05050" },
