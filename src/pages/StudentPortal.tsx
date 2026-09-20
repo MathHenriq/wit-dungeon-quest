@@ -29,6 +29,13 @@ import { useClassProfile } from "@/hooks/useClassProfile";
 // Onda 11.8 — terceiro gate: tutorial de combate.
 import { Wave11TutorialBattleScreen } from "@/pages/Wave11TutorialBattleScreen";
 import { VaultOpeningModal } from "@/components/student/VaultOpeningModal";
+import { Patch11Welcome } from "@/components/student/Patch11Welcome";
+
+/**
+ * Por quantos dias depois de um wipe o aviso ainda faz sentido. Passado isso
+ * o aluno ja se acostumou com o estado novo e o anuncio so confunde.
+ */
+const PATCH_WELCOME_MAX_AGE_DAYS = 14;
 // Lazy: HeroScreen (~600 lines + Inventory/Tickets/Backdrop/Title panels) and
 // ShopScreen (~1500 lines + ForgePanel/CraftPanel/ChestSection) are only
 // reached after the student picks those tabs. Splitting them keeps the
@@ -592,6 +599,7 @@ export default function StudentPortal() {
   const [showEntrance, setShowEntrance] = useState(false);
   const [entranceDone, setEntranceDone] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
+  const [showPatchWelcome, setShowPatchWelcome] = useState(false);
   const [activeBossId, setActiveBossId] = useState<string | null>(null);
   const [battleKey, setBattleKey] = useState(0);
   const [bossTabKey, setBossTabKey] = useState(0);
@@ -601,6 +609,34 @@ export default function StudentPortal() {
     const t = setTimeout(() => setLoadingTimedOut(true), 10000);
     return () => clearTimeout(t);
   }, [isLoading]);
+
+  /**
+   * Aviso de wipe (Patch11Welcome).
+   *
+   * A janela de recência é o ponto central aqui. O modal ficou pronto mas
+   * nunca montado, então `seen_patch_1_1` está falso para os 654 alunos que
+   * o wipe de 25/05/2026 atingiu. Sem a janela, ligar o modal despejaria um
+   * anúncio de quatro meses atrás na cara de todos eles de uma vez.
+   *
+   * Com a janela, o wipe antigo continua em silêncio e o mecanismo volta a
+   * funcionar: o próximo `SELECT apply_patch11_wipe();` carimba a data de
+   * novo e cada aluno vê a explicação no primeiro login depois disso.
+   */
+  useEffect(() => {
+    if (!student) return;
+    const extra = student as unknown as {
+      wiped_at_patch_1_1?: string | null;
+      seen_patch_1_1?: boolean | null;
+    };
+    if (!extra.wiped_at_patch_1_1 || extra.seen_patch_1_1) return;
+
+    const wipedAt = new Date(extra.wiped_at_patch_1_1).getTime();
+    if (Number.isNaN(wipedAt)) return;
+    const diasDesdeOWipe = (Date.now() - wipedAt) / 86_400_000;
+    if (diasDesdeOWipe > PATCH_WELCOME_MAX_AGE_DAYS) return;
+
+    setShowPatchWelcome(true);
+  }, [student]);
 
   useEffect(() => {
     if (error) { toast.error(error); clearError(); }
@@ -810,6 +846,17 @@ export default function StudentPortal() {
       )}
       {/* Patch 5.3: cinematic vault openings auto-detect unread vaults on mount */}
       <VaultOpeningModal />
+      {/* Patch 2.7: aviso do wipe. O modal existia pronto desde o patch e nunca
+          tinha sido montado em lugar nenhum — o wipe de 25/05/2026 zerou 654
+          alunos e nenhum deles recebeu a explicação. A trava de recencia
+          abaixo mantém aquele wipe antigo em silêncio e faz o mecanismo
+          funcionar no próximo. */}
+      {showPatchWelcome && (
+        <Patch11Welcome
+          refund={0}
+          onDismissed={() => setShowPatchWelcome(false)}
+        />
+      )}
     </>
   );
 
@@ -1059,42 +1106,10 @@ export default function StudentPortal() {
           </div>
         </div>
 
-        {/* Class War Banner — shown on missions/challenges tab */}
-        {(activeTab === 'missions' || activeTab === 'challenges') && student.class_id && (
-          <ClassWarBanner classId={student.class_id} />
-        )}
-
-        {/* Missions Tab */}
-        {activeTab === "missions" && (
-          <MissionBoard
-            studentId={student.id}
-            missions={missions}
-            completions={missionCompletions}
-            needsReturnMission={false}
-            onCompletionRequested={refreshMissions}
-            challenges={challenges}
-            isChallengeCompleted={(id) => challenges.find(c => c.id === id)?.challenge_type === "unica" && isChallengeCompleted(id)}
-            isChallengePending={isChallengePending}
-            onChallengeRequest={handleChallengeRequest}
-            initialTab="missoes"
-          />
-        )}
-
-        {/* Challenges Tab */}
-        {activeTab === "challenges" && (
-          <MissionBoard
-            studentId={student.id}
-            missions={missions}
-            completions={missionCompletions}
-            needsReturnMission={false}
-            onCompletionRequested={refreshMissions}
-            challenges={challenges}
-            isChallengeCompleted={(id) => challenges.find(c => c.id === id)?.challenge_type === "unica" && isChallengeCompleted(id)}
-            isChallengePending={isChallengePending}
-            onChallengeRequest={handleChallengeRequest}
-            initialTab="desafios"
-          />
-        )}
+        {/* As abas missions/challenges (com ClassWarBanner e MissionBoard) são
+            servidas pelo ramo full-screen lá em cima, que dá return antes de
+            chegar aqui. As cópias que existiam neste ponto eram inalcançáveis —
+            e uma delas já estava desatualizada, sem a prop teacherId. */}
 
         {/* Shop Tab — handled as full-screen ShopScreen overlay above */}
         {/* Inventory Tab — now embedded in HeroScreen (MOCHILA button) */}
