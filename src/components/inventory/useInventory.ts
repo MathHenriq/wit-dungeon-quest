@@ -134,27 +134,30 @@ export function useInventory({ rawItems, studentId, coins, onRefresh }: UseInven
       return;
     }
 
+    // ATENÇÃO — venda está desarmada de propósito.
+    //
+    // Esta função apagava o item de student_inventory e só DEPOIS chamava
+    // `add_coins`, uma RPC que não existe no banco (176 funções, nenhuma com
+    // esse nome). O supabase-js não lança em erro de RPC, devolve `{ error }`,
+    // então o catch nunca disparava: o aluno via "Vendido por N moedas",
+    // perdia o item e não recebia nada.
+    //
+    // A tela que chama isto (Inventory.tsx) não está montada em lugar nenhum
+    // hoje — o HeroScreen importava sem renderizar — então ninguém foi lesado.
+    // Mas deixar o código assim é uma mina para quem ligar a tela depois.
+    //
+    // Para reativar são necessárias duas coisas, nesta ordem:
+    //   1. uma RPC SECURITY DEFINER que credite as moedas E remova o item na
+    //      mesma transação (espelhando apply_battle_rewards);
+    //   2. trocar a chamada abaixo por ela.
+    // Creditar antes e apagar depois não resolve — inverte quem sai perdendo.
     const price = getSellPrice(inv.item?.cost ?? 10);
-
-    try {
-      await supabaseAnon
-        .from('student_inventory')
-        .delete()
-        .eq('id', inv.id)
-        .eq('student_id', studentId);
-
-      // Give coins via RPC
-      await supabaseAnon.rpc('add_coins', {
-        p_student_id: studentId,
-        p_amount:     price,
-      });
-
-      toast.success(`Vendido por ${price} moedas`);
-      onRefresh?.();
-    } catch {
-      toast.error('Erro ao vender item');
-    }
-  }, [isEquipped, studentId, onRefresh]);
+    console.error(
+      '[useInventory] venda bloqueada: falta RPC transacional de venda.',
+      { itemId: inv.id, precoPretendido: price },
+    );
+    toast.error('Venda indisponível no momento.');
+  }, [isEquipped]);
 
   return {
     rawItems, equipment, consumables, cosmetics,

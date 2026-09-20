@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { X, Edit3, Loader2, CheckCircle } from "lucide-react";
 import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { GameIcon } from "@/components/icons/GameIcon";
-import { Inventory } from "@/components/inventory/Inventory";
 import { CreationTicketsPanel } from "@/components/student/CreationTicketsPanel";
 import { TitlesPanel } from "@/components/student/TitlesPanel";
 import type { Student, InventoryItem, StudentPet, StudentTitle, ShopItem } from "@/types";
