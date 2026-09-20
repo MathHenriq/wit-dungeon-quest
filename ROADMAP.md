@@ -164,11 +164,23 @@ sim vale planejar — com telemetria em mãos e fora da janela de lançamento.
 
 ### Alta
 
-**`skillsRegistry.ts` tem 15.574 linhas de dados estáticos.** São 1.872
-variantes de skill escritas em TypeScript, importadas pelo `useBattleEngine`.
-Por isso o chunk do `BattleScreen` tem 574 kB — em boa parte é tabela. Mover
-para o banco (ou para um JSON buscado sob demanda) tira isso do bundle e
-permite editar skill sem deploy.
+**`skillsRegistry.ts` tem 15.574 linhas de dados estáticos** — 156 skills com
+12 variantes de classe cada. Ele agora tem chunk próprio (`skills-registry`),
+o que derrubou o `BattleScreen` de 574 kB para 211 kB e isolou o cache: mudar
+código de batalha não invalida mais uma tabela que praticamente nunca muda.
+
+**Correção de uma afirmação minha anterior:** eu tinha classificado isto como
+"o maior ganho de desempenho que sobrou", olhando só o número cru. Medido, são
+370 kB crus mas **20 kB gzip** — dado repetitivo comprime muito bem. O custo de
+rede é pequeno; o que resta é o tempo de parse dos 370 kB de literais na thread
+principal, que pesa em Chromebook mas não é a emergência que eu sugeri.
+
+Deferir de vez exigiria tornar `applyClassVariant` assíncrono, e ele roda no
+meio do render em `BattleDungeonView` para montar as habilidades equipadas.
+Mexer nisso agora, no caminho que acabou de ser estabilizado e coberto por
+testes, não vale o risco às vésperas do lançamento. Fica como trabalho de
+depois, e o caminho natural é mover a tabela para o banco — o que também
+permitiria editar skill sem deploy.
 
 **10,4 MB de vídeo no login.** Já não bloqueia mais o carregamento, mas o
 arquivo continua desproporcional para um fundo com `blur(14px)`. Recodificar
@@ -231,7 +243,9 @@ fim e a UI de consumíveis existe na tela de batalha.
 2. Ligar `BackdropCollectionPanel` e o sistema de conquistas. Barato, e dá
    sensação de novidade.
 3. Decidir entre `GlobalRanking` e `WeeklyRankingsScreen` e aposentar o perdedor.
-4. Tirar o `skillsRegistry` do bundle.
-5. Um momento 3D — sugiro a abertura de baú.
-6. Só então, se ainda houver tempo, um wipe de Season com o aviso agora
+4. Um momento 3D — sugiro a abertura de baú.
+5. Só então, se ainda houver tempo, um wipe de Season com o aviso agora
    funcionando.
+
+O `skillsRegistry` saiu desta lista: o chunk próprio já resolveu a parte que
+valia a pena, e a medição mostrou que o resto não é urgente.

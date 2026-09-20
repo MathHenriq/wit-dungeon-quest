@@ -13,6 +13,12 @@ import path from "path";
  * after the intro) are simply never fetched.
  */
 function vendorChunk(id: string): string | undefined {
+  // skillsRegistry.ts sao 15.574 linhas de dados estaticos (156 skills x 12
+  // variantes de classe): 370 kB crus, 20 kB gzip. Separando num chunk proprio,
+  // ele para de ser reempacotado junto do BattleScreen — que caiu de 574 kB
+  // para 211 kB — entao uma mudanca no codigo de batalha nao invalida mais o
+  // cache dessa tabela, que praticamente nunca muda.
+  if (id.includes("skillsRegistry")) return "skills-registry";
   if (!id.includes("node_modules")) return;
   // React and its renderer must stay in one chunk or the runtime breaks.
   if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/.test(id)) return "vendor-react";
