@@ -7,9 +7,12 @@ import type { Achievement } from '@/lib/achievements/achievementChecker';
  *
  * Toda a decisão mora na RPC `check_my_achievements`: ela recalcula os totais
  * das tabelas de origem (vitórias, bosses, nível, PvP, pontos elementais),
- * destrava o que foi atingido, credita as moedas pelo teto diário e escreve
+ * destrava o que foi atingido, credita moedas e diamantes integrais e escreve
  * em `achievement_feed` — tudo numa transação. O cliente não manda contador
  * nenhum, então não há número para o aluno forjar.
+ *
+ * Conquista fica fora do teto diário de moedas de propósito: o teto existe
+ * contra farm de boss, e conquista só acontece uma vez.
  *
  * Não confundir com `src/lib/achievements/achievementChecker.ts`, que faz a
  * mesma coisa pelo cliente e está obsoleto: ele creditava em

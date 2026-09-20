@@ -19,13 +19,17 @@
 --   Tudo no servidor. A funcao nao aceita contadores como parametro: ela
 --   calcula os totais das tabelas de origem, entao nao ha o que falsificar.
 --
---   Moedas passam pelo apply_daily_coin_cap, seguindo a convencao do projeto
---   de que todo credito de moeda passa pelo teto diario.
+--   Recompensa integral, os dois tipos. Decisao do Matheus em 20/09/2026:
 --
---   Diamantes NAO sao creditados por padrao. Existe uma decisao explicita no
---   projeto (commit d0bd712) de que diamante vem so do professor, nunca de
---   batalha. O valor previsto vai no payload do feed, e quem quiser ligar o
---   credito automatico chama com p_grant_diamonds => true.
+--   - Moedas NAO passam pelo apply_daily_coin_cap. O teto diario existe contra
+--     farm de boss; conquista e uma vez na vida e nao da para repetir, entao o
+--     motivo nao se aplica. Como a funcao nem chama o cap, o premio tambem nao
+--     consome o orcamento de moedas do dia do aluno.
+--
+--   - Diamantes SAO creditados. Isso abre uma excecao a regra do commit
+--     d0bd712 ("diamante vem so do professor, nunca de batalha"): a excecao e
+--     conquista, que tambem e evento unico. p_grant_diamonds => false desliga
+--     sem precisar de migration.
 --
 -- Requisitos cobertos
 --   wins, boss_wins, level, pvp_matches, pvp_wins, pvp_rating, element_points
@@ -35,7 +39,7 @@
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.check_my_achievements(
-  p_grant_diamonds BOOLEAN DEFAULT FALSE
+  p_grant_diamonds BOOLEAN DEFAULT TRUE
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -49,8 +53,8 @@ DECLARE
   v_tid        UUID;
   v_totais     JSONB;
   v_ach        RECORD;
-  v_cap        JSONB;
   v_coins_ok   INTEGER;
+  v_diam_ok    INTEGER;
   v_novas      JSONB := '[]'::jsonb;
 BEGIN
   IF v_uid IS NULL THEN
@@ -118,15 +122,13 @@ BEGIN
       CONTINUE;
     END IF;
 
-    v_coins_ok := 0;
-    IF v_ach.reward_coins > 0 THEN
-      v_cap := public.apply_daily_coin_cap(v_ach.reward_coins);
-      v_coins_ok := GREATEST(COALESCE((v_cap ->> 'effective')::INTEGER, 0), 0);
-    END IF;
+    -- Integral, sem passar pelo teto diario (ver cabecalho).
+    v_coins_ok := v_ach.reward_coins;
+    v_diam_ok  := CASE WHEN p_grant_diamonds THEN v_ach.reward_diamonds ELSE 0 END;
 
     UPDATE students
        SET coins    = coins + v_coins_ok,
-           diamonds = diamonds + CASE WHEN p_grant_diamonds THEN v_ach.reward_diamonds ELSE 0 END
+           diamonds = diamonds + v_diam_ok
      WHERE id = v_sid;
 
     INSERT INTO achievement_feed (student_id, teacher_id, achievement_type, achievement_data, message)
@@ -139,9 +141,8 @@ BEGIN
         'name',               v_ach.name,
         'requirement_type',   v_ach.requirement_type,
         'requirement_value',  v_ach.requirement_value,
-        'coins_creditadas',   v_coins_ok,
-        'diamantes_previstos', v_ach.reward_diamonds,
-        'diamantes_creditados', CASE WHEN p_grant_diamonds THEN v_ach.reward_diamonds ELSE 0 END
+        'coins_creditadas',     v_coins_ok,
+        'diamantes_creditados', v_diam_ok
       ),
       v_ach.name
     );
@@ -151,8 +152,8 @@ BEGIN
       'name',           v_ach.name,
       'description',    v_ach.description,
       'category',       v_ach.category,
-      'reward_coins',   v_coins_ok,
-      'reward_diamonds', CASE WHEN p_grant_diamonds THEN v_ach.reward_diamonds ELSE 0 END
+      'reward_coins',    v_coins_ok,
+      'reward_diamonds', v_diam_ok
     );
   END LOOP;
 
