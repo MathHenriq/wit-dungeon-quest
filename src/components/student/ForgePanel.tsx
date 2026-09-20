@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Loader2, Check, X, Hammer } from 'lucide-react';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { GameIcon } from '@/components/icons/GameIcon';
+import { rpcJson } from '@/integrations/supabase/rpcJson';
 
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic';
 
@@ -51,7 +52,7 @@ export function ForgePanel() {
     queryFn: async () => {
       const { data, error } = await supabaseStudent.rpc('get_my_forge_state');
       if (error) throw error;
-      return data as ForgeState;
+      return rpcJson<ForgeState>(data);
     },
   });
   const [busyRecipe, setBusyRecipe] = useState<string | null>(null);

@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState, createContext, useContext, useMemo } 
 import { Loader2, Shield, Award, Crown, Star, X } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { toast } from "sonner";
+import { rpcJson } from "@/integrations/supabase/rpcJson";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 export type FrameKey = "default" | "bronze" | "silver" | "gold" | "holo";
@@ -176,7 +177,7 @@ function ProfileCardModal({ studentId, onClose }: { studentId: string; onClose: 
       const { data: payload, error } = await supabaseStudent.rpc("get_profile_card", { p_student_id: studentId });
       if (cancelled) return;
       if (error) console.warn(error);
-      setData(payload as ProfileCardPayload | null);
+      setData(rpcJson<ProfileCardPayload | null>(payload));
       setLoading(false);
 
       // Patch 8.4: count this as a profile visit if it's not the caller's own card.

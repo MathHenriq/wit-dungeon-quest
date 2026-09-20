@@ -1,12 +1,14 @@
 import { useCallback, useRef } from "react";
 import { supabaseAnon } from "@/integrations/supabase/anonClient";
+// event_data e uma coluna jsonb; Record<string, unknown> nao e atribuivel a Json.
+import type { Json } from "@/integrations/supabase/types";
 
 interface TrackEventParams {
   event_type: string;
   student_id?: string;
   teacher_id: string;
   class_id?: string;
-  event_data?: Record<string, unknown>;
+  event_data?: Json;
 }
 
 export function useAnalytics() {

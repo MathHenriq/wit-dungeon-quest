@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, RefreshCw, Plus, X, Play, StopCircle, Ban, Calendar, Trash2, Package, ScrollText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { rpcJson } from "@/integrations/supabase/rpcJson";
 
 interface EventRow {
   id: string;
@@ -101,9 +102,14 @@ export function AdminEventsTab() {
 
   const filtered = filter === "all" ? rows : rows.filter(r => r.status === filter);
 
-  async function callRpc(fn: string, params: Record<string, unknown>, successMsg: string, id: string) {
+  // O nome da RPC vem dos botoes da tela, entao nao da para ser um literal.
+  // O tipo gerado exige um dos nomes conhecidos; restringir a isso mantem a
+  // verificacao no ponto de chamada de cada botao.
+  type RpcName = Parameters<typeof supabase.rpc>[0];
+
+  async function callRpc(fn: RpcName, params: Record<string, unknown>, successMsg: string, id: string) {
     setActing(id);
-    const { data, error } = await supabase.rpc(fn, params);
+    const { data, error } = await supabase.rpc(fn, params as never);
     setActing(null);
     if (error) { toast.error("Falha", { description: error.message }); return; }
     const result = data as { success?: boolean; error?: string };
@@ -115,7 +121,7 @@ export function AdminEventsTab() {
   async function loadDetail(id: string) {
     const { data, error } = await supabase.rpc("get_event_detail", { p_event_id: id });
     if (error) { toast.error("Falha", { description: error.message }); return; }
-    setDetail(data as EventDetail);
+    setDetail(rpcJson<EventDetail>(data));
   }
 
   return (
@@ -322,7 +328,7 @@ function EventDetailDrawer({ detail, onClose, onChanged }: { detail: EventDetail
 
   async function refreshDetail() {
     const { data } = await supabase.rpc("get_event_detail", { p_event_id: e.id });
-    if (data) setChests((data as EventDetail).chests);
+    if (data) setChests(rpcJson<EventDetail>(data).chests);
     onChanged?.();
   }
 

@@ -136,7 +136,7 @@ export function CharacterSheet({ student, inventory, onUpdate }: CharacterSheetP
   const [showEdit, setShowEdit] = useState(false);
 
   // XP
-  const xp = (student as Record<string, unknown>).xp as number ?? 0;
+  const xp = student.xp ?? 0;
   const xpToNext = student.level * 100;
   const xpPct = Math.min((xp / xpToNext) * 100, 100);
 

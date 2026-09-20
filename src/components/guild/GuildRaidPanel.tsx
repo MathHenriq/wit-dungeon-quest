@@ -15,6 +15,7 @@ import { Loader2, Sword, Shield, Skull, Flame, Clock, Crown } from "lucide-react
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { useOpenProfileCard } from "@/components/student/ProfileCard";
 import { toast } from "sonner";
+import { rpcJson } from "@/integrations/supabase/rpcJson";
 
 interface RaidRow {
   id: string;
@@ -78,7 +79,7 @@ export function GuildRaidPanel({ studentId, studentLevel, guildId }: Props) {
       console.warn("[GuildRaidPanel] load", error);
       setPayload(null);
     } else {
-      setPayload(data as DetailPayload | null);
+      setPayload(rpcJson<DetailPayload | null>(data));
     }
     setLoading(false);
   }, [guildId]);

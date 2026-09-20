@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Lock, Unlock, Sparkles, Crown, Package, Gift, X } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
+import { rpcJson } from "@/integrations/supabase/rpcJson";
 
 interface VaultReward {
   threshold: number;
@@ -48,7 +49,7 @@ export function VaultOpeningModal() {
     (async () => {
       const { data, error } = await supabaseStudent.rpc("get_my_unread_vaults");
       if (cancelled || error || !data) return;
-      setQueue((data as UnreadVault[]) ?? []);
+      setQueue(rpcJson<UnreadVault[] | null>(data) ?? []);
     })();
     return () => { cancelled = true; };
   }, []);

@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Loader2, RefreshCw, Search, AlertTriangle, Info,
+  Loader2, RefreshCw, Search, AlertTriangle, Info as InfoIcon,
   ChevronLeft, ChevronRight, X, FileSearch,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -119,7 +119,7 @@ export function AdminAuditTab() {
               color: a.severity === "warning" ? "#fda4a4" : "#fde68a",
               fontSize: 12,
             }}>
-              {a.severity === "warning" ? <AlertTriangle size={14} /> : <Info size={14} />}
+              {a.severity === "warning" ? <AlertTriangle size={14} /> : <InfoIcon size={14} />}
               <strong style={{ marginRight: 6 }}>{a.title}</strong>
               <span style={{ flex: 1, opacity: 0.85 }}>{a.detail}</span>
               <span style={{ fontFamily: "'Share Tech Mono', monospace", opacity: 0.6, fontSize: 10 }}>

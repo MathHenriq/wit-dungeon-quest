@@ -11,6 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { GameIcon } from '@/components/icons/GameIcon';
+import { rpcJson } from '@/integrations/supabase/rpcJson';
 
 interface DailySummary {
   earned_today: number;
@@ -36,7 +37,7 @@ export function useDailyCoinsSummary() {
         console.warn('[DailyCoinBar] get_daily_coins_summary error:', error);
         return null;
       }
-      return data as DailySummary;
+      return rpcJson<DailySummary>(data);
     },
   });
 }

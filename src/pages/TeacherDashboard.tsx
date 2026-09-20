@@ -112,7 +112,9 @@ export default function TeacherDashboard() {
 
       if (!classesError && classesData) setClasses(classesData);
       if (!challengesError) setChallenges((challengesData || []) as Challenge[]);
-      if (!studentsError && studentsData) setStudents(studentsData);
+      // A linha de students tem ~48 colunas; o tipo Student do app descreve um
+      // subconjunto. Mesma conversao ja usada nas outras linhas deste bloco.
+      if (!studentsError && studentsData) setStudents(studentsData as unknown as Student[]);
       if (!missionsError) setMissions((missionsData || []) as Mission[]);
       if (shopData) setShopItems(shopData as unknown as ShopItem[]);
 

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, Swords, Users, BookOpen, Flame, Check, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
+import { rpcJson } from "@/integrations/supabase/rpcJson";
 
 type Category = "combate" | "social" | "academica";
 interface QuestRow {
@@ -51,7 +52,7 @@ export function DailyQuestsPanel() {
     await supabaseStudent.rpc("check_my_daily_quests");
     const { data: payload, error } = await supabaseStudent.rpc("get_my_daily_quests");
     if (error) console.warn("[DailyQuestsPanel]", error);
-    setData((payload as Payload | null) ?? null);
+    setData(rpcJson<Payload | null>(payload) ?? null);
     setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);

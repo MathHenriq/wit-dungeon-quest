@@ -13,17 +13,17 @@ export function GuildRanking({ currentGuildId }: GuildRankingProps) {
 
   useEffect(() => {
     setIsLoading(true);
-    (supabaseStudent as ReturnType<typeof supabaseStudent['from']> & { from: typeof supabaseStudent['from'] })
-    // workaround: cast to any for the view which isn't in generated types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(supabaseStudent as any)
+    // A view guild_ranking_global ja consta nos tipos gerados, entao o cast
+    // `as any` que existia aqui (precedido de uma expressao solta que nao
+    // fazia nada) nao e mais necessario.
+    supabaseStudent
       .from('guild_ranking_global')
       .select('id, name, emblem, emblem_color, level, xp, member_count, total_pvp_wins, total_member_xp, avg_member_level, score')
       .order('score', { ascending: false })
       .limit(100)
-      .then(({ data }: { data: GuildRankEntry[] | null }) => {
+      .then(({ data }) => {
         setGuilds(
-          (data || []).map((g: GuildRankEntry) => ({
+          ((data ?? []) as unknown as GuildRankEntry[]).map(g => ({
             id:              g.id,
             name:            g.name,
             emblem:          g.emblem          ?? 'shield',

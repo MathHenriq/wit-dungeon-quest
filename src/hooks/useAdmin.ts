@@ -60,13 +60,15 @@ export interface AdminListResult {
   students: AdminStudentRow[];
 }
 
-export interface CreateStudentInput {
+// `type` e nao `interface`: o helper `call` exige Record<string, unknown>, e
+// interfaces nao satisfazem essa restricao (nao tem index signature implicita).
+export type CreateStudentInput = {
   class_id: string;
   name: string;
   email: string;
   password: string;
   status?: "active" | "pending";
-}
+};
 
 async function call<TIn extends Record<string, unknown>, TOut>(
   fn: string,

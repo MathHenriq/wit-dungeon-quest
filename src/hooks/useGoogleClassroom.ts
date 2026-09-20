@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 export interface ClassroomCourse {
   id: string;
@@ -123,7 +124,9 @@ export function useGoogleClassroom(teacherId: string | undefined) {
   // present on the session object.
   const persistToken = useCallback(async (token: string, refreshToken?: string | null, expiresIn?: number | null) => {
     if (!teacherId) return;
-    const payload: Record<string, unknown> = {
+    // Tipado a partir da propria tabela: com Record<string, unknown> o upsert
+    // perdia a verificacao e um campo errado passaria batido ate o runtime.
+    const payload: Database["public"]["Tables"]["google_classroom_connections"]["Insert"] = {
       teacher_id: teacherId,
       access_token: token,
       last_sync_at: new Date().toISOString(),

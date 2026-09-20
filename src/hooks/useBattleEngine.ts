@@ -12,6 +12,7 @@ import { getClassProfile, getStudentAttributes } from '@/lib/skills/api';
 import { aggregatePassives, type PassiveEffectAggregation } from '@/lib/skills/evolutionsRegistry';
 import type { ClassType } from '@/lib/skills/skillsRegistry';
 import { toLegacyElement } from '@/lib/battle/elementBridge';
+import { rpcJson } from '@/integrations/supabase/rpcJson';
 
 async function loadWave11PlayerData(studentId: string | null | undefined, isInRaid: boolean): Promise<{
   playerClass:    ClassType | null;
@@ -66,7 +67,7 @@ async function loadForgeBattleData(): Promise<{
     const consMap = new Map((consRows ?? []).map(r => [r.key, r]));
 
     const buffs: ActiveBuffInput[] = (s.active_buffs ?? [])
-      .map(b => {
+      .map((b): ActiveBuffInput | null => {
         const meta = buffMap.get(b.key);
         if (!meta) return null;
         return {
@@ -78,7 +79,7 @@ async function loadForgeBattleData(): Promise<{
       .filter((x): x is ActiveBuffInput => x !== null);
 
     const consumables = (s.consumables ?? [])
-      .map(c => {
+      .map((c): (ConsumableInput & { quantity: number }) | null => {
         const meta = consMap.get(c.key);
         if (!meta) return null;
         return {
@@ -250,7 +251,7 @@ export function useBattleEngine() {
         console.warn('[useBattleEngine] consume_my_consumable failed:', error);
         return;
       }
-      const res = data as { success: boolean; remaining?: number; consumable?: ConsumableInput };
+      const res = rpcJson<{ success: boolean; remaining?: number; consumable?: ConsumableInput }>(data);
       if (!res?.success || !res.consumable) return;
 
       setConsumables(prev =>

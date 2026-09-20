@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-interface AccessibilitySettings {
+export interface AccessibilitySettings {
   highContrast: boolean;
   colorBlindMode: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia';
   reducedMotion: boolean;

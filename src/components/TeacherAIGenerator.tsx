@@ -147,9 +147,27 @@ export function TeacherAIGenerator({ teacherId, classes, onDataChanged }: Props)
       }
 
       if (editedSkillNodes.length > 0) {
+        // skill_nodes nao tem coluna teacher_id e EXIGE tree_id. O insert
+        // antigo mandava teacher_id e omitia tree_id, entao esta parte do
+        // gerador falhava em toda tentativa — a arvore e que pertence ao
+        // professor, o no pertence a arvore.
+        const { data: tree, error: treeErr } = await supabase
+          .from('skill_trees')
+          .select('id')
+          .eq('teacher_id', teacherId)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (treeErr) throw new Error(`Skill nodes: ${treeErr.message}`);
+        if (!tree) {
+          throw new Error(
+            'Skill nodes: crie uma arvore de skills antes de gerar nos por IA.',
+          );
+        }
+
         const rows = editedSkillNodes.map(n => ({
-          teacher_id: teacherId,
-          name: n.name,
+          tree_id:     tree.id,
+          name:        n.name,
           description: n.description,
         }));
         const { error } = await supabase.from('skill_nodes').insert(rows);

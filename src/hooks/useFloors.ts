@@ -161,7 +161,7 @@ export function useFloorEnemies(floorId: string | null) {
       const { data, error } = await studentSupabase
         .from('enemies')
         .select('id, floor_id, name, level, is_boss, lore, hp_max, def_fisica, def_magica, velocidade, element_type, element_type_secondary, ability_1, ability_2, ability_3, ability_4, special_ability_name, special_ability_effect, special_trigger, position_x, position_y, icon_type')
-        .eq('floor_id', floorId!)
+        .eq('floor_id', Number(floorId))
         .order('is_boss', { ascending: true });
       if (error) throw error;
       return (data ?? []).map((row, i) => rowToEnemy(row, i));
@@ -315,6 +315,14 @@ export function useEnemyDefeats(characterId: string | null, floorId: string | nu
       return new Set<string>((data ?? []).map((r: any) => r.enemy_id));
     },
   });
+}
+
+/** Entrada de useRecordEnemyDefeat. O nome era usado sem nunca ter sido
+ *  declarado, entao o parametro inteiro da mutation virava `any` em silencio. */
+export interface RecordDefeatInput {
+  characterId: string;
+  floorId:     string;
+  isBoss?:     boolean;
 }
 
 /** Records a single enemy defeat and updates floor progress summary. */

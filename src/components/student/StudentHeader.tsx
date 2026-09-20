@@ -11,13 +11,16 @@ const TAB_LABELS: Record<StudentTab, string> = {
   guild:      "Guilda",
   skills:     "Skills",
   shop:       "Loja",
-  inventory:  "Mochila",
   ranking:    "Ranking",
   character:  "Herói",
   dungeon:    "Dungeon",
   capsule:    "Cápsula",
   pvp:        "PvP Arena",
   trading:    "Trading",
+  mural:      "Mural",
+  cards:      "Cartas",
+  diarias:    "Quests do Dia",
+  director:   "Hub",
 };
 
 interface StudentHeaderProps {

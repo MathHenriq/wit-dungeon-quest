@@ -53,7 +53,19 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function buildQuery(query: ReturnType<typeof supabase.from>, opts: ExportOptions) {
+/**
+ * Encadeia os filtros comuns de exportação.
+ *
+ * A anotação era `ReturnType<typeof supabase.from>` — o builder de ANTES do
+ * `.select()`, que não tem `.eq`. Quem chama sempre passa o resultado do
+ * `.select()`, então em runtime funcionava; o tipo é que estava descrevendo a
+ * coisa errada. O genérico abaixo aceita qualquer builder que saiba encadear
+ * `.eq` devolvendo ele mesmo.
+ */
+function buildQuery<T extends { eq(column: string, value: string): T }>(
+  query: T,
+  opts: ExportOptions,
+): T {
   let q = query.eq('teacher_id', opts.teacherId);
   if (opts.classId) q = q.eq('class_id', opts.classId);
   if (opts.studentId) q = q.eq('id', opts.studentId);

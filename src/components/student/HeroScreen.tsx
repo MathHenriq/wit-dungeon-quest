@@ -5,7 +5,7 @@ import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { CreationTicketsPanel } from "@/components/student/CreationTicketsPanel";
 import { TitlesPanel } from "@/components/student/TitlesPanel";
-import type { Student, InventoryItem, StudentPet, StudentTitle, ShopItem } from "@/types";
+import type { Student, InventoryItem, StudentPet, StudentTitle, ShopItem, SkillNode } from "@/types";
 import type { Ability, BattleCharacter } from "@/types/character";
 import { ELEMENT_META, canUseAbility } from "@/types/character";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
@@ -1938,7 +1938,7 @@ function HeroTopBar({
 
 // ─── Bottom Bar (XP only, no dead shortcuts) ───────────────────────────────────
 function HeroBottomBar({ student, classLabel }: { student: Student; classLabel: string | null }) {
-  const xp = (student as Record<string, unknown>).xp as number ?? 0;
+  const xp = student.xp ?? 0;
   const xpToNext = 50 * student.level * student.level + 100 * student.level;
   const xpPct = Math.min((xp / xpToNext) * 100, 100);
 

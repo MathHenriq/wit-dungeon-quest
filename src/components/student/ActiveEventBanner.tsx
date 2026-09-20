@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Sparkles, X, Calendar, Loader2 } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
+import { rpcJson } from "@/integrations/supabase/rpcJson";
 
 interface ActiveEvent {
   id: string;
@@ -62,7 +63,7 @@ export function ActiveEventBanner() {
     const { data, error } = await supabaseStudent.rpc("get_event_detail", { p_event_id: eventId });
     setLoadingDetail(false);
     if (error || !data) return;
-    setDetail(data as EventDetail);
+    setDetail(rpcJson<EventDetail>(data));
   }, []);
 
   if (events.length === 0) return null;

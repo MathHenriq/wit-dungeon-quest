@@ -1,5 +1,9 @@
 import { Settings, X } from "lucide-react";
 import { useAccessibility } from "@/hooks/useAccessibility";
+// O componente desta arquivo tambem se chama AccessibilitySettings, entao o
+// tipo precisa de alias — sem ele `AccessibilitySettingsShape["colorBlindMode"]`
+// resolvia para a funcao, nao para a interface.
+import type { AccessibilitySettings as AccessibilitySettingsShape } from '@/hooks/useAccessibility';
 
 interface Props {
   onClose: () => void;
@@ -100,7 +104,7 @@ export function AccessibilitySettings({ onClose }: Props) {
               value={settings.colorBlindMode}
               onChange={(e) =>
                 update({
-                  colorBlindMode: e.target.value as AccessibilitySettings["colorBlindMode"],
+                  colorBlindMode: e.target.value as AccessibilitySettingsShape["colorBlindMode"],
                 })
               }
               className="w-full px-3 py-2 rounded-lg text-sm text-white/80"

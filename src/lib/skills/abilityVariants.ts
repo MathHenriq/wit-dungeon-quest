@@ -17,8 +17,19 @@
 // or the class isn't represented — callers should fall back to the
 // ability's own legacy fields in that case.
 
-import type { Ability, ElementType, AttributeType } from '@/types/character';
-import { SKILLS_REGISTRY, type ClassType, type DamageType as RegistryDamageType } from './skillsRegistry';
+import type { Ability } from '@/types/character';
+// ElementType e AttributeType tem que vir do registry, nao de @/types/character:
+// o registry usa a forma minuscula da Onda 11 ('fire') e o character usa a
+// legada capitalizada ('Fire'). Com o import errado o TypeScript via
+// `s.element === element` como comparacao sem sobreposicao — nao verificava
+// nada — e AttributeType nem existe em @/types/character, entao virava any.
+import {
+  SKILLS_REGISTRY,
+  type ClassType,
+  type ElementType,
+  type AttributeType,
+  type DamageType as RegistryDamageType,
+} from './skillsRegistry';
 
 // Legacy abilities use IDs like `fire_01`..`fire_13`; the registry uses
 // `fire_slot1`..`fire_slot13`. The trailing number is the slot, so we can

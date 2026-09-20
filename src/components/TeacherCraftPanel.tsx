@@ -81,8 +81,10 @@ export function TeacherCraftPanel({ teacherId, shopItems }: TeacherCraftPanelPro
     if (!treesRes.error) setTrees((treesRes.data || []) as unknown as SkillTree[]);
     if (!nodesRes.error) {
       // Filter nodes to only those belonging to this teacher's trees
-      const treeIds = new Set((treesRes.data || []).map((t: Record<string, string>) => t.id));
-      const filtered = (nodesRes.data || []).filter((n: Record<string, string>) => treeIds.has(n.tree_id));
+      // As linhas tem colunas numericas (reward_coins, position_x...), entao
+      // Record<string, string> nao descreve a linha e rejeitava o callback.
+      const treeIds = new Set((treesRes.data || []).map(t => t.id));
+      const filtered = (nodesRes.data || []).filter(n => treeIds.has(n.tree_id));
       setNodes(filtered as unknown as SkillNode[]);
     }
     setIsLoading(false);
