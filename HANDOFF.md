@@ -1,5 +1,13 @@
 # WIT Dungeon — Handoff para nova sessão
 
+> **ATENCAO — parcialmente desatualizado (20/09/2026).**
+> Veja `ROADMAP.md` para o estado atual. Em especial:
+> - A pendencia 8 (forja em batalha) **ja foi concluida**.
+> - O wipe do Patch 2.7 **ja foi disparado** em 25/05/2026 (654 alunos), nao
+>   esta mais "armado e dormente".
+> - As estatisticas de producao no fim do arquivo estao defasadas
+>   (161 migrations, 176 RPCs, 221 tabelas/views).
+
 ## Como usar este documento
 
 Cole o conteúdo abaixo no início de uma nova sessão do Claude Code. Ele dá contexto suficiente para continuar de onde paramos sem perder convenções estabelecidas.
