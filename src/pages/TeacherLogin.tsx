@@ -7,6 +7,7 @@ import { Sword, Shield, Mail, Lock, User, Loader2, ChevronDown, Eye, EyeOff } fr
 import { toast } from "sonner";
 import { describeLoginError, describeSignUpError } from "@/lib/authErrors";
 import { supabase } from "@/integrations/supabase/client";
+import { LoginBackdrop } from "@/components/LoginBackdrop";
 
 export default function TeacherLogin() {
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -87,19 +88,7 @@ export default function TeacherLogin() {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
-      {/* MP4 background video. CSS aurora fica como fallback (até carregar / sem suporte). */}
-      <div className="login-video-background" aria-hidden="true" />
-      <video
-        className="fixed inset-0 w-full h-full object-cover z-0"
-        style={{ filter: 'blur(14px) brightness(0.55)' }}
-        src="/videos/login-bg.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        aria-hidden="true"
-      />
-      <div className="fixed inset-0 z-0 bg-black/40" aria-hidden="true" />
+      <LoginBackdrop />
       <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
