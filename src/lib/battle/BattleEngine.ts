@@ -550,14 +550,9 @@ export class BattleEngine {
       this.applyPlayerPostHitPassives(effectiveAbility, finalDmg);
     }
 
-    // Check enemy death
-    if (this.ctx.enemy.hpCurrent <= 0) {
-      this.ctx.enemy.hpCurrent = 0;
-      this.ctx.phase = 'VICTORY';
-      this.computeRewards();
-      this.log('system', `🏆 ${this.ctx.enemy.name} foi derrotado!`, 'info');
-      return this.snapshot();
-    }
+    // Battle over? Covers the enemy dying to the hit itself *and* the player
+    // dying to their own recoil damage on the same action.
+    if (this.resolveOutcome()) return this.snapshot();
 
     // Check enemy special ability trigger
     this.checkSpecialTrigger();
@@ -788,14 +783,25 @@ export class BattleEngine {
       }
       case 'cure': {
         const removed = this.ctx.playerStatus?.type ?? null;
+        if (!removed) {
+          // Don't burn a turn on a no-op — this was a classic mis-tap trap.
+          this.log('player', '💊 Sem status para curar.', 'info');
+          return this.snapshot();
+        }
         this.ctx.playerStatus = null;
-        this.log('player', removed ? `💊 Status (${removed}) curado!` : '💊 Sem status para curar.', 'effect');
+        this.log('player', `💊 Status (${removed}) curado!`, 'effect');
         break;
       }
       case 'revive': {
+        // The battle now ends the instant HP hits 0, so "revive the corpse"
+        // was unreachable dead code. Used while alive it arms a death guard,
+        // matching how the forge consumable of the same effect behaves.
         if (this.ctx.player.hpCurrent <= 0) {
           this.ctx.player.hpCurrent = Math.floor(this.ctx.player.hpMax * 0.5);
           this.log('player', '✨ Reviveu com 50% HP!', 'effect');
+        } else {
+          this.ctx.reviveCharges += 1;
+          this.log('player', '✨ Guarda contra morte ativa — você renasce se cair.', 'effect');
         }
         break;
       }
@@ -880,13 +886,7 @@ export class BattleEngine {
     this.ctx.equipmentCooldown = cooldownTurns;
     if (oncePerBattle) this.ctx.equipmentUsed = true;
 
-    if (this.ctx.enemy.hpCurrent <= 0) {
-      this.ctx.enemy.hpCurrent = 0;
-      this.ctx.phase = 'VICTORY';
-      this.computeRewards();
-      this.log('system', `🏆 ${this.ctx.enemy.name} foi derrotado!`, 'info');
-      return this.snapshot();
-    }
+    if (this.resolveOutcome()) return this.snapshot();
 
     this.checkSpecialTrigger();
     this.ctx.phase = 'ENEMY_TURN';
@@ -1022,21 +1022,9 @@ export class BattleEngine {
       this.enemyChooseAndAttack();
     }
 
-    // Player dead? — Patch 2.0: save-point (Return by Death) > revive > game over.
-    if (this.ctx.player.hpCurrent <= 0) {
-      if (this.tryRespawnFromSavePoint()) {
-        // Restored from save point — keep playing.
-      } else if (this.ctx.reviveCharges > 0) {
-        this.ctx.reviveCharges -= 1;
-        this.ctx.player.hpCurrent = Math.max(1, Math.floor(this.ctx.player.hpMax * 0.5));
-        this.log('system', `✨ Você renasceu! HP restaurado a ${this.ctx.player.hpCurrent}.`, 'effect');
-      } else {
-        this.ctx.player.hpCurrent = 0;
-        this.ctx.phase = 'DEFEAT';
-        this.log('system', '💀 Você foi derrotado!', 'info');
-        return this.snapshot();
-      }
-    }
+    // Save-point (Return by Death) > revive charge > game over, plus the case
+    // where the enemy killed *itself* on the player's counter / reflect.
+    if (this.resolveOutcome()) return this.snapshot();
 
     this.endTurn();
     return this.snapshot();
@@ -1086,12 +1074,7 @@ export class BattleEngine {
       this.enemyAttackWithAbility(abilityId);
     }
 
-    if (this.ctx.player.hpCurrent <= 0) {
-      this.ctx.player.hpCurrent = 0;
-      this.ctx.phase = 'DEFEAT';
-      this.log('system', '💀 Você foi derrotado!', 'info');
-      return this.snapshot();
-    }
+    if (this.resolveOutcome()) return this.snapshot();
 
     this.endTurn();
     return this.snapshot();
@@ -1306,7 +1289,57 @@ export class BattleEngine {
     this.applyHealPerTurnIfRaid();
     // Patch 2.0 — tick mecânicas criativas
     this.tickPatch20Mechanics();
+    // Every tick above can land the killing blow (companion, sword rain,
+    // spirit gun, battlefield DoT, raid curse). Arbitrate before handing the
+    // turn back, otherwise the fight continues with a corpse on one side.
+    if (this.resolveOutcome()) return;
     this.ctx.phase = 'PLAYER_TURN';
+  }
+
+  /**
+   * Central end-of-battle arbiter.
+   *
+   * Direct hits used to be the only thing that could end a fight: `playerAttack`
+   * and `useEquipmentAbility` each had their own inline "is the enemy dead?"
+   * block and nothing else did. Every *indirect* damage source — burn/poison
+   * ticks, counter reflects, auto-counter, the companion, sword rain, spirit
+   * gun, battlefield effects, execution rules — could drop a combatant to 0 HP
+   * and the battle simply carried on: a 0 HP enemy kept attacking until the
+   * player landed one more hit, and a 0 HP player kept getting turns until the
+   * enemy's next swing noticed. Routing every path through here fixes both.
+   *
+   * Returns true when the battle is over (phase already set by this call).
+   */
+  private resolveOutcome(): boolean {
+    const phase = this.ctx.phase;
+    if (phase === 'VICTORY' || phase === 'DEFEAT' || phase === 'FLED') return true;
+
+    // Enemy checked first, so a simultaneous KO resolves in the player's
+    // favour — the friendlier reading for a classroom game.
+    if (this.ctx.enemy.hpCurrent <= 0) {
+      this.ctx.enemy.hpCurrent = 0;
+      this.ctx.phase = 'VICTORY';
+      this.computeRewards();
+      this.log('system', `🏆 ${this.ctx.enemy.name} foi derrotado!`, 'info');
+      return true;
+    }
+
+    if (this.ctx.player.hpCurrent <= 0) {
+      // Patch 2.0 ladder: save-point (Return by Death) > revive charge > death.
+      if (this.tryRespawnFromSavePoint()) return false;
+      if (this.ctx.reviveCharges > 0) {
+        this.ctx.reviveCharges -= 1;
+        this.ctx.player.hpCurrent = Math.max(1, Math.floor(this.ctx.player.hpMax * 0.5));
+        this.log('system', `✨ Você renasceu! HP restaurado a ${this.ctx.player.hpCurrent}.`, 'effect');
+        return false;
+      }
+      this.ctx.player.hpCurrent = 0;
+      this.ctx.phase = 'DEFEAT';
+      this.log('system', '💀 Você foi derrotado!', 'info');
+      return true;
+    }
+
+    return false;
   }
 
   // ─── Patch 2.0 — tick das mecânicas criativas a cada turno completo ───────
@@ -1786,8 +1819,12 @@ export class BattleEngine {
       }
       case 'cure': {
         const removed = this.ctx.playerStatus?.type ?? null;
+        if (!removed) {
+          this.log('player', `${label} — sem status para remover.`, 'info');
+          return this.snapshot();
+        }
         this.ctx.playerStatus = null;
-        this.log('player', removed ? `${label} — status (${removed}) removido.` : `${label} — sem status.`, 'effect');
+        this.log('player', `${label} — status (${removed}) removido.`, 'effect');
         break;
       }
       case 'revive': {
@@ -1796,7 +1833,7 @@ export class BattleEngine {
           this.log('player', `${label} — reviveu com 50% HP.`, 'effect');
         } else {
           this.ctx.reviveCharges += 1;
-          this.log('player', `${label} — guardia contra morte ativa.`, 'effect');
+          this.log('player', `${label} — guarda contra morte ativa.`, 'effect');
         }
         break;
       }
@@ -1931,6 +1968,15 @@ export class BattleEngine {
       log:               [...this.ctx.log],
       equippedAbilities: [...this.ctx.equippedAbilities],
       abilityPP:         ppCopy,
+      // Status containers used to leak straight through the spread, so React
+      // saw the *same* array identity on every snapshot and any memoised HUD
+      // kept rendering last turn's buffs/debuffs.
+      playerStatus:      this.ctx.playerStatus ? { ...this.ctx.playerStatus } : null,
+      enemyStatus:       this.ctx.enemyStatus  ? { ...this.ctx.enemyStatus  } : null,
+      playerStatuses:    this.ctx.playerStatuses.map(s => ({ ...s })),
+      enemyStatuses:     this.ctx.enemyStatuses.map(s => ({ ...s })),
+      activeBuffs:       this.ctx.activeBuffs.map(b => ({ ...b })),
+      erasedEnemyAbilityIds: [...this.ctx.erasedEnemyAbilityIds],
       battlefieldEffects: this.ctx.battlefieldEffects.map(f => ({ ...f, outgoingElementMult: { ...f.outgoingElementMult }, incomingElementMult: { ...f.incomingElementMult }, endTurnDamage: f.endTurnDamage ? { ...f.endTurnDamage } : undefined })),
       playerForms: this.ctx.playerForms.map(f => ({ ...f, payload: f.payload ? { ...f.payload } : undefined })),
       elementOverrides: this.ctx.elementOverrides.map(o => ({ ...o })),

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   BattleEngine,
   type BattleContext, type BattleEnemy, type ItemEffect,
@@ -99,6 +99,9 @@ async function loadForgeBattleData(): Promise<{
   }
 }
 
+/** Delay before the enemy replies, so the player's attack animation can land. */
+const ENEMY_TURN_DELAY_MS = 2200;
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useBattleEngine() {
@@ -106,6 +109,26 @@ export function useBattleEngine() {
   const [ctx, setCtx] = useState<BattleContext | null>(null);
   const [consumables, setConsumables] = useState<Array<ConsumableInput & { quantity: number }>>([]);
   const buffsTickedRef = useRef(false);
+  /** Timer id for the pending enemy turn, so we can cancel and de-duplicate it. */
+  const enemyTurnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True once the hook unmounts — stops late timers from touching React state. */
+  const unmountedRef = useRef(false);
+
+  const cancelPendingEnemyTurn = useCallback(() => {
+    if (enemyTurnTimerRef.current !== null) {
+      clearTimeout(enemyTurnTimerRef.current);
+      enemyTurnTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+      if (enemyTurnTimerRef.current !== null) clearTimeout(enemyTurnTimerRef.current);
+      enemyTurnTimerRef.current = null;
+    };
+  }, []);
 
   const tickActiveBuffs = useCallback(async () => {
     if (buffsTickedRef.current) return;
@@ -123,6 +146,32 @@ export function useBattleEngine() {
     }
   }, [tickActiveBuffs]);
 
+  /**
+   * Queue the enemy's reply after the attack animation.
+   *
+   * Every action used to inline its own `setTimeout`, which caused two bugs:
+   * a double-tap on Atacar ran the engine twice — the second call no-ops and
+   * returns a snapshot still in ENEMY_TURN, so a *second* timer was armed and
+   * the enemy got two turns — and no timer was ever cleared, so a battle left
+   * mid-animation fired its enemy turn into whatever battle came next.
+   *
+   * One timer at a time, bound to the engine that armed it.
+   */
+  const scheduleEnemyTurn = useCallback((result: BattleContext) => {
+    if (result.phase !== 'ENEMY_TURN') return;
+    if (enemyTurnTimerRef.current !== null) return; // already queued — ignore the double tap
+    const engineAtSchedule = engineRef.current;
+    enemyTurnTimerRef.current = setTimeout(() => {
+      enemyTurnTimerRef.current = null;
+      if (unmountedRef.current) return;
+      // A new battle may have replaced the engine while this timer was pending.
+      if (!engineRef.current || engineRef.current !== engineAtSchedule) return;
+      const afterEnemy = engineRef.current.enemyTurn();
+      setCtx(afterEnemy);
+      maybeTickOnEnd(afterEnemy);
+    }, ENEMY_TURN_DELAY_MS);
+  }, [maybeTickOnEnd]);
+
   // ── Init ───────────────────────────────────────────────────────────────────
   const startBattle = useCallback(
     async (
@@ -132,6 +181,8 @@ export function useBattleEngine() {
       equippedItem: ShopItem | null = null,
       raidPhase?: number,
     ) => {
+      // A battle abandoned mid-animation can still have an enemy turn queued.
+      cancelPendingEnemyTurn();
       buffsTickedRef.current = false;
       const isInRaid = typeof raidPhase === 'number';
       const [{ buffs, consumables: cons }, wave11] = await Promise.all([
@@ -149,18 +200,11 @@ export function useBattleEngine() {
       setCtx(initial);
 
       // If enemy is faster, auto-trigger its first turn
-      if (initial.phase === 'ENEMY_TURN') {
-        setTimeout(() => {
-          if (!engineRef.current) return;
-          const afterEnemy = engineRef.current.enemyTurn();
-          setCtx(afterEnemy);
-          maybeTickOnEnd(afterEnemy);
-        }, 2200);
-      }
+      scheduleEnemyTurn(initial);
 
       return initial;
     },
-    [maybeTickOnEnd],
+    [cancelPendingEnemyTurn, scheduleEnemyTurn],
   );
 
   // ── Player actions ─────────────────────────────────────────────────────────
@@ -171,15 +215,8 @@ export function useBattleEngine() {
     maybeTickOnEnd(result);
 
     // Auto-trigger enemy turn after short delay (for animation)
-    if (result.phase === 'ENEMY_TURN') {
-      setTimeout(() => {
-        if (!engineRef.current) return;
-        const afterEnemy = engineRef.current.enemyTurn();
-        setCtx(afterEnemy);
-        maybeTickOnEnd(afterEnemy);
-      }, 2200);
-    }
-  }, [maybeTickOnEnd]);
+    scheduleEnemyTurn(result);
+  }, [maybeTickOnEnd, scheduleEnemyTurn]);
 
   const useItem = useCallback((effect: ItemEffect, value: number, abilityId?: string) => {
     if (!engineRef.current) return;
@@ -187,15 +224,8 @@ export function useBattleEngine() {
     setCtx(result);
     maybeTickOnEnd(result);
 
-    if (result.phase === 'ENEMY_TURN') {
-      setTimeout(() => {
-        if (!engineRef.current) return;
-        const afterEnemy = engineRef.current.enemyTurn();
-        setCtx(afterEnemy);
-        maybeTickOnEnd(afterEnemy);
-      }, 2200);
-    }
-  }, [maybeTickOnEnd]);
+    scheduleEnemyTurn(result);
+  }, [maybeTickOnEnd, scheduleEnemyTurn]);
 
   const useEquipmentAbility = useCallback(async () => {
     if (!engineRef.current) return;
@@ -203,20 +233,16 @@ export function useBattleEngine() {
     setCtx(result);
     maybeTickOnEnd(result);
 
-    if (result.phase === 'ENEMY_TURN') {
-      setTimeout(() => {
-        if (!engineRef.current) return;
-        const afterEnemy = engineRef.current.enemyTurn();
-        setCtx(afterEnemy);
-        maybeTickOnEnd(afterEnemy);
-      }, 2200);
-    }
-  }, [maybeTickOnEnd]);
+    scheduleEnemyTurn(result);
+  }, [maybeTickOnEnd, scheduleEnemyTurn]);
 
   const useConsumable = useCallback(async (cKey: string, abilityId?: string) => {
     if (!engineRef.current) return;
     const stock = consumables.find(c => c.key === cKey);
     if (!stock || stock.quantity <= 0) return;
+    // The engine ignores actions outside PLAYER_TURN, but the RPC below has
+    // already spent the item by then — check first so nothing is lost.
+    if (engineRef.current.getContext().phase !== 'PLAYER_TURN') return;
 
     try {
       const { data, error } = await supabaseStudent.rpc('consume_my_consumable', { p_consumable_key: cKey });
@@ -237,30 +263,25 @@ export function useBattleEngine() {
       setCtx(result);
       maybeTickOnEnd(result);
 
-      if (result.phase === 'ENEMY_TURN') {
-        setTimeout(() => {
-          if (!engineRef.current) return;
-          const afterEnemy = engineRef.current.enemyTurn();
-          setCtx(afterEnemy);
-          maybeTickOnEnd(afterEnemy);
-        }, 2200);
-      }
+      scheduleEnemyTurn(result);
     } catch (err) {
       console.warn('[useBattleEngine] useConsumable error:', err);
     }
-  }, [consumables, maybeTickOnEnd]);
+  }, [consumables, maybeTickOnEnd, scheduleEnemyTurn]);
 
   const flee = useCallback(() => {
     if (!engineRef.current) return;
+    cancelPendingEnemyTurn();
     const result = engineRef.current.flee();
     setCtx(result);
     maybeTickOnEnd(result);
-  }, [maybeTickOnEnd]);
+  }, [cancelPendingEnemyTurn, maybeTickOnEnd]);
 
   const reset = useCallback(() => {
+    cancelPendingEnemyTurn();
     engineRef.current = null;
     setCtx(null);
-  }, []);
+  }, [cancelPendingEnemyTurn]);
 
   return {
     ctx,
