@@ -139,7 +139,7 @@ export function PetPanel({ studentId, teacherId }: PetPanelProps) {
         toast.error("Erro ao adotar pet: " + error.message);
         return;
       }
-      void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: studentId, p_xp: 3 });
+      void supabaseStudent.rpc("give_pet_xp", { p_student_id: studentId, p_xp: 3 });
       toast.success(`${petType.name} adotado!`);
       // Sync real row in background (replaces optimistic entry with real id)
       void load();

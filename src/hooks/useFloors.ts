@@ -327,7 +327,7 @@ export function useRecordEnemyDefeat() {
       // failed silently for some users because of an RLS quirk on
       // floor_enemy_defeats — the throw aborted the progress upsert and
       // boss_defeated never flipped, so the next floor stayed locked.
-      const { data, error } = await studentSupabase.rpc('record_enemy_defeat' as never, {
+      const { data, error } = await studentSupabase.rpc('record_enemy_defeat', {
         p_character_id: characterId,
         p_floor_id:     Number(floorId),
         p_enemy_id:     enemyId,

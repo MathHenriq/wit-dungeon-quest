@@ -245,7 +245,7 @@ const MasterChangeClassModal: FC<{
   async function handleSubmit() {
     setSubmit(true);
     try {
-      const { data, error } = await supabase.rpc('master_reset_class' as never, {
+      const { data, error } = await supabase.rpc('master_reset_class', {
         p_student_id: row.student_id,
       } as never);
       if (error) throw error;
@@ -309,7 +309,7 @@ const MasterGrantPointsModal: FC<{
     if (amount === 0) return;
     setSubmit(true);
     try {
-      const { data, error } = await supabase.rpc('master_grant_skill_points' as never, {
+      const { data, error } = await supabase.rpc('master_grant_skill_points', {
         p_student_id: row.student_id,
         p_points:     amount,
       } as never);

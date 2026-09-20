@@ -157,13 +157,13 @@ export function useBattleSession(bossId: string, studentId: string) {
       });
 
       if (defeated) {
-        await supabaseStudent.rpc("give_boss_rewards" as never, {
+        await supabaseStudent.rpc("give_boss_rewards", {
           p_student_id: studentId,
           p_coins: boss.reward_coins,
           p_xp: boss.reward_xp,
         });
         // Give pet XP for defeating boss (+20)
-        void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: studentId, p_xp: 20 });
+        void supabaseStudent.rpc("give_pet_xp", { p_student_id: studentId, p_xp: 20 });
       }
     } catch (err) {
       console.error("[BattleSession] save error:", err);

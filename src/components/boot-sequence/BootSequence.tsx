@@ -1,9 +1,13 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, lazy, Suspense } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { useNavigate } from 'react-router-dom';
 import { GlitchOverlay } from './GlitchOverlay';
-import { DiveEffect } from './DiveEffect';
+// DiveEffect is the app's only eager three.js dependency and it plays for a
+// couple of seconds on the *first* visit only. Importing it statically parked
+// the whole three.js + @react-three bundle in the main chunk for every student
+// on every load, including the returning ones who skip the intro entirely.
+const DiveEffect = lazy(() => import('./DiveEffect').then(m => ({ default: m.DiveEffect })));
 import './BootSequence.css';
 
 interface SystemCheck {
@@ -104,7 +108,7 @@ export function BootSequence() {
 
   return (
     <div ref={containerRef} className="boot-container">
-      {showDive && <DiveEffect />}
+      {showDive && <Suspense fallback={null}><DiveEffect /></Suspense>}
       {showGlitch && <GlitchOverlay />}
 
       {!showDive && (

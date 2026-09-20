@@ -217,7 +217,7 @@ function rowToCharacter(row: any): BattleCharacter {
 }
 
 async function fetchFullBattleData(studentId: string): Promise<{ char: BattleCharacter; abilities: Ability[] } | null> {
-  const { data, error } = await supabaseStudent.rpc('get_pvp_opponent_data' as never, {
+  const { data, error } = await supabaseStudent.rpc('get_pvp_opponent_data', {
     p_student_id: studentId,
   });
   if (error || !data) return null;
@@ -969,9 +969,15 @@ export function PvpChallengeProvider({
   useEffect(() => {
     const POLL_MS = 4000;
     let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     async function tick() {
       if (stopped) return;
+
+      // A backgrounded tab still polled every 4s. With a class of 30 that is
+      // ~450 pointless queries a minute against Supabase, and nothing can
+      // happen in PvP while the student isn't looking anyway.
+      if (typeof document !== 'undefined' && document.hidden) return;
 
       // In-battle deadlock backstop: while a battle is live, in-battle moves are
       // exchanged over realtime broadcast (no replay). If a move is dropped or
@@ -1055,8 +1061,29 @@ export function PvpChallengeProvider({
       } catch { /* transient — next tick retries */ }
     }
 
-    const id = setInterval(tick, POLL_MS);
-    return () => { stopped = true; clearInterval(id); };
+    // Self-scheduling instead of setInterval: on school Wi-Fi a single tick can
+    // take longer than the interval, and overlapping ticks could read the same
+    // pending match twice and drive the same transition from two callers.
+    async function loop() {
+      try { await tick(); } catch { /* transient — next tick retries */ }
+      if (!stopped) timer = setTimeout(loop, POLL_MS);
+    }
+    timer = setTimeout(loop, POLL_MS);
+
+    // Catch up immediately when the student comes back to the tab, instead of
+    // waiting out the remaining delay.
+    const onVisible = () => {
+      if (stopped || document.hidden) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(loop, 0);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [student.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup timer on unmount

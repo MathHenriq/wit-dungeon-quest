@@ -283,7 +283,7 @@ export function useStudentDB() {
     void trackLogin(typedStudent.teacher_id, typedStudent.id, typedStudent.class_id);
     void trackSessionStart(typedStudent.teacher_id, typedStudent.id, typedStudent.class_id);
     // Daily login pet XP (+3)
-    void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: typedStudent.id, p_xp: 3 });
+    void supabaseStudent.rpc("give_pet_xp", { p_student_id: typedStudent.id, p_xp: 3 });
   }, []);
 
   // Subscribe to auth changes (handles initial session restore + email/password sign-in/out)
@@ -621,7 +621,7 @@ export function useStudentDB() {
 
     // Realtime subscription will reconcile; loadRequests replaces the temp entry with the real row
     void loadRequests(student.id);
-    void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: student.id, p_xp: 8 });
+    void supabaseStudent.rpc("give_pet_xp", { p_student_id: student.id, p_xp: 8 });
     return { error: null };
   };
 
@@ -651,7 +651,7 @@ export function useStudentDB() {
 
     void loadRequests(student.id);
     void trackAttendance(student.teacher_id, student.id, student.class_id, student.presencas_consecutivas ?? 0);
-    void supabaseStudent.rpc("give_pet_xp" as never, { p_student_id: student.id, p_xp: 3 });
+    void supabaseStudent.rpc("give_pet_xp", { p_student_id: student.id, p_xp: 3 });
     return { error: null };
   };
 

@@ -96,7 +96,7 @@ export function CraftPanel({ studentId, teacherId, onCoinsChanged }: CraftPanelP
     setCrafted(prev => [...prev, tempCraft]);
 
     try {
-      const { data, error } = await supabaseStudent.rpc("craft_item" as never, {
+      const { data, error } = await supabaseStudent.rpc("craft_item", {
         p_student_id: studentId,
         p_recipe_id: recipe.id,
       });

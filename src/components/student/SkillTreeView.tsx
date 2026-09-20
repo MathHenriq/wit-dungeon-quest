@@ -307,7 +307,7 @@ export function SkillTreeView({ studentId, teacherId }: SkillTreeViewProps) {
 
   async function confirmNode(node: SkillNode) {
     setIsSubmitting(true);
-    const { data, error } = await supabaseStudent.rpc("complete_skill_node" as never, {
+    const { data, error } = await supabaseStudent.rpc("complete_skill_node", {
       p_student_id: studentId,
       p_node_id: node.id,
     });

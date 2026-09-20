@@ -352,7 +352,7 @@ export function usePvP(studentId: string, teacherId: string) {
       .update({ coins: supabaseAnon.from('students').select('coins') } as never)
       .eq('id', studentId);
     // Simple coin update
-    await supabaseAnon.rpc('complete_daily_dungeon' as never, {
+    await supabaseAnon.rpc('complete_daily_dungeon', {
       p_student_id: studentId, p_day_seed: -1, p_floors: 0, p_coins: reward, p_xp: finalMy > finalOpp ? 10 : 3, p_completed: false,
     } as never).catch(() => null);
 

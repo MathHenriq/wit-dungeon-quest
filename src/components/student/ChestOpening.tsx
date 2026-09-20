@@ -428,21 +428,25 @@ export function ChestOpening({ chestType, studentId, count = 1, grantId, onClose
     if (chestKey) {
       // Try v2 first; fall back to v1 only if PostgREST can't see v2
       // (older deploys missing the wrapper migration).
-      let r = await supabaseStudent.rpc('open_chest_v2' as never, {
+      let r = await supabaseStudent.rpc('open_chest_v2', {
         p_chest_key: chestKey, p_count: grantId ? 1 : count, p_grant_id: grantId ?? null,
       });
       if (r.error && /not.found|does not exist|PGRST/i.test(r.error.message ?? '')) {
-        r = await supabaseStudent.rpc('open_chest' as never, {
+        r = await supabaseStudent.rpc('open_chest', {
           p_chest_key: chestKey, p_count: grantId ? 1 : count, p_grant_id: grantId ?? null,
         });
       }
       data = r.data; error = r.error;
     } else {
-      // Legacy chests (per-teacher, no chest_key) — keep old call working.
-      const r = await supabaseStudent.rpc('open_chest' as never, {
-        p_student_id: studentId, p_chest_type_id: chestType.id,
-      });
-      data = r.data; error = r.error;
+      // The legacy open_chest(uuid, uuid) overload was dropped from the
+      // database, so this branch was calling a function that no longer exists
+      // and every chest without a chest_key died on a generic "tente
+      // novamente". Say what is actually wrong instead — the fix is on the
+      // teacher's side, not the student's.
+      console.error('[ChestOpening] chest_type sem chest_key', { id: chestType.id, name: chestType.name });
+      setErrorMsg('Este baú está com o cadastro incompleto. Avise o professor.');
+      setPhase('idle');
+      return;
     }
 
     if (error || !data) {

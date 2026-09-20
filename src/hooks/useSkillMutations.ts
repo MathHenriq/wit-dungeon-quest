@@ -98,7 +98,7 @@ export function useCompleteTutorial() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<{ success: boolean; error?: string }> => {
-      const { data, error } = await supabaseStudent.rpc('complete_my_tutorial' as never);
+      const { data, error } = await supabaseStudent.rpc('complete_my_tutorial');
       if (error) throw error;
       return data as unknown as { success: boolean; error?: string };
     },

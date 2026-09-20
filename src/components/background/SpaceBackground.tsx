@@ -1,13 +1,13 @@
 import { Canvas } from '@react-three/fiber';
 import { Stars, Float } from '@react-three/drei';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
 function NebulaCloud({ position }: { position: [number, number, number] }) {
   return (
     <Float speed={1} rotationIntensity={0.2} floatIntensity={0.3}>
       <mesh position={position}>
-        <sphereGeometry args={[15, 32, 32]} />
+        <sphereGeometry args={[15, 16, 16]} />
         <meshBasicMaterial
           color="#9d4edd"
           transparent
@@ -25,7 +25,7 @@ function SpaceScene() {
       <Stars
         radius={200}
         depth={100}
-        count={5000}
+        count={1800}
         factor={6}
         saturation={0.5}
         fade
@@ -40,12 +40,55 @@ function SpaceScene() {
   );
 }
 
+/** The flat gradient the canvas sits on. It is what everyone actually sees on
+ *  the hub and portal screens, which cover this layer with an opaque z-30
+ *  surface, so it has to look right on its own. */
+const BACKDROP = 'linear-gradient(180deg, #0a0e14 0%, #050810 100%)';
+
 export function SpaceBackground() {
+  // Render the starfield only once the page is idle, and never for someone who
+  // asked for reduced motion. On a school Chromebook the WebGL context was
+  // being created while the login screen was still painting, and it kept
+  // running at full tilt behind the hub, which covers it completely.
+  const [enabled, setEnabled] = useState(false);
+  const [visible, setVisible] = useState(() =>
+    typeof document === 'undefined' ? true : !document.hidden);
+
+  useEffect(() => {
+    const reduced = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+
+    type IdleWindow = Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const w = window as IdleWindow;
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (w.requestIdleCallback) idleId = w.requestIdleCallback(() => setEnabled(true), { timeout: 3000 });
+    else timeoutId = setTimeout(() => setEnabled(true), 1200);
+
+    return () => {
+      if (idleId !== undefined) w.cancelIdleCallback?.(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, []);
+
+  // Stop the render loop while the tab is in the background — a class leaves
+  // this open in a tab all lesson.
+  useEffect(() => {
+    const onVis = () => setVisible(!document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  if (!enabled) {
+    return <div className="fixed inset-0 -z-50" style={{ background: BACKDROP }} />;
+  }
+
   return (
-    <div
-      className="fixed inset-0 -z-50"
-      style={{ background: 'linear-gradient(180deg, #0a0e14 0%, #050810 100%)' }}
-    >
+    <div className="fixed inset-0 -z-50" style={{ background: BACKDROP }}>
       <Canvas
         camera={{
           position: [0, 0, 50],
@@ -53,9 +96,14 @@ export function SpaceBackground() {
           near: 0.1,
           far: 1000
         }}
+        // Uncapped DPR made a 2x/3x display render 4-9x the pixels for a
+        // deliberately blurry starfield. 1.5 is indistinguishable here.
+        dpr={[1, 1.5]}
+        frameloop={visible ? 'always' : 'never'}
         gl={{
-          antialias: true,
-          alpha: true
+          antialias: false,
+          alpha: true,
+          powerPreference: 'low-power',
         }}
       >
         <Suspense fallback={null}>
