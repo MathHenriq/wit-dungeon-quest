@@ -9,7 +9,7 @@
 // Catalogue + helpers are exported so the HeroScreen profile collection can
 // render the same visuals as preview tiles.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 
 export type BackdropKey =
@@ -59,25 +59,94 @@ interface Props {
   activeKey: BackdropKey;
 }
 
+/** Duração do crossfade; a camada que sai é desmontada logo depois. */
+const FADE_IN_S  = 0.9;
+const FADE_OUT_S = 0.6;
+
 export function BattleBackdrop({ activeKey }: Props) {
   const layerRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const prevKey = useRef<BackdropKey>(activeKey);
 
+  /**
+   * Só o cenário ativo fica montado — e, durante a transição, também o que
+   * está saindo.
+   *
+   * Antes isto renderizava OS NOVE cenários de uma vez e escondia os inativos
+   * com `opacity: 0`, para que o GSAP pudesse fazer crossfade entre camadas
+   * que já existiam. Mas `opacity: 0` não pausa animação nenhuma: o navegador
+   * seguia rodando todas elas, o tempo inteiro, durante toda batalha. Medido
+   * na tela de batalha, com as partículas de todos os temas somadas:
+   *
+   *   144 elementos animando ao mesmo tempo, de 267 nós no documento
+   *   128 partículas (60 estrelas + 30 brasas + 20 do instinto + 18 runas)
+   *     4 animando background-position / background-image em tela cheia,
+   *       que é repaint completo por quadro
+   *     1 grade em perspectiva (rotateX 75°) cuja caixa projetada dava
+   *       700 bilhões de px²
+   *
+   * O aluno via um cenário e pagava por nove. Montando só o que está na tela,
+   * o custo passa a ser o do tema escolhido.
+   */
+  const [montados, setMontados] = useState<BackdropKey[]>(() => [activeKey]);
+
+  // Um timer de remoção POR camada que sai, guardado fora do efeito.
+  //
+  // A primeira versão disto criava o timer dentro do efeito e o cancelava no
+  // cleanup. Parece certo e está errado: trocar de cenário de novo antes do
+  // fade acabar roda o cleanup, que cancela a remoção pendente — e a camada
+  // anterior nunca sai. Disparando cartas em sequência, que é justamente o que
+  // troca cenário, as camadas iam se acumulando de volta ao estado que esta
+  // mudança veio resolver. Coberto por teste.
+  const timers = useRef<Map<BackdropKey, ReturnType<typeof setTimeout>>>(new Map());
+
   useEffect(() => {
     if (activeKey === prevKey.current) return;
-    const incoming = layerRefs.current[activeKey];
-    const outgoing = layerRefs.current[prevKey.current];
-
-    if (incoming) gsap.fromTo(incoming, { opacity: 0 }, { opacity: 1, duration: 0.9, ease: "power2.out" });
-    if (outgoing) gsap.to(outgoing, { opacity: 0, duration: 0.6, ease: "power2.in" });
-
+    const saindo = prevKey.current;
     prevKey.current = activeKey;
+
+    // Monta o novo por baixo antes de animar — o GSAP precisa do elemento.
+    setMontados(atual => (atual.includes(activeKey) ? atual : [...atual, activeKey]));
+
+    // Se o cenário que volta a ser o ativo tinha remoção agendada, cancela.
+    const pendente = timers.current.get(activeKey);
+    if (pendente !== undefined) {
+      clearTimeout(pendente);
+      timers.current.delete(activeKey);
+    }
+
+    // Desmonta o que saiu quando o fade dele terminar — sem depender de
+    // nenhuma troca futura.
+    if (!timers.current.has(saindo)) {
+      timers.current.set(saindo, setTimeout(() => {
+        timers.current.delete(saindo);
+        setMontados(atual => atual.filter(k => k !== saindo));
+      }, Math.max(FADE_IN_S, FADE_OUT_S) * 1000 + 100));
+    }
   }, [activeKey]);
+
+  // Só no unmount: aqui sim os timers pendentes devem morrer.
+  useEffect(() => {
+    const mapa = timers.current;
+    return () => { for (const t of mapa.values()) clearTimeout(t); mapa.clear(); };
+  }, []);
+
+  // O fade roda depois que a camada nova existe no DOM.
+  useLayoutEffect(() => {
+    const incoming = layerRefs.current[activeKey];
+    if (incoming) {
+      gsap.fromTo(incoming, { opacity: 0 }, { opacity: 1, duration: FADE_IN_S, ease: "power2.out" });
+    }
+    for (const k of montados) {
+      if (k === activeKey) continue;
+      const outgoing = layerRefs.current[k];
+      if (outgoing) gsap.to(outgoing, { opacity: 0, duration: FADE_OUT_S, ease: "power2.in" });
+    }
+  }, [montados, activeKey]);
 
   return (
     <div className="bbd-root" aria-hidden="true">
       <style>{CSS}</style>
-      {(Object.keys(BACKDROPS) as BackdropKey[]).map(k => (
+      {montados.map(k => (
         <div
           key={k}
           ref={el => { layerRefs.current[k] = el; }}

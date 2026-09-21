@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useOccludesBackdrop } from "@/hooks/useOccludesBackdrop";
 
 export type SceneType = 'login' | 'home' | 'quests' | 'ranking' | 'character' | 'shop' | 'xp_result' | 'level_up' | 'default';
 
@@ -120,9 +121,14 @@ function ParticleCanvas({ scene }: { scene: SceneType }) {
 
     // Este canvas fica montado no portal inteiro — é a tela onde o aluno passa
     // a aula toda. O laço de ligações é O(n²): 35 partículas dão 595 pares por
-    // quadro. A versão anterior fazia, para cada par dentro do raio, um
-    // beginPath/strokeStyle/stroke separado — até centenas de chamadas de
-    // desenho por quadro, cada uma um estado novo no contexto 2D.
+    // quadro, cada par antes virando um beginPath/strokeStyle/stroke separado.
+    //
+    // Medido em 1366×768, o ganho aqui é modesto e vale registrar para ninguém
+    // voltar a este arquivo esperando ouro: 75 → 42 chamadas de desenho por
+    // quadro, 15 → 4 strokes, 6,2 µs → 4,1 µs de CPU no laço. O laço varre 595
+    // pares mas só ~15 caem dentro do raio por vez. Quem paga a conta nesta
+    // tela é o compositor, não este laço — o teto de 30 fps abaixo ajuda mais
+    // que a batelada de linhas.
     //
     // Três mudanças, sem alterar o visual:
     //  1. Comparação por distância ao quadrado — tira o Math.sqrt dos 595 pares
@@ -231,6 +237,13 @@ export function AincradBackground({ scene = 'default' }: AincradBackgroundProps)
   const showCastle = ['login', 'home', 'character', 'default'].includes(scene);
   const showSwords = scene === 'quests';
   const gradient = SCENE_GRADIENTS[scene];
+
+  // Este componente é `fixed inset-0` e a primeira coisa que ele pinta é um
+  // gradiente SEM canal alpha — cobre a viewport inteira, sem deixar passar um
+  // pixel. Enquanto ele estiver montado, o starfield 3D lá atrás está
+  // desenhando 1.800 estrelas a 60 fps para ninguém. E ele está montado em
+  // praticamente toda tela do portal, que é onde o aluno passa a aula.
+  useOccludesBackdrop();
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
