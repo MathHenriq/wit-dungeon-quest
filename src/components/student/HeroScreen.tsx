@@ -2069,11 +2069,11 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
     // Battle character + abilities
     if (student.user_id) {
       supabaseStudent
-        .from("characters" as never)
+        .from("characters")
         .select("id, pts_fire, pts_water, pts_electric, pts_grass, pts_ice, pts_ground, pts_fighting, pts_steel, pts_poison, pts_dark, pts_ghost, pts_flying, forca, inteligencia, destreza, carisma, agilidade, resistencia, free_points, level, xp, hp_current, hp_max, energy_max, user_id, name, class")
         .eq("user_id", student.user_id)
         .maybeSingle()
-        .then(async ({ data: row }: { data: any }) => {
+        .then(async ({ data: row }) => {
           if (!row) return;
           const char: BattleCharacter = {
             id: row.id, userId: row.user_id, name: row.name ?? "", class: row.class ?? "",
@@ -2101,7 +2101,7 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
       .order("tier")
       .then(({ data: ablData }) => {
         if (!ablData) return;
-        const mapped = (ablData as any[]).map(row => ({
+        const mapped = ablData.map(row => ({
           id:           row.id,
           name:         row.name,
           elementId:    row.element_id,

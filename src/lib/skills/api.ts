@@ -4,14 +4,17 @@ import type {
   ClassType,
   ElementType,
 } from './skillsRegistry';
+import { CLASS_ATTRIBUTES, ELEMENT_EFFECTIVENESS } from './skillsRegistry';
 import { getActiveEvolutions, type Evolution } from './evolutionsRegistry';
 
 // Precisa do client com sessão (supabaseStudent), não do anônimo — caso
 // contrário o RLS owner-only de student_class_profile / student_attribute_points
 // retorna 0 linhas mesmo o aluno estando logado.
-// Database types não foram regenerados ainda para as 6 tabelas da Onda 11.
-// Usamos cast pontual em vez de poluir o client global.
-const db = supabaseStudent as any;
+// As tabelas da Onda 11 (student_class_profile, student_attribute_points,
+// student_skill_points, student_unlocked_skills, element_mastery_log) ja
+// constam nos tipos gerados, entao o cast `as any` que existia aqui — e que
+// desligava a verificacao de TODAS as queries deste modulo — saiu.
+const db = supabaseStudent;
 
 export interface ClassProfile {
   studentId: string;
@@ -33,6 +36,19 @@ const EMPTY_ATTRIBUTES: AttributePoints = {
   resistencia: 0,
 };
 
+// As colunas class_type / primary_element / secondary_element sao texto livre
+// no banco. Enquanto este modulo usava `as any`, um valor fora do dominio
+// chegava intacto ao motor de batalha e silenciosamente zerava a afinidade de
+// classe. Os dominios vem das proprias tabelas do registry, entao nao ha lista
+// duplicada para sair de sincronia.
+function toClassType(raw: string | null | undefined): ClassType | null {
+  return raw && raw in CLASS_ATTRIBUTES ? (raw as ClassType) : null;
+}
+
+function toElementType(raw: string | null | undefined): ElementType | null {
+  return raw && raw in ELEMENT_EFFECTIVENESS ? (raw as ElementType) : null;
+}
+
 export async function getClassProfile(studentId: string): Promise<ClassProfile | null> {
   const { data, error } = await db
     .from('student_class_profile')
@@ -45,9 +61,9 @@ export async function getClassProfile(studentId: string): Promise<ClassProfile |
 
   return {
     studentId:          data.student_id,
-    classType:          data.class_type ?? null,
-    primaryElement:     data.primary_element ?? null,
-    secondaryElement:   data.secondary_element ?? null,
+    classType:          toClassType(data.class_type),
+    primaryElement:     toElementType(data.primary_element),
+    secondaryElement:   toElementType(data.secondary_element),
     choseClassAt:       data.chose_class_at ?? null,
     isVeteranOnboarded: !!data.is_veteran_onboarded,
   };

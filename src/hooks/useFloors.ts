@@ -4,6 +4,7 @@ import { supabaseStudent as studentSupabase } from '@/integrations/supabase/stud
 import { toast } from 'sonner';
 import type { ElementType } from '@/types/character';
 import type { GeneratedFloor, GeneratedEnemy } from '@/lib/ai/claudeService';
+import type { Database } from '@/integrations/supabase/types';
 
 // ─── Domain types ─────────────────────────────────────────────────────────────
 
@@ -55,8 +56,21 @@ export interface FloorProgress {
 }
 
 // ─── Row mappers ──────────────────────────────────────────────────────────────
+//
+// Tipos das linhas vindos do schema gerado. Antes os tres mappers recebiam
+// `any`, entao renomear uma coluna no banco nao quebrava nada aqui — o campo
+// so chegava `undefined` no jogo e caia no valor padrao, em silencio.
 
-function rowToFloor(r: any): Floor {
+type FloorRow    = Database['public']['Tables']['floors']['Row'];
+type EnemyRow    = Database['public']['Tables']['enemies']['Row'];
+type ProgressRow = Database['public']['Tables']['character_progress']['Row'];
+
+/** rowToFloor tambem aceita a forma camelCase que algumas telas montam a mao. */
+type FloorRowLoose = Partial<FloorRow> & Partial<{
+  floorNumber: number; levelMin: number; levelMax: number; createdAt: string;
+}>;
+
+function rowToFloor(r: FloorRowLoose): Floor {
   return {
     id:          String(r.id),
     floorNumber: Number(r.floor_number ?? r.floorNumber ?? 1),
@@ -69,7 +83,9 @@ function rowToFloor(r: any): Floor {
   };
 }
 
-function rowToEnemy(r: any, index: number = 0): FloorEnemy {
+// As queries selecionam um subconjunto das colunas de `enemies`, e o mapper
+// ja trata tudo com `??`, entao Partial descreve a entrada de verdade.
+function rowToEnemy(r: Partial<EnemyRow>, index: number = 0): FloorEnemy {
   // Fallback coordinates if the database has them bunched at 50,50
   const isDefault = (r.position_x === 50 || r.position_x === null) && 
                     (r.position_y === 50 || r.position_y === null);
@@ -110,7 +126,7 @@ function rowToEnemy(r: any, index: number = 0): FloorEnemy {
   };
 }
 
-function rowToProgress(r: any): FloorProgress {
+function rowToProgress(r: Partial<ProgressRow>): FloorProgress {
   // character_progress uses a composite PK (character_id, floor_id) — there is
   // no surrogate `id` column. We synthesize one for FloorProgress consumers.
   return {
@@ -312,7 +328,7 @@ export function useEnemyDefeats(characterId: string | null, floorId: string | nu
         .eq('character_id', characterId!)
         .eq('enemies.floor_id', Number(floorId));
       if (error) throw error;
-      return new Set<string>((data ?? []).map((r: any) => r.enemy_id));
+      return new Set<string>((data ?? []).map(r => r.enemy_id));
     },
   });
 }

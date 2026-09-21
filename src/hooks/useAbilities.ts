@@ -2,10 +2,30 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseAnon } from '@/integrations/supabase/anonClient';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { toast } from 'sonner';
-import type { Ability, BattleCharacter, ElementType } from '@/types/character';
+import type { Ability, BattleCharacter, ElementType, DamageType } from '@/types/character';
 import { canUseAbility } from '@/types/character';
 
 // ─── Fetch all abilities (joined with elements) ───────────────────────────────
+
+/**
+ * `abilities.damage_type` e uma coluna de texto livre no banco, mas o valor
+ * decide qual atributo escala o golpe no damageCalculator. Enquanto o map
+ * usava `any`, um valor errado no banco chegaria intacto no motor e o dano
+ * cairia no ramo de Special por descarte. Normaliza aqui, e diz alto quando
+ * a linha nao bate com nenhum dos tres validos.
+ */
+function toDamageType(raw: string | null | undefined, abilityId: string): DamageType {
+  if (raw === 'Physical' || raw === 'Special' || raw === 'Status') return raw;
+  console.warn(
+    `[useAbilities] damage_type invalido ("${raw}") na ability ${abilityId}; assumindo Physical.`,
+  );
+  return 'Physical';
+}
+
+/** Idem para tier: a coluna e INTEGER, o app so entende 1..4. */
+function toTier(raw: number | null | undefined): Ability['tier'] {
+  return raw === 2 || raw === 3 || raw === 4 ? raw : 1;
+}
 
 export function useAbilities() {
   return useQuery({
@@ -32,13 +52,13 @@ export function useAbilities() {
 
       if (error) throw error;
 
-      return (data ?? []).map((row: any) => ({
+      return (data ?? []).map(row => ({
         id:           row.id,
         name:         row.name,
         elementId:    row.element_id,
         elementName:  row.elements?.name as ElementType,
-        tier:         row.tier as 1 | 2 | 3 | 4,
-        damageType:   row.damage_type,
+        tier:         toTier(row.tier),
+        damageType:   toDamageType(row.damage_type, row.id),
         baseDamage:   row.base_damage ?? 0,
         energyCost:   row.energy_cost ?? 0,
         accuracy:     row.accuracy ?? 100,
@@ -74,13 +94,13 @@ export function useAbilitiesByElement(element: ElementType | null) {
         .order('tier', { ascending: true });
 
       if (error) throw error;
-      return (data ?? []).map((row: any) => ({
+      return (data ?? []).map(row => ({
         id:          row.id,
         name:        row.name,
         elementId:   row.element_id,
         elementName: row.elements?.name as ElementType,
-        tier:        row.tier,
-        damageType:  row.damage_type,
+        tier:        toTier(row.tier),
+        damageType:  toDamageType(row.damage_type, row.id),
         baseDamage:  row.base_damage ?? 0,
         energyCost:  row.energy_cost ?? 0,
         accuracy:    row.accuracy ?? 100,
@@ -139,7 +159,7 @@ export function useEquipAbility(characterId: string) {
       qc.invalidateQueries({ queryKey: ['battle', 'equipped', characterId] });
       toast.success('Habilidade equipada!');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro ao equipar: ' + err.message);
     },
   });
@@ -166,7 +186,7 @@ export function useUnequipAbility(characterId: string) {
       qc.invalidateQueries({ queryKey: ['battle', 'equipped', characterId] });
       toast.success('Habilidade removida.');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro ao remover: ' + err.message);
     },
   });

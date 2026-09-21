@@ -393,7 +393,7 @@ const ElementCard: FC<{
         background: selected
           ? `linear-gradient(135deg, ${meta.color}26, rgba(255,255,255,0.04))`
           : 'rgba(255,255,255,0.04)',
-        ['--glow' as any]: meta.color,
+        ['--glow' as string]: meta.color,
       }}
       aria-pressed={selected}
     >

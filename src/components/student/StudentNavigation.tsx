@@ -421,7 +421,10 @@ export function StudentNavigation({
           </div>
 
           {/* Diamonds */}
-          {((student.diamonds ?? 0) > 0 || true) && (
+          {/* O bloco de diamantes aparece sempre, inclusive zerado, para o
+              aluno saber que a moeda existe. O `|| true` que estava aqui
+              dizia isso de forma acidental — a condicao inteira era morta. */}
+          {(
             <div
               style={{
                 display: "flex",

@@ -176,8 +176,8 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
       toast.success(`Pontos de atributo resetados! ${totalGasto} ponto(s) devolvido(s).`);
       setResetAttrsConfirm(false);
       onSaved();
-    } catch (err: any) {
-      toast.error("Erro ao resetar pontos de atributo", { description: err.message });
+    } catch (err) {
+      toast.error("Erro ao resetar pontos de atributo", { description: (err instanceof Error ? err.message : String(err)) });
     } finally {
       setIsResettingAttrs(false);
     }
@@ -215,8 +215,8 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
 
       toast.success(`Pontos de habilidade resetados! ${result.points_returned ?? 0} ponto(s) devolvido(s).`);
       setResetSkillsConfirm(false);
-    } catch (err: any) {
-      toast.error("Erro ao resetar pontos de habilidade", { description: err.message });
+    } catch (err) {
+      toast.error("Erro ao resetar pontos de habilidade", { description: (err instanceof Error ? err.message : String(err)) });
     } finally {
       setIsResettingSkills(false);
     }
@@ -451,7 +451,7 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
       toast.success(`Aluno "${deleteTarget.character_name || deleteTarget.name}" excluído!`);
       onDataChanged();
     } catch (err) {
-      toast.error("Erro ao excluir aluno", { description: err instanceof Error ? err.message : String(err) });
+      toast.error("Erro ao excluir aluno", { description: err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err) });
     } finally {
       setIsDeleting(false);
       setDeleteTarget(null);
@@ -667,7 +667,7 @@ function TeacherResetStudentPasswordModal({
       toast.success(`Senha de ${target.character_name || target.name} redefinida.`);
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err));
     } finally {
       setBusy(false);
     }
@@ -727,7 +727,7 @@ function TeacherMoveStudentModal({
       toast.success(`${target.character_name || target.name} movido(a) de turma.`);
       onMoved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err));
     } finally {
       setBusy(false);
     }
@@ -785,7 +785,7 @@ function TeacherAdjustXpModal({
       toast.success(`${target.character_name || target.name}: ${sign}${n} XP → ${newXp}`);
       onAdjusted();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err));
     } finally { setBusy(false); }
   }
 
@@ -842,7 +842,7 @@ function TeacherSuspendStudentModal({
       toast.success(`${target.character_name || target.name} suspenso até ${new Date(until).toLocaleDateString("pt-BR")}.`);
       onChanged();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err));
     } finally { setBusy(false); }
   }
 
@@ -853,7 +853,7 @@ function TeacherSuspendStudentModal({
       toast.success("Suspensão removida.");
       onChanged();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err));
     } finally { setBusy(false); }
   }
 

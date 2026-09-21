@@ -147,7 +147,7 @@ export function ForgePanel() {
     </div>
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const materialsMap = data.materials ?? {};
 
   return (

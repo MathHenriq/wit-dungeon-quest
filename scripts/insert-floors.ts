@@ -179,9 +179,9 @@ async function insertFloors() {
       console.log(`  ✓ Concluído!\n`);
       successCount++;
 
-    } catch (err: any) {
-      console.error(`  ✗ ERRO: ${err.message}\n`);
-      insertErrors.push({ floor: floor.floor_number, error: err.message });
+    } catch (err) {
+      console.error(`  ✗ ERRO: ${(err instanceof Error ? err.message : String(err))}\n`);
+      insertErrors.push({ floor: floor.floor_number, error: (err instanceof Error ? err.message : String(err)) });
     }
   }
 

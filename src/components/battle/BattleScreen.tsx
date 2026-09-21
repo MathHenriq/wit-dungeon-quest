@@ -98,10 +98,10 @@ export function BattleScreen({
   raidPhase,
 }: BattleScreenProps) {
   const internalEngine = useBattleEngine();
-  const { ctx, startBattle, playerAttack, useItem, flee } = engineOverride ?? internalEngine;
+  const { ctx, startBattle, playerAttack, applyItem, flee } = engineOverride ?? internalEngine;
   // Forge consumables only flow through the internal engine (PvP excluded).
   const consumables   = engineOverride ? [] : internalEngine.consumables;
-  const useConsumable = engineOverride ? null : internalEngine.useConsumable;
+  const applyConsumable = engineOverride ? null : internalEngine.applyConsumable;
   const { skinsByBaseId } = useEquippedSkins();
 
   // Patch 6.1: cinematic activation for Legendary+ equipment cards.
@@ -692,7 +692,7 @@ export function BattleScreen({
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.15 }}
             >
-              {!pvpMode && useConsumable && consumables.length > 0 && (
+              {!pvpMode && applyConsumable && consumables.length > 0 && (
                 <div
                   style={{
                     gridColumn: 'span 2',
@@ -726,7 +726,7 @@ export function BattleScreen({
                         key={c.key}
                         disabled={c.quantity <= 0}
                         onClick={() => {
-                          void useConsumable(c.key);
+                          void applyConsumable(c.key);
                           setMenu('main');
                         }}
                         style={{
@@ -1010,14 +1010,14 @@ export function BattleScreen({
                           }
                           // Patch 6.2: swap battle backdrop on rare+ activations.
                           if (['rare','epic','legendary','mythic','unknown'].includes(rar)) {
-                            let nextKey = pickBackdropForRarity(rar);
+                            let nextKey: BackdropKey = pickBackdropForRarity(rar);
                             const lowerName = item.name.toLowerCase();
                             if (lowerName.includes("expansão") || lowerName.includes("domínio") || lowerName.includes("dominio")) {
-                              nextKey = "expansao_dominio" as any;
+                              nextKey = "expansao_dominio";
                             } else if (lowerName.includes("instinto") || lowerName.includes("superior") || lowerName.includes("goku")) {
-                              nextKey = "instinto_superior" as any;
+                              nextKey = "instinto_superior";
                             } else if (lowerName.includes("soro") || lowerName.includes("titã") || lowerName.includes("titan") || lowerName.includes("tita")) {
-                              nextKey = "soro_tita" as any;
+                              nextKey = "soro_tita";
                             }
                             setBackdropKey(nextKey);
                             void supabaseStudent.rpc('unlock_backdrop', { p_key: nextKey });
@@ -1226,7 +1226,7 @@ export function BattleScreen({
                       if (item.effect === 'recharge') {
                         setShowRechargeSelect(true);
                       } else {
-                        useItem(item.effect, item.value);
+                        applyItem(item.effect, item.value);
                         setShowItems(false);
                         setMenu('main');
                       }
@@ -1274,7 +1274,7 @@ export function BattleScreen({
                     disabled={!!full}
                     style={full ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
                     onClick={() => {
-                      useItem('recharge', 0, ability.id);
+                      applyItem('recharge', 0, ability.id);
                       setShowRechargeSelect(false);
                       setShowItems(false);
                       setMenu('main');

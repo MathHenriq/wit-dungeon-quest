@@ -137,7 +137,7 @@ export async function exportData(options: ExportOptions) {
   }
 
   if (options.include.guilds) {
-    let q = supabase
+    const q = supabase
       .from('guilds')
       .select('name, level, xp, max_members')
       .eq('teacher_id', options.teacherId);

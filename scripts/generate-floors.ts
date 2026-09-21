@@ -371,9 +371,9 @@ async function generateAllFloors(startFrom: number = 1) {
       // Gemini free tier: 15 req/min → 1 req a cada ~4,5 s
       if (i < 50) await new Promise(r => setTimeout(r, 4500));
 
-    } catch (err: any) {
-      console.log(`✗ ${err.message}`);
-      errors.push({ floor: i, error: err.message });
+    } catch (err) {
+      console.log(`✗ ${(err instanceof Error ? err.message : String(err))}`);
+      errors.push({ floor: i, error: (err instanceof Error ? err.message : String(err)) });
       // Pausa maior após erro (possível rate limit)
       await new Promise(r => setTimeout(r, 10000));
     }

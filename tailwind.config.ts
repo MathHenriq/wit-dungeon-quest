@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 import { rawColors } from "./src/styles/design-tokens";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -172,5 +173,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

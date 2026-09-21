@@ -9,10 +9,16 @@ import {
   getPointsForLevelUp,
   type XPReward,
 } from '@/lib/progression/xpCalculator';
+import type { Database } from '@/integrations/supabase/types';
 
 // ─── Row → domain ─────────────────────────────────────────────────────────────
 
-function rowToCharacter(row: any): BattleCharacter {
+// A linha vem de `characters` com um subconjunto de colunas dependendo da
+// query, e todos os campos abaixo tem valor padrao — Partial descreve isso sem
+// o `any` que antes deixava qualquer renomeacao de coluna passar em silencio.
+type CharacterRow = Partial<Database['public']['Tables']['characters']['Row']>;
+
+function rowToCharacter(row: CharacterRow): BattleCharacter {
   return {
     id:           row.id,
     userId:       row.user_id,
@@ -151,7 +157,7 @@ export function useDistributePoints(characterId: string) {
       qc.invalidateQueries({ queryKey: ['battle-character'] });
       toast.success(`+${vars.amount} ponto(s) em ${vars.element}!`);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(err.message ?? 'Erro ao distribuir pontos.');
     },
   });
@@ -287,7 +293,7 @@ export function useApplyBattleRewards(characterId: string) {
       // Patch 2.3: refresh the daily coin cap HUD bar.
       qc.invalidateQueries({ queryKey: ['daily-coins-summary'] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro ao salvar recompensas: ' + (err.message ?? 'Erro desconhecido'));
     },
   });
@@ -327,7 +333,7 @@ export function useCreateCharacter() {
       qc.invalidateQueries({ queryKey: ['battle', 'character', char.userId] });
       toast.success('Personagem criado!');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro ao criar personagem: ' + err.message);
     },
   });

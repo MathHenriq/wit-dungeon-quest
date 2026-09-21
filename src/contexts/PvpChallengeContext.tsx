@@ -6,6 +6,8 @@ import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { calculateEloChange } from '@/components/pvp-arena/pvp-types';
 import { PvPBattleScreen } from '@/components/pvp/PvPBattleScreen';
 import type { BattleCharacter, Ability } from '@/types/character';
+import type { Database } from '@/integrations/supabase/types';
+import { rpcJson } from '@/integrations/supabase/rpcJson';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -177,7 +179,12 @@ async function fetchMyStats(studentId: string): Promise<PvpMyStats> {
   return (data as PvpMyStats | null) ?? { rating: 1000, wins: 0, losses: 0, win_streak: 0 };
 }
 
-function rowToCharacter(row: any): BattleCharacter {
+// A RPC get_pvp_opponent_data devolve row_to_json(characters) dentro de um
+// jsonb, entao a linha chega sem tipo. Este shape documenta o que o mapper
+// realmente le — com `any` qualquer campo renomeado virava undefined calado.
+type OpponentCharacterRow = Partial<Database['public']['Tables']['characters']['Row']>;
+
+function rowToCharacter(row: OpponentCharacterRow): BattleCharacter {
   return {
     id:           row.id,
     userId:       row.user_id,
@@ -222,7 +229,10 @@ async function fetchFullBattleData(studentId: string): Promise<{ char: BattleCha
   });
   if (error || !data) return null;
 
-  const raw = data as any;
+  const raw = rpcJson<{
+    character?: OpponentCharacterRow;
+    abilities?: Array<Partial<Ability>>;
+  }>(data);
   if (!raw.character) return null;
 
   const char = rowToCharacter(raw.character);
@@ -231,7 +241,7 @@ async function fetchFullBattleData(studentId: string): Promise<{ char: BattleCha
   // student id is the argument we just queried with. Without this, the PvP
   // engine loads class/element/passives for the wrong id (silently disabled).
   char.studentId = studentId;
-  const abilities: Ability[] = (raw.abilities ?? []).map((a: any) => ({
+  const abilities: Ability[] = (raw.abilities ?? []).map(a => ({
     id:           a.id,
     name:         a.name,
     elementId:    a.elementId,

@@ -374,7 +374,7 @@ const ElementChoiceCard: FC<{
         selected ? 'scale-[1.02] shadow-[0_0_30px_-5px_var(--glow)]' : 'hover:scale-[1.01]',
       ].join(' ')}
       style={{
-        ['--glow' as any]: meta.color,
+        ['--glow' as string]: meta.color,
         background: selected ? `linear-gradient(135deg, ${meta.color}22, rgba(255,255,255,0.04))` : 'rgba(255,255,255,0.03)',
         borderColor: selected ? `${meta.color}AA` : 'rgba(255,255,255,0.1)',
       }}

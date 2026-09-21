@@ -1,5 +1,6 @@
 import type { BattleContext } from './BattleEngine';
 import type { Ability } from '@/types/character';
+import type { ElementType } from '@/types/character';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PATCH 2.5 — Generic mechanic patterns for higher-rarity card handlers.
@@ -1420,7 +1421,17 @@ const registry: Record<string, EquipmentAbilityHandler> = {
       // Kamehameha: ki concentrado em um único raio — elemento Light + garanteedHit
       ctx.elementOverrides.push({
         key: 'kamehameha_light',
-        replaceWith: 'Light' as any,
+        // 'Light' nao existe em ElementType (os 12 validos sao Fire, Water,
+        // Electric, Grass, Ice, Ground, Fighting, Steel, Poison, Dark, Ghost,
+        // Flying). Como getTypeEffectiveness devolve 1.0 para chave
+        // desconhecida, na pratica esta carta sempre bateu NEUTRO contra tudo —
+        // quase certamente nao era a intencao do design.
+        //
+        // Nao troquei o elemento aqui de proposito: qualquer escolha mexe em
+        // balanceamento (Electric, o mais proximo da ficcao, seria 0x contra
+        // Ground e deixaria a carta inutil num tema inteiro de andar). Fica
+        // registrado no ROADMAP como decisao de design pendente.
+        replaceWith: 'Light' as ElementType,
         charges: 1,
         sourceCardKey: 'kamehameha_combo',
       });

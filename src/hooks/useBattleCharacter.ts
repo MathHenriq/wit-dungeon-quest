@@ -2,8 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import type { BattleCharacter } from '@/types/character';
 import { getPointsForLevelUp, getTotalXPForLevel } from '@/lib/progression/xpCalculator';
+import type { Database } from '@/integrations/supabase/types';
 
-function rowToCharacter(row: any): BattleCharacter {
+// A linha vem de `characters` com um subconjunto de colunas dependendo da
+// query, e todos os campos abaixo tem valor padrao — Partial descreve isso sem
+// o `any` que antes deixava qualquer renomeacao de coluna passar em silencio.
+type CharacterRow = Partial<Database['public']['Tables']['characters']['Row']>;
+
+function rowToCharacter(row: CharacterRow): BattleCharacter {
   return {
     id:           row.id,
     userId:       row.user_id,

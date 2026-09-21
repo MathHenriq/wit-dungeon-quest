@@ -116,7 +116,7 @@ export function usePvPBattleEngine() {
     setCtx(result);
   }, []);
 
-  const useItem = useCallback((effect: ItemEffect, value: number, abilityId?: string) => {
+  const applyItem = useCallback((effect: ItemEffect, value: number, abilityId?: string) => {
     if (!engineRef.current) return;
     const result = engineRef.current.useItem(effect, value, abilityId);
     setCtx(result);
@@ -134,7 +134,7 @@ export function usePvPBattleEngine() {
     setCtx(null);
   }, []);
 
-  return { ctx, isActive: !!ctx, startBattle, playerAttack, applyEnemyAction, useItem, flee, reset };
+  return { ctx, isActive: !!ctx, startBattle, playerAttack, applyEnemyAction, applyItem, flee, reset };
 }
 
 export type PvPBattleEngineControls = ReturnType<typeof usePvPBattleEngine>;

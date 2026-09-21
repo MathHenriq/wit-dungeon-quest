@@ -208,6 +208,10 @@ export function useBattleEngine() {
     [cancelPendingEnemyTurn, scheduleEnemyTurn],
   );
 
+  // Nomes sem prefixo `use`: sao funcoes comuns, nao hooks. Com `useItem` /
+  // `useConsumable` o eslint-plugin-react-hooks as tratava como hooks e
+  // acusava "React Hook chamado dentro de callback" em todo clique de item —
+  // tres erros que nao diziam nada sobre o codigo, so sobre o nome.
   // ── Player actions ─────────────────────────────────────────────────────────
   const playerAttack = useCallback((abilityId: string) => {
     if (!engineRef.current) return;
@@ -219,7 +223,7 @@ export function useBattleEngine() {
     scheduleEnemyTurn(result);
   }, [maybeTickOnEnd, scheduleEnemyTurn]);
 
-  const useItem = useCallback((effect: ItemEffect, value: number, abilityId?: string) => {
+  const applyItem = useCallback((effect: ItemEffect, value: number, abilityId?: string) => {
     if (!engineRef.current) return;
     const result = engineRef.current.useItem(effect, value, abilityId);
     setCtx(result);
@@ -237,7 +241,7 @@ export function useBattleEngine() {
     scheduleEnemyTurn(result);
   }, [maybeTickOnEnd, scheduleEnemyTurn]);
 
-  const useConsumable = useCallback(async (cKey: string, abilityId?: string) => {
+  const applyConsumable = useCallback(async (cKey: string, abilityId?: string) => {
     if (!engineRef.current) return;
     const stock = consumables.find(c => c.key === cKey);
     if (!stock || stock.quantity <= 0) return;
@@ -290,9 +294,9 @@ export function useBattleEngine() {
     consumables,
     startBattle,
     playerAttack,
-    useItem,
+    applyItem,
     useEquipmentAbility,
-    useConsumable,
+    applyConsumable,
     flee,
     reset,
   };
