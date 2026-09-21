@@ -81,9 +81,12 @@ function Particles() {
 export function ParticleField() {
   return (
     <div className="boot-particle-field">
+      {/* Mesmo motivo do ParticleField do boot: MSAA e dpr livre custavam caro
+          para partículas que já são borradas de propósito. */}
       <Canvas
         camera={{ position: [0, 0, 15], fov: 75 }}
-        gl={{ alpha: true, antialias: true }}
+        dpr={[1, 1.5]}
+        gl={{ alpha: true, antialias: false, powerPreference: 'low-power' }}
       >
         <ambientLight intensity={0.5} />
         <Particles />

@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { Stars, Float } from '@react-three/drei';
 import { Suspense, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { isBackdropOccluded, subscribeOcclusion } from '@/lib/ui/backdropOcclusion';
 
 function NebulaCloud({ position }: { position: [number, number, number] }) {
   return (
@@ -54,6 +55,11 @@ export function SpaceBackground() {
   const [visible, setVisible] = useState(() =>
     typeof document === 'undefined' ? true : !document.hidden);
 
+  // Telas opacas (combate, hub) cobrem este canvas por inteiro. Sem este sinal
+  // ele seguia desenhando a 60 fps embaixo delas — ver backdropOcclusion.ts.
+  const [occluded, setOccluded] = useState(isBackdropOccluded);
+  useEffect(() => subscribeOcclusion(setOccluded), []);
+
   useEffect(() => {
     const reduced = typeof window !== 'undefined'
       && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -99,7 +105,7 @@ export function SpaceBackground() {
         // Uncapped DPR made a 2x/3x display render 4-9x the pixels for a
         // deliberately blurry starfield. 1.5 is indistinguishable here.
         dpr={[1, 1.5]}
-        frameloop={visible ? 'always' : 'never'}
+        frameloop={visible && !occluded ? 'always' : 'never'}
         gl={{
           antialias: false,
           alpha: true,

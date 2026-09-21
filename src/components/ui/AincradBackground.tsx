@@ -113,10 +113,48 @@ function ParticleCanvas({ scene }: { scene: SceneType }) {
       isGold: i < 4,
     }));
 
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Cor das ligações — a mesma das partículas comuns da cena.
+    const linkColor = isQuests ? 'rgba(255,120,50,'
+                    : isRanking ? 'rgba(140,80,255,'
+                    : 'rgba(0,229,255,';
 
-      particles.forEach((p, i) => {
+    // Este canvas fica montado no portal inteiro — é a tela onde o aluno passa
+    // a aula toda. O laço de ligações é O(n²): 35 partículas dão 595 pares por
+    // quadro. A versão anterior fazia, para cada par dentro do raio, um
+    // beginPath/strokeStyle/stroke separado — até centenas de chamadas de
+    // desenho por quadro, cada uma um estado novo no contexto 2D.
+    //
+    // Três mudanças, sem alterar o visual:
+    //  1. Comparação por distância ao quadrado — tira o Math.sqrt dos 595 pares
+    //     e só calcula a raiz nos que realmente vão ser desenhados.
+    //  2. As linhas são agrupadas em poucas faixas de opacidade e cada faixa
+    //     vira UM path com um stroke só. A opacidade varia de 0 a 0,04; quatro
+    //     faixas são indistinguíveis a olho e trocam centenas de chamadas de
+    //     desenho por no máximo quatro.
+    //  3. Teto de 30 fps. São partículas à deriva a 0,1–0,4 px por quadro:
+    //     dobrar a taxa não muda nada que o olho perceba e dobra o custo.
+    const LINK_DIST = 100;
+    const LINK_DIST_SQ = LINK_DIST * LINK_DIST;
+    const ALPHA_BANDS = 4;
+    const FRAME_MS = 1000 / 30;
+
+    // Buffer reaproveitado entre quadros: cada faixa acumula os pares que vai
+    // desenhar, para não alocar array novo 30 vezes por segundo.
+    const bands: Array<Array<[number, number, number, number]>> =
+      Array.from({ length: ALPHA_BANDS }, () => []);
+
+    let lastFrame = 0;
+
+    const draw = (now: number) => {
+      frameRef.current = requestAnimationFrame(draw);
+      if (now - lastFrame < FRAME_MS) return;
+      lastFrame = now;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const b of bands) b.length = 0;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         p.y -= p.speed;
         if (p.y < -10) {
           p.y = canvas.height + 10;
@@ -129,24 +167,49 @@ function ParticleCanvas({ scene }: { scene: SceneType }) {
         ctx.fill();
 
         for (let j = i + 1; j < particles.length; j++) {
-          const dx = p.x - particles[j].x;
-          const dy = p.y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `${p.color}${(0.04 * (1 - dist / 100)).toFixed(3)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
-      });
+          const q = particles[j];
+          const dx = p.x - q.x;
+          const dy = p.y - q.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq >= LINK_DIST_SQ) continue;
 
-      frameRef.current = requestAnimationFrame(draw);
+          // Só aqui vale a raiz — e só para os pares que de fato serão ligados.
+          const fade = 1 - Math.sqrt(distSq) / LINK_DIST;
+          const band = Math.min(ALPHA_BANDS - 1, Math.floor(fade * ALPHA_BANDS));
+          bands[band].push([p.x, p.y, q.x, q.y]);
+        }
+      }
+
+      // Uma cor só para as ligações: a original usava a cor da partícula `i`,
+      // mas com alpha entre 0 e 0,04 a diferença entre as duas cores da cena
+      // não chega à tela. Mantém a da partícula comum.
+      ctx.lineWidth = 0.5;
+      for (let b = 0; b < ALPHA_BANDS; b++) {
+        const segs = bands[b];
+        if (segs.length === 0) continue;
+        // Meio da faixa, para que o degradê continue suave.
+        const alpha = (0.04 * (b + 0.5)) / ALPHA_BANDS;
+        ctx.strokeStyle = `${linkColor}${alpha.toFixed(3)})`;
+        ctx.beginPath();
+        for (const [x1, y1, x2, y2] of segs) {
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+        }
+        ctx.stroke();
+      }
     };
 
-    draw();
+    // Quem pediu menos movimento recebe um quadro estático em vez do laço.
+    const reduced = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduced) {
+      draw(performance.now());
+      cancelAnimationFrame(frameRef.current);
+    } else {
+      frameRef.current = requestAnimationFrame(draw);
+    }
+
     return () => {
       cancelAnimationFrame(frameRef.current);
       window.removeEventListener("resize", resize);

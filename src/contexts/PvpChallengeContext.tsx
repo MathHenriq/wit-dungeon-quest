@@ -1,5 +1,5 @@
 import React, {
-  createContext, useCallback, useContext, useEffect, useRef, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import type { Student } from '@/types';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
@@ -62,14 +62,21 @@ export interface PvpBattleData {
   oppAbilities?: Ability[];
 }
 
+/**
+ * Os dois contadores regressivos (challengeTimer / outgoingTimer) NÃO entram
+ * aqui de propósito.
+ *
+ * Este provider envolve o StudentPortal inteiro. Os contadores mudam uma vez
+ * por segundo; se estivessem no value, cada tique invalidaria o contexto e
+ * re-renderizaria toda a árvore do portal — hub, inventário, navegação — a 1 Hz
+ * durante todo desafio pendente. Os únicos consumidores deles são o banner e o
+ * overlay renderizados aqui dentro, que recebem por prop.
+ */
 interface PvpChallengeContextValue {
   incomingChallenge: PvpChallenge | null;
   outgoingChallenge: PvpChallenge | null;
   pendingOpponent: PvpOpponentInfo | null;
   battleData: PvpBattleData | null;
-  challengeTimer: number;
-  /** Outgoing challenge countdown (seconds until auto-cancel). 0 when no outgoing. */
-  outgoingTimer: number;
   /** While true, accept/load is in progress and a "loading" overlay can show. */
   isLoadingBattle: boolean;
   sendChallenge: (opponent: PvpOpponentInfo) => Promise<void>;
@@ -1261,20 +1268,26 @@ export function PvpChallengeProvider({
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  // Sem este memo, o objeto seria novo a cada render do provider e invalidaria
+  // o contexto para toda a árvore do portal mesmo quando nada de fato mudou.
+  const ctxValue = useMemo(() => ({
+    incomingChallenge,
+    outgoingChallenge,
+    pendingOpponent,
+    battleData,
+    isLoadingBattle,
+    sendChallenge,
+    acceptChallenge,
+    declineChallenge,
+    cancelChallenge,
+  }), [
+    incomingChallenge, outgoingChallenge, pendingOpponent, battleData,
+    isLoadingBattle, sendChallenge, acceptChallenge, declineChallenge,
+    cancelChallenge,
+  ]);
+
   return (
-    <PvpChallengeContext.Provider value={{
-      incomingChallenge,
-      outgoingChallenge,
-      pendingOpponent,
-      battleData,
-      challengeTimer,
-      outgoingTimer,
-      isLoadingBattle,
-      sendChallenge,
-      acceptChallenge,
-      declineChallenge,
-      cancelChallenge,
-    }}>
+    <PvpChallengeContext.Provider value={ctxValue}>
       {children}
 
       {incomingChallenge && pendingOpponent && !battleData && !isLoadingBattle && (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { BattleCharacter, Ability } from '@/types/character';
 import type { ShopItem } from '@/types';
@@ -14,6 +14,7 @@ import { ActiveModifiersHUD } from './ActiveModifiersHUD';
 import { useDamagePopups, type PopupKind } from './DamagePopups';
 import { supabaseStudent } from '@/integrations/supabase/studentClient';
 import { useEquippedSkins, resolveItemImage } from '@/hooks/useEquippedSkins';
+import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -80,6 +81,54 @@ function useTypewriter(text: string, speed = 28) {
 
   return { displayed, done };
 }
+
+// ─── Dialog box ───────────────────────────────────────────────────────────────
+
+/**
+ * A caixa de diálogo é dona do próprio efeito de máquina de escrever.
+ *
+ * Isso não é organização — é desempenho. O useTypewriter faz um setState a
+ * cada 28 ms (≈36 vezes por segundo) enquanto a frase é escrita. Enquanto ele
+ * morava no corpo do BattleScreen, cada uma dessas atualizações re-renderizava
+ * a tela de combate inteira: as barras de HP, o sprite do inimigo, o backdrop e
+ * as quatro cartas de habilidade — que usam `layout` do framer-motion e, por
+ * isso, medem o próprio retângulo a cada render. Dava ~144 medições de layout
+ * por segundo durante todo texto que aparecia na tela.
+ *
+ * Isolado aqui e com memo, o tique da máquina de escrever re-renderiza só esta
+ * caixa. O resto da tela só re-renderiza quando o estado de batalha muda de
+ * verdade.
+ */
+const BattleDialog = memo(function BattleDialog({
+  message,
+  history,
+  showReadyCaret,
+}: {
+  message: string;
+  history: string[];
+  showReadyCaret: boolean;
+}) {
+  const { displayed, done } = useTypewriter(message);
+
+  return (
+    <div className="poke-dialog">
+      {/* Recent log entries (greyed out) */}
+      <div className="poke-log-history">
+        {history.map((entry, i) => (
+          <p key={i} className="poke-log-entry">{entry}</p>
+        ))}
+      </div>
+      {/* Current message with typewriter */}
+      <p className="poke-dialog-text">
+        {displayed}
+        {!done && <span className="poke-dialog-cursor">▌</span>}
+        {done && showReadyCaret && (
+          <span className="poke-dialog-cursor">▼</span>
+        )}
+      </p>
+    </div>
+  );
+});
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -216,6 +265,11 @@ export function BattleScreen({
   const [showItems, setShowItems] = useState(false);
   const [showRechargeSelect, setShowRechargeSelect] = useState(false);
 
+  // `.poke-scene` é 100vh com fundo sólido: enquanto a batalha está na tela, o
+  // starfield 3D atrás dela não aparece em pixel nenhum. Pausa o render loop
+  // dele e devolve a GPU para as animações do combate.
+  useOccludesBackdrop();
+
   // ── Start battle (only when using the internal engine) ─────────────────────
   useEffect(() => {
     if (!engineOverride) {
@@ -300,7 +354,9 @@ export function BattleScreen({
     }
   }, [ctx?.log?.length, ctx?.phase]); // eslint-disable-line
 
-  const { displayed: typeText, done: typeDone } = useTypewriter(dialogMsg);
+  // O texto corrente já aparece na caixa com a máquina de escrever; o
+  // histórico mostra só as linhas anteriores.
+  const logHistory = useMemo(() => recentLog.slice(0, -1), [recentLog]);
 
   // ── Shake animations ────────────────────────────────────────────────────────
   const prevPlayerHp = useRef(player.hpCurrent);
@@ -634,22 +690,11 @@ export function BattleScreen({
         <div className="poke-element-overlay" key={activeElement || 'idle'} />
 
         {/* Dialog box */}
-        <div className="poke-dialog">
-          {/* Recent log entries (greyed out) */}
-          <div className="poke-log-history">
-            {recentLog.slice(0, -1).map((entry, i) => (
-              <p key={i} className="poke-log-entry">{entry}</p>
-            ))}
-          </div>
-          {/* Current message with typewriter */}
-          <p className="poke-dialog-text">
-            {typeText}
-            {!typeDone && <span className="poke-dialog-cursor">▌</span>}
-            {typeDone && isPlayerTurn && menu === 'main' && (
-              <span className="poke-dialog-cursor">▼</span>
-            )}
-          </p>
-        </div>
+        <BattleDialog
+          message={dialogMsg}
+          history={logHistory}
+          showReadyCaret={isPlayerTurn && menu === 'main'}
+        />
 
         {/* Action panels */}
         <AnimatePresence mode="wait">

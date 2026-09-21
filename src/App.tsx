@@ -38,6 +38,16 @@ const queryClient = new QueryClient({
       refetchOnReconnect: false,
       refetchIntervalInBackground: false,
       retry: 1,
+      // Sem staleTime o padrão é 0: toda vez que um componente monta, a query
+      // é considerada velha e vai à rede de novo. Na prática o aluno pagava um
+      // round-trip ao Supabase a cada ida e volta entre hub, loja e inventário.
+      // 30 s cobre a navegação normal de uma aula sem servir dado velho — quem
+      // precisa de tempo real (PvP, eventos) usa polling próprio, e quem grava
+      // invalida a query na hora.
+      staleTime: 30_000,
+      // Mantém o dado em memória por 5 min depois que ninguém mais o observa,
+      // para que voltar a uma tela pinte na hora com o cache e revalide atrás.
+      gcTime: 5 * 60_000,
     },
   },
 });

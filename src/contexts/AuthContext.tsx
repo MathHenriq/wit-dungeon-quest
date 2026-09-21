@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Teacher } from "@/types";
@@ -112,7 +112,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, name: string) => {
+  // As quatro ações abaixo só dependem do módulo `supabase` e dos setters, que
+  // o React garante estáveis — por isso deps vazias. Elas precisam ser estáveis
+  // porque entram no `value` do provider: recriadas a cada render, invalidavam
+  // o contexto e re-renderizavam toda a árvore abaixo dele.
+  const signUp = useCallback(async (email: string, password: string, name: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -126,18 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return { error: error as Error | null };
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     return { error: error as Error | null };
-  };
+  }, []);
 
-  const loginWithGoogle = async (): Promise<{ error: Error | null }> => {
+  const loginWithGoogle = useCallback(async (): Promise<{ error: Error | null }> => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -157,28 +161,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     return { error: error as Error | null };
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setTeacher(null);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    user,
+    session,
+    teacher,
+    isLoading,
+    signUp,
+    signIn,
+    loginWithGoogle,
+    signOut,
+  }), [user, session, teacher, isLoading, signUp, signIn, loginWithGoogle, signOut]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        teacher,
-        isLoading,
-        signUp,
-        signIn,
-        loginWithGoogle,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

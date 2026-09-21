@@ -63,7 +63,14 @@ function Particles() {
 export function ParticleField() {
   return (
     <div className="particle-field">
-      <Canvas camera={{ position: [0, 0, 15], fov: 75 }} gl={{ alpha: true, antialias: true }}>
+      {/* Partículas desfocadas não ganham nada com MSAA, e sem cap de dpr uma
+          tela 2x/3x renderizava 4–9x os pixels com antialias ligado por cima —
+          justamente na abertura, competindo com o carregamento do app. */}
+      <Canvas
+        camera={{ position: [0, 0, 15], fov: 75 }}
+        dpr={[1, 1.5]}
+        gl={{ alpha: true, antialias: false, powerPreference: 'low-power' }}
+      >
         <ambientLight intensity={0.5} />
         <Particles />
       </Canvas>
