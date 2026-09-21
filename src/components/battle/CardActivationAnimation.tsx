@@ -257,7 +257,7 @@ export function CardActivationAnimation({
         <div className="cact-body">
           <div className="cact-thumb">
             {cardImage
-              ? <img src={cardImage} alt="" />
+              ? <img decoding="async" src={cardImage} alt="" />
               : <span className="cact-thumb-ph">{(cardName ?? "?").charAt(0).toUpperCase()}</span>}
           </div>
           <div className="cact-text">

@@ -156,7 +156,7 @@ export function GuildRaidPanel({ studentId, studentLevel, guildId }: Props) {
 
       <header className="grp-header">
         <div className="grp-boss-thumb">
-          {raid.boss_sprite ? <img src={raid.boss_sprite} alt={raid.boss_name} /> : <Skull size={28} />}
+          {raid.boss_sprite ? <img decoding="async" src={raid.boss_sprite} alt={raid.boss_name} /> : <Skull size={28} />}
         </div>
         <div className="grp-titles">
           <div className="grp-eyebrow">Raid de Guilda</div>

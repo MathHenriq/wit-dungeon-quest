@@ -111,7 +111,7 @@ export const PlanetNode: React.FC<PlanetProps> = ({
           whileTap={{ scale: 0.95 }}
         >
           {planetImage ? (
-            <img
+            <img decoding="async"
               src={planetImage}
               alt={name}
               className="w-full h-full object-contain drop-shadow-2xl"

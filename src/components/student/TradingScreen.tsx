@@ -323,7 +323,7 @@ function ItemIcon({ item, size = 36 }: { item: ShopItem; size?: number }) {
       overflow: "hidden", position: "relative",
     }}>
       {item.image_url ? (
-        <img src={item.image_url} alt={item.name}
+        <img decoding="async" src={item.image_url} alt={item.name}
           style={{ width: size * 0.72, height: size * 0.72, objectFit: "contain" }}
           onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
         />

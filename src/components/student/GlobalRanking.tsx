@@ -467,7 +467,7 @@ function Avatar({
       }}
     >
       {photoUrl ? (
-        <img src={photoUrl} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        <img decoding="async" loading="lazy" src={photoUrl} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
         <span style={{
           fontFamily: "'Bebas Neue', sans-serif",

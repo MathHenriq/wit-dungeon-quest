@@ -80,7 +80,7 @@ export function CardSkinSelector({ baseCardId, baseCardImage, onChange, onClose 
           {/* Default skin tile — always available */}
           <div className={`css-skin ${rows.every(r => !r.equipped) ? "equipped" : ""}`}>
             <div className="css-skin-art">
-              {baseCardImage ? <img src={baseCardImage} alt="Original" /> : <div className="css-skin-ph">?</div>}
+              {baseCardImage ? <img decoding="async" loading="lazy" src={baseCardImage} alt="Original" /> : <div className="css-skin-ph">?</div>}
             </div>
             <div className="css-skin-info">
               <div className="css-skin-name">Original</div>
@@ -106,7 +106,7 @@ export function CardSkinSelector({ baseCardId, baseCardImage, onChange, onClose 
             return (
               <div key={s.skin_id} className={`css-skin ${s.equipped ? "equipped" : ""} ${!s.unlocked ? "locked" : ""}`}>
                 <div className="css-skin-art">
-                  {visualImg ? <img src={visualImg} alt={s.name} /> : <div className="css-skin-ph">{s.name.charAt(0)}</div>}
+                  {visualImg ? <img decoding="async" loading="lazy" src={visualImg} alt={s.name} /> : <div className="css-skin-ph">{s.name.charAt(0)}</div>}
                   {!s.unlocked && <div className="css-skin-lock"><Lock size={20} /></div>}
                 </div>
                 <div className="css-skin-info">

@@ -163,7 +163,7 @@ export function ProfilePhoto({
             <div className="flex justify-center">
               <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center overflow-hidden border-2 border-border">
                 {photoUrl ? (
-                  <img
+                  <img decoding="async"
                     src={photoUrl}
                     alt="Preview"
                     className="w-full h-full object-cover"
@@ -258,7 +258,7 @@ export function ProfilePhoto({
       <div className="relative group">
         <div className={`${sizeClasses[size]} rounded-full bg-secondary flex items-center justify-center overflow-hidden`}>
           {displayUrl ? (
-            <img
+            <img decoding="async"
               key={displayUrl}
               src={displayUrl}
               alt="Foto de perfil"

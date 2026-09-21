@@ -69,7 +69,7 @@ function ConsumableCard({ inv, selected, onSelect }: { inv: InventoryItemEx; sel
     >
       <div className="item-card-icon" style={{ borderColor: rarity.border, background: rarity.bg }}>
         {shopItem.image_url ? (
-          <img src={shopItem.image_url} alt={shopItem.name}
+          <img decoding="async" loading="lazy" src={shopItem.image_url} alt={shopItem.name}
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         ) : (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={rarity.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

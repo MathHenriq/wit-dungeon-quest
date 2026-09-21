@@ -658,7 +658,7 @@ function ItemDetailSheet({
             <div className="greed-image-wrapper">
               <div className="greed-image-container" style={{ height: 220 }}>
                 {effectiveImage ? (
-                  <img src={effectiveImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <img decoding="async" loading="lazy" src={effectiveImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
                   <div style={{ color: '#fff' }}>
                     <GameIcon id={meta.iconId} size={80} />
@@ -812,7 +812,7 @@ function ItemCard({
     >
       <div className="arcane-art">
         {effectiveImage ? (
-          <img src={effectiveImage} alt={item.name} />
+          <img decoding="async" loading="lazy" src={effectiveImage} alt={item.name} />
         ) : (
           <div className="arcane-art-fallback">
             <GameIcon id={meta.iconId} size={64} />

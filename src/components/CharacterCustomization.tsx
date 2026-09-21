@@ -281,7 +281,7 @@ export function CharacterCustomization({ student, onUpdate }: CharacterCustomiza
               style={{ boxShadow: '0 0 20px rgba(0,229,255,0.15)' }}
             >
               {battleCharacter?.sprite_pixel_front ? (
-                <img
+                <img decoding="async"
                   src={battleCharacter.sprite_pixel_front}
                   alt="Avatar"
                   className="w-full h-full"

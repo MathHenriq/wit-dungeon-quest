@@ -41,7 +41,7 @@ export function ItemCard({ inv, selected, isEquipped, onClick }: ItemCardProps) 
         style={{ borderColor: rarity.border, background: rarity.bg }}
       >
         {shopItem.image_url ? (
-          <img
+          <img decoding="async" loading="lazy"
             src={shopItem.image_url}
             alt={shopItem.name}
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}

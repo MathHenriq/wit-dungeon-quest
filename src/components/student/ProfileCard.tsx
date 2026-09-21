@@ -64,7 +64,7 @@ export function ProfileCard({ data, compact = false }: { data: ProfileCardPayloa
         <div className="pc-frame" />
         <div className="pc-avatar">
           {data.student.profile_photo_url
-            ? <img src={data.student.profile_photo_url} alt="" />
+            ? <img decoding="async" src={data.student.profile_photo_url} alt="" />
             : <span className="pc-avatar-initials">{init}</span>}
         </div>
         {data.frame !== "default" && (

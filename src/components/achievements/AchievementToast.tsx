@@ -35,7 +35,7 @@ export function AchievementToast({ achievement, onDismiss }: AchievementToastPro
         {/* Ícone */}
         <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 text-3xl">
           {achievement.iconUrl ? (
-            <img src={achievement.iconUrl} alt={achievement.name} className="w-10 h-10 object-contain" />
+            <img decoding="async" src={achievement.iconUrl} alt={achievement.name} className="w-10 h-10 object-contain" />
           ) : (
             '🏅'
           )}

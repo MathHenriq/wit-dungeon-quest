@@ -335,7 +335,7 @@ function ItemRevealCard({ item }: { item: { item_id?: string | null; item_name: 
     >
       <div className="chest-reveal-card-icon">
         {skinImage ? (
-          <img
+          <img decoding="async"
             src={skinImage}
             alt={item.item_name}
             style={{ width: 52, height: 52, objectFit: 'contain' }}

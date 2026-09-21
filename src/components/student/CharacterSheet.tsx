@@ -87,7 +87,7 @@ function EquipSlot({ item, label }: { item: InventoryItem | undefined; label: st
       >
         {shopItem ? (
           shopItem.image_url ? (
-            <img
+            <img decoding="async"
               src={shopItem.image_url}
               alt={shopItem.name}
               className="w-8 h-8 object-cover rounded"
@@ -298,7 +298,7 @@ export function CharacterSheet({ student, inventory, onUpdate }: CharacterSheetP
                   title={item.name}
                 >
                   {item.image_url ? (
-                    <img
+                    <img decoding="async"
                       src={item.image_url}
                       alt={item.name}
                       className="w-full h-full object-cover rounded-lg"

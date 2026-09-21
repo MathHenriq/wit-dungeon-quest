@@ -582,7 +582,7 @@ export function BattleScreen({
         transition={{ duration: 0.35 }}
         style={{ position: 'absolute' }}
       >
-        <img
+        <img decoding="async"
           src={ctx.enemy.spriteUrl ?? FALLBACK_SPRITE_URL}
           alt={ctx.enemy.name}
           className="poke-sprite-img"
@@ -622,7 +622,7 @@ export function BattleScreen({
         style={{ position: 'absolute' }}
       >
         {playerSprite ? (
-          <img
+          <img decoding="async"
             src={playerSprite}
             alt={ctx.player.name}
             className="poke-sprite-img"
@@ -1103,7 +1103,7 @@ export function BattleScreen({
                         isAnimating ? 'w-32 h-32 mb-4 shadow-[0_0_30px_rgba(245,158,11,0.4)]' : 'w-10 h-10'
                       }`}>
                         {skinImage
-                          ? <img src={skinImage} alt={item.name} className="w-full h-full object-contain" />
+                          ? <img decoding="async" src={skinImage} alt={item.name} className="w-full h-full object-contain" />
                           : <span className={isAnimating ? 'text-6xl' : 'text-xl'}>{item.icon ?? '🗡️'}</span>
                         }
                       </div>

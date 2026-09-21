@@ -68,7 +68,7 @@ const PODIUM_COLORS = [
 function Avatar({ name, photoUrl, size = 40 }: { name: string; photoUrl?: string | null; size?: number }) {
   const initials = name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return photoUrl ? (
-    <img
+    <img decoding="async" loading="lazy"
       src={photoUrl}
       alt={name}
       style={{ width: size, height: size }}

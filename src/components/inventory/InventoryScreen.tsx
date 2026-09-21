@@ -60,7 +60,7 @@ function ItemCard({
     <div className={`border-2 ${border} rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-md transition-shadow`}>
       <div className="text-4xl">
         {item.icon_url ? (
-          <img src={item.icon_url} alt={item.name} className="w-12 h-12 object-contain" />
+          <img decoding="async" src={item.icon_url} alt={item.name} className="w-12 h-12 object-contain" />
         ) : (
           icon
         )}

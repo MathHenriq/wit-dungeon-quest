@@ -81,7 +81,7 @@ function StudentInventoryModal({ student, onClose }: { student: Student; onClose
                   <div key={inv.id} className="flex items-center gap-3 p-3 rounded-lg bg-card/60 border border-border">
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {item.image_url
-                        ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                        ? <img decoding="async" loading="lazy" src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                         : <span className="text-xl">{item.icon || meta.iconId}</span>
                       }
                     </div>

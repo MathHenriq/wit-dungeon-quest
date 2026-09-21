@@ -612,7 +612,7 @@ function EquipActionPanel({
               overflow: "hidden",
             }}>
               {equippedImage ? (
-                <img src={equippedImage} alt={item.name} style={{ width: 52, height: 52, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <img decoding="async" src={equippedImage} alt={item.name} style={{ width: 52, height: 52, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
               ) : (
                 <GameIcon id={slotDef.iconId} size={32} />
               )}
@@ -719,7 +719,7 @@ function EquipActionPanel({
                     {(() => {
                       const altImg = resolveItemImage(oItem, skinsByBaseId);
                       return altImg
-                        ? <img src={altImg} alt={oItem.name} style={{ width: 28, height: 28, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        ? <img decoding="async" src={altImg} alt={oItem.name} style={{ width: 28, height: 28, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
                         : <GameIcon id={slotDef.iconId} size={18} />;
                     })()}
                   </div>
@@ -961,7 +961,7 @@ function EquipmentPanel({
                         {(() => {
                           const skImg = resolveItemImage(shopItem, skinsByBaseId);
                           return skImg ? (
-                            <img
+                            <img decoding="async"
                               src={skImg}
                               alt={shopItem.name}
                               onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -1109,7 +1109,7 @@ function EquipmentPanel({
                   {shopItem ? (() => {
                     const skImg = resolveItemImage(shopItem, skinsByBaseId);
                     return skImg
-                      ? <img src={skImg} alt={shopItem.name} style={{ width: 42, height: 42, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      ? <img decoding="async" src={skImg} alt={shopItem.name} style={{ width: 42, height: 42, objectFit: "contain" }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
                       : <GameIcon id={slotDef.iconId} size={26} />;
                   })() : (
                     <div style={{ width: 24, height: 24, border: "1.5px dashed rgba(60,90,130,0.25)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1314,7 +1314,7 @@ function CharacterDisplay({
               background: `linear-gradient(0deg, ${classColor}30, transparent)`,
               zIndex: 1, pointerEvents: "none",
             }} />
-            <img
+            <img decoding="async"
               src={student.profile_photo_url!}
               alt={student.character_name ?? student.name}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -1886,7 +1886,7 @@ function HeroTopBar({
             boxShadow: `0 0 14px ${classColor}25`,
           }}>
             {student.profile_photo_url ? (
-              <img
+              <img decoding="async"
                 src={student.profile_photo_url}
                 alt={displayName}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}

@@ -139,7 +139,7 @@ function EventDetailModal({ detail, onClose }: { detail: EventDetail; onClose: (
                 {detail.cards.map(c => (
                   <div key={c.id} className="aeb-card" style={{ ['--rarity-tone' as string]: rarityColor(c.rarity) } as React.CSSProperties}>
                     {c.image_url ? (
-                      <img src={c.image_url} alt={c.name} />
+                      <img decoding="async" src={c.image_url} alt={c.name} />
                     ) : (
                       <div className="aeb-card-placeholder">{c.name.charAt(0)}</div>
                     )}

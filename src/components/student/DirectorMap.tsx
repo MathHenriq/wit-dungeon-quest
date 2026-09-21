@@ -285,7 +285,7 @@ function MapNode({
           whileTap={{ scale: 0.95 }}
         >
           {planetPath ? (
-            <img
+            <img decoding="async"
               src={planetPath}
               alt={node.name}
               className="w-full h-full object-contain drop-shadow-2xl"
@@ -307,7 +307,7 @@ function MapNode({
 
           {/* Planet logo icon overlay */}
           {getPlanetIcon(node.id) && (
-            <img
+            <img decoding="async"
               src={getPlanetIcon(node.id)}
               alt=""
               className="absolute pointer-events-none select-none"
@@ -379,7 +379,7 @@ export function DirectorMap({ student, onNavigate, onLogout, onOpenAccessibility
       {/* Background: Cosmic Space with Planets */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         {/* Space background image */}
-        <img
+        <img decoding="async"
           src="/images/director-bg.png"
           alt=""
           className="absolute inset-0 w-full h-full object-cover opacity-60"
@@ -388,7 +388,7 @@ export function DirectorMap({ student, onNavigate, onLogout, onOpenAccessibility
 
         {/* Giant background planets */}
         {BG_PLANETS.map((p, i) => (
-          <img
+          <img decoding="async"
             key={i}
             src={`/images/backgrounds/${p.file}`}
             alt=""
@@ -429,7 +429,7 @@ export function DirectorMap({ student, onNavigate, onLogout, onOpenAccessibility
           <div className="relative shrink-0" style={{ width: 40, height: 40 }}>
             <div className="w-10 h-10 rounded-lg border border-white/20 bg-white/5 flex items-center justify-center overflow-hidden">
               {student.profile_photo_url ? (
-                <img src={student.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                <img decoding="async" src={student.profile_photo_url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-cyan-300 font-bold text-base" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
                   {(student.character_name || student.name || '?').charAt(0).toUpperCase()}

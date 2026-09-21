@@ -53,7 +53,7 @@ export function ItemDetailPanel({ inv, isEquipped, equippedSlot, onEquip, onUneq
         {/* Big icon */}
         <div className="detail-icon" style={{ borderColor: rarity.border, background: rarity.bg }}>
           {shopItem.image_url ? (
-            <img src={shopItem.image_url} alt={shopItem.name}
+            <img decoding="async" src={shopItem.image_url} alt={shopItem.name}
               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (

@@ -33,7 +33,7 @@ export function EquipSlot({ slotType, equippedItem, onClick, animDelay = 0 }: Eq
         style={{ borderColor: iconBorder, background: iconBg }}
       >
         {hasItem && shopItem!.image_url ? (
-          <img
+          <img decoding="async"
             src={shopItem!.image_url}
             alt={shopItem!.name}
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}

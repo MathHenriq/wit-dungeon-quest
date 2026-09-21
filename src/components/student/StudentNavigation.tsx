@@ -112,7 +112,7 @@ function Avatar({ student }: { student: Student }) {
         }}
       >
         {student.profile_photo_url ? (
-          <img
+          <img decoding="async"
             src={student.profile_photo_url}
             alt={student.name}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}

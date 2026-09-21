@@ -45,7 +45,7 @@ export function TradeModal({ item, classmates, onConfirm, onCancel }: TradeModal
             flexShrink: 0, overflow: 'hidden',
           }}>
             {shopItem.image_url ? (
-              <img src={shopItem.image_url} alt={shopItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img decoding="async" src={shopItem.image_url} alt={shopItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={rarity.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d={iconPath} />

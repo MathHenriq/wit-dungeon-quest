@@ -155,7 +155,7 @@ export function SpriteUpload({ characterId, studentId, initialUrls, onUpdate }: 
                 {isLoading ? (
                   <Loader2 size={28} style={{ color: 'rgba(0,229,255,0.6)', animation: 'spin 1s linear infinite' }} />
                 ) : url ? (
-                  <img
+                  <img decoding="async"
                     src={url}
                     alt={slot.label}
                     style={{

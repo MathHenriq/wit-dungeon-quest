@@ -139,7 +139,7 @@ export function EnemyMarker({ x, y, name, iconType, spriteUrl, defeated, level }
 
       <div className="fm-enemy__circle" style={{ position: 'relative', overflow: 'hidden' }}>
         {showSprite ? (
-          <img
+          <img decoding="async"
             src={spriteUrl}
             alt={name}
             onError={() => setImgError(true)}

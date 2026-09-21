@@ -45,7 +45,7 @@ function ItemImage({ item, size = "md" }: { item: ShopItem; size?: "sm" | "md" |
   return (
     <div className={`${sizes[size]} rounded-lg bg-secondary flex items-center justify-center overflow-hidden flex-shrink-0`}>
       {item.image_url ? (
-        <img
+        <img decoding="async" loading="lazy"
           src={item.image_url}
           alt={item.name}
           className="w-full h-full object-cover"
@@ -324,7 +324,7 @@ export function TeacherShopPanel({ teacherId, items, onDataChanged }: TeacherSho
               </div>
               {imagePreview && (
                 <div className="w-14 h-14 rounded-lg overflow-hidden border border-border flex-shrink-0">
-                  <img
+                  <img decoding="async" loading="lazy"
                     src={imagePreview}
                     alt="preview"
                     className="w-full h-full object-cover"
