@@ -18,7 +18,8 @@
     "floors:insert": "npx ts-node --esm scripts/insert-floors.ts",
     "db:migrate": "supabase db push",
     "test:build": "vite build && node scripts/smoke-build.mjs",
-    "smoke": "node scripts/smoke-build.mjs"
+    "smoke": "node scripts/smoke-build.mjs",
+    "perf": "node scripts/perf.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

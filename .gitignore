@@ -34,3 +34,7 @@ tmp_*.json
 # so o .env.example no repo e cada maquina ter o seu.
 .env
 
+
+# evidencia de medicao, nao faz parte do projeto
+aurora-*.png
+botoes-*.png

@@ -9,54 +9,73 @@
 ## 0. Fluidez — medições de 21/09/2026
 
 Medido no build de produção, servido de verdade e aberto num Chromium com a
-**CPU estrangulada a 4×**, para aproximar o Chromebook de escola em vez da
-máquina de desenvolvimento. Janela de 8 s por medição, 1366×768.
+**CPU estrangulada a 4×**, para aproximar o Chromebook de escola. Janela de 8 s,
+1366×768, três execuções de cada lado. Reproduzível com `npm run perf`.
 
-### Tela de batalha (`/battle-demo`)
+> **Ressalva que muda como ler os números:** este ambiente renderiza por
+> software (SwiftShader, sem GPU). Blur, blend e composição custam mais aqui
+> que num Chromebook real. Os números servem para **comparar lados**, não como
+> valor absoluto. O `npm run perf` avisa quando é o caso.
 
-| | Antes | Depois | |
+### Onde chegamos
+
+| Tela | Antes | Depois | Quadros travados |
 |---|---|---|---|
-| Quadros por segundo | 34,6 | **50,5** | +46% |
-| Tempo médio de quadro | 28,9 ms | **19,8 ms** | −31% |
-| p95 do quadro | 50,0 ms | **33,4 ms** | −33% |
-| Pior quadro | 66,8 ms | **50,1 ms** | −25% |
-| Quadros travados (>32 ms) | 164 | **70** | −57% |
+| Batalha | 34,6 fps | **~59 fps** | 164 → ~10 |
+| Login do aluno | 27,0 fps | **~58 fps** | 188 → ~12 |
+| Login do professor | 30,0 fps | **~55 fps** | 194 → ~35 |
 
-Vem de duas mudanças: a caixa de diálogo deixou de re-renderizar a tela inteira
-a cada caractere digitado, e o starfield 3D parou de desenhar atrás de uma tela
-opaca que o cobre por completo.
+### A lição: eu estava otimizando a coisa errada
+
+A primeira rodada atacou re-renders do React. O perfil de CPU, feito depois,
+mostrou que o **JavaScript estava ocioso** — 55,9% idle, 43,5% em "(program)"
+(estilo, layout, pintura). Todo o JS somado: 0,6% do tempo.
+
+O custo real era pintura, em três lugares:
+
+**1. Nove cenários de batalha montados ao mesmo tempo.** O `BattleBackdrop`
+renderizava todos e escondia os inativos com `opacity: 0` — que não pausa
+animação nenhuma. 144 elementos animando de 267 nós no documento, incluindo
+uma grade em perspectiva cuja caixa projetada media 700 bilhões de px².
+O aluno via um cenário e pagava por nove. → 45,1 para 54,2 fps.
+
+**2. `backdrop-filter` nos quatro botões de ação.** A tela tem nove painéis
+com vidro fosco; oito custam quase nada e estes quatro custavam o quadro
+inteiro. Tirando só deles, o resto mantém `blur(12px)` de graça.
+→ 45,1 para 60,1 fps. Os dois screenshots são indistinguíveis.
+
+**3. `mix-blend-mode: screen` na aurora do login**, mais o starfield 3D
+desenhando embaixo dela. Blend mode obriga o compositor a ler de volta o que
+está por baixo, o que impede guardar a camada pronta. E a aurora tem base
+opaca, então as 1.800 estrelas atrás dela nunca apareceram para ninguém.
+→ 27 para 58 fps.
+
+Contra a intuição: o `blur(60px)` da aurora **não** era o problema. Reduzi-lo
+para 24px não mudou nada (28,3 vs 28,1 fps). Ficou como estava.
 
 ### Re-renders numa batalha completa
 
-Contados rodando uma batalha real pelo `BattleEngine` (40 turnos, 217 mensagens
-de log, 4.939 caracteres digitados):
+Contados rodando uma batalha real pelo `BattleEngine` (40 turnos, 217 mensagens,
+4.939 caracteres digitados). Não aparece no fps porque não era o gargalo, mas
+segue valendo — é trabalho que sumiu:
 
 | | Antes | Depois |
 |---|---|---|
 | Re-renders da árvore do BattleScreen | 4.939 | **217** (−95,6%) |
 | Medições de layout do framer-motion | ~19.756 | ~868 |
 
-O número antigo é literalmente um re-render por caractere: o `useTypewriter`
-fazia `setState` a cada 28 ms dentro do componente de 1.275 linhas.
+### O que não dá para medir daqui
 
-### Portal do aluno (`/login`)
+O hub e a loja — onde o aluno passa a aula — estão atrás do login e não são
+alcançáveis sem credencial de aluno. `npm run perf /rota` funciona em qualquer
+tela: entre com um aluno de teste e aponte o script.
 
-| | Antes | Depois |
-|---|---|---|
-| Quadros por segundo | 33,1 | **34,6** |
-| Quadros travados (>32 ms) | 205 | **195** |
+O `AincradBackground` (fundo de todas as telas do portal) já declara oclusão do
+starfield, pelo mesmo motivo do login: base opaca. Isso está coberto por teste
+de unidade, mas não verificado de ponta a ponta na tela real.
 
-Ganho pequeno, e está certo que seja: o laço O(n²) do fundo animado varre 595
-pares por quadro, mas só ~15 caem dentro do raio de ligação por vez. Medido
-isolado, o laço custava 6,2 µs por quadro e passou a 4,1 µs. O que ajuda aqui é
-o teto de 30 fps, não a batelada de linhas — registrado para ninguém voltar a
-esse arquivo esperando ouro.
-
-### O que não dá para medir assim
-
-`staleTime` nas queries, `decoding="async"` nas imagens e `loading="lazy"` nas
-listas aparecem em navegação e em rede real, não numa janela de 8 s com a aba
-parada. Estão no código pelos motivos descritos nos commits.
+`staleTime` nas queries, `decoding="async"` e `loading="lazy"` aparecem em
+navegação e rede real, não numa janela de 8 s com a aba parada.
 
 ---
 

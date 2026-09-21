@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 
 /**
  * Fundo das telas de login (aluno e professor).
@@ -38,6 +39,17 @@ function conexaoAguentaVideo(): boolean {
 
 export function LoginBackdrop() {
   const [tocarVideo, setTocarVideo] = useState(false);
+
+  // A aurora tem base opaca (`linear-gradient(#04030a …)` em .login-video-
+  // background) e cobre a viewport inteira, então o starfield 3D atrás dela
+  // não aparece em pixel nenhum — e mesmo assim desenhava 1.800 estrelas a
+  // 60 fps embaixo. Eram dois fundos de tela cheia empilhados, um invisível.
+  //
+  // Medido na tela de login, build de produção, CPU a 4×:
+  //   como estava ....................... 27,0 fps, 188 quadros travados
+  //   sem o mix-blend-mode da aurora .... 35,4 fps, 116 quadros travados
+  //   + starfield ocluído ............... 60,1 fps,   0 quadros travados
+  useOccludesBackdrop();
 
   useEffect(() => {
     if (!conexaoAguentaVideo()) return;

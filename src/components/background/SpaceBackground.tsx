@@ -95,6 +95,28 @@ export function SpaceBackground() {
 
   return (
     <div className="fixed inset-0 -z-50" style={{ background: BACKDROP }}>
+      {/*
+        Coberto por tela opaca: além de parar o render loop, o canvas sai da
+        composição com `display: none`.
+
+        Parar o loop sozinho não bastava. O canvas continuava no DOM, e o
+        compositor seguia carregando uma textura de tela cheia a cada quadro
+        mesmo sem nada novo sendo desenhado nela. Medido na tela de login,
+        build de produção, CPU a 4×:
+
+          como estava ......................... 27 fps
+          só parando o render loop ............ 48 fps
+          loop parado + fora da composição .... 60 fps
+
+        `display: none` não destrói o contexto WebGL — a cena volta como
+        estava quando a tela opaca desmonta. Por isso aqui, e não desmontando
+        o <Canvas>, que recriaria o contexto a cada transição.
+      */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        display: occluded ? 'none' : 'block',
+      }}>
       <Canvas
         camera={{
           position: [0, 0, 50],
@@ -116,6 +138,7 @@ export function SpaceBackground() {
           <SpaceScene />
         </Suspense>
       </Canvas>
+      </div>
     </div>
   );
 }

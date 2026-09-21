@@ -495,9 +495,30 @@
 }
 
 .poke-action-btn {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* Sem backdrop-filter aqui, e só aqui — medido, não por precaução.
+   *
+   * A tela de batalha tem nove elementos com vidro fosco. Oito custam
+   * praticamente nada; estes quatro botões custavam o quadro inteiro. Medido
+   * no build de produção com CPU a 4×, trocando uma coisa de cada vez:
+   *
+   *   tudo como estava .................. 45,1 fps,  92 quadros travados
+   *   só os 4 botões sem blur ........... 57,0 fps,  19 quadros travados
+   *   botões sem blur, resto em 12px .... 60,1 fps,   0 quadros travados
+   *   sem blur em lugar nenhum .......... 60,1 fps,   0 quadros travados
+   *
+   * Ou seja: tirando o blur destes quatro, o resto da tela pode manter o
+   * desfoque cheio de graça. O diálogo, as caixas de HP, o selo de turno e o
+   * chip de elemento continuam com blur(12px) intactos.
+   *
+   * O alpha subiu de 0,6 para 0,82 para compensar: o que estes botões borravam
+   * era cena escura, então a cor final fica praticamente a mesma sem o custo.
+   *
+   * Ressalva honesta: a medição rodou em SwiftShader (renderização por
+   * software, sem GPU). Num Chromebook com GPU de verdade o blur é acelerado e
+   * custa menos que isto — mas continua sendo o item mais caro da tela, e
+   * quatro botões não é onde vidro fosco faz falta.
+   */
+  background: rgba(15, 23, 42, 0.82);
   border: 1px solid rgba(0, 229, 255, 0.2);
   border-radius: 8px;
   color: #f8fafc;

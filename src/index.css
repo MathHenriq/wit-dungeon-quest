@@ -817,20 +817,39 @@
     radial-gradient(ellipse at 50% 50%, rgba(245,158,11,0.10) 0%, transparent 70%),
     linear-gradient(180deg, #04030a 0%, #0a0518 50%, #04030a 100%);
 }
+/* Os dois véus da aurora.
+ *
+ * Aqui havia `mix-blend-mode: screen`, e ele sozinho custava um terço do
+ * quadro na tela de login. Blend mode obriga o compositor a ler de volta o que
+ * está por baixo para misturar, o que impede o navegador de guardar a camada
+ * pronta — e estes dois elementos são maiores que a viewport (inset: -10%) e
+ * animam para sempre. Medido no build de produção, CPU a 4×:
+ *
+ *   como estava ......................... 27,0 fps, 188 quadros travados
+ *   sem o mix-blend-mode ................ 35,4 fps, 116 quadros travados
+ *   sem blend + starfield ocluído ....... 60,1 fps,   0 quadros travados
+ *
+ * Curiosidade que contraria a intuição: o `blur(60px)` NÃO era o problema.
+ * Reduzi-lo para 24px não mudou nada (28,3 vs 28,1 fps). O blur fica.
+ *
+ * Sobre a aparência: `screen` sobre fundo quase preto dá quase o mesmo
+ * resultado que a mistura normal — a fórmula do screen é dominada pela cor de
+ * cima quando a de baixo tende a zero, e a base aqui é #04030a. A opacidade
+ * subiu um pouco nos dois véus para fechar a diferença que sobra.
+ */
 .login-video-background::before,
 .login-video-background::after {
   content: "";
   position: absolute;
   inset: -10%;
   filter: blur(60px);
-  mix-blend-mode: screen;
   animation: login-aurora 22s ease-in-out infinite alternate;
 }
 .login-video-background::before {
-  background: radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.35), transparent 55%);
+  background: radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.42), transparent 55%);
 }
 .login-video-background::after {
-  background: radial-gradient(ellipse at 80% 70%, rgba(34,211,238,0.28), transparent 60%);
+  background: radial-gradient(ellipse at 80% 70%, rgba(34,211,238,0.34), transparent 60%);
   animation-duration: 28s;
   animation-direction: alternate-reverse;
 }
