@@ -6,6 +6,60 @@
 
 ---
 
+## 0. Fluidez — medições de 21/09/2026
+
+Medido no build de produção, servido de verdade e aberto num Chromium com a
+**CPU estrangulada a 4×**, para aproximar o Chromebook de escola em vez da
+máquina de desenvolvimento. Janela de 8 s por medição, 1366×768.
+
+### Tela de batalha (`/battle-demo`)
+
+| | Antes | Depois | |
+|---|---|---|---|
+| Quadros por segundo | 34,6 | **50,5** | +46% |
+| Tempo médio de quadro | 28,9 ms | **19,8 ms** | −31% |
+| p95 do quadro | 50,0 ms | **33,4 ms** | −33% |
+| Pior quadro | 66,8 ms | **50,1 ms** | −25% |
+| Quadros travados (>32 ms) | 164 | **70** | −57% |
+
+Vem de duas mudanças: a caixa de diálogo deixou de re-renderizar a tela inteira
+a cada caractere digitado, e o starfield 3D parou de desenhar atrás de uma tela
+opaca que o cobre por completo.
+
+### Re-renders numa batalha completa
+
+Contados rodando uma batalha real pelo `BattleEngine` (40 turnos, 217 mensagens
+de log, 4.939 caracteres digitados):
+
+| | Antes | Depois |
+|---|---|---|
+| Re-renders da árvore do BattleScreen | 4.939 | **217** (−95,6%) |
+| Medições de layout do framer-motion | ~19.756 | ~868 |
+
+O número antigo é literalmente um re-render por caractere: o `useTypewriter`
+fazia `setState` a cada 28 ms dentro do componente de 1.275 linhas.
+
+### Portal do aluno (`/login`)
+
+| | Antes | Depois |
+|---|---|---|
+| Quadros por segundo | 33,1 | **34,6** |
+| Quadros travados (>32 ms) | 205 | **195** |
+
+Ganho pequeno, e está certo que seja: o laço O(n²) do fundo animado varre 595
+pares por quadro, mas só ~15 caem dentro do raio de ligação por vez. Medido
+isolado, o laço custava 6,2 µs por quadro e passou a 4,1 µs. O que ajuda aqui é
+o teto de 30 fps, não a batelada de linhas — registrado para ninguém voltar a
+esse arquivo esperando ouro.
+
+### O que não dá para medir assim
+
+`staleTime` nas queries, `decoding="async"` nas imagens e `loading="lazy"` nas
+listas aparecem em navegação e em rede real, não numa janela de 8 s com a aba
+parada. Estão no código pelos motivos descritos nos commits.
+
+---
+
 ## 1. O que mudou nesta rodada
 
 | | Antes | Depois |
