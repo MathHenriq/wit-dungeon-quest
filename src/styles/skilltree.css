@@ -4,7 +4,10 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 /* ── Fonts ──────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap');
+/* As fontes sao carregadas no index.html, num link unico. Nao voltar a
+   usar @import aqui: um @import de fonte dentro de um CSS que entra em
+   chunk lazy derruba a rota inteira para tela branca se o Google Fonts
+   nao responder. Ver o comentario no index.html. */
 
 /* ── Variables ──────────────────────────────────────────────────────────────── */
 :root {

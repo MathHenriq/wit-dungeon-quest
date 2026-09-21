@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorRecoveryToast } from "@/components/ErrorRecoveryToast";
 import { ColorBlindFilters } from "@/components/ColorBlindFilters";
 import { IntroRouter } from "@/components/IntroRouter";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { BootSequence } from "@/components/boot-sequence";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -87,27 +88,32 @@ function AppRoutes() {
   }, [navigate]);
 
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Routes>
-        <Route path="/"                       element={<IntroRouter />} />
-        <Route path="/login"                  element={<StudentPortal />} />
-        <Route path="/boot-test"              element={<BootSequence />} />
-        <Route path="/professor/login"        element={<TeacherLogin />} />
-        <Route path="/professor"              element={<TeacherDashboard />} />
-        <Route path="/professor/analytics"   element={<TeacherAnalytics />} />
-        <Route path="/professor/admin"        element={<AdminPanel />} />
-        <Route path="/pais/login"             element={<ParentLogin />} />
-        <Route path="/pais"                   element={<ParentPortal />} />
-        <Route path="/pais/filho"             element={<ParentStudentView />} />
-        <Route path="/relatorio/:reportId"    element={<ParentReport />} />
-        <Route path="/professor/apresentacao" element={<PresentationMode />} />
-        <Route path="/battle-demo"            element={<BattleDemo />} />
-        <Route path="/floor-map-demo"         element={<FloorMapDemo />} />
-        <Route path="/floor-select-demo"      element={<FloorSelectDemo />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*"                       element={<NotFound />} />
-      </Routes>
-    </Suspense>
+    // O boundary fica FORA do Suspense: a rejeição de um import() de rota
+    // lazy sobe pelo Suspense, não é capturada por ele. Sem isto, um chunk que
+    // não baixa deixa o #root vazio, sem mensagem nem botão.
+    <RouteErrorBoundary>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/"                       element={<IntroRouter />} />
+          <Route path="/login"                  element={<StudentPortal />} />
+          <Route path="/boot-test"              element={<BootSequence />} />
+          <Route path="/professor/login"        element={<TeacherLogin />} />
+          <Route path="/professor"              element={<TeacherDashboard />} />
+          <Route path="/professor/analytics"   element={<TeacherAnalytics />} />
+          <Route path="/professor/admin"        element={<AdminPanel />} />
+          <Route path="/pais/login"             element={<ParentLogin />} />
+          <Route path="/pais"                   element={<ParentPortal />} />
+          <Route path="/pais/filho"             element={<ParentStudentView />} />
+          <Route path="/relatorio/:reportId"    element={<ParentReport />} />
+          <Route path="/professor/apresentacao" element={<PresentationMode />} />
+          <Route path="/battle-demo"            element={<BattleDemo />} />
+          <Route path="/floor-map-demo"         element={<FloorMapDemo />} />
+          <Route path="/floor-select-demo"      element={<FloorSelectDemo />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*"                       element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </RouteErrorBoundary>
   );
 }
 

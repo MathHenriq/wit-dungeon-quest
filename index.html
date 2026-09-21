@@ -23,7 +23,25 @@
   <!-- Design System v2 — Fontes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600;700;800&family=Share+Tech+Mono&family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+  <!--
+    TODA fonte do jogo e pedida aqui, num link so, e nunca por @import dentro
+    de um .css. Dois motivos:
+
+    1. Robustez. Um @import de fonte dentro de um CSS que entra num chunk lazy
+       faz o <link> daquele chunk disparar `error` se o Google Fonts nao
+       responder — e o Vite trata isso como falha do chunk inteiro, entao o
+       import() da rota rejeita e a tela fica BRANCA. Numa escola que bloqueie
+       ou estrangule fonts.googleapis.com, o portal do aluno simplesmente nao
+       abria. Aqui em cima, uma fonte que nao carrega e so uma fonte que nao
+       carrega: o texto cai no fallback e o jogo funciona.
+
+    2. Velocidade. @import dentro de CSS e serial: o navegador precisa baixar o
+       CSS, parsear e so entao descobrir que ha outra folha para buscar. Neste
+       link, com o preconnect acima, a busca comeca junto com o resto.
+
+    IM+Fell+English veio do MissionBoard.css; as outras ja estavam aqui.
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600;700;800&family=Share+Tech+Mono&family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
 </head>
 
   <body>

@@ -16,7 +16,9 @@
     "items:import": "npx ts-node --esm scripts/import-anime-items.ts",
     "floors:generate": "npx ts-node --esm scripts/generate-floors.ts",
     "floors:insert": "npx ts-node --esm scripts/insert-floors.ts",
-    "db:migrate": "supabase db push"
+    "db:migrate": "supabase db push",
+    "test:build": "vite build && node scripts/smoke-build.mjs",
+    "smoke": "node scripts/smoke-build.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -94,6 +96,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "jsdom": "^20.0.3",
+    "playwright-core": "^1.63.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
