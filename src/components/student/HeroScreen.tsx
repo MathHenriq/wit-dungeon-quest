@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X, Edit3, Loader2, CheckCircle } from "lucide-react";
+import { X, Edit3, Loader2, CheckCircle, Image as ImageIcon } from "lucide-react";
 import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { CreationTicketsPanel } from "@/components/student/CreationTicketsPanel";
 import { TitlesPanel } from "@/components/student/TitlesPanel";
+import { BackdropCollectionPanel } from "@/components/student/BackdropCollectionPanel";
 import type { Student, InventoryItem, StudentPet, StudentTitle, ShopItem, SkillNode } from "@/types";
 import type { Ability, BattleCharacter } from "@/types/character";
 import { ELEMENT_META, canUseAbility } from "@/types/character";
@@ -1749,7 +1750,11 @@ function PetCard({ pet }: { pet: StudentPet }) {
 }
 
 // ─── Stats Panel ───────────────────────────────────────────────────────────────
-function StatsPanel({ student, pet }: { student: Student; pet: StudentPet | null }) {
+function StatsPanel({ student, pet, onOpenBackdrops }: {
+  student: Student;
+  pet: StudentPet | null;
+  onOpenBackdrops: () => void;
+}) {
   return (
     <div style={{
       gridArea: "stats",
@@ -1801,13 +1806,36 @@ function StatsPanel({ student, pet }: { student: Student; pet: StudentPet | null
         </div>
       </CollapsiblePanel>
 
+      {/* Coleção de Cenários: os desbloqueios já aconteciam em batalha
+          (unlock_backdrop em toda carta rara+), mas não havia nenhuma tela
+          para vê-los. Modal em vez de painel inline para não esticar a
+          página, que foi o motivo de terem sido removidos daqui. */}
+      <button
+        onClick={onOpenBackdrops}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          width: "100%", marginTop: 10, padding: "9px 12px",
+          borderRadius: 10,
+          background: "rgba(255,255,255,0.04)",
+          border: `1px solid ${T.borderDim}`,
+          color: T.textSecondary,
+          fontFamily: "'Orbitron', sans-serif",
+          fontSize: "0.6rem", letterSpacing: "0.16em", textTransform: "uppercase",
+          cursor: "pointer",
+        }}
+      >
+        <ImageIcon size={13} /> Cenários
+      </button>
+
       {/* CreationTicketsPanel self-hides when the student has no tickets, so
           it only appears when there's something to show. */}
       <CreationTicketsPanel />
 
-      {/* Removidos: Quests do Dia, Banners do Perfil, Coleção de Backdrops.
-          Esses 4 painéis cresciam a página além de 100vh, dificultando a
-          navegação. Eles seguem acessíveis a partir de outras telas. */}
+      {/* Esses painéis saíram do fluxo da página porque a esticavam além de
+          100vh. O comentário anterior dizia que seguiam "acessíveis a partir
+          de outras telas", mas nenhum deles tinha destino: as Quests do Dia
+          ganharam aba própria e a Coleção de Backdrops abre no modal abaixo,
+          pelo botão em StatsPanel. Banners do Perfil continua sem casa. */}
     </div>
   );
 }
@@ -2006,6 +2034,7 @@ interface HeroScreenProps {
 export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showTitles, setShowTitles] = useState(false);
+  const [showBackdrops, setShowBackdrops] = useState(false);
   const [pet, setPet] = useState<StudentPet | null>(null);
   const [title, setTitle] = useState<StudentTitle | null>(null);
   const [battleCharacter, setBattleCharacter] = useState<BattleCharacter | null>(null);
@@ -2188,7 +2217,7 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
           onUnequipAbility={handleUnequipAbility}
           onOpenTitles={() => setShowTitles(true)}
         />
-        <StatsPanel student={student} pet={pet} />
+        <StatsPanel student={student} pet={pet} onOpenBackdrops={() => setShowBackdrops(true)} />
 
         <HeroBottomBar student={student} classLabel={effectiveClassLabel} />
       </div>
@@ -2245,6 +2274,32 @@ export function HeroScreen({ student, inventory, onUpdate, onBack }: HeroScreenP
         </div>
         );
       })()}
+
+      {showBackdrops && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9000,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "24px 16px",
+          }}
+          onClick={() => setShowBackdrops(false)}
+        >
+          <div style={{
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
+          }} />
+          <div
+            style={{
+              position: "relative", zIndex: 1,
+              width: "100%", maxWidth: 560,
+              maxHeight: "85vh", overflowY: "auto",
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <BackdropCollectionPanel />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

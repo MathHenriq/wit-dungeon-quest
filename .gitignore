@@ -29,3 +29,8 @@ supabase/.temp/
 # Temp output
 tmp_*.json
 
+# Variaveis de ambiente. As VITE_* do projeto sao publicas (chave publishable
+# do Supabase), entao versiona-las nao era vazamento — mas o padrao e manter
+# so o .env.example no repo e cada maquina ter o seu.
+.env
+
