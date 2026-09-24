@@ -5,13 +5,15 @@
 ## Partida
 
 - **Desafiante** contra **Desafiante**. O Desafiante é o jogador, com o personagem do aluno como herói. Inimigos também são Desafiantes.
-- Vence quem zerar a vida do outro, ou quem fizer o outro precisar comprar carta com o deck vazio (regra do Yu-Gi-Oh).
-- Vida: entre 100 e 250 **[aberto — proposta: 150]**.
+- Vence quem zerar a vida do outro.
+- Deck vazio não é derrota imediata: a cada compra que não puder ser feita, o jogador toma dano crescente (5, 10, 15…).
+- Vida: **150** para todos.
 - **Não existe teto de dano.** Se um aluno montar um combo que dá 120, o jogo está funcionando.
 
 ## Deck, mão e cemitério
 
-- Deck de **30 cartas [aberto]**. Subi de 20 porque várias cartas vão cobrar "mande cartas do deck para o cemitério", e com 20 o jogo acabaria por falta de carta.
+- Deck de **20 cartas**. Meta de **500 cartas** no catálogo até o lançamento.
+- Com deck de 20, custos de "moer o próprio deck" são pequenos (1–2 cartas).
 - Até 2 cópias da mesma carta. Lendária ou acima: 1 cópia.
 - Mão inicial de 5. Compra 1 por turno. Mão máxima de 7: o excesso vai para o cemitério no fim do turno.
 - Quem começa **não ataca no primeiro turno**. Pokémon e Yu-Gi-Oh fazem isso para equilibrar.
