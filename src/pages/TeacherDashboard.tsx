@@ -13,7 +13,6 @@ import { TeacherChallengesPanel } from "@/components/TeacherChallengesPanel";
 import { TeacherAttendancePanel } from "@/components/TeacherAttendancePanel";
 import { TeacherPendingStudentsPanel } from "@/components/TeacherPendingStudentsPanel";
 import { TeacherShopPanel } from "@/components/TeacherShopPanel";
-import { GoogleClassroomSync } from "@/components/GoogleClassroomSync";
 import { TeacherBossPanel } from "@/components/TeacherBossPanel";
 import { TeacherGuildPanel } from "@/components/TeacherGuildPanel";
 import { TeacherGuildMissionsPanel } from "@/components/TeacherGuildMissionsPanel";
@@ -29,7 +28,7 @@ import { TeacherCardProposalsPanel } from "@/components/TeacherCardProposalsPane
 import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users, BookOpen, Clock, LogOut, Coins, Shield, Sword, CalendarCheck,
-  Sparkles, Award, UserPlus, ShoppingBag, Loader2, BarChart3, GraduationCap,
+  Sparkles, Award, UserPlus, ShoppingBag, Loader2, BarChart3,
   Swords, Users2, Heart, Network, Hammer, Package, BrainCircuit,
   Swords as SwordsIcon, Monitor, Search, Menu, X, ChevronRight, Settings2,
   ShieldAlert, Crown,
@@ -39,7 +38,7 @@ import { toast } from "sonner";
 
 type TabId =
   | "bulk" | "requests" | "pending" | "shop" | "classes" | "students" | "challenges"
-  | "attendance" | "missions" | "titles" | "reward" | "classroom" | "bosses"
+  | "attendance" | "missions" | "titles" | "reward" | "bosses"
   | "guilds" | "guild-missions" | "pets" | "skills" | "craft" | "chests" | "ia"
   | "capsule" | "classwar" | "cards";
 
@@ -220,7 +219,6 @@ export default function TeacherDashboard() {
     {
       label: "Integrações",
       items: [
-        { id: "classroom", label: "Classroom", icon: GraduationCap, description: "Sincronizar turmas e alunos do Google Classroom" },
       ],
     },
   ], [requests.length, pendingStudents.length]);
@@ -467,12 +465,6 @@ export default function TeacherDashboard() {
           {activeTab === "reward" && teacher && (
             <div className="card-fantasy max-w-2xl">
               <TeacherRewardSettings teacherId={teacher.id} />
-            </div>
-          )}
-
-          {activeTab === "classroom" && teacher && (
-            <div className="card-fantasy max-w-2xl">
-              <GoogleClassroomSync teacherId={teacher.id} onDataChanged={loadData} />
             </div>
           )}
 

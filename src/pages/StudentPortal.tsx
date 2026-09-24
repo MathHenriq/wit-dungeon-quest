@@ -68,6 +68,7 @@ import { AccessibilitySettings } from "@/components/student/AccessibilitySetting
 import { GameIcon } from "@/components/icons/GameIcon";
 import { describeLoginError, describeSignUpError, validateEmail, validatePassword } from "@/lib/authErrors";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
+import { validateFirstNames, validateNickname } from "@/lib/privacy";
 import {
   Sword,
   Shield,
@@ -134,22 +135,8 @@ function LoginScreen({
       if (isLogin) {
         const { error } = await onEmailLogin(email, password);
         if (error) {
-          // Drill down on invalid_credentials: ask the DB whether the email even
-          // exists, so we can show "Email não cadastrado" vs "Senha incorreta".
-          const e = error as { code?: string };
-          if (e?.code === "invalid_credentials") {
-            try {
-              const { data: exists } = await supabaseStudent.rpc("auth_email_exists", { p_email: email.trim() });
-              if (exists === false) {
-                toast.error("Email não cadastrado.");
-                return;
-              }
-              if (exists === true) {
-                toast.error("Senha incorreta.");
-                return;
-              }
-            } catch { /* fall through to generic */ }
-          }
+          // Mensagem genérica de propósito: dizer "e-mail não cadastrado" vs
+          // "senha incorreta" permitia descobrir quais e-mails são de alunos.
           toast.error(describeLoginError(error as Parameters<typeof describeLoginError>[0]));
         }
       } else {
@@ -157,7 +144,7 @@ function LoginScreen({
         if (error) {
           toast.error(describeSignUpError(error as Parameters<typeof describeSignUpError>[0]));
         } else {
-          toast.success("Conta criada! Agora escolha sua turma.");
+          toast.success("Conta criada! Agora crie seu personagem.");
         }
       }
     } finally {
@@ -287,10 +274,6 @@ function LoginScreen({
             <Link to="/professor/login" className="hover:text-cyan-400 transition-colors">
               Acesso do Professor
             </Link>
-            <span className="opacity-40">·</span>
-            <Link to="/pais/login" className="hover:text-cyan-400 transition-colors">
-              Portal dos Pais
-            </Link>
           </p>
           <DeveloperSignature className="text-center" />
         </div>
@@ -309,15 +292,20 @@ function ClassSelectionScreen({
   teachers: { id: string; name: string }[];
   classes: { id: string; name: string; teacher_id?: string }[];
   onTeacherChange: (teacherId: string) => void;
-  onRegister: (name: string, teacherId: string, classId: string) => Promise<void>;
+  onRegister: (firstNames: string, nickname: string, teacherId: string, classId: string) => Promise<void>;
   onBack: () => void;
 }) {
   const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [teacherId, setTeacherId] = useState("");
   const [classId, setClassId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [touched, setTouched] = useState({ name: false, nickname: false });
 
   const filteredClasses = classes.filter(c => c.teacher_id === teacherId);
+  const nameCheck = validateFirstNames(name);
+  const nickCheck = validateNickname(nickname, nameCheck.value);
+  const canSubmit = !nameCheck.error && !nickCheck.error && !!teacherId && !!classId;
 
   const handleTeacherSelect = (id: string) => {
     setTeacherId(id);
@@ -327,9 +315,10 @@ function ClassSelectionScreen({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !teacherId || !classId) return;
+    setTouched({ name: true, nickname: true });
+    if (!canSubmit) return;
     setIsSubmitting(true);
-    await onRegister(name.trim(), teacherId, classId);
+    await onRegister(nameCheck.value, nickCheck.value, teacherId, classId);
     setIsSubmitting(false);
   };
 
@@ -339,6 +328,7 @@ function ClassSelectionScreen({
     color: 'rgba(255,255,255,0.85)',
     outline: 'none',
   };
+  const hintStyle = { color: 'rgb(255,160,160)', fontFamily: 'Exo 2, sans-serif' };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
@@ -347,25 +337,50 @@ function ClassSelectionScreen({
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Rajdhani, sans-serif', letterSpacing: '4px' }}>BEM-VINDO</h1>
           <p className="text-white/40 text-sm">
-            Primeira vez aqui? Diga-nos em qual turma você está.
+            Primeira vez aqui? Crie seu personagem.
           </p>
         </div>
 
         <div className="holo-panel p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Seu Nome Completo</label>
+              <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Seus dois primeiros nomes</label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Como aparece na lista de chamada"
+                onBlur={() => setTouched(t => ({ ...t, name: true }))}
+                placeholder="Ex.: João Miguel (sem sobrenome)"
+                autoComplete="off"
+                maxLength={61}
                 required
                 className="w-full px-4 py-3 rounded-lg text-sm transition-colors"
                 style={inputStyle}
-                onFocus={e => e.target.style.borderColor = 'rgba(0,229,255,0.4)'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
               />
+              {touched.name && nameCheck.error ? (
+                <p className="text-xs mt-1.5 ml-1" style={hintStyle}>{nameCheck.error}</p>
+              ) : (
+                <p className="text-xs mt-1.5 ml-1 text-white/30">Só o professor vê seu nome.</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Nickname do personagem</label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={e => setNickname(e.target.value)}
+                onBlur={() => setTouched(t => ({ ...t, nickname: true }))}
+                placeholder="Como os outros jogadores vão te ver"
+                autoComplete="off"
+                maxLength={20}
+                required
+                className="w-full px-4 py-3 rounded-lg text-sm transition-colors"
+                style={inputStyle}
+              />
+              {touched.nickname && nickCheck.error && (
+                <p className="text-xs mt-1.5 ml-1" style={hintStyle}>{nickCheck.error}</p>
+              )}
             </div>
 
             <div>
@@ -386,7 +401,7 @@ function ClassSelectionScreen({
 
             {teacherId && (
               <div>
-                <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Turma</label>
+                <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Código do grupo</label>
                 <select
                   value={classId}
                   onChange={e => setClassId(e.target.value)}
@@ -394,14 +409,14 @@ function ClassSelectionScreen({
                   className="w-full px-4 py-3 rounded-lg text-sm transition-colors"
                   style={inputStyle}
                 >
-                  <option value="">Selecione sua turma</option>
+                  <option value="">Selecione o código que o professor passou</option>
                   {filteredClasses.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
                 {filteredClasses.length === 0 && (
                   <p className="text-sm text-white/30 mt-1">
-                    Nenhuma turma disponível para este professor.
+                    Nenhum grupo disponível para este professor.
                   </p>
                 )}
               </div>
@@ -409,7 +424,7 @@ function ClassSelectionScreen({
 
             <button
               type="submit"
-              disabled={isSubmitting || !name.trim() || !teacherId || !classId}
+              disabled={isSubmitting || !canSubmit}
               className="btn-cyber w-full justify-center py-3"
             >
               {isSubmitting ? (
@@ -423,6 +438,7 @@ function ClassSelectionScreen({
 
         <p className="text-center text-xs text-white/25 mt-4">
           Sua solicitação será analisada pelo professor antes de liberar o acesso.
+          Não informe sobrenome, documentos ou o nome da sua escola.
         </p>
 
         <div className="text-center mt-3">
@@ -723,8 +739,8 @@ export default function StudentPortal() {
         teachers={teachers}
         classes={classes}
         onTeacherChange={loadClassesByTeacher}
-        onRegister={async (name, teacherId, classId) => {
-          const result = await registerStudent(name, teacherId, classId);
+        onRegister={async (firstNames, nickname, teacherId, classId) => {
+          const result = await registerStudent(firstNames, nickname, teacherId, classId);
           if (!result.success) {
             toast.error("Erro ao solicitar acesso", { description: result.error });
           } else {

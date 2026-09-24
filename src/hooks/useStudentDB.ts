@@ -6,6 +6,7 @@ import { useTeacherReward } from "@/hooks/useTeacherReward";
 import { supabaseRetry } from "@/lib/supabaseRetry";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { applyOptimistic } from "@/utils/optimisticUpdate";
+import { rpcJson } from "@/integrations/supabase/rpcJson";
 import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem, InventoryItem } from "@/types";
 
 // Auth state machine:
@@ -88,8 +89,10 @@ export function useStudentDB() {
 
   // Load public data needed for the registration form (teachers/classes)
   const loadTeachers = async () => {
+    // RPC em vez de ler `teachers`: a tabela guarda user_id e is_admin, que
+    // alunos não precisam (e não devem) ver. A função devolve só id e nome.
     const { data, error } = await supabaseRetry(() =>
-      supabaseAnon.from("teachers").select("id, name").order("name")
+      supabaseAnon.rpc("list_teachers_for_signup")
     );
     if (error) {
       console.error("[useStudentDB] loadTeachers:", error);
@@ -445,83 +448,28 @@ export function useStudentDB() {
     return { error };
   };
 
-  const registerStudent = async (name: string, teacherId: string, classId: string) => {
+  const registerStudent = async (firstNames: string, nickname: string, teacherId: string, classId: string) => {
     if (!authUser) return { success: false, error: "Não autenticado." };
 
-    // Rejected students already have a record with this user_id (UNIQUE constraint).
-    // UPDATE it back to pending instead of trying to INSERT a duplicate.
-    if (student?.status === "rejected") {
-      const { error } = await supabaseStudent
-        .from("students")
-        .update({ name: name.trim(), teacher_id: teacherId, class_id: classId, status: "pending" })
-        .eq("id", student.id);
+    // Cadastro passa por RPC: o servidor valida os dois primeiros nomes e o
+    // nickname, e só mexe na linha do próprio auth.uid(). O antigo "reivindicar
+    // aluno órfão pelo nome" foi removido — com nomes reduzidos a dois, casar
+    // por nome deixaria um aluno assumir o registro de outro. Juntar com um
+    // registro antigo agora é feito pelo professor (merge_student).
+    const { data, error } = await supabaseStudent.rpc("register_my_student", {
+      p_first_names: firstNames,
+      p_nickname: nickname,
+      p_teacher_id: teacherId,
+      p_class_id: classId,
+    });
 
-      if (error) {
-        console.error("[useStudentDB] registerStudent (re-register):", error);
-        return { success: false, error: "Não foi possível atualizar sua solicitação. Tente novamente." };
-      }
-    } else {
-      const { error } = await supabaseStudent.from("students").insert({
-        name: name.trim(),
-        teacher_id: teacherId,
-        class_id: classId,
-        user_id: authUser.id,
-        status: "pending",
-        coins: 0,
-        level: 1,
-        presencas_consecutivas: 0,
-      });
-
-      if (error) {
-        // 23505 = unique_violation. Two distinct cases here:
-        //   (a) UNIQUE(user_id) — row already exists for this auth user (page refresh,
-        //       double-submit). Recover by UPDATE-ing that row.
-        //   (b) UNIQUE(class_id, name) — an orphan pre-OAuth row exists with the same
-        //       name in the same class and user_id IS NULL. Claim it by setting
-        //       user_id = auth.uid() (the trigger allows the NULL → uid transition).
-        if (error.code === "23505") {
-          // (a) try claiming our own existing row
-          const { data: ownRows, error: ownErr } = await supabaseStudent
-            .from("students")
-            .update({ name: name.trim(), teacher_id: teacherId, class_id: classId, status: "pending" })
-            .eq("user_id", authUser.id)
-            .select("id");
-
-          if (ownErr) {
-            console.error("[useStudentDB] registerStudent (recover own):", ownErr);
-            return { success: false, error: "Não conseguimos finalizar seu cadastro. Tente recarregar a página." };
-          }
-
-          // (b) no own row found — try claiming an orphan with same (class_id, name).
-          // Note: teacher_id/class_id stay as the orphan's values (trigger forbids changing them
-          // on the self/claim path). The student is effectively re-joining the original setup.
-          if (!ownRows || ownRows.length === 0) {
-            const { data: claimed, error: claimErr } = await supabaseStudent
-              .from("students")
-              .update({ user_id: authUser.id, status: "pending" })
-              .eq("class_id", classId)
-              .eq("name", name.trim())
-              .is("user_id", null)
-              .select("id");
-
-            if (claimErr) {
-              console.error("[useStudentDB] registerStudent (claim orphan):", claimErr);
-              return { success: false, error: "Não conseguimos finalizar seu cadastro. Contate o professor." };
-            }
-
-            if (!claimed || claimed.length === 0) {
-              // Real name conflict with another active student — surface a clear error.
-              return {
-                success: false,
-                error: "Já existe um aluno com esse nome nesta turma. Verifique com o professor ou use outro nome.",
-              };
-            }
-          }
-        } else {
-          console.error("[useStudentDB] registerStudent:", error);
-          return { success: false, error: "Não foi possível enviar a solicitação. Verifique sua conexão e tente novamente." };
-        }
-      }
+    if (error) {
+      console.error("[useStudentDB] registerStudent:", error);
+      return { success: false, error: "Não foi possível enviar a solicitação. Verifique sua conexão e tente novamente." };
+    }
+    const result = rpcJson<{ success: boolean; error?: string }>(data);
+    if (!result?.success) {
+      return { success: false, error: result?.error ?? "Não foi possível enviar a solicitação." };
     }
 
     // Re-resolve to enter "pending" state

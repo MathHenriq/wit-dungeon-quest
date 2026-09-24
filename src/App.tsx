@@ -22,10 +22,6 @@ const TeacherLogin      = lazy(() => import("./pages/TeacherLogin"));
 const TeacherDashboard  = lazy(() => import("./pages/TeacherDashboard"));
 const TeacherAnalytics  = lazy(() => import("./pages/TeacherAnalytics"));
 const AdminPanel        = lazy(() => import("./pages/AdminPanel"));
-const ParentLogin       = lazy(() => import("./pages/ParentLogin"));
-const ParentPortal      = lazy(() => import("./pages/ParentPortal"));
-const ParentReport      = lazy(() => import("./pages/ParentReport"));
-const ParentStudentView = lazy(() => import("./pages/ParentStudentView"));
 const PresentationMode  = lazy(() => import("./pages/PresentationMode"));
 const BattleDemo        = lazy(() => import("./pages/BattleDemo"));
 const FloorMapDemo      = lazy(() => import("./pages/FloorMapDemo"));
@@ -102,10 +98,6 @@ function AppRoutes() {
           <Route path="/professor"              element={<TeacherDashboard />} />
           <Route path="/professor/analytics"   element={<TeacherAnalytics />} />
           <Route path="/professor/admin"        element={<AdminPanel />} />
-          <Route path="/pais/login"             element={<ParentLogin />} />
-          <Route path="/pais"                   element={<ParentPortal />} />
-          <Route path="/pais/filho"             element={<ParentStudentView />} />
-          <Route path="/relatorio/:reportId"    element={<ParentReport />} />
           <Route path="/professor/apresentacao" element={<PresentationMode />} />
           <Route path="/battle-demo"            element={<BattleDemo />} />
           <Route path="/floor-map-demo"         element={<FloorMapDemo />} />

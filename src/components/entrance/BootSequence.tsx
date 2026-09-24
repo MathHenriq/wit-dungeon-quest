@@ -14,7 +14,7 @@ interface SystemCheck {
 const SYSTEM_CHECKS: SystemCheck[] = [
   { id: 'auth',      label: 'Autenticação de Usuário',       duration: 0.8 },
   { id: 'database',  label: 'Conexão com Banco de Dados',    duration: 0.6 },
-  { id: 'classroom', label: 'Integração Google Classroom',   duration: 0.7 },
+  { id: 'privacy', label: 'Protocolo de privacidade',     duration: 0.7 },
   { id: 'realtime',  label: 'Sistema de Tempo Real',         duration: 0.5 },
   { id: 'graphics',  label: 'Motor Gráfico 3D',              duration: 0.9 },
   { id: 'audio',     label: 'Sistema de Áudio',              duration: 0.4 },

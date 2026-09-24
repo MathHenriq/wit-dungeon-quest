@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
   if (!class_id || !name?.trim() || !email?.trim() || !password) {
     return jsonResponse({ error: 'class_id, name, email and password are required' }, 400);
   }
+  // Minimização de dados: só os dois primeiros nomes. O banco também recusa
+  // (constraint students_name_first_two), aqui é só para a mensagem ser clara.
+  const cleanName = name.trim().replace(/\s+/g, ' ');
+  if (cleanName.split(' ').length > 2 || /\d/.test(cleanName)) {
+    return jsonResponse({ error: 'use apenas os dois primeiros nomes do aluno, sem sobrenome' }, 400);
+  }
 
   // 1) Look up the class to derive teacher_id and validate.
   const { data: klass, error: klassErr } = await admin
@@ -66,7 +72,8 @@ Deno.serve(async (req) => {
     email: email.trim().toLowerCase(),
     password,
     email_confirm: true,
-    user_metadata: { name: name.trim(), role: 'student' },
+    // Nada de nome nos metadados do auth: o nome fica só em `students`.
+    user_metadata: { role: 'student' },
   });
   if (createErr || !created?.user) {
     return jsonResponse({ error: 'auth create failed', detail: createErr?.message ?? 'unknown' }, 400);
@@ -77,7 +84,7 @@ Deno.serve(async (req) => {
   const { data: student, error: studentErr } = await admin
     .from('students')
     .insert({
-      name: name.trim(),
+      name: cleanName,
       class_id,
       teacher_id: klass.teacher_id,
       user_id: authUserId,
@@ -99,7 +106,7 @@ Deno.serve(async (req) => {
     p_action:       'admin_create_student',
     p_target_table: 'students',
     p_target_id:    student?.id ?? null,
-    p_target_label: name.trim(),
+    p_target_label: cleanName,
     p_payload:      { class_id, teacher_id: klass.teacher_id, auth_user_id: authUserId, email: email.trim().toLowerCase() },
   });
 

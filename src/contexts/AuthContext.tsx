@@ -145,16 +145,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        scopes: [
-          "email",
-          "profile",
-          "https://www.googleapis.com/auth/classroom.courses.readonly",
-          "https://www.googleapis.com/auth/classroom.rosters.readonly",
-          "https://www.googleapis.com/auth/classroom.coursework.students.readonly",
-        ].join(" "),
+        // Só identifica o professor. Nenhum escopo do Google Sala de Aula:
+        // a integração foi removida e nenhum dado de aluno vem do Google.
+        scopes: "email profile",
         redirectTo: `${window.location.origin}/professor`,
         queryParams: {
-          access_type: "offline",
           // "select_account" allows switching accounts without forcing re-consent
           prompt: "select_account",
         },

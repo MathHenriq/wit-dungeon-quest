@@ -5592,8 +5592,6 @@ export type Database = {
           character_class: string | null
           character_name: string | null
           class_id: string
-          classroom_email: string | null
-          classroom_user_id: string | null
           coins: number
           created_at: string
           diamonds: number
@@ -5613,7 +5611,6 @@ export type Database = {
           presencas_consecutivas: number
           profile_photo_url: string | null
           race: string | null
-          school_name: string | null
           seen_patch_1_1: boolean
           status: string
           streak_best: number
@@ -5643,8 +5640,6 @@ export type Database = {
           character_class?: string | null
           character_name?: string | null
           class_id: string
-          classroom_email?: string | null
-          classroom_user_id?: string | null
           coins?: number
           created_at?: string
           diamonds?: number
@@ -5664,7 +5659,6 @@ export type Database = {
           presencas_consecutivas?: number
           profile_photo_url?: string | null
           race?: string | null
-          school_name?: string | null
           seen_patch_1_1?: boolean
           status?: string
           streak_best?: number
@@ -5694,8 +5688,6 @@ export type Database = {
           character_class?: string | null
           character_name?: string | null
           class_id?: string
-          classroom_email?: string | null
-          classroom_user_id?: string | null
           coins?: number
           created_at?: string
           diamonds?: number
@@ -5715,7 +5707,6 @@ export type Database = {
           presencas_consecutivas?: number
           profile_photo_url?: string | null
           race?: string | null
-          school_name?: string | null
           seen_patch_1_1?: boolean
           status?: string
           streak_best?: number
@@ -6258,6 +6249,39 @@ export type Database = {
       }
     }
     Views: {
+      student_profiles: {
+        Row: {
+          active_banner_key: string | null
+          attr_agilidade: number | null
+          attr_carisma: number | null
+          attr_destreza: number | null
+          attr_forca: number | null
+          attr_inteligencia: number | null
+          attr_resistencia: number | null
+          character_class: string | null
+          character_name: string | null
+          class_id: string | null
+          coins: number | null
+          id: string | null
+          is_mentor: boolean | null
+          is_test_account: boolean | null
+          level: number | null
+          name: string | null
+          presencas_consecutivas: number | null
+          profile_photo_url: string | null
+          race: string | null
+          status: string | null
+          streak_best: number | null
+          streak_current: number | null
+          teacher_id: string | null
+          total_boss_kills: number | null
+          total_crafts: number | null
+          total_missions_completed: number | null
+          total_pvp_wins: number | null
+          xp: number | null
+        }
+        Relationships: []
+      }
       guild_ranking_global: {
         Row: {
           avg_member_level: number | null
@@ -6425,7 +6449,6 @@ export type Database = {
         Args: { p_damage: number; p_raid_id: string }
         Returns: Json
       }
-      auth_email_exists: { Args: { p_email: string }; Returns: boolean }
       award_classroom_activity: {
         Args: {
           p_link_id: string
@@ -7285,11 +7308,23 @@ export type Database = {
           p_motivation: string
           p_personality: string
           p_race: string
-          p_school_name: string
         }
         Returns: string
       }
       update_my_profile_photo: { Args: { p_url: string }; Returns: string }
+      register_my_student: {
+        Args: {
+          p_class_id: string
+          p_first_names: string
+          p_nickname: string
+          p_teacher_id: string
+        }
+        Returns: Json
+      }
+      list_teachers_for_signup: {
+        Args: never
+        Returns: { id: string; name: string }[]
+      }
       update_student_difficulty: {
         Args: { p_new_difficulty: string; p_student_id: string }
         Returns: undefined

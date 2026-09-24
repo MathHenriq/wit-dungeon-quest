@@ -424,7 +424,7 @@ export function TradingScreen({ student, inventory, onBack, onInventoryChanged }
   // Load classmates
   useEffect(() => {
     supabaseAnon
-      .from("students")
+      .from("student_profiles")
       .select("id, name, character_name, class_id, level, teacher_id, coins, presencas_consecutivas")
       .eq("class_id", student.class_id)
       .eq("status", "active")
@@ -452,7 +452,7 @@ export function TradingScreen({ student, inventory, onBack, onInventoryChanged }
 
       const [{ data: items }, { data: students }, { data: tradeItemsData }] = await Promise.all([
         itemIds.length > 0 ? supabaseAnon.from("shop_items").select("*").in("id", itemIds) : Promise.resolve({ data: [] }),
-        supabaseAnon.from("students").select("id, name, character_name").in("id", studentIds),
+        supabaseAnon.from("student_profiles").select("id, name, character_name").in("id", studentIds),
         tradeIds.length > 0
           ? supabaseAnon.from("trade_items").select("*, item:shop_items(*)").in("trade_id", tradeIds)
           : Promise.resolve({ data: [] }),
