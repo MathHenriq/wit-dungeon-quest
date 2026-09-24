@@ -6,7 +6,6 @@ import { AincradBackground } from "@/components/ui/AincradBackground";
 import { Sword, Shield, Mail, Lock, User, Loader2, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { describeLoginError, describeSignUpError } from "@/lib/authErrors";
-import { supabase } from "@/integrations/supabase/client";
 import { LoginBackdrop } from "@/components/LoginBackdrop";
 
 export default function TeacherLogin() {
@@ -62,14 +61,7 @@ export default function TeacherLogin() {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          const e = error as { code?: string };
-          if (e?.code === "invalid_credentials") {
-            try {
-              const { data: exists } = await supabase.rpc("auth_email_exists", { p_email: email.trim() });
-              if (exists === false) { toast.error("Email não cadastrado."); return; }
-              if (exists === true) { toast.error("Senha incorreta."); return; }
-            } catch { /* fall through */ }
-          }
+          // Mensagem genérica: não revela se o e-mail está cadastrado.
           toast.error(describeLoginError(error as Parameters<typeof describeLoginError>[0]));
         }
         // On success: onAuthStateChange resolves teacher → useEffect navigates

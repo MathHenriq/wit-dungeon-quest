@@ -36,7 +36,7 @@ export function TradingPanel({ student, classmates: classmatesProp, inventory, o
   useEffect(() => {
     if (classmatesProp && classmatesProp.length > 0) return;
     supabaseAnon
-      .from('students')
+      .from('student_profiles')
       .select('id, name, character_name, class_id, level, teacher_id, coins, presencas_consecutivas')
       .eq('class_id', student.class_id)
       .eq('status', 'active')
@@ -87,7 +87,7 @@ export function TradingPanel({ student, classmates: classmatesProp, inventory, o
               .select('id, teacher_id, name, description, category, cost, diamond_cost, min_level, rarity, icon, image_url, is_active, is_premium, source_anime, ability_mode, ability_key, ability_name, ability_description, ability_config, created_at, attr_forca, attr_destreza, attr_inteligencia, attr_carisma, attr_agilidade, attr_resistencia')
               .in('id', itemIds)
           : Promise.resolve({ data: [] }),
-        supabaseAnon.from('students').select('id, name, character_name').in('id', studentIds),
+        supabaseAnon.from('student_profiles').select('id, name, character_name').in('id', studentIds),
       ]);
 
       const itemMap: Record<string, ShopItem> = {};

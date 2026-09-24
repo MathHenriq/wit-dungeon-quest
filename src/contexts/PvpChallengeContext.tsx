@@ -115,11 +115,19 @@ export function usePvpChallenge(): PvpChallengeContextValue {
 // ─── Data fetchers ────────────────────────────────────────────────────────────
 
 async function fetchCharacterStats(studentId: string): Promise<BattleStats | null> {
-  const { data: stud } = await supabaseStudent
+  const ATTRS = 'attr_forca, attr_destreza, attr_inteligencia, attr_carisma, attr_agilidade, attr_resistencia';
+  // A linha completa em `students` só é legível pelo próprio aluno (RLS).
+  // Para o oponente, os atributos vêm da view pública, que não expõe user_id.
+  const { data: own } = await supabaseStudent
     .from('students')
-    .select('user_id, attr_forca, attr_destreza, attr_inteligencia, attr_carisma, attr_agilidade, attr_resistencia')
+    .select(`user_id, ${ATTRS}`)
     .eq('id', studentId)
     .maybeSingle();
+  const stud: { user_id?: string | null; [attr: string]: unknown } | null = own ?? (await supabaseStudent
+    .from('student_profiles')
+    .select(ATTRS)
+    .eq('id', studentId)
+    .maybeSingle()).data;
   if (!stud) return null;
 
   // Preferred source: the battle `characters` row (linked by user_id).
@@ -157,7 +165,7 @@ async function fetchCharacterStats(studentId: string): Promise<BattleStats | nul
 async function fetchOpponentInfo(studentId: string): Promise<PvpOpponentInfo> {
   const [{ data: stud }, { data: stats }] = await Promise.all([
     supabaseStudent
-      .from('students')
+      .from('student_profiles')
       .select('id, name, character_name, character_class, level')
       .eq('id', studentId)
       .maybeSingle(),

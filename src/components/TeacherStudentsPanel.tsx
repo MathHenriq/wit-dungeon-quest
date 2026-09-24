@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, TrendingUp, Package, X, Loader2, Swords, Link2, Copy, Check, RotateCcw, KeyRound, Move, Ban, Sparkles, Clock } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Package, X, Loader2, Swords, Copy, Check, RotateCcw, KeyRound, Move, Ban, Sparkles, Clock } from "lucide-react";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
 import type { Student, Class, InventoryItem, AttrKey } from "@/types";
 import { teacherApi } from "@/hooks/useAdmin";
+import { validateFirstNames } from "@/lib/privacy";
 
 interface TeacherStudentsPanelProps {
   teacherId: string;
@@ -335,53 +336,6 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
   );
 }
 
-function InviteButton({ studentId, studentName }: { studentId: string; studentName: string }) {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc('generate_parent_invite', {
-        p_student_id: studentId,
-      });
-      if (error) throw error;
-      const link = `${window.location.origin}/pais/login?code=${data}`;
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-      toast.success(`Link copiado para ${studentName}! Cole no WhatsApp ou e-mail.`);
-    } catch (err) {
-      console.error('[InviteButton]', err);
-      toast.error('Erro ao gerar convite para pais.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  return (
-    <button
-      onClick={handleGenerate}
-      disabled={isGenerating}
-      className="p-2 rounded-lg transition-colors disabled:opacity-50"
-      style={{
-        background: copied ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.08)',
-        color: copied ? '#6366f1' : '#818cf8',
-      }}
-      title="Gerar link para pais"
-    >
-      {isGenerating ? (
-        <Loader2 size={16} className="animate-spin" />
-      ) : copied ? (
-        <Check size={16} />
-      ) : (
-        <Link2 size={16} />
-      )}
-    </button>
-  );
-}
-
 export function TeacherStudentsPanel({ teacherId, students, classes, onDataChanged }: TeacherStudentsPanelProps) {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [newStudentName, setNewStudentName] = useState("");
@@ -403,7 +357,9 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
     e.preventDefault();
     if (!selectedClass || !newStudentName.trim() || isAdding) return;
 
-    const name = newStudentName.trim();
+    // Mesma regra do cadastro do aluno: só os dois primeiros nomes.
+    const { value: name, error: nameError } = validateFirstNames(newStudentName);
+    if (nameError) { toast.error(nameError); return; }
     setIsAdding(true);
 
     const timeout = setTimeout(() => {
@@ -479,7 +435,7 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
                 type="text"
                 value={newStudentName}
                 onChange={e => setNewStudentName(e.target.value)}
-                placeholder="Nome do aluno"
+                placeholder="Dois primeiros nomes (sem sobrenome)"
                 className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
               />
               <button type="submit" disabled={isAdding} className="btn-fantasy flex items-center gap-2 disabled:opacity-50">
@@ -557,7 +513,6 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
                 >
                   <Sparkles size={16} />
                 </button>
-                <InviteButton studentId={student.id} studentName={student.character_name || student.name} />
                 <button
                   onClick={() => setMoveTarget(student)}
                   className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors"

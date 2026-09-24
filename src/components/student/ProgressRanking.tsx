@@ -40,7 +40,7 @@ export function ProgressRanking({ student, classId, showClassicToggle = false }:
     async function load() {
       setLoading(true);
       const { data } = await supabaseStudent
-        .from("students")
+        .from("student_profiles")
         .select("id, name, character_name, character_class, level, coins, presencas_consecutivas")
         .eq("class_id", classId)
         .eq("status", "active")

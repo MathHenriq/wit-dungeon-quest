@@ -292,7 +292,7 @@ export function PvpArena({ student, onBack }: PvpArenaProps) {
     const ids = presences.map(p => p.student_id);
 
     const [{ data: studs }, { data: stats }] = await Promise.all([
-      supabaseStudent.from('students').select('id, name, character_name, character_class, level, class_id').in('id', ids),
+      supabaseStudent.from('student_profiles').select('id, name, character_name, character_class, level, class_id').in('id', ids),
       supabaseStudent.from('pvp_student_stats').select('student_id, rating, wins, losses').in('student_id', ids),
     ]);
 
@@ -326,7 +326,7 @@ export function PvpArena({ student, onBack }: PvpArenaProps) {
 
     const oppIds = data.map(m => m.challenger_id === student.id ? m.opponent_id : m.challenger_id);
     const [{ data: oppStudents }, { data: oppStats }] = await Promise.all([
-      supabaseStudent.from('students').select('id, name, character_name').in('id', oppIds),
+      supabaseStudent.from('student_profiles').select('id, name, character_name').in('id', oppIds),
       supabaseStudent.from('pvp_student_stats').select('student_id, rating').in('student_id', oppIds),
     ]);
 

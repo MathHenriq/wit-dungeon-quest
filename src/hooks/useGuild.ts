@@ -21,7 +21,7 @@ export function useGuild(studentId: string, teacherId: string) {
   const loadPosts = useCallback(async (guildId: string) => {
     const { data } = await supabaseStudent
       .from("guild_posts")
-      .select("*, student:students(name, character_name)")
+      .select("*, student:student_profiles!student_id(name, character_name)")
       .eq("guild_id", guildId)
       .order("created_at", { ascending: false })
       .limit(30);
@@ -44,7 +44,7 @@ export function useGuild(studentId: string, teacherId: string) {
     const { data: leaderRows } = guildIds.length
       ? await supabaseStudent
           .from("guild_members")
-          .select("guild_id, role, student:students(name, character_name)")
+          .select("guild_id, role, student:student_profiles!student_id(name, character_name)")
           .in("guild_id", guildIds)
           .in("role", ["lider", "vice_lider"])
       : { data: [] as Array<{
@@ -85,7 +85,7 @@ export function useGuild(studentId: string, teacherId: string) {
     // query fails, and leaders silently see no pending requests.
     const { data, error } = await supabaseStudent
       .from("guild_join_requests")
-      .select("*, student:students!guild_join_requests_student_id_fkey(name, character_name, character_class, level)")
+      .select("*, student:student_profiles!student_id(name, character_name, character_class, level)")
       .eq("guild_id", guildId)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
@@ -122,7 +122,7 @@ export function useGuild(studentId: string, teacherId: string) {
 
         const { data: membersData } = await supabaseStudent
           .from("guild_members")
-          .select("*, student:students(id, name, character_name, character_class, level)")
+          .select("*, student:student_profiles!student_id(id, name, character_name, character_class, level)")
           .eq("guild_id", guild.id)
           .order("joined_at");
         setMembers((membersData || []) as unknown as GuildMember[]);
@@ -240,13 +240,8 @@ export function useGuild(studentId: string, teacherId: string) {
   const leaveGuild = async () => {
     if (!myGuild) return;
 
-    await supabaseStudent
-      .from("guild_members")
-      .delete()
-      .eq("guild_id", myGuild.id)
-      .eq("student_id", studentId);
-
-    // Transfer leadership to next member if I was the leader
+    // A ordem importa com RLS: só um líder pode promover outro membro, então
+    // a liderança é passada ANTES de sair da guilda.
     if (myRole === 'lider' && members.length > 1) {
       const next = members.find(m => m.student_id !== studentId);
       if (next) {
@@ -257,7 +252,13 @@ export function useGuild(studentId: string, teacherId: string) {
       }
     }
 
-    // Delete guild if I was the only member
+    await supabaseStudent
+      .from("guild_members")
+      .delete()
+      .eq("guild_id", myGuild.id)
+      .eq("student_id", studentId);
+
+    // Delete guild if I was the only member (a policy permite apagar guilda vazia)
     if (members.length <= 1) {
       await supabaseStudent.from("guilds").delete().eq("id", myGuild.id);
     }

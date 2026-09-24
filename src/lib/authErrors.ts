@@ -38,7 +38,7 @@ export function describeLoginError(err: SupabaseAuthError): string {
   if (isNetworkError(err)) return "Erro de conexão. Tente novamente.";
   const code = err.code ?? "";
   if (code === "invalid_credentials") {
-    // Default fallback when caller didn't drill down via auth_email_exists.
+    // Genérica de propósito: não revela se o e-mail existe.
     return "Email ou senha incorretos.";
   }
   if (code === "email_not_confirmed") {

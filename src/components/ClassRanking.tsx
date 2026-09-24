@@ -169,7 +169,7 @@ export function ClassRanking({ classId, currentStudentId }: ClassRankingProps) {
 
   useEffect(() => {
     supabaseAnon
-      .from("students")
+      .from("student_profiles")
       .select("id, name, character_name, profile_photo_url, level, presencas_consecutivas, coins, attr_forca, attr_destreza, attr_inteligencia, attr_carisma, attr_agilidade, attr_resistencia")
       .eq("class_id", classId)
       .eq("status", "active")

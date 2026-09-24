@@ -1,17 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
+import { supabaseStudent } from './studentClient';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-// Cliente sem persistência de sessão para uso exclusivo do portal do aluno.
-// Garante que uma sessão de professor armazenada no localStorage não
-// interfira nas queries anônimas feitas pelos alunos.
-export const supabaseAnon = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-    storageKey: 'wit_dungeon_anon',
-  }
-});
+// Antes este era um cliente SEM sessão, e todo o portal do aluno consultava o
+// banco como `anon` — o que obrigava o RLS a liberar leitura e escrita
+// anônimas em `students` e em dezenas de tabelas. Qualquer pessoa com a URL
+// do site lia os nomes de todos os alunos.
+//
+// Agora o nome é mantido só por compatibilidade: aponta para o cliente com a
+// sessão do aluno, então tudo roda como `authenticated` e o RLS pode exigir
+// dono. O papel `anon` não tem mais acesso a dado de aluno nenhum.
+export const supabaseAnon = supabaseStudent;
