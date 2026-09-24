@@ -38,3 +38,6 @@ tmp_*.json
 # evidencia de medicao, nao faz parte do projeto
 aurora-*.png
 botoes-*.png
+
+# Artes brutas geradas (as finais vão para public/cards/art)
+/arte/
