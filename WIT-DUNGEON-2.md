@@ -7,51 +7,34 @@
 
 ---
 
-## 0. O medo da arte, respondido com número
+## 0. Tamanho real do catálogo
 
-A preocupação era: *"é MUITA arte pra criar"*. Fui ao banco ver quanta arte o
-jogo realmente precisa. A resposta muda o projeto.
+> **Correção (24/09):** a primeira versão deste documento dizia 854 cartas.
+> Estava errado. A tabela `shop_items` guarda **uma cópia do catálogo por
+> professor** (6 professores × ~136 cartas, mais 32 globais). Eu contei linhas,
+> não cartas. Os números abaixo são os corretos; as conclusões que dependiam
+> dos antigos ("625 cartas mortas", "5,1 cartas por arte") foram removidas.
 
 | | |
 |---|---|
-| Cartas cadastradas na loja | 854 |
-| Cartas que **algum** aluno já teve | **229** |
-| Cartas que alguém já **equipou** | **68** |
-| Cartas que ninguém nunca tocou | **625** |
-| Alunos com algum item no inventário | 138 de 685 |
+| Cartas na loja (por professor) | **~140** |
+| Nomes distintos no total | 174 |
+| Artes distintas | 164 — praticamente uma por carta |
 
-E a concentração:
-
-| Recorte | Cobertura da posse total |
-|---|---|
-| 30 cartas mais possuídas | 38% |
-| 60 cartas | **58%** |
-| 100 cartas | 74% |
-| 150 cartas | 84% |
-
-**Você não precisa de 854 artes. Precisa de ~130.**
-
-As 625 cartas que ninguém nunca teve não são acervo — são entulho. A raridade
-`unknown` tem 51 cartas cadastradas e **zero** posse. Aposentar isso não é
-perda, é foco: um TCG com 150 cartas boas ganha de um com 854 de enchimento.
-
-Esse é o primeiro passo do plano, e é de graça: nenhuma arte nova, só decidir
-o que fica.
+**As cartas da loja são as oficiais do WIT 2**, adaptadas ao sistema novo.
+Nenhuma é aposentada. O volume de arte a gerar é **~140–174 peças**: com o
+gerador do Canva a ~30 s por imagem, cerca de **1h30 de geração**.
 
 ---
 
 ## 1. Por que a arte de hoje não serve
 
-Não é questão de gosto. São três fatos medidos.
+Não é questão de gosto. São dois fatos medidos.
 
 **Resolução.** As 162 artes têm 225–260 px de largura e 4–10 kB. São
 miniaturas. Uma carta em destaque num TCG ocupa ~260×360 na tela; em tela 2×
 isso pede ~520×720 de arte. No momento em que a carta vira o centro do jogo —
 que é a proposta inteira — ela borra.
-
-**Repetição.** 842 cartas dividem 162 artes: 5,1 cartas por ilustração. Numa
-loja de itens ninguém nota. Num TCG, abrir um pacote e ver a mesma imagem
-cinco vezes mata a sensação de coleção.
 
 **Origem.** Os nomes dos arquivos são de obras licenciadas — Fire Force,
 Berserk, Dragon Ball, Fullmetal Alchemist, Black Clover, My Hero Academia,
@@ -59,15 +42,15 @@ Fate. Serve para um projeto interno de 685 alunos; não serve para o jogo com
 identidade própria que você descreveu, e o risco cresce junto com a
 visibilidade.
 
-Os três problemas têm **uma solução só**: gerar arte original em alta
-resolução, num estilo único. Resolve resolução, repetição e origem de uma vez
+Os dois problemas têm **uma solução só**: gerar arte original em alta
+resolução, num estilo único. Resolve resolução e origem de uma vez
 — e de quebra dá ao WIT a identidade visual que hoje não existe.
 
 ---
 
 ## 2. A estratégia que torna a arte viável
 
-A conta assustadora é "854 cartas × 1 arte cada". A conta real é outra.
+São ~140–174 cartas. A estratégia abaixo é para que elas pareçam um conjunto, não uma pilha.
 
 ### 2.1 Nem toda carta merece o mesmo investimento
 
@@ -185,7 +168,6 @@ vibrar, você descobriu barato.
 - **Famílias de animação** por elemento, parametrizadas — não uma animação por
   carta, mas uma linguagem por elemento com variações
 - **8 retratos de classe**
-- Limpeza do catálogo: aposentar as 625 cartas mortas
 
 Arte nova nesta fase: **~55 peças.**
 
@@ -231,7 +213,7 @@ Só depois que o TCG estiver de pé. A base já existe: `three`,
 |---|---|
 | Pipeline de geração e processamento de arte | Escolher o estilo (fase 0) |
 | Tela de curadoria para aprovar/reprovar | Aprovar as artes geradas |
-| Renderizador de carta e as 7 molduras | Decidir quais das 625 mortas voltam |
+| Renderizador de carta e as 7 molduras | Adaptar o efeito de cada carta ao sistema novo |
 | Campo de batalha TCG | Nomes, textos e sabor das cartas |
 | Deck de 8, mão, recurso de turno | Balanceamento |
 | Famílias de animação por elemento | |
@@ -243,8 +225,7 @@ Só depois que o TCG estiver de pé. A base já existe: `three`,
 ## 5. O que precisa ser decidido antes de começar
 
 1. **Estilo visual.** Fase 0. Tudo trava nisso.
-2. **Quantas cartas o WIT 2 terá.** Minha proposta: ~150 ativas, das quais 30
-   de assinatura. Hoje são 854 com 229 em uso real.
+2. **Catálogo definido:** as ~140 cartas da loja são as oficiais.
 3. **A árvore de skills.** Dado novo: **685 alunos têm pontos, 0 desbloquearam
    qualquer skill.** Ela está morta em produção. Minha recomendação é
    transformá-la em Maestria — modificadores que mudam como as cartas se
