@@ -59,7 +59,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'gideon': '1girl, fully clothed, diane (nanatsu no taizai), nanatsu no taizai, giantess, brown twin tails, giant war hammer, ground shattering',
   'chastiefol': '1boy, king (nanatsu no taizai), nanatsu no taizai, fairy king, floating, giant spear chastiefol, sunflower, forest',
   'lostvayne': '1boy, meliodas, nanatsu no taizai, blond hair, green eyes, lostvayne, multiple clones, sword slash',
-  'full-counter': '1boy, meliodas, nanatsu no taizai, blond hair, demon mark, sword, reflecting giant energy attack, counter',
+  'full-counter': '1boy, meliodas, nanatsu no taizai, blond hair, green eyes, from front, facing viewer, demon mark on forehead, sword raised, deflecting giant energy blast, counter',
 
   // ── One Piece ──────────────────────────────────────────────────────────────
   'enma': '1boy, roronoa zoro, one piece, green hair, one eye closed, enma (sword), haki aura, three sword style',
@@ -84,7 +84,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'ora-ora-ora': '1boy, kujo jotaro, star platinum, jojo no kimyou na bouken, stand, rush of punches, menacing',
   'esferas-de-aco': '1boy, gyro zeppeli, jojo no kimyou na bouken, steel ball run, spinning steel balls, hat, cowboy',
   'flecha-do-stand': 'no humans, stand arrow, jojo no kimyou na bouken, golden arrowhead, beetle design, glowing, dark background',
-  'mascara-de-pedra': 'no humans, stone mask (jojo), jojo no kimyou na bouken, bone spikes, blood drops, moonlight',
+  'mascara-de-pedra': 'no humans, stone mask (jojo), jojo no kimyou na bouken, ancient aztec stone mask on stone pedestal, close-up, bone spikes, moonlight, museum',
   'flecha-requiem': '1boy, giorno giovanna, gold experience requiem, jojo no kimyou na bouken, golden arrow, glowing, ladybug',
   'king-crimson': '1boy, diavolo, king crimson (stand), jojo no kimyou na bouken, pink hair, time erased, red sky',
   'za-warudo': '1boy, dio brando, the world (stand), jojo no kimyou na bouken, time stop, knives floating, monochrome world, menacing',
@@ -100,7 +100,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'brincos-potara': '1boy, vegito, dragon ball super, potara earrings, blue aura, confident smirk',
   'esferas-do-dragao': 'no humans, shenron, dragon ball, seven dragon balls, green eternal dragon, night sky, glowing',
   'scouter': '1boy, vegeta, dragon ball z, scouter, saiyan armor, reading power level',
-  'semente-dos-deuses': 'no humans, senzu bean, dragon ball, green beans in pouch, glowing, korin tower',
+  'semente-dos-deuses': 'no humans, senzu bean, dragon ball, single small green bean between two fingers, close-up, cloth pouch, soft glow',
   'instinto-superior': '1boy, son goku, dragon ball super, ultra instinct, silver hair, silver eyes, dodging, calm expression',
 
   // ── Solo Leveling ──────────────────────────────────────────────────────────
@@ -185,7 +185,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'punho-de-ferro': '1boy, thorfinn, vinland saga, blond hair, bare fists, scars, fighting stance, snow',
   'foice-da-morte': '1girl, fully clothed, maka albarn, soul eater, ash blonde twin tails, death scythe, moon with face, dramatic',
   'espada-demoniaca-ragnarok': '1other, crona (soul eater), soul eater, black dress, pink hair, black blood sword, ragnarok',
-  'ressonancia-de-almas': '1girl, 1boy, maka albarn, soul evans, soul eater, soul resonance, glowing scythe, blue souls',
+  'ressonancia-de-almas': '1girl, 1boy, maka albarn, soul evans, soul eater, fully clothed, school uniform, back to back, soul resonance, glowing scythe, blue souls',
   'gae-bolg': '1boy, cu chulainn (fate), fate/stay night, blue hair, red spear, gae bolg, blue armor',
   'volundr': 'no humans, divine forge, fate (series), glowing weapons being forged, anvil, sparks, golden light',
   'avalon': '1girl, fully clothed, artoria pendragon (fate), fate/stay night, blonde hair, blue armor, avalon, golden scabbard, glowing shield',
