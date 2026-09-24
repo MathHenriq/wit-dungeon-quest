@@ -30,6 +30,7 @@ const PresentationMode  = lazy(() => import("./pages/PresentationMode"));
 const BattleDemo        = lazy(() => import("./pages/BattleDemo"));
 const FloorMapDemo      = lazy(() => import("./pages/FloorMapDemo"));
 const FloorSelectDemo   = lazy(() => import("./pages/FloorSelectDemo"));
+const CardsDemo         = lazy(() => import("./pages/CardsDemo"));
 const NotFound          = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -109,6 +110,7 @@ function AppRoutes() {
           <Route path="/battle-demo"            element={<BattleDemo />} />
           <Route path="/floor-map-demo"         element={<FloorMapDemo />} />
           <Route path="/floor-select-demo"      element={<FloorSelectDemo />} />
+          <Route path="/cartas-demo"            element={<CardsDemo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*"                       element={<NotFound />} />
         </Routes>

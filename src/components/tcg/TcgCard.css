@@ -1,0 +1,259 @@
+/*
+ * Carta do TCG. Tudo é medido em cqw (1% da largura da carta), então a carta
+ * escala inteira mudando só a largura do container. Base de desenho: 300×420,
+ * onde 1cqw = 3px.
+ *
+ * Sem mix-blend-mode e sem backdrop-filter: numa mão com 7 cartas, esses dois
+ * impedem o navegador de guardar a carta como camada pronta (ver ROADMAP §0).
+ */
+
+/* O invólucro é o container: `cqw` sempre mede um ANCESTRAL, nunca o próprio
+   elemento, então a face da carta precisa estar um nível abaixo. */
+.tcg {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.tcg-card {
+  --el: #38bdf8;
+  --el2: #1e3a8a;
+  --gold: #d9c089;
+  --gold-hi: #f4d58d;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  border-radius: 5.3cqw;
+  overflow: hidden;
+  color: #fff;
+  font-family: 'Exo 2', sans-serif;
+  box-shadow: 0 4.6cqw 11cqw rgba(0, 0, 0, 0.6);
+  user-select: none;
+}
+
+.tcg-card__name {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tcg-card__type {
+  flex-shrink: 0;
+  font-size: 3cqw;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.7cqw 2.3cqw;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.tcg-card__emblem {
+  flex-shrink: 0;
+  width: 9.3cqw;
+  height: 9.3cqw;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 5cqw;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--el) 60%, #fff), var(--el2));
+  border: 0.7cqw solid var(--gold-hi);
+}
+
+.tcg-card__head {
+  position: absolute;
+  top: 2.7cqw;
+  left: 3.3cqw;
+  right: 3.3cqw;
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+}
+
+.tcg-card__cost {
+  display: inline-block;
+  font-size: 3cqw;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.7cqw 2.3cqw;
+  border-radius: 1.7cqw;
+  margin-bottom: 2cqw;
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.6);
+  border: 1px solid rgba(252, 165, 165, 0.5);
+}
+.tcg-card__cost--free {
+  color: #86efac;
+  background: rgba(20, 83, 45, 0.6);
+  border-color: rgba(134, 239, 172, 0.5);
+}
+
+.tcg-card__text {
+  font-size: 4cqw;
+  line-height: 1.35;
+  color: #eee;
+}
+.tcg-card__text--small { font-size: 3.5cqw; }
+.tcg-card__text--tiny { font-size: 3.1cqw; line-height: 1.3; }
+.tcg-card__text b { color: #fde68a; font-weight: 700; }
+.tcg-card__text--plain { font-style: italic; color: rgba(255, 255, 255, 0.55); }
+
+.tcg-card__damage {
+  position: absolute;
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 0 3.3cqw var(--el), 0 0.7cqw 1.3cqw #000;
+}
+
+.tcg-card__foot {
+  position: absolute;
+  left: 4.7cqw;
+  right: 4.7cqw;
+  bottom: 2.7cqw;
+  display: flex;
+  justify-content: space-between;
+  font-size: 2.8cqw;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ── Moldura normal (Comum até Épica): cor da moldura = elemento ─────────── */
+
+.tcg-card--normal {
+  border: 1.7cqw solid var(--gold);
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.1), transparent 40%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 9px),
+    linear-gradient(160deg, color-mix(in srgb, var(--el) 85%, #fff 15%), var(--el2));
+}
+.tcg-card--normal .tcg-card__name { flex: 1; font-size: 6cqw; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); }
+
+.tcg-card__window {
+  position: absolute;
+  top: 14.7cqw;
+  left: 4cqw;
+  right: 4cqw;
+  height: 58.7cqw;
+  border-radius: 2cqw;
+  border: 1cqw solid var(--gold);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  background-color: var(--el2);
+  background-size: cover;
+  background-position: center 30%;
+}
+
+.tcg-card__strip {
+  position: absolute;
+  top: 74.7cqw;
+  left: 6cqw;
+  right: 6cqw;
+  height: 4.7cqw;
+  border-radius: 1cqw;
+  background: linear-gradient(90deg, #b99f63, #f1dca0, #b99f63);
+  font-size: 2.7cqw;
+  line-height: 4.7cqw;
+  color: #3b2f14;
+  text-align: center;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tcg-card--normal .tcg-card__damage { right: 5.3cqw; top: 60cqw; font-size: 10cqw; }
+
+.tcg-card__box {
+  position: absolute;
+  top: 81.3cqw;
+  left: 4cqw;
+  right: 4cqw;
+  bottom: 9.3cqw;
+  border-radius: 2.7cqw;
+  background: rgba(12, 10, 22, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 3cqw 3.7cqw;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* ── Full art (Lendária, Mítica, Desconhecida) ───────────────────────────── */
+
+.tcg-card--full {
+  background: var(--el2);
+  box-shadow:
+    0 0 0 1cqw var(--el),
+    0 0 0 2cqw #0b0b12,
+    0 0 0 2.7cqw var(--gold-hi),
+    0 0 8.7cqw color-mix(in srgb, var(--gold-hi) 55%, transparent),
+    0 4.6cqw 11cqw rgba(0, 0, 0, 0.6);
+}
+.tcg-card__art {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 18%;
+}
+.tcg-card__fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    rgba(0, 0, 0, 0.55) 0%, transparent 16%, transparent 44%,
+    rgba(6, 4, 14, 0.84) 60%, rgba(6, 4, 14, 0.96) 100%);
+}
+.tcg-card--full .tcg-card__type { border-color: var(--el); background: rgba(0, 0, 0, 0.6); }
+.tcg-card--full .tcg-card__name { flex: 1; font-size: 6.3cqw; text-shadow: 0 2px 6px #000, 0 0 14px rgba(0, 0, 0, 0.8); }
+.tcg-card--full .tcg-card__damage { right: 5.3cqw; bottom: 38cqw; font-size: 11.3cqw; }
+.tcg-card--full .tcg-card__panel {
+  position: absolute;
+  left: 4.3cqw;
+  right: 4.3cqw;
+  bottom: 10cqw;
+  max-height: 44cqw;
+  overflow: hidden;
+}
+.tcg-card--full .tcg-card__text { text-shadow: 0 1px 2px #000; }
+.tcg-card--full .tcg-card__rarity { color: var(--gold-hi); }
+
+/* Brilho foil: um gradiente fixo com transparência, sem blend. */
+.tcg-card__foil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background: linear-gradient(115deg,
+    transparent 28%, rgba(255, 80, 200, 0.6) 40%, rgba(80, 220, 255, 0.6) 50%,
+    rgba(255, 240, 120, 0.6) 60%, transparent 72%);
+}
+.tcg-card--unknown .tcg-card__foil { opacity: 0.3; }
+
+/* ── Verso (estilo Yu-Gi-Oh) ─────────────────────────────────────────────── */
+
+.tcg-card--back {
+  border: 1.7cqw solid #6b4f1d;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(244, 213, 141, 0.35), transparent 34%),
+    repeating-conic-gradient(from 0deg at 50% 50%, #2a1450 0 10deg, #1b0c36 10deg 20deg);
+  display: grid;
+  place-items: center;
+}
+.tcg-card__back-mark {
+  width: 46cqw;
+  height: 46cqw;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1.3cqw solid var(--gold-hi);
+  background: radial-gradient(circle at 40% 35%, #3b1d72, #0d0620);
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: 12cqw;
+  color: var(--gold-hi);
+  text-shadow: 0 0 4cqw rgba(244, 213, 141, 0.7);
+  box-shadow: 0 0 8cqw rgba(244, 213, 141, 0.35);
+}
