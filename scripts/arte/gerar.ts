@@ -58,7 +58,7 @@ const ids = opt('ids')?.split(',');
 const force = flag('force');
 const limit = Number(opt('limit') ?? Infinity);
 const paralelo = Number(opt('paralelo') ?? 3);
-const modelo = opt('modelo') ?? 'KaynegIllustriousXL';
+const modelo = opt('modelo') ?? 'noobEvo';
 const preset = modelo === 'Animagine XL' ? PRESETS['Animagine XL'] : PRESETS.illustrious;
 const out = opt('saida') ?? OUT;
 
