@@ -91,3 +91,11 @@ As funções de **troca** e **venda** ficam, porque são o destino natural das d
 Inimigos são Desafiantes com deck e IA próprios. Visualmente, o personagem aparece **segurando ou jogando cartas**: o Naruto com cartas na mão, o Goku lançando uma carta.
 
 Regra do projeto: **ou fica bom de verdade, ou não fazemos.** O teste de viabilidade vem antes de qualquer produção em escala.
+
+## Visual das cartas (decidido)
+
+- **Comum até Épica:** moldura normal. A cor da moldura indica o elemento, a arte fica numa janela, e o texto vai numa caixa abaixo.
+- **Lendária, Mítica e Desconhecida:** full art. A arte ocupa a carta inteira e o texto fica sobre um degradê escuro, com borda dourada e brilho foil.
+- A moldura, o texto e o brilho são feitos **em código** (HTML/CSS). Só a ilustração é imagem.
+- Ilustrações geradas por script com o Animagine XL 4.0: Hugging Face para chefes e lendárias (mais fiel), AI Horde para volume. Tudo gratuito.
+- Possível camada extra de colecionismo: a mesma arte numa versão normal e numa versão alternativa full art mais rara.
