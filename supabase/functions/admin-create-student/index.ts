@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
     p_target_table: 'students',
     p_target_id:    student?.id ?? null,
     p_target_label: cleanName,
-    p_payload:      { class_id, teacher_id: klass.teacher_id, auth_user_id: authUserId, email: email.trim().toLowerCase() },
+    p_payload:      { class_id, teacher_id: klass.teacher_id, auth_user_id: authUserId },
   });
 
   return jsonResponse({ ok: true, student, auth_user_id: authUserId });

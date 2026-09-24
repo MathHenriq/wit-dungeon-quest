@@ -37,7 +37,7 @@ AS $$
     FROM unnest(regexp_split_to_array(
            btrim(regexp_replace(coalesce(p, ''), '[^A-Za-zÀ-ÖØ-öø-ÿ'' -]', '', 'g')),
            '\s+')) WITH ORDINALITY AS t(w, i)
-    WHERE w <> '' AND lower(w) NOT IN ('da', 'das', 'de', 'do', 'dos', 'e', 'd''')
+    WHERE w ~ '^[A-Za-zÀ-ÖØ-öø-ÿ]' AND lower(w) NOT IN ('da', 'das', 'de', 'do', 'dos', 'e', 'd''')
     ORDER BY i
   ))[1:2], ' '), '')
 $$;
@@ -70,6 +70,67 @@ ALTER TABLE public.students DISABLE TRIGGER enforce_student_character_update_onl
 ALTER TABLE public.students DISABLE TRIGGER audit_student_sensitive_fields_trg;
 
 -- ─── 1. Nome: só os dois primeiros ──────────────────────────────────────────
+
+-- Guarda de escrita direta do cliente em `students`. Substitui a versão
+-- anterior, que deixava o próprio aluno alterar coins/xp/diamonds via API.
+-- Só policia escrita que chega como `anon`/`authenticated` (PostgREST); RPCs
+-- SECURITY DEFINER rodam como dono e fazem as próprias checagens.
+CREATE OR REPLACE FUNCTION public.enforce_student_character_update_only()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF current_user NOT IN ('anon', 'authenticated') THEN
+    RETURN NEW;
+  END IF;
+
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not allowed' USING ERRCODE = '42501';
+  END IF;
+
+  -- Professor (o RLS já limitou aos alunos dele): pode gerir, mas não religar
+  -- a conta de login de um aluno.
+  IF EXISTS (SELECT 1 FROM public.teachers WHERE user_id = v_uid) THEN
+    IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
+      RAISE EXCEPTION 'Not allowed: cannot change user_id' USING ERRCODE = '42501';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  IF OLD.user_id IS DISTINCT FROM v_uid THEN
+    RAISE EXCEPTION 'Not allowed: students may only update their own record' USING ERRCODE = '42501';
+  END IF;
+
+  -- Identidade, vínculo e economia só mudam por RPC do servidor.
+  IF NEW.user_id                  IS DISTINCT FROM OLD.user_id
+  OR NEW.teacher_id               IS DISTINCT FROM OLD.teacher_id
+  OR NEW.class_id                 IS DISTINCT FROM OLD.class_id
+  OR NEW.name                     IS DISTINCT FROM OLD.name
+  OR NEW.status                   IS DISTINCT FROM OLD.status
+  OR NEW.coins                    IS DISTINCT FROM OLD.coins
+  OR NEW.diamonds                 IS DISTINCT FROM OLD.diamonds
+  OR NEW.xp                       IS DISTINCT FROM OLD.xp
+  OR NEW.level                    IS DISTINCT FROM OLD.level
+  OR NEW.suspended_until          IS DISTINCT FROM OLD.suspended_until
+  OR NEW.suspended_reason         IS DISTINCT FROM OLD.suspended_reason
+  OR NEW.is_mentor                IS DISTINCT FROM OLD.is_mentor
+  OR NEW.mentor_xp                IS DISTINCT FROM OLD.mentor_xp
+  OR NEW.presencas_consecutivas   IS DISTINCT FROM OLD.presencas_consecutivas
+  OR NEW.total_boss_kills         IS DISTINCT FROM OLD.total_boss_kills
+  OR NEW.total_pvp_wins           IS DISTINCT FROM OLD.total_pvp_wins
+  OR NEW.total_missions_completed IS DISTINCT FROM OLD.total_missions_completed
+  OR NEW.total_crafts             IS DISTINCT FROM OLD.total_crafts
+  OR NEW.is_test_account          IS DISTINCT FROM OLD.is_test_account
+  THEN
+    RAISE EXCEPTION 'Not allowed: this field is managed by the server' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
 
 -- Com nomes curtos, dois "João Pedro" na mesma turma são normais. O nome
 -- deixou de ser identificador.
@@ -144,10 +205,15 @@ $$;
 
 -- ─── 3. Turmas → grupos com código neutro ───────────────────────────────────
 
-ALTER TABLE public.classes DISABLE TRIGGER USER;
+-- Linha a linha: gen_group_code() checa colisão contra o que já foi gravado.
 UPDATE public.classes SET name = 'TMP-' || id::text, description = NULL;
-UPDATE public.classes SET name = public.gen_group_code();
-ALTER TABLE public.classes ENABLE TRIGGER USER;
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT id FROM public.classes LOOP
+    UPDATE public.classes SET name = public.gen_group_code() WHERE id = r.id;
+  END LOOP;
+END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS classes_name_key ON public.classes (name);
 
@@ -198,6 +264,10 @@ WHERE  ranking_type IN ('geral', 'sala', 'pvp')
   AND  NOT EXISTS (SELECT 1 FROM public.students s WHERE s.id = entity_id);
 
 -- Log de ações: rótulo e fotos do registro (to_jsonb(s.*) guardava tudo).
+-- O log é append-only (trigger action_log_no_update); a trava é suspensa só
+-- durante esta limpeza, dentro da mesma transação.
+ALTER TABLE public.action_log DISABLE TRIGGER action_log_no_update;
+
 UPDATE public.action_log
 SET    target_label = public.first_two_names(target_label)
 WHERE  target_table = 'students' AND target_label IS NOT NULL;
@@ -219,6 +289,8 @@ WHERE  target_table = 'students' AND after_state IS NOT NULL;
 UPDATE public.action_log
 SET    payload = payload - 'school_name' - 'classroom_email' - 'classroom_user_id' - 'email'
 WHERE  target_table = 'students' AND payload IS NOT NULL;
+
+ALTER TABLE public.action_log ENABLE TRIGGER action_log_no_update;
 
 -- Tabelas de backup de migrations antigas: cópias com nome completo.
 DROP TABLE IF EXISTS public.students_level_backup_20260409;

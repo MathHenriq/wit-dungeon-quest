@@ -75,8 +75,14 @@ export function validateNickname(raw: string, firstNames?: string): ValidationRe
   if (!/^[0-9A-Za-zÀ-ÖØ-öø-ÿ _.-]+$/.test(value)) {
     return { value, error: "O nickname só pode ter letras, números, espaço, _ . ou -." };
   }
-  if (firstNames && value.toLowerCase() === collapseSpaces(firstNames).toLowerCase()) {
-    return { value, error: "Escolha um nickname diferente do seu nome." };
+  // Mesma regra de public.nickname_contains_name(): nenhuma palavra do nome
+  // (com 3+ letras) pode aparecer como palavra no nickname.
+  if (firstNames) {
+    const nick = value.toLowerCase();
+    const hit = collapseSpaces(firstNames).toLowerCase().split(" ")
+      .filter((w) => w.length >= 3)
+      .some((w) => new RegExp(`(^|[^a-zà-ÿ])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-zà-ÿ]|$)`).test(nick));
+    if (hit) return { value, error: "O nickname não pode ter o seu nome. Outros jogadores veem o nickname." };
   }
   return { value, error: null };
 }

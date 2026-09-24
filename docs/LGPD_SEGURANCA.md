@@ -46,19 +46,34 @@ consulta; foto nunca aparece. A tabela `students` só devolve a própria linha
 
 ## Migrations (ordem)
 
+Todas aplicadas em produção em 24/09/2026.
+
 1. `20260924200000_lgpd_remove_google_classroom.sql`
 2. `20260924200100_lgpd_minimize_student_data.sql` — **irreversível**
-3. `20260924200200_security_rls_hardening.sql`
-4. `20260924200300_security_function_grants.sql`
-5. `20260924200400_security_storage_policies.sql`
+3. `20260924200150_lgpd_nickname_without_real_name.sql` — 66 alunos usavam o
+   próprio nome no nickname (público); voltaram para "Aventureiro XXXX"
+4. `20260924200200_security_rls_hardening.sql`
+5. `20260924200300_security_function_grants.sql`
+6. `20260924200400_security_storage_policies.sql`
+7. `20260924200500_security_fix_null_authz.sql` — achado no teste pós-deploy:
+   `NULL` nas checagens deixava aluno ler analytics de professor
+
+Verificado depois de aplicar, simulando os papéis no banco:
+- sem login: 0 alunos, 0 grupos, 0 professores; catálogo do jogo continua público;
+- aluno: lê só a própria linha; vê 673 perfis públicos, sem foto e sem nome real;
+  não altera as próprias moedas nem as de outro aluno; não chama RPC em nome de
+  outro aluno nem analytics de professor;
+- professor: lê os próprios alunos e o próprio analytics.
 
 O frontend novo e as migrations precisam ir juntos: o portal antigo consulta como
 `anon` e para de funcionar depois da migration 3.
 
 ## Pendências fora do código
 
-- Remover a Edge Function `gsa-refresh-token` do projeto (Dashboard → Edge Functions)
-  e reimplantar `admin-create-student`.
+- Apagar a Edge Function `gsa-refresh-token` no Dashboard (já foi esvaziada: só
+  responde 410). `admin-create-student` já foi reimplantada.
+- 7 dos 11 professores têm `is_admin = true`, e admin vê todos os alunos de todos
+  os professores. Revisar quem realmente precisa ser admin.
 - Apagar do Google Cloud Console o client OAuth com escopos do Classroom, se não for
   mais usado para o login de professores.
 - Ativar "Leaked password protection" em Auth → Settings.

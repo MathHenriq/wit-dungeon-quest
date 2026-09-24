@@ -42,6 +42,12 @@ describe("validateNickname", () => {
   it("recusa nickname igual ao nome", () => {
     expect(validateNickname("joão miguel", "João Miguel").error).not.toBeNull();
   });
+
+  it("recusa nickname que contém o nome, aceita quando só parece", () => {
+    expect(validateNickname("Miguel_Ninja", "João Miguel").error).not.toBeNull();
+    expect(validateNickname("Sr João 07", "João Miguel").error).not.toBeNull();
+    expect(validateNickname("Joaozinho", "João Miguel").error).toBeNull();
+  });
 });
 
 describe("publicDisplayName", () => {

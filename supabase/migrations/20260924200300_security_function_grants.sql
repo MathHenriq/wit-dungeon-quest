@@ -73,7 +73,7 @@ DECLARE
   pos int;
 BEGIN
   IF strpos(d, '-- authz-guard') > 0 THEN RETURN; END IF;
-  pos := regexp_instr(d, '\n[ \t]*BEGIN[ \t]*\n', strpos(d, '$function$'), 1, 1);
+  pos := regexp_instr(d, '\n[ \t]*BEGIN[ \t\r]*\n', strpos(d, '$function$'), 1, 1);
   IF pos = 0 THEN
     RAISE EXCEPTION 'add_guard: BEGIN not found in %', p_fn;
   END IF;
