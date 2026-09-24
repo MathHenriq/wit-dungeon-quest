@@ -56,22 +56,32 @@ export type Cost =
 export type Amount =
   | number
   | {
-      per: 'graveyard' | 'banished' | 'hand';
+      /**
+       * graveyard/banished/hand: conta cartas.
+       * round: rodadas da partida (1 rodada = 1 turno de cada jogador).
+       * lifeLost: vida que o dono já perdeu (vida máxima − vida atual).
+       * damageTaken: dano que o dono recebeu desde o fim do último turno dele.
+       */
+      per: 'graveyard' | 'banished' | 'hand' | 'round' | 'lifeLost' | 'damageTaken';
       owner?: Side;
       filter?: CardFilter;
+      /** Quanto vale cada unidade. Pode ser fração (0.5 = metade); o total é arredondado para baixo. */
       each: number;
       base?: number;
+      /** Teto do valor final. */
+      max?: number;
     };
 
 // ─── Condições ───────────────────────────────────────────────────────────────
 
-export type StatusKind = 'burn' | 'poison' | 'freeze';
+export type StatusKind = 'burn' | 'poison' | 'bleed' | 'freeze';
 
 export type Condition =
   /** Outras cartas jogadas por você neste turno (a própria carta não conta). */
   | { kind: 'playedThisTurn'; filter: CardFilter; min?: number }
   | { kind: 'graveyardCount'; min: number; owner?: Side; filter?: CardFilter }
   | { kind: 'lifeAtMost'; amount: number; owner?: Side }
+  | { kind: 'lifeAtLeast'; amount: number; owner?: Side }
   | { kind: 'hasStatus'; status: StatusKind; owner?: Side };
 
 // ─── Modificadores pendentes: o coração dos combos ───────────────────────────
@@ -119,7 +129,17 @@ export type Effect =
   | { kind: 'recover'; count: number; filter?: CardFilter }
   /** Só dentro de uma carta de Ataque: muda o dano DESTE ataque antes da conta. */
   | { kind: 'bonus'; add?: Amount; mult?: number; label: string }
-  | { kind: 'conditional'; if: Condition; then: Effect[]; else?: Effect[] };
+  | { kind: 'conditional'; if: Condition; then: Effect[]; else?: Effect[] }
+  /** Por N turnos seus, no início de cada um, estes efeitos acontecem de novo (invocações, regeneração). */
+  | { kind: 'aura'; turns: number; effects: Effect[]; label: string }
+  /** Troca a vida atual dos dois jogadores (limitada à vida máxima de cada um). */
+  | { kind: 'swapLife' }
+  /** Só dentro de Ataque: recupera uma fração do dano que este ataque causou. */
+  | { kind: 'lifesteal'; ratio: number }
+  /** Remove status e travas (statuses) e/ou bônus guardados (modifiers) do alvo. */
+  | { kind: 'purge'; what: 'statuses' | 'modifiers' | 'all'; target?: Side }
+  /** Só dentro de Ataque: não dispara Armadilhas e ignora redução de dano e escudo. */
+  | { kind: 'pierce' };
 
 // ─── Passivos (equipamento e campo) ──────────────────────────────────────────
 
@@ -146,6 +166,10 @@ export interface TrapSpec {
   negate?: boolean;
   /** Efeitos da armadilha, do ponto de vista de quem a baixou. */
   effects?: Effect[];
+  /** O ataque que disparou a armadilha acerta quem atacou, com todos os bônus dele. */
+  reflect?: boolean;
+  /** Só dispara se esta condição valer (do ponto de vista de quem baixou). */
+  condition?: Condition;
 }
 
 // ─── A carta ─────────────────────────────────────────────────────────────────
@@ -167,6 +191,8 @@ export interface CardDef {
   trap?: TrapSpec;
   /** Texto de ambientação, sem efeito de jogo. */
   flavor?: string;
+  /** Obra de origem, para a arte e para busca. Sem efeito de jogo. */
+  anime?: string;
 }
 
 export interface CardInstance {
@@ -186,6 +212,13 @@ export interface ActiveStatus {
   kind: StatusKind;
   value: number;
   turnsLeft: number;
+}
+
+export interface Aura {
+  label: string;
+  effects: Effect[];
+  turnsLeft: number;
+  source: CardInstance;
 }
 
 export interface Lock {
@@ -208,9 +241,12 @@ export interface PlayerState {
   /** Armadilhas baixadas, viradas para baixo. Máximo 3. */
   traps: CardInstance[];
   modifiers: ActiveModifier[];
+  auras: Aura[];
   statuses: ActiveStatus[];
   locks: Lock[];
   shields: number;
+  /** Dano recebido desde o fim do último turno deste jogador. */
+  damageTaken: number;
   skipNextDraw: boolean;
   /** Quantas compras com o deck vazio já aconteceram (dano de fadiga). */
   fatigue: number;

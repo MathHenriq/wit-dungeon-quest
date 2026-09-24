@@ -33,6 +33,7 @@ export const RARITY_PT: Record<Rarity, string> = {
 export const STATUS_PT: Record<StatusKind, string> = {
   burn: 'Queimadura',
   poison: 'Veneno',
+  bleed: 'Sangramento',
   freeze: 'Congelamento',
 };
 

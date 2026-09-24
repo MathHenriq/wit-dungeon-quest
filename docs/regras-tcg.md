@@ -77,6 +77,23 @@ Não existe energia. Como no Yu-Gi-Oh, **as cartas fortes cobram um preço**:
 - Os status existentes continuam: queimar, congelar, veneno, paralisar etc.
 - **Cada combo documentado vira um teste automático.** Se uma interação quebrar, o teste avisa.
 
+## Mecânicas das cartas
+
+| Mecânica | O que faz |
+|---|---|
+| **Queimadura / Veneno / Sangramento** | Dano no início do turno de quem sofre. Veneno e Sangramento acumulam; Queimadura renova. |
+| **Congelado** | Não pode jogar Ataque enquanto durar. |
+| **Trava** | O alvo não pode jogar um tipo de carta por N turnos. |
+| **Escudo** | Anula a próxima instância de dano. |
+| **Bônus guardado** | "Seu próximo Ataque de Fogo causa o dobro" fica esperando até ser usado. |
+| **Aura** | Um efeito que se repete no início dos seus próximos N turnos (invocações, regeneração). |
+| **Inevitável** | O ataque não ativa Armadilhas e ignora redução de dano e escudo. |
+| **Refletir** | Armadilha: o ataque inimigo acerta quem atacou, com todos os bônus dele. |
+| **Roubo de vida** | Recupera parte do dano que o ataque causou. |
+| **Escala** | Dano que cresce com o cemitério, a mão, as rodadas, a vida perdida ou o dano recebido. |
+
+O catálogo completo, com o texto de cada carta, está em [`cartas-tcg.md`](cartas-tcg.md).
+
 ## Como se ganha carta
 
 1. **Deck inicial** aleatório: comuns + incomuns, com trava de jogabilidade (elemento da classe + 1 sorteado, cartas baratas suficientes).

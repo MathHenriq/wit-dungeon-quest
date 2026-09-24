@@ -267,7 +267,7 @@ describe('texto gerado a partir do efeito', () => {
       cost: 'Mande 2 cartas do topo do seu deck ao cemitério.',
       text: 'Anule o próximo dano que você receber.',
     });
-    expect(describeCard(C.espelho).text).toBe('Quando o inimigo jogar um Ataque: anule essa carta. Cause 10 de dano.');
+    expect(describeCard(C.espelho).text).toBe('Quando o inimigo jogar um Ataque: anule essa carta e cause 10 de dano.');
   });
 });
 

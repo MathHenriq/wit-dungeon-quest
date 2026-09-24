@@ -6,25 +6,80 @@
  * Aqui o texto é DERIVADO do efeito: se a regra muda, o texto muda junto.
  */
 
-import { ELEMENT_PT, STATUS_PT, TYPE_PT, TYPE_PT_PLURAL } from './labels';
-import type { Amount, CardDef, CardFilter, Condition, Cost, Effect, Passive, Side } from './types';
+import { ELEMENT_PT, STATUS_PT } from './labels';
+import type { Amount, CardDef, CardFilter, CardType, Condition, Cost, Effect, Passive, Side } from './types';
 
+// ─── Gramática ───────────────────────────────────────────────────────────────
+
+/** Nome do tipo no singular e no plural, com o gênero para "um/uma", "outro/outra". */
+const TIPO: Record<CardType, { sing: string; plur: string; fem: boolean }> = {
+  attack: { sing: 'Ataque', plur: 'Ataques', fem: false },
+  challenger: { sing: 'carta de Desafiante', plur: 'cartas de Desafiante', fem: true },
+  equipment: { sing: 'Equipamento', plur: 'Equipamentos', fem: false },
+  trap: { sing: 'Armadilha', plur: 'Armadilhas', fem: true },
+  field: { sing: 'carta de Campo', plur: 'cartas de Campo', fem: true },
+};
+
+/** "carta de Fogo", "Ataques de Água", "Equipamento". */
 function filtro(f?: CardFilter, plural = false): string {
-  if (!f || (!f.type && !f.element)) return plural ? 'cartas' : 'carta';
-  const tipo = f.type ? (plural ? TYPE_PT_PLURAL[f.type] : TYPE_PT[f.type]) : (plural ? 'cartas' : 'carta');
-  return f.element ? `${tipo} de ${ELEMENT_PT[f.element]}` : tipo;
+  const t = f?.type ? TIPO[f.type] : { sing: 'carta', plur: 'cartas', fem: true };
+  const nome = plural ? t.plur : t.sing;
+  return f?.element ? `${nome} de ${ELEMENT_PT[f.element]}` : nome;
 }
 
-function quantia(a: Amount): string {
-  if (typeof a === 'number') return String(a);
-  const onde = a.per === 'graveyard' ? 'no cemitério' : a.per === 'banished' ? 'banida' : 'na mão';
-  const dono = a.owner === 'opponent' ? ' do inimigo' : '';
-  const base = a.base ? `${a.base} + ` : '';
-  return `${base}${a.each} para cada ${filtro(a.filter)} ${onde}${dono}`;
+function feminino(f?: CardFilter): boolean {
+  return f?.type ? TIPO[f.type].fem : true;
 }
 
-function alvo(side: Side | undefined, fallback: Side): string {
-  return (side ?? fallback) === 'self' ? 'você' : 'o inimigo';
+/** 1.5 → "1,5". */
+const num = (n: number) => String(n).replace('.', ',');
+
+function multiplicador(m: number): string {
+  if (m === 2) return 'o dobro de dano';
+  if (m === 3) return 'o triplo de dano';
+  if (m === 0.5) return 'metade do dano';
+  return `×${num(m)} de dano`;
+}
+
+const minuscula = (s: string) => s.replace(/^./, c => c.toLowerCase());
+const semPonto = (s: string) => s.replace(/\.$/, '');
+
+/** ["Compre 1 carta.", "Cause 6 de dano."] → "compre 1 carta e cause 6 de dano." */
+function juntar(frases: string[]): string {
+  const f = frases.map(x => minuscula(semPonto(x)));
+  if (f.length <= 1) return `${f[0] ?? ''}.`;
+  return `${f.slice(0, -1).join(', ')} e ${f[f.length - 1]}.`;
+}
+
+/**
+ * Uma quantidade com a unidade: "12 de dano", "2 de dano para cada carta de
+ * Aço no seu cemitério", "vida igual ao dano que você recebeu…".
+ */
+function quantia(a: Amount, unidade: 'dano' | 'vida'): string {
+  if (typeof a === 'number') return `${a} de ${unidade}`;
+  const inimigo = a.owner === 'opponent';
+  const base = a.base ? `${a.base} de ${unidade} + ` : '';
+  const teto = a.max !== undefined ? ` (máximo ${a.max})` : '';
+  const igual = (oque: string) =>
+    a.each === 1 ? `${unidade} igual a ${oque}`
+      : a.each === 0.5 ? `${unidade} igual à metade d${oque}`
+      : `${unidade} igual a ${num(a.each)}× ${oque}`;
+  switch (a.per) {
+    case 'round':
+      return `${base}${a.each} de ${unidade} por rodada da partida${teto}`;
+    case 'lifeLost':
+      return `${base}${igual(inimigo ? 'a vida que o inimigo já perdeu' : 'a vida que você já perdeu')}${teto}`
+        .replace('igual a a ', 'igual à ');
+    case 'damageTaken':
+      return `${base}${igual(inimigo ? 'o dano que o inimigo recebeu desde o último turno dele' : 'o dano que você recebeu desde o seu último turno')}${teto}`
+        .replace('igual a o ', 'igual ao ');
+    default: {
+      const onde = a.per === 'graveyard' ? (inimigo ? 'no cemitério do inimigo' : 'no seu cemitério')
+        : a.per === 'banished' ? (inimigo ? 'banida pelo inimigo' : 'banida por você')
+        : (inimigo ? 'na mão do inimigo' : 'na sua mão');
+      return `${base}${a.each} de ${unidade} para cada ${filtro(a.filter)} ${onde}${teto}`;
+    }
+  }
 }
 
 function condicao(c: Condition): string {
@@ -32,15 +87,23 @@ function condicao(c: Condition): string {
     case 'playedThisTurn':
       return (c.min ?? 1) > 1
         ? `você jogou ${c.min} ou mais ${filtro(c.filter, true)} neste turno`
-        : `você jogou outra ${filtro(c.filter)} neste turno`;
+        : `você jogou ${feminino(c.filter) ? 'outra' : 'outro'} ${filtro(c.filter)} neste turno`;
     case 'graveyardCount':
-      return `${c.owner === 'opponent' ? 'o cemitério do inimigo' : 'seu cemitério'} tiver ${c.min}+ ${filtro(c.filter, true)}`;
+      return `${c.owner === 'opponent' ? 'o cemitério do inimigo' : 'seu cemitério'} tiver ${c.min} ou mais ${filtro(c.filter, true)}`;
     case 'lifeAtMost':
       return `${c.owner === 'opponent' ? 'o inimigo' : 'você'} tiver ${c.amount} de vida ou menos`;
+    case 'lifeAtLeast':
+      return `${c.owner === 'opponent' ? 'o inimigo' : 'você'} tiver ${c.amount} de vida ou mais`;
     case 'hasStatus':
       return `${c.owner === 'self' ? 'você' : 'o inimigo'} estiver com ${STATUS_PT[c.status]}`;
   }
 }
+
+function quem(side: Side | undefined, fallback: Side): 'você' | 'o inimigo' {
+  return (side ?? fallback) === 'self' ? 'você' : 'o inimigo';
+}
+
+// ─── Custos e efeitos ────────────────────────────────────────────────────────
 
 export function describeCost(c: Cost): string {
   switch (c.kind) {
@@ -55,86 +118,140 @@ export function describeCost(c: Cost): string {
 export function describeEffect(e: Effect): string {
   switch (e.kind) {
     case 'damage':
-      return `Cause ${quantia(e.amount)} de dano${e.target === 'self' ? ' a você' : ''}.`;
+      return `Cause ${quantia(e.amount, 'dano')}${e.target === 'self' ? ' a você' : ''}.`;
     case 'heal':
-      return `${e.target === 'opponent' ? 'O inimigo recupera' : 'Recupere'} ${quantia(e.amount)} de vida.`;
+      return e.target === 'opponent'
+        ? `O inimigo recupera ${quantia(e.amount, 'vida')}.`
+        : `Recupere ${quantia(e.amount, 'vida')}.`;
     case 'draw':
       return `${e.target === 'opponent' ? 'O inimigo compra' : 'Compre'} ${e.count} carta${e.count > 1 ? 's' : ''}.`;
-    case 'discardRandom':
-      return `${alvo(e.target, 'opponent') === 'você' ? 'Você descarta' : 'O inimigo descarta'} ${e.count} carta${e.count > 1 ? 's' : ''} aleatória${e.count > 1 ? 's' : ''} da mão.`;
+    case 'discardRandom': {
+      const n = `${e.count} carta${e.count > 1 ? 's' : ''} aleatória${e.count > 1 ? 's' : ''}`;
+      return quem(e.target, 'opponent') === 'você' ? `Descarte ${n} da sua mão.` : `O inimigo descarta ${n} da mão.`;
+    }
     case 'mill':
       return `Mande ${e.count} carta${e.count > 1 ? 's' : ''} do topo do deck ${e.target === 'self' ? 'seu' : 'do inimigo'} ao cemitério.`;
     case 'addModifier': {
       const s = e.spec;
-      const quem = e.target === 'opponent' ? 'O próximo' : 'Seu próximo';
-      const qtd = s.uses && s.uses > 1 ? `Seus próximos ${s.uses}` : quem;
-      const alvoTxt = filtro(s.match, s.uses !== undefined && s.uses > 1);
-      const parts: string[] = [];
-      if (s.mult) parts.push(s.mult === 2 ? 'causa o dobro de dano' : s.mult === 3 ? 'causa o triplo de dano' : `causa ×${s.mult} de dano`);
-      if (s.add) parts.push(`${s.add > 0 ? '+' : ''}${s.add} de dano`);
+      const varios = (s.uses ?? 1) > 1;
+      const sujeito = varios
+        ? `${e.target === 'opponent' ? 'Os próximos' : 'Seus próximos'} ${s.uses} ${filtro(s.match, true)}`
+        : `${e.target === 'opponent' ? 'O próximo' : 'Seu próximo'} ${filtro(s.match)}`;
+      const dono = e.target === 'opponent' ? ' do inimigo' : '';
+      const partes: string[] = [];
+      if (s.add) partes.push(`${s.add > 0 ? '+' : ''}${s.add} de dano`);
+      if (s.mult) partes.push(multiplicador(s.mult));
       const dur = s.turns ? ` (expira em ${s.turns} turno${s.turns > 1 ? 's' : ''})` : '';
-      return `${qtd} ${alvoTxt}${e.target === 'opponent' ? ' do inimigo' : ''} ${parts.join(' e ')}${dur}.`;
+      return `${sujeito}${dono} ${varios ? 'causam' : 'causa'} ${partes.join(' e ')}${dur}.`;
     }
     case 'status': {
-      const quem = alvo(e.target, 'opponent') === 'você' ? 'Você recebe' : 'O inimigo recebe';
+      const alvo = quem(e.target, 'opponent');
+      const turnos = `${e.turns} turno${e.turns > 1 ? 's' : ''}`;
+      if (e.status === 'freeze') {
+        return alvo === 'você'
+          ? `Você fica Congelado (não pode atacar) por ${turnos}.`
+          : `O inimigo fica Congelado (não pode atacar) por ${turnos}.`;
+      }
       const v = e.value ? ` (${e.value} de dano por turno)` : '';
-      return `${quem} ${STATUS_PT[e.status]}${v} por ${e.turns} turno${e.turns > 1 ? 's' : ''}.`;
+      return `${alvo === 'você' ? 'Você recebe' : 'O inimigo recebe'} ${STATUS_PT[e.status]}${v} por ${turnos}.`;
     }
     case 'lock':
-      return `${alvo(e.target, 'opponent') === 'você' ? 'Você não pode' : 'O inimigo não pode'} jogar ${TYPE_PT_PLURAL[e.cardType]} ${e.turns === 1 ? 'no próximo turno' : `nos próximos ${e.turns} turnos`}.`;
+      return `${quem(e.target, 'opponent') === 'você' ? 'Você não pode' : 'O inimigo não pode'} jogar ${TIPO[e.cardType].plur} ${e.turns === 1 ? 'no próximo turno' : `nos próximos ${e.turns} turnos`}.`;
     case 'shield':
       return e.count === 1 ? 'Anule o próximo dano que você receber.' : `Anule os próximos ${e.count} danos que você receber.`;
     case 'destroy': {
-      const o = { weapon: 'a Arma', armor: 'a Armadura', field: 'o Campo em jogo', trap: 'uma Armadilha' }[e.what];
-      return `Destrua ${o}${e.what === 'field' ? '' : ' do inimigo'}.`;
+      const o = { weapon: 'a Arma do inimigo', armor: 'a Armadura do inimigo', field: 'o Campo em jogo', trap: 'uma Armadilha do inimigo' }[e.what];
+      return `Destrua ${o}.`;
     }
     case 'recover':
       return `Devolva ${e.count} ${filtro(e.filter, e.count > 1)} do seu cemitério para a mão.`;
     case 'bonus': {
-      const parts: string[] = [];
-      if (e.add !== undefined) parts.push(`+${quantia(e.add)} de dano`);
-      if (e.mult) parts.push(`×${e.mult} de dano`);
-      return `Este ataque causa ${parts.join(' e ')}.`;
+      const partes: string[] = [];
+      if (e.add !== undefined) {
+        const q = quantia(e.add, 'dano');
+        partes.push(/^\d/.test(q) ? `+${q}` : `${q.replace(/^dano/, 'dano extra')}`);
+      }
+      if (e.mult) partes.push(multiplicador(e.mult));
+      return `Este ataque causa ${partes.join(' e ')}.`;
     }
     case 'conditional': {
-      const entao = e.then.map(describeEffect).join(' ');
-      const senao = e.else ? ` Se não, ${e.else.map(describeEffect).join(' ').replace(/^./, c => c.toLowerCase())}` : '';
-      return `Se ${condicao(e.if)}: ${entao.replace(/^./, c => c.toLowerCase())}${senao}`;
+      const senao = e.else ? ` Se não, ${juntar(e.else.map(describeEffect))}` : '';
+      return `Se ${condicao(e.if)}: ${juntar(e.then.map(describeEffect))}${senao}`;
     }
+    case 'aura':
+      return `${e.label}: no início dos seus próximos ${e.turns} turnos, ${juntar(e.effects.map(describeEffect))}`;
+    case 'swapLife':
+      return 'Troque a sua vida atual com a do inimigo.';
+    case 'lifesteal':
+      return e.ratio === 1 ? 'Recupere vida igual ao dano causado.'
+        : e.ratio === 0.5 ? 'Recupere vida igual à metade do dano causado.'
+        : `Recupere vida igual a ${Math.round(e.ratio * 100)}% do dano causado.`;
+    case 'purge': {
+      const oque = e.what === 'statuses' ? 'todos os status e travas' : e.what === 'modifiers' ? 'todos os bônus guardados' : 'todos os status, travas e bônus guardados';
+      return e.target === 'opponent' ? `O inimigo perde ${oque}.` : `Remova ${oque} de você.`;
+    }
+    case 'pierce':
+      return 'Inevitável: não ativa Armadilhas e ignora redução de dano e escudo.';
   }
+}
+
+/** Efeitos em sequência, juntando repetições: "Cause 10 de dano 4 vezes." */
+function describeEffects(effects: Effect[]): string[] {
+  const out: { text: string; n: number }[] = [];
+  for (const e of effects) {
+    const text = describeEffect(e);
+    const last = out[out.length - 1];
+    if (last?.text === text) last.n++;
+    else out.push({ text, n: 1 });
+  }
+  return out.map(({ text, n }) => (n > 1 ? `${semPonto(text)} ${n} vezes.` : text));
 }
 
 function describePassive(p: Passive, campo: boolean): string {
   switch (p.kind) {
     case 'attackBonus': {
-      const quem = campo ? 'Ataques' : 'Seus ataques';
-      const alvoTxt = p.match.element ? `${quem} de ${ELEMENT_PT[p.match.element]}` : quem;
-      const parts: string[] = [];
-      if (p.add) parts.push(`+${p.add} de dano`);
-      if (p.mult) parts.push(`×${p.mult} de dano`);
-      return `${alvoTxt} causam ${parts.join(' e ')}.`;
+      const sujeito = campo ? 'Ataques' : 'Seus Ataques';
+      const alvo = p.match.element ? `${sujeito} de ${ELEMENT_PT[p.match.element]}` : sujeito;
+      const partes: string[] = [];
+      if (p.add) partes.push(`+${p.add} de dano`);
+      if (p.mult) partes.push(multiplicador(p.mult));
+      return `${alvo} causam ${partes.join(' e ')}.`;
     }
     case 'damageReduction':
       return `${campo ? 'Todo dano recebido' : 'Dano que você recebe'} é reduzido em ${p.amount}.`;
     case 'onTurnStart':
-      return `No início ${campo ? 'de cada turno' : 'do seu turno'}: ${p.effects.map(describeEffect).join(' ').replace(/^./, c => c.toLowerCase())}`;
+      return `No início ${campo ? 'do turno de cada jogador' : 'do seu turno'}: ${juntar(p.effects.map(describeEffect))}`;
   }
 }
 
 /** O texto completo da caixa de efeito da carta. */
 export function describeCard(def: CardDef): { cost: string | null; text: string } {
-  const cost = def.cost?.length ? def.cost.map(describeCost).join(' e ') + '.' : null;
+  const custos = (def.cost ?? []).map(describeCost);
+  const cost = custos.length ? `${semPonto(juntar(custos)).replace(/^./, c => c.toUpperCase())}.` : null;
+
   const linhas: string[] = [];
   if (def.trap) {
-    const gatilho = def.trap.trigger === 'opponentAttack'
-      ? `Quando o inimigo jogar um ${filtro({ ...def.trap.filter, type: 'attack' })}`
-      : `Quando o inimigo jogar ${def.trap.filter ? `uma ${filtro(def.trap.filter)}` : 'qualquer carta'}`;
+    const t = def.trap;
+    const gatilho = t.trigger === 'opponentAttack'
+      ? `Quando o inimigo jogar um ${filtro({ ...t.filter, type: 'attack' })}`
+      : t.filter
+        ? `Quando o inimigo jogar ${feminino(t.filter) ? 'uma' : 'um'} ${filtro(t.filter)}`
+        : 'Quando o inimigo jogar qualquer carta';
+    const se = t.condition ? ` e ${condicao(t.condition)}` : '';
     const acoes: string[] = [];
-    if (def.trap.negate) acoes.push('Anule essa carta.');
-    for (const e of def.trap.effects ?? []) acoes.push(describeEffect(e));
-    linhas.push(`${gatilho}: ${acoes.join(' ').replace(/^./, c => c.toLowerCase())}`);
+    if (t.reflect) acoes.push('O ataque acerta quem atacou, com todos os bônus dele.');
+    else if (t.negate) acoes.push('Anule essa carta.');
+    acoes.push(...describeEffects(t.effects ?? []));
+    linhas.push(`${gatilho}${se}: ${juntar(acoes)}`);
   }
   for (const p of def.passives ?? []) linhas.push(describePassive(p, def.type === 'field'));
-  for (const e of def.effects ?? []) linhas.push(describeEffect(e));
+
+  const efeitos = describeEffects(def.effects ?? []);
+  if (efeitos.length) {
+    // Em Equipamento e Campo, os efeitos acontecem uma vez, ao entrar em jogo.
+    const aoEntrar = def.type === 'equipment' ? 'Ao equipar' : def.type === 'field' ? 'Ao entrar em jogo' : null;
+    if (aoEntrar) linhas.push(`${aoEntrar}: ${juntar(efeitos)}`);
+    else linhas.push(...efeitos);
+  }
   return { cost, text: linhas.join(' ') };
 }

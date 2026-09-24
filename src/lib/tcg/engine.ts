@@ -98,11 +98,17 @@ function log(state: GameState, player: 0 | 1 | null, text: string): void {
 function amountValue(state: GameState, actor: 0 | 1, amount: Amount): number {
   if (typeof amount === 'number') return amount;
   const owner = state.players[resolveSide(actor, amount.owner, 'self')];
-  const pile = amount.per === 'graveyard' ? owner.graveyard
-    : amount.per === 'banished' ? owner.banished
-    : owner.hand;
-  const n = pile.filter(c => matches(c.def, amount.filter)).length;
-  return (amount.base ?? 0) + n * amount.each;
+  let n: number;
+  switch (amount.per) {
+    case 'graveyard': n = owner.graveyard.filter(c => matches(c.def, amount.filter)).length; break;
+    case 'banished': n = owner.banished.filter(c => matches(c.def, amount.filter)).length; break;
+    case 'hand': n = owner.hand.filter(c => matches(c.def, amount.filter)).length; break;
+    case 'round': n = Math.ceil(state.turn / 2); break;
+    case 'lifeLost': n = owner.maxLife - owner.life; break;
+    case 'damageTaken': n = owner.damageTaken; break;
+  }
+  const v = Math.floor((amount.base ?? 0) + n * amount.each);
+  return amount.max !== undefined ? Math.min(v, amount.max) : v;
 }
 
 function checkCondition(state: GameState, actor: 0 | 1, cond: Condition): boolean {
@@ -117,6 +123,8 @@ function checkCondition(state: GameState, actor: 0 | 1, cond: Condition): boolea
     }
     case 'lifeAtMost':
       return state.players[resolveSide(actor, cond.owner, 'self')].life <= cond.amount;
+    case 'lifeAtLeast':
+      return state.players[resolveSide(actor, cond.owner, 'self')].life >= cond.amount;
     case 'hasStatus':
       return state.players[resolveSide(actor, cond.owner, 'opponent')].statuses
         .some(s => s.kind === cond.status);
@@ -131,6 +139,7 @@ function loseLife(state: GameState, who: 0 | 1, amount: number): void {
   if (amount <= 0 || state.winner !== null) return;
   const p = state.players[who];
   p.life -= amount;
+  p.damageTaken += amount;
   if (p.life <= 0) {
     p.life = 0;
     state.winner = other(who);
@@ -165,8 +174,8 @@ function newPlayer(state: GameState, setup: PlayerSetup): PlayerState {
     deck: setup.deck.map(def => ({ uid: `c${state.nextUid++}`, def })),
     hand: [], graveyard: [], banished: [],
     weapon: null, armor: null, traps: [],
-    modifiers: [], statuses: [], locks: [],
-    shields: 0, skipNextDraw: false, fatigue: 0,
+    modifiers: [], auras: [], statuses: [], locks: [],
+    shields: 0, damageTaken: 0, skipNextDraw: false, fatigue: 0,
     attacksThisTurn: 0, playedThisTurn: [],
   };
 }
@@ -205,9 +214,9 @@ function startTurn(state: GameState): void {
   p.playedThisTurn = [];
   log(state, i, `— Turno ${state.turn}: ${p.name} —`);
 
-  // Queimadura e veneno causam dano no início do turno de quem os carrega.
+  // Queimadura, veneno e sangramento causam dano no início do turno de quem os carrega.
   for (const s of p.statuses) {
-    if ((s.kind === 'burn' || s.kind === 'poison') && s.value > 0) {
+    if (s.kind !== 'freeze' && s.value > 0) {
       log(state, i, `${p.name} sofre ${s.value} de ${STATUS_PT[s.kind]}.`);
       loseLife(state, i, s.value);
     }
@@ -223,6 +232,16 @@ function startTurn(state: GameState): void {
     }
   }
   if (state.winner !== null) return;
+
+  // Auras: efeitos que se repetem por alguns turnos (invocações, regeneração).
+  const auras = p.auras;
+  p.auras = [];
+  for (const a of auras) {
+    log(state, i, `${a.label}:`);
+    resolveEffects(state, i, a.effects, a.source);
+    if (a.turnsLeft > 1) p.auras.push({ ...a, turnsLeft: a.turnsLeft - 1 });
+    if (state.winner !== null) return;
+  }
 
   if (state.turn === 1 && i === state.firstPlayer) {
     return; // quem começa não compra no primeiro turno
@@ -269,6 +288,7 @@ export function endTurn(stateIn: GameState, choices: { discard?: string[] } = {}
     return [{ ...m, turnsLeft }];
   });
 
+  p.damageTaken = 0;
   state.active = other(i);
   state.turn += 1;
   startTurn(state);
@@ -392,22 +412,36 @@ function payCosts(state: GameState, i: 0 | 1, card: CardInstance, choices: PlayC
  * Dispara a PRIMEIRA armadilha compatível do dono. Uma por evento: sem cadeias,
  * para a regra ficar previsível para o aluno. Devolve se a carta foi anulada.
  */
+type TrapResult = 'none' | 'negated' | 'reflected';
+
 function fireTrap(
   state: GameState,
   owner: 0 | 1,
   trigger: 'opponentAttack' | 'opponentPlays',
   incoming: CardInstance,
-): boolean {
+): TrapResult {
   const p = state.players[owner];
-  const idx = p.traps.findIndex(t => t.def.trap?.trigger === trigger && matches(incoming.def, t.def.trap.filter));
-  if (idx < 0) return false;
+  const idx = p.traps.findIndex(t => {
+    const spec = t.def.trap;
+    return spec?.trigger === trigger
+      && matches(incoming.def, spec.filter)
+      && (!spec.condition || checkCondition(state, owner, spec.condition));
+  });
+  if (idx < 0) return 'none';
   const [trap] = p.traps.splice(idx, 1);
   const spec = trap.def.trap!;
   log(state, owner, `⚠ Armadilha revelada: ${trap.def.name}!`);
   if (spec.effects) resolveEffects(state, owner, spec.effects, trap);
   toGraveyard(state, owner, trap);
-  if (spec.negate) log(state, owner, `${incoming.def.name} foi anulada.`);
-  return spec.negate === true;
+  if (spec.reflect && incoming.def.type === 'attack') {
+    log(state, owner, `${incoming.def.name} foi refletido de volta!`);
+    return 'reflected';
+  }
+  if (spec.negate) {
+    log(state, owner, `${incoming.def.name} foi anulada.`);
+    return 'negated';
+  }
+  return 'none';
 }
 
 // ─── Dano ────────────────────────────────────────────────────────────────────
@@ -422,6 +456,8 @@ interface DamageArgs {
   base: number;
   isAttack: boolean;
   ctx?: AttackCtx;
+  /** Ignora redução de dano e escudo. */
+  pierce?: boolean;
 }
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, ''));
@@ -475,7 +511,7 @@ function dealDamage(state: GameState, a: DamageArgs): number {
   // Redução de dano: equipamentos de quem recebe e o Campo.
   const defSources = [def.weapon, def.armor, state.field?.card ?? null]
     .filter((c): c is CardInstance => c !== null);
-  for (const src of defSources) {
+  for (const src of a.pierce ? [] : defSources) {
     for (const ps of src.def.passives ?? []) {
       if (ps.kind !== 'damageReduction' || total <= 0) continue;
       total = Math.max(0, total - ps.amount);
@@ -483,7 +519,8 @@ function dealDamage(state: GameState, a: DamageArgs): number {
     }
   }
 
-  if (total > 0 && def.shields > 0) {
+  if (a.pierce) parts.push('(inevitável)');
+  if (total > 0 && def.shields > 0 && !a.pierce) {
     def.shields -= 1;
     parts.push('→ anulado por escudo');
     total = 0;
@@ -511,21 +548,51 @@ function collectBonuses(state: GameState, actor: 0 | 1, effects: Effect[], ctx: 
   }
 }
 
-function resolveEffects(state: GameState, actor: 0 | 1, effects: Effect[], source: CardInstance): void {
+/** `dealt`: dano que o ataque desta carta causou (para roubo de vida). */
+function resolveEffects(state: GameState, actor: 0 | 1, effects: Effect[], source: CardInstance, dealt = 0): void {
   for (const e of effects) {
     if (state.winner !== null) return;
-    applyEffect(state, actor, e, source);
+    applyEffect(state, actor, e, source, dealt);
   }
 }
 
-function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInstance): void {
+function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInstance, dealt: number): void {
   const me = state.players[actor];
   switch (e.kind) {
     case 'bonus':
-      return; // já contado em collectBonuses
+    case 'pierce':
+      return; // já contados no ataque
     case 'conditional': {
       const branch = checkCondition(state, actor, e.if) ? e.then : e.else;
-      if (branch) resolveEffects(state, actor, branch, source);
+      if (branch) resolveEffects(state, actor, branch, source, dealt);
+      return;
+    }
+    case 'aura':
+      me.auras.push({ label: e.label, effects: e.effects, turnsLeft: e.turns, source });
+      log(state, actor, `${me.name} ativa ${e.label} por ${e.turns} turno(s).`);
+      return;
+    case 'swapLife': {
+      const op = state.players[other(actor)];
+      const [a, b] = [me.life, op.life];
+      me.life = Math.min(me.maxLife, b);
+      op.life = Math.min(op.maxLife, a);
+      log(state, actor, `As vidas foram trocadas: ${me.name} ${me.life} · ${op.name} ${op.life}.`);
+      return;
+    }
+    case 'lifesteal': {
+      const v = Math.floor(dealt * e.ratio);
+      if (v <= 0) return;
+      const antes = me.life;
+      me.life = Math.min(me.maxLife, me.life + v);
+      log(state, actor, `${me.name} rouba ${me.life - antes} de vida (vida ${me.life}).`);
+      return;
+    }
+    case 'purge': {
+      const t = state.players[resolveSide(actor, e.target, 'self')];
+      if (e.what !== 'modifiers') { t.statuses = []; t.locks = []; }
+      if (e.what !== 'statuses') t.modifiers = [];
+      const oque = e.what === 'statuses' ? 'status e travas' : e.what === 'modifiers' ? 'bônus guardados' : 'status, travas e bônus';
+      log(state, actor, `${t.name} perde todos os ${oque}.`);
       return;
     }
     case 'damage': {
@@ -586,8 +653,8 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
       const atual = t.statuses.find(s => s.kind === e.status);
       if (!atual) {
         t.statuses.push({ kind: e.status, value, turnsLeft: e.turns });
-      } else if (e.status === 'poison') {
-        atual.value += value;                       // veneno acumula
+      } else if (e.status === 'poison' || e.status === 'bleed') {
+        atual.value += value;                       // veneno e sangramento acumulam
         atual.turnsLeft = Math.max(atual.turnsLeft, e.turns);
       } else {
         atual.value = Math.max(atual.value, value); // queimadura/congelamento renovam
@@ -671,7 +738,7 @@ export function playCard(stateIn: GameState, uid: string, choices: PlayChoices =
   }
 
   // Armadilhas do inimigo que respondem a qualquer carta (não se aplica a Armadilhas baixadas).
-  if (card.def.type !== 'trap' && fireTrap(state, other(i), 'opponentPlays', card)) {
+  if (card.def.type !== 'trap' && fireTrap(state, other(i), 'opponentPlays', card) !== 'none') {
     toGraveyard(state, i, card);
     p.playedThisTurn.push(card.def);
     if (card.def.type === 'attack') p.attacksThisTurn += 1;
@@ -714,20 +781,26 @@ function resolveAttack(state: GameState, i: 0 | 1, card: CardInstance): void {
   const p = state.players[i];
   p.attacksThisTurn += 1;
 
+  const effects = card.def.effects ?? [];
+  const pierce = effects.some(e => e.kind === 'pierce');
+
   // Armadilha de ataque dispara antes da conta. Ataque anulado não consome
   // os modificadores pendentes: o "próximo Fogo ×2" continua esperando.
-  if (fireTrap(state, other(i), 'opponentAttack', card)) {
+  // Ataque refletido acerta quem atacou, com todos os bônus (e os consome).
+  // Ataque inevitável não dispara armadilhas.
+  const trap = pierce ? 'none' : fireTrap(state, other(i), 'opponentAttack', card);
+  if (trap === 'negated') {
     toGraveyard(state, i, card);
     return;
   }
   if (state.winner !== null) return;
 
   const ctx: AttackCtx = { adds: [], mults: [] };
-  collectBonuses(state, i, card.def.effects ?? [], ctx);
-  dealDamage(state, {
-    attacker: i, target: other(i), card: card.def,
-    base: card.def.damage ?? 0, isAttack: true, ctx,
+  collectBonuses(state, i, effects, ctx);
+  const dealt = dealDamage(state, {
+    attacker: i, target: trap === 'reflected' ? i : other(i), card: card.def,
+    base: card.def.damage ?? 0, isAttack: true, ctx, pierce,
   });
-  if (state.winner === null) resolveEffects(state, i, card.def.effects ?? [], card);
+  if (state.winner === null && trap !== 'reflected') resolveEffects(state, i, effects, card, dealt);
   toGraveyard(state, i, card);
 }
