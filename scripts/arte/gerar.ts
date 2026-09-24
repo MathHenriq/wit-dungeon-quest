@@ -45,7 +45,7 @@ const PRESETS = {
   },
 } as const;
 // Público: alunos do ensino fundamental. Tudo que puxa para sensual fica de fora.
-const EXTRA_NEGATIVE = 'nsfw, nude, suggestive, cleavage, large breasts, revealing clothes, underwear, panties, bikini, swimsuit, bare legs, thighs, seductive pose, frame, border, card';
+const EXTRA_NEGATIVE = 'nsfw, nude, suggestive, cleavage, large breasts, revealing clothes, underwear, panties, bikini, swimsuit, bare legs, thighs, thighhighs, garter straps, bare shoulders, skirt lift, from below, upskirt, seductive pose, frame, border, card';
 
 // ─── Argumentos ──────────────────────────────────────────────────────────────
 
