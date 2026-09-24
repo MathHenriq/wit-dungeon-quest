@@ -67,7 +67,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'gura-gura-no-mi': '1boy, edward newgate, one piece, white mustache, bisento, quake punch, cracking air, shockwave',
   'mera-mera-no-mi': '1boy, portgas d. ace, one piece, orange hat, shirtless, fire fist, flames, freckles',
   'golpe-conquistador': '1boy, monkey d. luffy, one piece, gear fourth, conqueror\'s haki, black lightning, punch',
-  'room': '1boy, trafalgar law, one piece, fluffy hat, nodachi, room (one piece), blue dome, surgical cuts',
+  'room': '1boy, trafalgar law, one piece, fluffy spotted hat, standing, holding nodachi, blue translucent dome, room (one piece), sliced objects floating',
   'haki-do-rei': '1boy, monkey d. luffy, one piece, straw hat, conqueror\'s haki, red black lightning, enemies fainting, intimidating',
 
   // ── My Hero Academia ───────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'reino-da-prisao': 'no humans, prison realm, jujutsu kaisen, cursed cube, eyes, glowing cube, dark subway',
   'dez-sombras': '1boy, fushiguro megumi, jujutsu kaisen, spiky black hair, hand shadow sign, divine dogs, shadows',
   'black-flash': '1boy, itadori yuuji, jujutsu kaisen, pink hair, black flash, black lightning punch, red sparks',
-  'troca-de-almas': '1boy, todou aoi, jujutsu kaisen, muscular, clapping hands, boogie woogie, swapping places',
+  'troca-de-almas': '1boy, todou aoi, jujutsu kaisen, muscular, school uniform, clapping hands, boogie woogie, battlefield, afterimages swapping places',
   'vazio-roxo': '1boy, gojou satoru, jujutsu kaisen, white hair, blue eyes, hollow purple, red and blue orbs merging',
   'ilimitado': '1boy, gojou satoru, jujutsu kaisen, white hair, blindfold, infinity, hand raised, attacks stopped in air',
   'expansao-de-dominio': '1boy, gojou satoru, jujutsu kaisen, white hair, blue eyes, domain expansion, infinite void, hand sign',
@@ -179,7 +179,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'armaduras-da-erza': '1girl, fully clothed, erza scarlet, fairy tail, red hair, heaven\'s wheel armor, floating swords',
   'recipiente-de-metal': '1boy, alibaba saluja, magi: the labyrinth of magic, blonde hair, metal vessel, djinn equip, fire sword',
   'fogo-infernal': '1boy, rudeus greyrat, mushoku tensei, wand, massive fire magic, inferno, robe',
-  'estado-avatar': '1boy, aang, avatar: the last airbender, bald, arrow tattoo, avatar state, glowing eyes, four elements',
+  'estado-avatar': '1boy, aang, avatar: the last airbender, child, bald, blue arrow tattoo on head, orange and yellow monk robes, avatar state, glowing white eyes and tattoos, floating, air sphere',
 
   // ── Vinland / Soul Eater / Fate / Record of Ragnarok / Akame ───────────────
   'punho-de-ferro': '1boy, thorfinn, vinland saga, blond hair, bare fists, scars, fighting stance, snow',
@@ -205,7 +205,7 @@ export const ART_PROMPTS: Record<string, string> = {
   // ── Yu Yu Hakusho / Mob / Re:Zero / Steins;Gate / Code Geass ───────────────
   'dragao-das-chamas-negras': '1boy, hiei (yuu yuu hakusho), yuu yuu hakusho, spiky black hair, jagan eye, black dragon flame, bandaged arm',
   'reigan': '1boy, urameshi yuusuke, yuu yuu hakusho, black hair, green uniform, spirit gun, finger pointing, blue energy',
-  'modo-100': '1boy, kageyama shigeo, mob psycho 100, bowl cut, school uniform, psychic explosion, 100%, floating',
+  'modo-100': '1boy, kageyama shigeo, mob psycho 100, bowl cut, black gakuran, school uniform pants, psychic aura, explosion of colors, floating, 100%',
   'retorno-pela-morte': '1boy, natsuki subaru, re:zero kara hajimeru isekai seikatsu, tracksuit, black hands from shadows, clock',
   'magia-de-roswaal': '1boy, roswaal l. mathers, re:zero kara hajimeru isekai seikatsu, clown makeup, heterochromia, floating, fire magic',
   'time-leap': '1boy, okabe rintarou, steins;gate, lab coat, phone to ear, divergence meter, time distortion',
