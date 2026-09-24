@@ -56,7 +56,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'disaster': '1boy, estarossa (nanatsu no taizai), nanatsu no taizai, silver hair, demon marks, dark swords, disaster',
   'sol-cruel': '1boy, escanor (nanatsu no taizai), nanatsu no taizai, muscular, mustache, small sun above hand, blazing heat, noon',
   'rhitta': '1boy, escanor (nanatsu no taizai), nanatsu no taizai, giant axe rhitta, sun behind, arrogant pose, glowing',
-  'gideon': '1girl, fully clothed, diane (nanatsu no taizai), nanatsu no taizai, giantess, brown twin tails, giant war hammer, ground shattering',
+  'gideon': '1girl, fully clothed, upper body, long sleeves, diane (nanatsu no taizai), nanatsu no taizai, giantess, brown twin tails, giant war hammer, ground shattering',
   'chastiefol': '1boy, king (nanatsu no taizai), nanatsu no taizai, fairy king, floating, giant spear chastiefol, sunflower, forest',
   'lostvayne': '1boy, meliodas, nanatsu no taizai, blond hair, green eyes, lostvayne, multiple clones, sword slash',
   'full-counter': '1boy, meliodas, nanatsu no taizai, blond hair, green eyes, from front, facing viewer, demon mark on forehead, sword raised, deflecting giant energy blast, counter',
@@ -100,7 +100,7 @@ export const ART_PROMPTS: Record<string, string> = {
   'brincos-potara': '1boy, vegito, dragon ball super, potara earrings, blue aura, confident smirk',
   'esferas-do-dragao': 'no humans, shenron, dragon ball, seven dragon balls, green eternal dragon, night sky, glowing',
   'scouter': '1boy, vegeta, dragon ball z, scouter, saiyan armor, reading power level',
-  'semente-dos-deuses': 'no humans, senzu bean, dragon ball, single small green bean between two fingers, close-up, cloth pouch, soft glow',
+  'semente-dos-deuses': 'no humans, still life, senzu bean, dragon ball, a few small green beans on wooden table, small cloth pouch, soft morning light',
   'instinto-superior': '1boy, son goku, dragon ball super, ultra instinct, silver hair, silver eyes, dodging, calm expression',
 
   // ── Solo Leveling ──────────────────────────────────────────────────────────
@@ -149,9 +149,9 @@ export const ART_PROMPTS: Record<string, string> = {
   // ── Noragami / Frieren / Blue Lock / Haikyuu ───────────────────────────────
   'sekki': '1boy, yato (noragami), noragami, blue eyes, tracksuit, scarf, katana sekki, slash, glowing',
   'cajado-de-frieren': '1girl, frieren, sousou no frieren, white hair, twin tails, elf, fully clothed, white capelet, long skirt, standing, holding magic staff, flower field',
-  'caixao-das-estrelas': '1girl, fully clothed, frieren, sousou no frieren, white hair, elf, star constellations, magic circle, night sky',
-  'jaula-de-espinhos': '1girl, fully clothed, frieren, sousou no frieren, white hair, elf, thorn vines cage, magic, forest',
-  'zoltraak': '1girl, fully clothed, frieren, sousou no frieren, white hair, elf, zoltraak, violet magic beam, staff',
+  'caixao-das-estrelas': '1girl, fully clothed, upper body, long sleeves, frieren, sousou no frieren, white hair, elf, star constellations, magic circle, night sky',
+  'jaula-de-espinhos': '1girl, fully clothed, upper body, long sleeves, frieren, sousou no frieren, white hair, elf, thorn vines cage, magic, forest',
+  'zoltraak': '1girl, fully clothed, upper body, long sleeves, frieren, sousou no frieren, white hair, elf, zoltraak, violet magic beam, staff',
   'olho-de-predador': '1boy, barou shouei, blue lock, black hair, sharp eyes, intense glare, soccer uniform, dribbling soccer ball, stadium, dark aura',
   'chute-direto': '1boy, isagi yoichi, blue lock, soccer uniform, direct shot, kicking soccer ball, stadium',
   'meta-visao': '1boy, isagi yoichi, blue lock, glowing eyes, meta vision, tactical lines, stadium',
@@ -160,7 +160,7 @@ export const ART_PROMPTS: Record<string, string> = {
   // ── Jujutsu Kaisen ─────────────────────────────────────────────────────────
   'fala-amaldicoada': '1boy, inumaki toge, jujutsu kaisen, white hair, high collar lowered, cursed speech marks, glowing',
   'lanca-invertida-do-ceu': '1boy, fushiguro touji, jujutsu kaisen, scar on mouth, inverted spear of heaven, smirk, black shirt',
-  'katana-parte-alma': '1girl, fully clothed, zen\'in maki, jujutsu kaisen, glasses, green hair, ponytail, split soul katana, slash',
+  'katana-parte-alma': '1girl, fully clothed, upper body, long sleeves, zen\'in maki, jujutsu kaisen, glasses, green hair, ponytail, split soul katana, slash',
   'nuvem-brincalhona': '1girl, zen\'in maki, jujutsu kaisen, glasses, green hair, ponytail, fully clothed, jujutsu high uniform, fighting stance, swinging three-section staff, motion blur',
   'reino-da-prisao': 'no humans, prison realm, jujutsu kaisen, cursed cube, eyes, glowing cube, dark subway',
   'dez-sombras': '1boy, fushiguro megumi, jujutsu kaisen, spiky black hair, hand shadow sign, divine dogs, shadows',
@@ -179,21 +179,21 @@ export const ART_PROMPTS: Record<string, string> = {
   'armaduras-da-erza': '1girl, fully clothed, erza scarlet, fairy tail, red hair, heaven\'s wheel armor, floating swords',
   'recipiente-de-metal': '1boy, alibaba saluja, magi: the labyrinth of magic, blonde hair, metal vessel, djinn equip, fire sword',
   'fogo-infernal': '1boy, rudeus greyrat, mushoku tensei, wand, massive fire magic, inferno, robe',
-  'estado-avatar': '1boy, aang, avatar: the last airbender, child, bald, blue arrow tattoo on head, orange and yellow monk robes, avatar state, glowing white eyes and tattoos, floating, air sphere',
+  'estado-avatar': '1boy, aang (avatar), avatar: the last airbender, small child, 12 year old, bald, light blue arrow on forehead, orange and yellow monk robes, glowing eyes, floating, swirling air',
 
   // ── Vinland / Soul Eater / Fate / Record of Ragnarok / Akame ───────────────
   'punho-de-ferro': '1boy, thorfinn, vinland saga, blond hair, bare fists, scars, fighting stance, snow',
-  'foice-da-morte': '1girl, fully clothed, maka albarn, soul eater, ash blonde twin tails, death scythe, moon with face, dramatic',
+  'foice-da-morte': '1girl, fully clothed, upper body, long sleeves, maka albarn, soul eater, ash blonde twin tails, death scythe, moon with face, dramatic',
   'espada-demoniaca-ragnarok': '1other, crona (soul eater), soul eater, black dress, pink hair, black blood sword, ragnarok',
   'ressonancia-de-almas': '1girl, 1boy, maka albarn, soul evans, soul eater, fully clothed, school uniform, back to back, soul resonance, glowing scythe, blue souls',
   'gae-bolg': '1boy, cu chulainn (fate), fate/stay night, blue hair, red spear, gae bolg, blue armor',
   'volundr': 'no humans, divine forge, fate (series), glowing weapons being forged, anvil, sparks, golden light',
   'avalon': '1girl, fully clothed, artoria pendragon (fate), fate/stay night, blonde hair, blue armor, avalon, golden scabbard, glowing shield',
-  'excalibur': '1girl, fully clothed, artoria pendragon (fate), fate/stay night, blonde hair, excalibur, golden light beam, raising sword',
+  'excalibur': '1girl, fully clothed, upper body, long sleeves, artoria pendragon (fate), fate/stay night, blonde hair, excalibur, golden light beam, raising sword',
   'unlimited-blade-works': '1boy, archer (fate), fate/stay night, white hair, red cloak, unlimited blade works, swords in ground, gears in sky',
   'enuma-elish': '1boy, gilgamesh (fate), fate/stay night, golden armor, ea (fate), spinning sword, red wind, gate of babylon',
   'mjolnir': '1boy, thor (shuumatsu no valkyrie), shuumatsu no valkyrie, red hair, mjolnir, lightning, gauntlets',
-  'murasame': '1girl, fully clothed, akame (akame ga kill!), akame ga kill!, long black hair, red eyes, murasame, katana, cursed marks',
+  'murasame': '1girl, fully clothed, upper body, long sleeves, akame (akame ga kill!), akame ga kill!, long black hair, red eyes, murasame, katana, cursed marks',
 
   // ── Bleach ─────────────────────────────────────────────────────────────────
   'hyorinmaru': '1boy, hitsugaya toushirou, bleach, white hair, ice dragon, daiguren hyourinmaru, ice wings',
