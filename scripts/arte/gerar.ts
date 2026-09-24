@@ -44,7 +44,8 @@ const PRESETS = {
     negative: 'worst quality, low quality, bad quality, lowres, bad anatomy, bad hands, extra digits, fewer digits, jpeg artifacts, signature, watermark, username, blurry, text',
   },
 } as const;
-const EXTRA_NEGATIVE = 'nsfw, nude, frame, border, card';
+// Público: alunos do ensino fundamental. Tudo que puxa para sensual fica de fora.
+const EXTRA_NEGATIVE = 'nsfw, nude, suggestive, cleavage, large breasts, revealing clothes, underwear, panties, bikini, swimsuit, bare legs, thighs, seductive pose, frame, border, card';
 
 // ─── Argumentos ──────────────────────────────────────────────────────────────
 
@@ -81,8 +82,18 @@ function promptFor(card: CardDef): string {
 
 interface Resultado { seed: string; worker: string; model: string }
 
+// O Horde aceita no máximo 2 envios por segundo: os trabalhadores entram em fila aqui.
+let ultimoEnvio = 0;
+async function vez(): Promise<void> {
+  const agora = Date.now();
+  const espera = Math.max(0, ultimoEnvio + 1500 - agora);
+  ultimoEnvio = agora + espera;
+  if (espera) await sleep(espera);
+}
+
 async function gerar(card: CardDef, seed: string): Promise<Resultado> {
   const retrato = FULL_ART_RARITIES.has(card.rarity);
+  await vez();
   const { id } = await horde<{ id: string }>('/generate/async', {
     method: 'POST',
     body: JSON.stringify({
