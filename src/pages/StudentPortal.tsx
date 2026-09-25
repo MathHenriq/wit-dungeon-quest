@@ -9,7 +9,6 @@ import { CharacterCustomization } from "@/components/CharacterCustomization";
 import { ProfilePhoto } from "@/components/ProfilePhoto";
 import { DeveloperSignature } from "@/components/DeveloperSignature";
 import { MissionBoard } from "@/components/MissionBoard";
-import { ClassRanking } from "@/components/ClassRanking";
 import { WeeklyRankingsScreen } from "@/components/student/WeeklyRankingsScreen";
 import { SchoolFeedScreen } from "@/components/student/SchoolFeedScreen";
 import { CreationTicketsPanel } from "@/components/student/CreationTicketsPanel";
@@ -48,7 +47,6 @@ const HeroScreen = lazy(() =>
 const ShopScreen = lazy(() =>
   import("@/components/student/ShopScreen").then(m => ({ default: m.ShopScreen }))
 );
-import { ProgressRanking } from "@/components/student/ProgressRanking";
 import { BossBattleTab, BattleScreen } from "@/components/student/BossBattle";
 import { Guild } from "@/components/guild/Guild";
 import { SkillTreeView } from "@/components/student/SkillTreeView";
@@ -63,7 +61,6 @@ import { PvpArena } from "@/components/pvp-arena/PvpArena";
 import { PvpChallengeProvider } from "@/contexts/PvpChallengeContext";
 import { TradingPanel } from "@/components/student/TradingPanel";
 import { TradingScreen } from "@/components/student/TradingScreen";
-import { ClassWarBanner } from "@/components/student/ClassWarBanner";
 import { AccessibilitySettings } from "@/components/student/AccessibilitySettings";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { describeLoginError, describeSignUpError, validateEmail, validatePassword } from "@/lib/authErrors";
@@ -284,41 +281,30 @@ function LoginScreen({
 
 function ClassSelectionScreen({
   teachers,
-  classes,
-  onTeacherChange,
   onRegister,
   onBack,
 }: {
   teachers: { id: string; name: string }[];
-  classes: { id: string; name: string; teacher_id?: string }[];
-  onTeacherChange: (teacherId: string) => void;
-  onRegister: (firstNames: string, nickname: string, teacherId: string, classId: string) => Promise<void>;
+  onRegister: (firstNames: string, nickname: string, teacherId: string) => Promise<void>;
   onBack: () => void;
 }) {
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [teacherId, setTeacherId] = useState("");
-  const [classId, setClassId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [touched, setTouched] = useState({ name: false, nickname: false });
 
-  const filteredClasses = classes.filter(c => c.teacher_id === teacherId);
   const nameCheck = validateFirstNames(name);
   const nickCheck = validateNickname(nickname, nameCheck.value);
-  const canSubmit = !nameCheck.error && !nickCheck.error && !!teacherId && !!classId;
+  const canSubmit = !nameCheck.error && !nickCheck.error && !!teacherId;
 
-  const handleTeacherSelect = (id: string) => {
-    setTeacherId(id);
-    setClassId("");
-    if (id) onTeacherChange(id);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ name: true, nickname: true });
     if (!canSubmit) return;
     setIsSubmitting(true);
-    await onRegister(nameCheck.value, nickCheck.value, teacherId, classId);
+    await onRegister(nameCheck.value, nickCheck.value, teacherId);
     setIsSubmitting(false);
   };
 
@@ -387,7 +373,7 @@ function ClassSelectionScreen({
               <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Professor</label>
               <select
                 value={teacherId}
-                onChange={e => handleTeacherSelect(e.target.value)}
+                onChange={e => setTeacherId(e.target.value)}
                 required
                 className="w-full px-4 py-3 rounded-lg text-sm transition-colors"
                 style={inputStyle}
@@ -398,29 +384,6 @@ function ClassSelectionScreen({
                 ))}
               </select>
             </div>
-
-            {teacherId && (
-              <div>
-                <label className="block text-xs font-semibold mb-2 text-white/60 uppercase tracking-wider">Código do grupo</label>
-                <select
-                  value={classId}
-                  onChange={e => setClassId(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 rounded-lg text-sm transition-colors"
-                  style={inputStyle}
-                >
-                  <option value="">Selecione o código que o professor passou</option>
-                  {filteredClasses.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                {filteredClasses.length === 0 && (
-                  <p className="text-sm text-white/30 mt-1">
-                    Nenhum grupo disponível para este professor.
-                  </p>
-                )}
-              </div>
-            )}
 
             <button
               type="submit"
@@ -560,7 +523,6 @@ export default function StudentPortal() {
     authUser,
     student,
     teachers,
-    classes,
     challenges,
     missions,
     missionCompletions,
@@ -583,7 +545,6 @@ export default function StudentPortal() {
     refreshMissions,
     ensureMissionsLoaded,
     ensureShopLoaded,
-    loadClassesByTeacher,
     getRewardIcon,
     shopItems,
     inventory,
@@ -737,10 +698,8 @@ export default function StudentPortal() {
     return (
       <ClassSelectionScreen
         teachers={teachers}
-        classes={classes}
-        onTeacherChange={loadClassesByTeacher}
-        onRegister={async (firstNames, nickname, teacherId, classId) => {
-          const result = await registerStudent(firstNames, nickname, teacherId, classId);
+        onRegister={async (firstNames, nickname, teacherId) => {
+          const result = await registerStudent(firstNames, nickname, teacherId);
           if (!result.success) {
             toast.error("Erro ao solicitar acesso", { description: result.error });
           } else {
@@ -906,7 +865,6 @@ export default function StudentPortal() {
               character={battleCharacter}
               studentId={student.id}
               teacherId={student.teacher_id}
-              classId={student.class_id}
               onRewardApplied={() => {
                 refreshStudent();
                 // Depois que XP e moedas entraram: pode ter passado de nível ou
@@ -1130,7 +1088,7 @@ export default function StudentPortal() {
           </div>
         </div>
 
-        {/* As abas missions/challenges (com ClassWarBanner e MissionBoard) são
+        {/* As abas missions/challenges (com MissionBoard) são
             servidas pelo ramo full-screen lá em cima, que dá return antes de
             chegar aqui. As cópias que existiam neste ponto eram inalcançáveis —
             e uma delas já estava desatualizada, sem a prop teacherId. */}

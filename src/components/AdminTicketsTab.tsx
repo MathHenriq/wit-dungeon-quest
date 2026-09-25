@@ -13,7 +13,6 @@ interface AdminTicketRow {
   student_id: string;
   student_name: string;
   character_name: string | null;
-  class_name: string | null;
   teacher_id: string;
   ranking_type: "sala" | "geral" | "pvp";
   week_start: string;
@@ -163,7 +162,6 @@ export function AdminTicketsTab() {
               <tr style={{ textAlign: "left", color: "rgba(255,255,255,0.5)", fontSize: 10, textTransform: "uppercase" }}>
                 <th style={th}>Status</th>
                 <th style={th}>Aluno</th>
-                <th style={th}>Turma</th>
                 <th style={th}>Ranking</th>
                 <th style={th}>Semana</th>
                 <th style={th}>Solicitado</th>
@@ -186,7 +184,6 @@ export function AdminTicketsTab() {
                       <div style={{ fontSize: 10, opacity: 0.5 }}>{r.student_name}</div>
                     )}
                   </td>
-                  <td style={td}>{r.class_name ?? "—"}</td>
                   <td style={td}>
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 4,

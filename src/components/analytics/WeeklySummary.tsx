@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 
 interface Props {
   teacherId: string;
-  classId?: string;
 }
 
 function formatDateRange() {
@@ -18,7 +17,7 @@ function formatDateRange() {
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
-export function WeeklySummary({ teacherId, classId }: Props) {
+export function WeeklySummary({ teacherId }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState<ReturnType<typeof generateWeeklySummary> | null>(null);
   const [stats, setStats] = useState<{ active: number; total: number; missions: number; bosses: number } | null>(null);
@@ -31,9 +30,7 @@ export function WeeklySummary({ teacherId, classId }: Props) {
       const since = sevenDaysAgo.toISOString();
 
       // Build student filter
-      let studentsQuery = supabase.from('students').select('id, name, level, xp, streak_current').eq('teacher_id', teacherId).eq('status', 'active');
-      if (classId) studentsQuery = studentsQuery.eq('class_id', classId);
-      const { data: students } = await studentsQuery;
+      const { data: students } = await supabase.from('students').select('id, name, level, xp, streak_current').eq('teacher_id', teacherId).eq('status', 'active');
       const studentIds = (students ?? []).map(s => s.id);
 
       if (studentIds.length === 0) {
@@ -139,7 +136,7 @@ export function WeeklySummary({ teacherId, classId }: Props) {
     } finally {
       setIsLoading(false);
     }
-  }, [teacherId, classId]);
+  }, [teacherId]);
 
   return (
     <div className="card-fantasy">

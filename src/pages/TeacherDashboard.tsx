@@ -7,7 +7,6 @@ import { TeacherMissionsPanel } from "@/components/TeacherMissionsPanel";
 import { TeacherTitlesPanel } from "@/components/TeacherTitlesPanel";
 import { TeacherRewardSettings } from "@/components/TeacherRewardSettings";
 import { TeacherRequestsPanel } from "@/components/TeacherRequestsPanel";
-import { TeacherClassesPanel } from "@/components/TeacherClassesPanel";
 import { TeacherStudentsPanel } from "@/components/TeacherStudentsPanel";
 import { TeacherChallengesPanel } from "@/components/TeacherChallengesPanel";
 import { TeacherAttendancePanel } from "@/components/TeacherAttendancePanel";
@@ -22,25 +21,24 @@ import { TeacherCraftPanel } from "@/components/TeacherCraftPanel";
 import { TeacherChestPanel } from "@/components/TeacherChestPanel";
 import { TeacherAIGenerator } from "@/components/TeacherAIGenerator";
 import { TeacherTimeCapsulePanel } from "@/components/TeacherTimeCapsulePanel";
-import { TeacherClassWarPanel } from "@/components/TeacherClassWarPanel";
 import { TeacherBulkAdjustPanel } from "@/components/TeacherBulkAdjustPanel";
 import { TeacherCardProposalsPanel } from "@/components/TeacherCardProposalsPanel";
-import type { Class, Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
+import type { Student, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem } from "@/types";
 import {
   Users, BookOpen, Clock, LogOut, Coins, Shield, Sword, CalendarCheck,
   Sparkles, Award, UserPlus, ShoppingBag, Loader2, BarChart3,
   Swords, Users2, Heart, Network, Hammer, Package, BrainCircuit,
-  Swords as SwordsIcon, Monitor, Search, Menu, X, ChevronRight, Settings2,
+  Monitor, Search, Menu, X, ChevronRight, Settings2,
   ShieldAlert, Crown,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
 type TabId =
-  | "bulk" | "requests" | "pending" | "shop" | "classes" | "students" | "challenges"
+  | "bulk" | "requests" | "pending" | "shop" | "students" | "challenges"
   | "attendance" | "missions" | "titles" | "reward" | "bosses"
   | "guilds" | "guild-missions" | "pets" | "skills" | "craft" | "chests" | "ia"
-  | "capsule" | "classwar" | "cards";
+  | "capsule" | "cards";
 
 interface NavItem {
   id: TabId;
@@ -60,7 +58,6 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
 
   const [activeTab,    setActiveTab]    = useState<TabId>("requests");
-  const [classes,      setClasses]      = useState<Class[]>([]);
   const [students,     setStudents]     = useState<Student[]>([]);
   const [challenges,   setChallenges]   = useState<Challenge[]>([]);
   const [requests,     setRequests]     = useState<StudentRequest[]>([]);
@@ -92,7 +89,6 @@ export default function TeacherDashboard() {
 
     try {
       const [
-        { data: classesData, error: classesError },
         { data: challengesData, error: challengesError },
         { data: studentsData, error: studentsError },
         { data: missionsData, error: missionsError },
@@ -100,7 +96,6 @@ export default function TeacherDashboard() {
         { data: titlesData },
         { data: shopData },
       ] = await Promise.all([
-        supabase.from("classes").select("*").eq("teacher_id", teacher.id).order("name"),
         supabase.from("challenges").select("*").eq("teacher_id", teacher.id).order("created_at", { ascending: false }),
         supabase.from("students").select("*").eq("teacher_id", teacher.id).order("name"),
         supabase.from("student_missions").select("*").eq("teacher_id", teacher.id).order("created_at", { ascending: false }),
@@ -109,7 +104,6 @@ export default function TeacherDashboard() {
         supabase.from("shop_items").select("*").eq("teacher_id", teacher.id).order("created_at", { ascending: false }),
       ]);
 
-      if (!classesError && classesData) setClasses(classesData);
       if (!challengesError) setChallenges((challengesData || []) as Challenge[]);
       // A linha de students tem ~48 colunas; o tipo Student do app descreve um
       // subconjunto. Mesma conversao ja usada nas outras linhas deste bloco.
@@ -176,7 +170,6 @@ export default function TeacherDashboard() {
         { id: "pending",    label: "Pendentes",     icon: UserPlus,      description: "Alunos que se cadastraram e aguardam aprovação para entrar na turma",     badge: pendingStudents.length, accent: "gold" },
         { id: "students",   label: "Alunos",        icon: Users,         description: "Lista de alunos: editar moedas, nível, atributos e ver inventário individual" },
         { id: "bulk",       label: "Ajustes em Lote", icon: Settings2,   description: "Ajuste retroativo: edite moedas, nível, pontos e itens de vários alunos de uma vez", accent: "cyan" },
-        { id: "classes",    label: "Turmas",        icon: BookOpen,      description: "Criar, renomear ou excluir turmas" },
         { id: "attendance", label: "Presença",      icon: CalendarCheck, description: "Marcar presença em massa por dia/turma" },
       ],
     },
@@ -213,7 +206,6 @@ export default function TeacherDashboard() {
       items: [
         { id: "ia",       label: "Gerador IA", icon: BrainCircuit, description: "Gera missões, desafios e itens automaticamente com IA" },
         { id: "capsule",  label: "Cápsulas",   icon: Clock,        description: "Mensagens com data programada para os alunos" },
-        { id: "classwar", label: "Class War",  icon: SwordsIcon,   description: "Disputa entre turmas por pontuação acumulada" },
       ],
     },
     {
@@ -374,7 +366,7 @@ export default function TeacherDashboard() {
           {/* Quick stats */}
           <div className="hidden lg:flex items-center gap-1 ml-auto">
             <StatChip icon={Users}   label="Alunos"     value={activeStudents.length}                                      tone="cyan" />
-            <StatChip icon={BookOpen} label="Turmas"     value={classes.length}                                            tone="cyan" />
+            <StatChip icon={BookOpen} label="Missões"    value={missions.length}                                           tone="cyan" />
             <StatChip icon={Clock}    label="Pendentes" value={requests.length}                                            tone={requests.length > 0 ? "gold" : "muted"} />
             <StatChip icon={Sword}    label="Desafios"   value={challenges.filter(c => c.is_active).length}                tone="muted" />
           </div>
@@ -391,7 +383,7 @@ export default function TeacherDashboard() {
           {/* Mobile stats */}
           <div className="lg:hidden grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
             <MiniStat icon={Users}    label="Alunos"     value={activeStudents.length}                       tone="cyan" />
-            <MiniStat icon={BookOpen} label="Turmas"     value={classes.length}                              tone="cyan" />
+            <MiniStat icon={BookOpen} label="Missões"    value={missions.length}                             tone="cyan" />
             <MiniStat icon={Clock}    label="Pendentes" value={requests.length}                              tone={requests.length > 0 ? "gold" : "muted"} />
             <MiniStat icon={Sword}    label="Desafios"   value={challenges.filter(c => c.is_active).length}  tone="muted" />
           </div>
@@ -401,7 +393,6 @@ export default function TeacherDashboard() {
             <TeacherBulkAdjustPanel
               teacherId={teacher.id}
               students={activeStudents}
-              classes={classes}
               shopItems={shopItems}
               onDataChanged={loadData}
             />
@@ -416,18 +407,13 @@ export default function TeacherDashboard() {
               <TeacherPendingStudentsPanel
                 pendingStudents={pendingStudents}
                 allStudents={activeStudents}
-                classes={classes}
                 onDataChanged={loadData}
               />
             </div>
           )}
 
-          {activeTab === "classes" && (
-            <TeacherClassesPanel teacherId={teacher!.id} classes={classes} students={students} onDataChanged={loadData} />
-          )}
-
           {activeTab === "students" && (
-            <TeacherStudentsPanel teacherId={teacher!.id} students={activeStudents} classes={classes} onDataChanged={loadData} />
+            <TeacherStudentsPanel teacherId={teacher!.id} students={activeStudents} onDataChanged={loadData} />
           )}
 
           {activeTab === "challenges" && (
@@ -435,7 +421,7 @@ export default function TeacherDashboard() {
           )}
 
           {activeTab === "attendance" && (
-            <TeacherAttendancePanel students={activeStudents} classes={classes} onDataChanged={loadData} />
+            <TeacherAttendancePanel students={activeStudents} onDataChanged={loadData} />
           )}
 
           {activeTab === "shop" && teacher && (
@@ -458,7 +444,7 @@ export default function TeacherDashboard() {
 
           {activeTab === "titles" && teacher && (
             <div className="card-fantasy">
-              <TeacherTitlesPanel teacherId={teacher.id} students={students} classes={classes} titles={studentTitles} onDataChanged={loadData} />
+              <TeacherTitlesPanel teacherId={teacher.id} students={students} titles={studentTitles} onDataChanged={loadData} />
             </div>
           )}
 
@@ -470,13 +456,13 @@ export default function TeacherDashboard() {
 
           {activeTab === "bosses" && teacher && (
             <div className="card-fantasy">
-              <TeacherBossPanel teacherId={teacher.id} classes={classes} onDataChanged={loadData} />
+              <TeacherBossPanel teacherId={teacher.id} onDataChanged={loadData} />
             </div>
           )}
 
           {activeTab === "guilds" && teacher && (
             <div className="card-fantasy">
-              <TeacherGuildPanel teacherId={teacher.id} students={students} classes={classes} />
+              <TeacherGuildPanel teacherId={teacher.id} students={students} />
             </div>
           )}
 
@@ -504,19 +490,13 @@ export default function TeacherDashboard() {
 
           {activeTab === "ia" && teacher && (
             <div className="card-fantasy max-w-3xl">
-              <TeacherAIGenerator teacherId={teacher.id} classes={classes} onDataChanged={loadData} />
+              <TeacherAIGenerator teacherId={teacher.id} onDataChanged={loadData} />
             </div>
           )}
 
           {activeTab === "capsule" && teacher && (
             <div className="card-fantasy max-w-3xl">
-              <TeacherTimeCapsulePanel teacherId={teacher.id} classes={classes} />
-            </div>
-          )}
-
-          {activeTab === "classwar" && teacher && (
-            <div className="card-fantasy max-w-3xl">
-              <TeacherClassWarPanel teacherId={teacher.id} classes={classes} />
+              <TeacherTimeCapsulePanel teacherId={teacher.id} />
             </div>
           )}
 

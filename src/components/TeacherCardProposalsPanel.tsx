@@ -23,7 +23,6 @@ interface TicketRow {
   student_id: string;
   student_name: string;
   character_name: string | null;
-  class_name: string | null;
   ranking_type: "sala" | "geral" | "pvp";
   week_start: string;
   granted_at: string;
@@ -55,26 +54,17 @@ export function TeacherCardProposalsPanel({ teacherId }: TeacherCardProposalsPan
   async function load() {
     setLoading(true);
     try {
-      // 1. The teacher's students (+ class for display).
-      const [{ data: students }, { data: classes }] = await Promise.all([
-        supabase
-          .from("students")
-          .select("id, name, character_name, class_id")
-          .eq("teacher_id", teacherId),
-        supabase
-          .from("classes")
-          .select("id, name")
-          .eq("teacher_id", teacherId),
-      ]);
+      // 1. The teacher's students.
+      const { data: students } = await supabase
+        .from("students")
+        .select("id, name, character_name")
+        .eq("teacher_id", teacherId);
 
-      const studentList = (students ?? []) as Array<{ id: string; name: string; character_name: string | null; class_id: string | null }>;
+      const studentList = (students ?? []) as Array<{ id: string; name: string; character_name: string | null }>;
       if (studentList.length === 0) { setRows([]); return; }
 
-      const classMap: Record<string, string> = {};
-      for (const c of (classes ?? []) as Array<{ id: string; name: string }>) classMap[c.id] = c.name;
-
-      const studentMap: Record<string, { name: string; character_name: string | null; class_id: string | null }> = {};
-      for (const s of studentList) studentMap[s.id] = { name: s.name, character_name: s.character_name, class_id: s.class_id };
+      const studentMap: Record<string, { name: string; character_name: string | null }> = {};
+      for (const s of studentList) studentMap[s.id] = { name: s.name, character_name: s.character_name };
 
       // 2. Their creation tickets (RLS allows SELECT for any session).
       const { data: tickets, error } = await supabase
@@ -94,7 +84,6 @@ export function TeacherCardProposalsPanel({ teacherId }: TeacherCardProposalsPan
           student_id: t.student_id,
           student_name: s?.name ?? "Aluno",
           character_name: s?.character_name ?? null,
-          class_name: s?.class_id ? (classMap[s.class_id] ?? null) : null,
           ranking_type: t.ranking_type,
           week_start: t.week_start,
           granted_at: t.granted_at,
@@ -195,7 +184,6 @@ export function TeacherCardProposalsPanel({ teacherId }: TeacherCardProposalsPan
               <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border bg-card/60">
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Aluno</th>
-                <th className="px-3 py-2">Turma</th>
                 <th className="px-3 py-2">Ranking</th>
                 <th className="px-3 py-2">Semana</th>
                 <th className="px-3 py-2">Solicitado</th>
@@ -217,7 +205,6 @@ export function TeacherCardProposalsPanel({ teacherId }: TeacherCardProposalsPan
                       <div className="font-semibold">{r.character_name || r.student_name}</div>
                       {r.character_name && <div className="text-[10px] text-muted-foreground">{r.student_name}</div>}
                     </td>
-                    <td className="px-3 py-2">{r.class_name ?? "—"}</td>
                     <td className="px-3 py-2">
                       <span className="inline-flex items-center gap-1 font-bold" style={{ color: RANKING_TONE[r.ranking_type] }}>
                         <Crown size={11} /> {RANKING_LABEL[r.ranking_type]}

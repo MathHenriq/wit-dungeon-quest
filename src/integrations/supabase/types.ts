@@ -268,7 +268,6 @@ export type Database = {
       }
       analytics_events: {
         Row: {
-          class_id: string | null
           created_at: string
           event_data: Json
           event_type: string
@@ -277,7 +276,6 @@ export type Database = {
           teacher_id: string
         }
         Insert: {
-          class_id?: string | null
           created_at?: string
           event_data?: Json
           event_type: string
@@ -286,7 +284,6 @@ export type Database = {
           teacher_id: string
         }
         Update: {
-          class_id?: string | null
           created_at?: string
           event_data?: Json
           event_type?: string
@@ -295,13 +292,6 @@ export type Database = {
           teacher_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "analytics_events_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "analytics_events_student_id_fkey"
             columns: ["student_id"]
@@ -500,7 +490,6 @@ export type Database = {
           boss_hp: number
           boss_icon: string
           boss_name: string
-          class_id: string | null
           created_at: string
           description: string | null
           difficulty: string
@@ -516,7 +505,6 @@ export type Database = {
           boss_hp?: number
           boss_icon?: string
           boss_name?: string
-          class_id?: string | null
           created_at?: string
           description?: string | null
           difficulty?: string
@@ -532,7 +520,6 @@ export type Database = {
           boss_hp?: number
           boss_icon?: string
           boss_name?: string
-          class_id?: string | null
           created_at?: string
           description?: string | null
           difficulty?: string
@@ -545,13 +532,6 @@ export type Database = {
           title?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "boss_battles_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "boss_battles_teacher_id_fkey"
             columns: ["teacher_id"]
@@ -1542,121 +1522,6 @@ export type Database = {
           },
           {
             foreignKeyName: "chest_types_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "teachers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      class_wars: {
-        Row: {
-          class_a_id: string
-          class_a_score: number
-          class_b_id: string
-          class_b_score: number
-          created_at: string
-          description: string | null
-          ends_at: string
-          id: string
-          reward_coins: number
-          starts_at: string
-          status: string
-          teacher_id: string
-          title: string
-          winner_class_id: string | null
-        }
-        Insert: {
-          class_a_id: string
-          class_a_score?: number
-          class_b_id: string
-          class_b_score?: number
-          created_at?: string
-          description?: string | null
-          ends_at: string
-          id?: string
-          reward_coins?: number
-          starts_at?: string
-          status?: string
-          teacher_id: string
-          title: string
-          winner_class_id?: string | null
-        }
-        Update: {
-          class_a_id?: string
-          class_a_score?: number
-          class_b_id?: string
-          class_b_score?: number
-          created_at?: string
-          description?: string | null
-          ends_at?: string
-          id?: string
-          reward_coins?: number
-          starts_at?: string
-          status?: string
-          teacher_id?: string
-          title?: string
-          winner_class_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "class_wars_class_a_id_fkey"
-            columns: ["class_a_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_wars_class_b_id_fkey"
-            columns: ["class_b_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_wars_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "teachers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_wars_winner_class_id_fkey"
-            columns: ["winner_class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      classes: {
-        Row: {
-          biome: string | null
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          teacher_id: string
-        }
-        Insert: {
-          biome?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          teacher_id: string
-        }
-        Update: {
-          biome?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          teacher_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "classes_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "teachers"
@@ -3597,7 +3462,6 @@ export type Database = {
       }
       school_feed_events: {
         Row: {
-          class_id: string | null
           created_at: string
           event_data: Json
           event_type: string
@@ -3608,7 +3472,6 @@ export type Database = {
           views_count: number
         }
         Insert: {
-          class_id?: string | null
           created_at?: string
           event_data?: Json
           event_type: string
@@ -3619,7 +3482,6 @@ export type Database = {
           views_count?: number
         }
         Update: {
-          class_id?: string | null
           created_at?: string
           event_data?: Json
           event_type?: string
@@ -3630,13 +3492,6 @@ export type Database = {
           views_count?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "school_feed_events_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "school_feed_events_guild_id_fkey"
             columns: ["guild_id"]
@@ -5370,7 +5225,6 @@ export type Database = {
           attr_resistencia: number
           character_class: string | null
           character_name: string | null
-          class_id: string
           coins: number
           created_at: string
           diamonds: number
@@ -5419,7 +5273,6 @@ export type Database = {
           attr_resistencia?: number
           character_class?: string | null
           character_name?: string | null
-          class_id: string
           coins?: number
           created_at?: string
           diamonds?: number
@@ -5468,7 +5321,6 @@ export type Database = {
           attr_resistencia?: number
           character_class?: string | null
           character_name?: string | null
-          class_id?: string
           coins?: number
           created_at?: string
           diamonds?: number
@@ -5507,13 +5359,6 @@ export type Database = {
           xp?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "students_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "students_teacher_id_fkey"
             columns: ["teacher_id"]
@@ -5884,7 +5729,6 @@ export type Database = {
       }
       weekly_rankings_snapshot: {
         Row: {
-          class_id: string | null
           created_at: string
           entity_id: string
           entity_name: string | null
@@ -5897,7 +5741,6 @@ export type Database = {
           week_start: string
         }
         Insert: {
-          class_id?: string | null
           created_at?: string
           entity_id: string
           entity_name?: string | null
@@ -5910,7 +5753,6 @@ export type Database = {
           week_start: string
         }
         Update: {
-          class_id?: string | null
           created_at?: string
           entity_id?: string
           entity_name?: string | null
@@ -5923,13 +5765,6 @@ export type Database = {
           week_start?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "weekly_rankings_snapshot_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "weekly_rankings_snapshot_teacher_id_fkey"
             columns: ["teacher_id"]
@@ -6044,23 +5879,22 @@ export type Database = {
         Row: {
           available_points: number | null
           chose_class_at: string | null
-          class_id: string | null
-          class_name: string | null
           elements_mastered: number | null
           primary_element: string | null
           secondary_element: string | null
           skills_unlocked: number | null
           student_id: string | null
           student_name: string | null
+          teacher_id: string | null
           total_earned: number | null
           wave11_class: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "students_class_id_fkey"
-            columns: ["class_id"]
+            foreignKeyName: "students_teacher_id_fkey"
+            columns: ["teacher_id"]
             isOneToOne: false
-            referencedRelation: "classes"
+            referencedRelation: "teachers"
             referencedColumns: ["id"]
           },
         ]
@@ -6076,7 +5910,6 @@ export type Database = {
           attr_resistencia: number | null
           character_class: string | null
           character_name: string | null
-          class_id: string | null
           coins: number | null
           id: string | null
           is_mentor: boolean | null
@@ -6131,16 +5964,12 @@ export type Database = {
         Args: { p_student_id: string; p_title_id: string }
         Returns: boolean
       }
-      add_class_war_points: {
-        Args: { p_class_id: string; p_points: number }
-        Returns: undefined
-      }
       add_item_to_inventory: {
         Args: { p_character_id: string; p_item_id: string; p_quantity: number }
         Returns: undefined
       }
-      admin_assign_student_to_class: {
-        Args: { p_class_id: string; p_student_id: string }
+      admin_assign_student_to_teacher: {
+        Args: { p_student_id: string; p_teacher_id: string }
         Returns: undefined
       }
       admin_delete_student: { Args: { p_student_id: string }; Returns: string }
@@ -6297,10 +6126,8 @@ export type Database = {
       event_lifecycle_tick: { Args: never; Returns: Json }
       execute_trade: { Args: { p_trade_id: string }; Returns: Json }
       expire_raids_tick: { Args: never; Returns: Json }
-      finalize_class_war: { Args: { p_war_id: string }; Returns: Json }
       first_two_names: { Args: { p: string }; Returns: string }
       forge_recipe: { Args: { p_recipe_key: string }; Returns: Json }
-      gen_group_code: { Args: never; Returns: string }
       get_active_raid_for_guild: { Args: { p_guild_id: string }; Returns: Json }
       get_analytics_overview: {
         Args: { p_days?: number; p_teacher_id: string }
@@ -6362,12 +6189,8 @@ export type Database = {
           visual_data: Json
         }[]
       }
-      get_class_comparison: {
-        Args: { p_days?: number; p_teacher_id: string }
-        Returns: Json
-      }
       get_daily_activity: {
-        Args: { p_class_id?: string; p_days?: number; p_teacher_id: string }
+        Args: { p_days?: number; p_teacher_id: string }
         Returns: Json
       }
       get_daily_coins_summary: { Args: never; Returns: Json }
@@ -6584,7 +6407,6 @@ export type Database = {
       get_school_feed: {
         Args: { p_filter?: string; p_limit?: number; p_offset?: number }
         Returns: {
-          class_id: string
           created_at: string
           event_data: Json
           event_type: string
@@ -6606,7 +6428,6 @@ export type Database = {
       get_teacher_id: { Args: never; Returns: string }
       get_weekly_ranking: {
         Args: {
-          p_class_id?: string
           p_finalized?: boolean
           p_limit?: number
           p_offset?: number
@@ -6646,7 +6467,6 @@ export type Database = {
       is_guild_officer: { Args: { p_guild_id: string }; Returns: boolean }
       is_master_admin_user: { Args: { p_user_id: string }; Returns: boolean }
       is_server_context: { Args: never; Returns: boolean }
-      is_teacher_of_class: { Args: { class_id: string }; Returns: boolean }
       is_teacher_of_guild: { Args: { p_guild_id: string }; Returns: boolean }
       is_teacher_of_student: { Args: { student_id: string }; Returns: boolean }
       issue_top1_card_tickets: {
@@ -6753,14 +6573,6 @@ export type Database = {
         }
         Returns: Json
       }
-      master_create_class: {
-        Args: { p_biome?: string; p_name: string; p_teacher_id: string }
-        Returns: string
-      }
-      master_delete_class: {
-        Args: { p_class_id: string; p_reassign_to_class_id?: string }
-        Returns: number
-      }
       master_grant_skill_points: {
         Args: { p_points: number; p_student_id: string }
         Returns: Json
@@ -6777,7 +6589,6 @@ export type Database = {
         Args: never
         Returns: {
           character_name: string
-          class_name: string
           granted_at: string
           ranking_type: string
           requested_at: string
@@ -6810,10 +6621,6 @@ export type Database = {
       master_spawn_card: {
         Args: { p_item_id: string; p_student_id: string }
         Returns: string
-      }
-      master_update_class: {
-        Args: { p_biome?: string; p_class_id: string; p_name: string }
-        Returns: undefined
       }
       master_update_teacher: {
         Args: { p_name: string; p_teacher_id: string }
@@ -6917,7 +6724,6 @@ export type Database = {
       }
       register_my_student: {
         Args: {
-          p_class_id: string
           p_first_names: string
           p_nickname: string
           p_teacher_id: string
@@ -7042,10 +6848,6 @@ export type Database = {
       teacher_delete_student: {
         Args: { p_student_id: string }
         Returns: string
-      }
-      teacher_move_student_to_own_class: {
-        Args: { p_class_id: string; p_student_id: string }
-        Returns: undefined
       }
       teacher_reset_skill_points: {
         Args: { p_student_user_id: string }

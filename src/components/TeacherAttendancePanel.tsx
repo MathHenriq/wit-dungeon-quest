@@ -1,22 +1,16 @@
-import { useState } from "react";
 import { Check, RotateCcw, CalendarCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePhoto } from "./ProfilePhoto";
-import type { Student, Class } from "@/types";
+import type { Student } from "@/types";
 
 interface TeacherAttendancePanelProps {
   students: Student[];
-  classes: Class[];
   onDataChanged: () => void;
 }
 
-export function TeacherAttendancePanel({ students, classes, onDataChanged }: TeacherAttendancePanelProps) {
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
-
-  const filteredStudents = selectedClass
-    ? students.filter(s => s.class_id === selectedClass)
-    : students;
+export function TeacherAttendancePanel({ students, onDataChanged }: TeacherAttendancePanelProps) {
+  const filteredStudents = students;
 
   const confirmAttendance = async (student: { id: string; presencas_consecutivas: number; coins: number }) => {
     const newStreak = student.presencas_consecutivas + 1;
@@ -53,19 +47,6 @@ export function TeacherAttendancePanel({ students, classes, onDataChanged }: Tea
 
   return (
     <div className="space-y-4">
-      <div className="card-fantasy">
-        <select
-          value={selectedClass || ""}
-          onChange={e => setSelectedClass(e.target.value || null)}
-          className="px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-        >
-          <option value="">Todas as turmas</option>
-          {classes.map(cls => (
-            <option key={cls.id} value={cls.id}>{cls.name}</option>
-          ))}
-        </select>
-      </div>
-
       {filteredStudents.length === 0 ? (
         <div className="card-fantasy text-center py-8 text-muted-foreground">
           <Users size={48} className="mx-auto mb-4 opacity-50" />
@@ -93,9 +74,6 @@ export function TeacherAttendancePanel({ students, classes, onDataChanged }: Tea
                         </span>
                       )}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {classes.find(c => c.id === student.class_id)?.name}
-                    </p>
                     <div className="flex items-center gap-2 mt-1">
                       <CalendarCheck className="text-success" size={16} />
                       <span className="font-semibold text-success">

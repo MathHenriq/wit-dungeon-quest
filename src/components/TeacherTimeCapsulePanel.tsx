@@ -6,8 +6,10 @@ import { toast } from "sonner";
 
 interface Props {
   teacherId: string;
-  classes: { id: string; name: string }[];
 }
+
+// Turmas não existem mais: um único bloco com todos os alunos do professor.
+const ALL = { id: 'all', name: 'Todos os alunos' };
 
 interface CapsuleStats {
   classId: string;
@@ -18,7 +20,7 @@ interface CapsuleStats {
   isActive: boolean;
 }
 
-export function TeacherTimeCapsulePanel({ teacherId, classes }: Props) {
+export function TeacherTimeCapsulePanel({ teacherId }: Props) {
   const [stats, setStats] = useState<CapsuleStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [openDateInputs, setOpenDateInputs] = useState<Record<string, string>>({});
@@ -30,7 +32,7 @@ export function TeacherTimeCapsulePanel({ teacherId, classes }: Props) {
     try {
       const { data: students } = await supabase
         .from('students')
-        .select('id, class_id')
+        .select('id')
         .eq('teacher_id', teacherId)
         .eq('status', 'active');
 
@@ -39,8 +41,8 @@ export function TeacherTimeCapsulePanel({ teacherId, classes }: Props) {
         .select('student_id, sealed_at, open_date, opened, is_active')
         .eq('teacher_id', teacherId);
 
-      const classStats: CapsuleStats[] = classes.map(cls => {
-        const classStudents = (students ?? []).filter(s => s.class_id === cls.id);
+      const classStats: CapsuleStats[] = [ALL].map(cls => {
+        const classStudents = students ?? [];
         const classCapsules = (capsules ?? []).filter(c =>
           classStudents.some(s => s.id === c.student_id)
         );
@@ -68,7 +70,7 @@ export function TeacherTimeCapsulePanel({ teacherId, classes }: Props) {
     } finally {
       setIsLoading(false);
     }
-  }, [teacherId, classes]);
+  }, [teacherId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -83,10 +85,9 @@ export function TeacherTimeCapsulePanel({ teacherId, classes }: Props) {
         .from('students')
         .select('id')
         .eq('teacher_id', teacherId)
-        .eq('class_id', classId)
         .eq('status', 'active');
 
-      if (!classStudents?.length) { toast.error('Nenhum aluno ativo nesta turma.'); return; }
+      if (!classStudents?.length) { toast.error('Nenhum aluno ativo.'); return; }
 
       // Update existing capsules
       await supabase
@@ -114,7 +115,6 @@ export function TeacherTimeCapsulePanel({ teacherId, classes }: Props) {
         .from('students')
         .select('id')
         .eq('teacher_id', teacherId)
-        .eq('class_id', classId)
         .eq('status', 'active');
 
       if (!classStudents?.length) return;
@@ -147,15 +147,15 @@ export function TeacherTimeCapsulePanel({ teacherId, classes }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Ative cápsulas por turma. Os alunos as selam com uma mensagem ao futuro — serão abertas na data definida.
+          Ative as cápsulas dos seus alunos. Os alunos as selam com uma mensagem ao futuro — serão abertas na data definida.
         </p>
         <button onClick={load} className="text-muted-foreground hover:text-foreground">
           <RefreshCw size={14} />
         </button>
       </div>
 
-      {classes.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-8">Nenhuma turma cadastrada.</p>
+      {stats[0]?.totalStudents === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">Nenhum aluno ativo.</p>
       )}
 
       {stats.map(cls => {

@@ -49,8 +49,8 @@ const REALMS = {
   },
   sala: {
     id: "sala" as RankScope,
-    label: "Sala",
-    sublabel: "Rank da Turma",
+    label: "Colegas",
+    sublabel: "Alunos do seu professor",
     Icon: Users2,
     primary:   "#34d399",
     dim:       "rgba(52,211,153,0.12)",
@@ -936,14 +936,14 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
     if (loadedRef.current.class) return;
     loadedRef.current.class = true;
     supabaseStudent.from("student_profiles").select(SELECT)
-      .eq("class_id", student.class_id).eq("status", "active")
+      .eq("teacher_id", student.teacher_id).eq("status", "active")
       .eq("is_test_account", false)
       .order("level", { ascending: false })
       .then(({ data }) => {
         setClassEntries((data || []) as RankEntry[]);
         setLoadedClass(true);
       });
-  }, [student.class_id]);
+  }, [student.teacher_id]);
 
   useEffect(() => {
     if (loadedRef.current.world) return;

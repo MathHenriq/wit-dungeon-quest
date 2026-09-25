@@ -41,8 +41,7 @@ const btnPrimary: CSSProperties = {
 interface ClassRow {
   student_id:        string;
   student_name:      string;
-  class_id:          string | null;
-  class_name:        string | null;
+  teacher_id:        string | null;
   wave11_class:      string | null;
   primary_element:   string | null;
   secondary_element: string | null;
@@ -62,7 +61,6 @@ export const AdminWave11ClassesTab: FC = () => {
   const [rows, setRows]       = useState<ClassRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [filterTurma,   setFilterTurma]   = useState<string>('all');
   const [filterClass,   setFilterClass]   = useState<string>('all');
   const [filterElement, setFilterElement] = useState<string>('all');
   const [search,        setSearch]        = useState('');
@@ -88,19 +86,12 @@ export const AdminWave11ClassesTab: FC = () => {
 
   useEffect(() => { void load(); }, []);
 
-  const turmas = useMemo(() => {
-    const set = new Map<string, string>();
-    for (const r of rows) if (r.class_id && r.class_name) set.set(r.class_id, r.class_name);
-    return Array.from(set.entries());
-  }, [rows]);
-
   const filtered = useMemo(() => rows.filter(r => {
-    if (filterTurma   !== 'all' && r.class_id      !== filterTurma)   return false;
     if (filterClass   !== 'all' && r.wave11_class  !== filterClass)   return false;
     if (filterElement !== 'all' && r.primary_element !== filterElement) return false;
     if (search.trim() && !r.student_name.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
-  }), [rows, filterTurma, filterClass, filterElement, search]);
+  }), [rows, filterClass, filterElement, search]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
@@ -116,10 +107,6 @@ export const AdminWave11ClassesTab: FC = () => {
               style={{ ...inputStyle, paddingLeft: 30 }}
             />
           </div>
-          <select value={filterTurma} onChange={e => setFilterTurma(e.target.value)} style={inputStyle}>
-            <option value="all">Todas as turmas</option>
-            {turmas.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-          </select>
           <select value={filterClass} onChange={e => setFilterClass(e.target.value)} style={inputStyle}>
             <option value="all">Todas as classes</option>
             {CLASS_OPTS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -149,7 +136,6 @@ export const AdminWave11ClassesTab: FC = () => {
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
                   <Th>Aluno</Th>
-                  <Th>Turma</Th>
                   <Th>Classe</Th>
                   <Th>Elemento Pri.</Th>
                   <Th>Elemento Sec.</Th>
@@ -163,7 +149,6 @@ export const AdminWave11ClassesTab: FC = () => {
                 {filtered.map(r => (
                   <tr key={r.student_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <Td>{r.student_name}</Td>
-                    <Td style={{ opacity: 0.7 }}>{r.class_name ?? '—'}</Td>
                     <Td>
                       {r.wave11_class
                         ? <span style={{ textTransform: 'capitalize' }}>{r.wave11_class}</span>
@@ -193,7 +178,7 @@ export const AdminWave11ClassesTab: FC = () => {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} style={{ padding: 24, textAlign: 'center', opacity: 0.5 }}>
+                    <td colSpan={8} style={{ padding: 24, textAlign: 'center', opacity: 0.5 }}>
                       Nenhum aluno encontrado com esses filtros.
                     </td>
                   </tr>

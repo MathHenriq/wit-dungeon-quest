@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Check, X, UserPlus, GitMerge } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { Student, Class } from "@/types";
+import type { Student } from "@/types";
 
 interface TeacherPendingStudentsPanelProps {
   pendingStudents: Student[];
   allStudents: Student[];
-  classes: Class[];
   onDataChanged: () => void;
 }
 
@@ -119,18 +118,14 @@ function MergeModal({
 export function TeacherPendingStudentsPanel({
   pendingStudents,
   allStudents,
-  classes,
   onDataChanged,
 }: TeacherPendingStudentsPanelProps) {
   const [mergeTarget, setMergeTarget] = useState<Student | null>(null);
 
-  const getClassName = (classId: string) =>
-    classes.find(c => c.id === classId)?.name ?? "Turma desconhecida";
-
-  // Students without user_id (manually created) in the same class/teacher as the pending one
+  // Alunos sem login (criados manualmente) do mesmo professor do pendente
   const getMergeCandidates = (pending: Student) =>
     allStudents.filter(
-      s => !s.user_id && s.teacher_id === pending.teacher_id && s.class_id === pending.class_id
+      s => !s.user_id && s.teacher_id === pending.teacher_id
     );
 
   const handleApproveNormal = async (student: Student) => {
@@ -198,7 +193,7 @@ export function TeacherPendingStudentsPanel({
           >
             <div>
               <p className="font-semibold text-foreground">{student.name}</p>
-              <p className="text-sm text-muted-foreground">{getClassName(student.class_id)}</p>
+              {student.character_name && <p className="text-sm text-muted-foreground">{student.character_name}</p>}
             </div>
 
             <div className="flex gap-2">

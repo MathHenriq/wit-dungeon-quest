@@ -1,8 +1,8 @@
 // POST /admin-list
 //
 // Returns the data the admin panel needs to render in a single
-// round-trip:  all teachers (with email), all classes, all students
-// (with email).  Admin-only.
+// round-trip:  all teachers (with email) and all students (with email).
+// Admin-only. Turmas não existem mais.
 
 import { handleCors, isMasterAdminUserId, jsonResponse, requireAdmin, type AdminContext } from '../_shared/admin.ts';
 
@@ -51,28 +51,22 @@ Deno.serve(async (req) => {
     .from('teachers')
     .select('id, name, user_id, is_admin, created_at')
     .order('name');
-  const classesQuery = admin
-    .from('classes')
-    .select('id, name, teacher_id, biome, description, created_at')
-    .order('name');
   const studentsQuery = admin
     .from('students')
-    .select('id, name, class_id, teacher_id, user_id, status, level, xp, created_at')
+    .select('id, name, teacher_id, user_id, status, level, xp, created_at')
     .order('name');
 
   if (!isMaster) {
     teachersQuery.eq('id', callerTeacher.id);
-    classesQuery.eq('teacher_id', callerTeacher.id);
     studentsQuery.eq('teacher_id', callerTeacher.id);
   }
 
-  const [teachersRes, classesRes, studentsRes] = await Promise.all([
+  const [teachersRes, studentsRes] = await Promise.all([
     teachersQuery,
-    classesQuery,
     studentsQuery,
   ]);
 
-  for (const r of [teachersRes, classesRes, studentsRes]) {
+  for (const r of [teachersRes, studentsRes]) {
     if (r.error) return jsonResponse({ error: 'list failed', detail: r.error.message }, 500);
   }
 
@@ -94,7 +88,6 @@ Deno.serve(async (req) => {
   return jsonResponse({
     ok: true,
     teachers,
-    classes: classesRes.data ?? [],
     students,
   });
 });

@@ -4,10 +4,9 @@ import type { AnalyticsFilters } from "@/hooks/useTeacherAnalytics";
 interface Props {
   filters: AnalyticsFilters;
   onChange: (f: AnalyticsFilters) => void;
-  classes: { id: string; name: string }[];
 }
 
-export function AnalyticsFilters({ filters, onChange, classes }: Props) {
+export function AnalyticsFilters({ filters, onChange }: Props) {
   return (
     <div className="flex flex-wrap gap-3 items-center">
       <Select
@@ -22,21 +21,6 @@ export function AnalyticsFilters({ filters, onChange, classes }: Props) {
           <SelectItem value="14">Últimos 14 dias</SelectItem>
           <SelectItem value="30">Últimos 30 dias</SelectItem>
           <SelectItem value="90">Últimos 90 dias</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={filters.classId ?? "all"}
-        onValueChange={(v) => onChange({ ...filters, classId: v === "all" ? null : v })}
-      >
-        <SelectTrigger className="w-44 bg-dungeon-dark border-gold/30 text-foreground">
-          <SelectValue placeholder="Todas as turmas" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas as turmas</SelectItem>
-          {classes.map((c) => (
-            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-          ))}
         </SelectContent>
       </Select>
     </div>

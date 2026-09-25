@@ -12,7 +12,7 @@ interface OnlinePlayer {
   character_name: string | null;
   character_class: string | null;
   level: number;
-  class_id: string;
+  teacher_id: string | null;
   rating: number;
   wins: number;
   losses: number;
@@ -292,7 +292,7 @@ export function PvpArena({ student, onBack }: PvpArenaProps) {
     const ids = presences.map(p => p.student_id);
 
     const [{ data: studs }, { data: stats }] = await Promise.all([
-      supabaseStudent.from('student_profiles').select('id, name, character_name, character_class, level, class_id').in('id', ids),
+      supabaseStudent.from('student_profiles').select('id, name, character_name, character_class, level, teacher_id').in('id', ids),
       supabaseStudent.from('pvp_student_stats').select('student_id, rating, wins, losses').in('student_id', ids),
     ]);
 
@@ -305,7 +305,7 @@ export function PvpArena({ student, onBack }: PvpArenaProps) {
       character_name:  s.character_name,
       character_class: s.character_class,
       level:           s.level,
-      class_id:        s.class_id,
+      teacher_id:      s.teacher_id,
       rating:          statsMap.get(s.id)?.rating  ?? 1000,
       wins:            statsMap.get(s.id)?.wins    ?? 0,
       losses:          statsMap.get(s.id)?.losses  ?? 0,
@@ -364,7 +364,7 @@ export function PvpArena({ student, onBack }: PvpArenaProps) {
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  const turmaPlayers  = players.filter(p => p.class_id === student.class_id);
+  const turmaPlayers  = players.filter(p => p.teacher_id === student.teacher_id);
   const geralPlayers  = players;
   const displayPlayers = tab === 'turma' ? turmaPlayers : tab === 'geral' ? geralPlayers : [];
   const myDiv          = getDivision(myStats.rating);
@@ -444,7 +444,7 @@ export function PvpArena({ student, onBack }: PvpArenaProps) {
           paddingLeft: 8,
         }}>
           {(['turma', 'geral', 'historico'] as const).map(t => {
-            const labels = { turma: 'TURMA', geral: 'GERAL', historico: 'HISTORICO' };
+            const labels = { turma: 'COLEGAS', geral: 'GERAL', historico: 'HISTORICO' };
             const count  = t === 'turma' ? turmaPlayers.length : t === 'geral' ? geralPlayers.length : history.length;
             return (
               <button
@@ -527,7 +527,7 @@ export function PvpArena({ student, onBack }: PvpArenaProps) {
                   <line x1="4" y1="44" x2="44" y2="4" stroke="rgba(248,113,113,.2)" strokeWidth="1.5" />
                 </svg>
                 <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 11, color: 'rgba(120,150,190,.35)', letterSpacing: '2px', textAlign: 'center' }}>
-                  {tab === 'turma' ? 'NENHUM COLEGA DA TURMA ONLINE' : 'NENHUM JOGADOR ONLINE'}
+                  {tab === 'turma' ? 'NENHUM COLEGA ONLINE' : 'NENHUM JOGADOR ONLINE'}
                 </div>
                 <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: 12, color: 'rgba(120,150,190,.25)', textAlign: 'center' }}>
                   Aguarde outros alunos entrarem na arena
@@ -537,7 +537,7 @@ export function PvpArena({ student, onBack }: PvpArenaProps) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {displayPlayers.map((p, idx) => {
                   const isChallenged = pvp.outgoingChallenge?.opponent_id === p.student_id;
-                  const isSameClass  = p.class_id === student.class_id;
+                  const isSameClass  = p.teacher_id === student.teacher_id;
                   return (
                     <div key={p.student_id} className="pvp-row pvp-player-row" style={{ animationDelay: `${idx * 0.04}s` }}>
                       <Avatar name={p.character_name ?? p.name} charClass={p.character_class} size={42} online={isOnline(p.last_seen)} />

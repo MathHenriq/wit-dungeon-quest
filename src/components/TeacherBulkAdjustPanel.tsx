@@ -1,17 +1,16 @@
 import { useMemo, useState, useEffect } from "react";
 import {
   Coins, Gem, TrendingUp, Star, Search, Loader2, RotateCcw, Check, Plus, Minus,
-  Equal, Package, X, Filter, Save, AlertCircle, ChevronDown,
+  Equal, Package, X, Save, AlertCircle, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ATTRIBUTES } from "@/types";
-import type { Student, Class, AttrKey, ShopItem } from "@/types";
+import type { Student, AttrKey, ShopItem } from "@/types";
 
 interface TeacherBulkAdjustPanelProps {
   teacherId: string;
   students: Student[];
-  classes: Class[];
   shopItems: ShopItem[];
   onDataChanged: () => void;
 }
@@ -44,8 +43,7 @@ function clampField(key: EditableKey, val: number): number {
   return Math.max(meta.min, Math.floor(val) || 0);
 }
 
-export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems, onDataChanged }: TeacherBulkAdjustPanelProps) {
-  const [filterClass, setFilterClass] = useState<string>("");
+export function TeacherBulkAdjustPanel({ teacherId, students, shopItems, onDataChanged }: TeacherBulkAdjustPanelProps) {
   const [search,      setSearch]      = useState("");
   const [drafts,      setDrafts]      = useState<Drafts>({});
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
@@ -82,14 +80,13 @@ export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return students.filter(s => {
-      if (filterClass && s.class_id !== filterClass) return false;
       if (!q) return true;
       return (
         s.name.toLowerCase().includes(q) ||
         (s.character_name || "").toLowerCase().includes(q)
       );
     });
-  }, [students, filterClass, search]);
+  }, [students, search]);
 
   // Helpers
   const getValue = (s: Student, key: EditableKey): number => {
@@ -278,17 +275,6 @@ export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-card/70 border border-border min-w-[200px]">
-          <Filter size={14} className="text-muted-foreground" />
-          <select
-            value={filterClass}
-            onChange={e => setFilterClass(e.target.value)}
-            className="bg-transparent text-sm outline-none flex-1"
-          >
-            <option value="">Todas as turmas</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-card/70 border border-border flex-1 min-w-[200px]">
           <Search size={14} className="text-muted-foreground" />
           <input
@@ -392,7 +378,6 @@ export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems
             )}
             {filtered.map(s => {
               const dirty = studentIsDirty(s);
-              const cls   = classes.find(c => c.id === s.class_id);
               return (
                 <tr key={s.id}
                     className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
@@ -407,7 +392,7 @@ export function TeacherBulkAdjustPanel({ teacherId, students, classes, shopItems
                       <div className="min-w-0">
                         <p className="font-medium truncate">{s.character_name || s.name}</p>
                         <p className="text-[10px] text-muted-foreground truncate">
-                          {cls?.name}{s.character_name ? ` • ${s.name}` : ""}
+                          {s.character_name ? s.name : ""}
                         </p>
                       </div>
                     </div>

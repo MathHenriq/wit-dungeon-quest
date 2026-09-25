@@ -1,22 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { usePresentationMode } from "@/hooks/usePresentationMode";
-import { Maximize2, Minimize2, ChevronRight, Swords, Trophy, BarChart3, Zap } from "lucide-react";
+import { Maximize2, Minimize2, ChevronRight, Trophy, BarChart3, Zap } from "lucide-react";
 import type { PresentationView } from "@/hooks/usePresentationMode";
 import type { Student } from "@/types";
 
 const VIEW_LABELS: Record<PresentationView, string> = {
   leaderboard: 'Leaderboard',
-  classwar: 'Class War',
   achievements: 'Conquistas',
-  stats: 'Stats da Turma',
+  stats: 'Stats dos Alunos',
 };
 
 const VIEW_ICONS: Record<PresentationView, typeof Trophy> = {
   leaderboard: Trophy,
-  classwar: Swords,
   achievements: Zap,
   stats: BarChart3,
 };
@@ -69,46 +66,6 @@ function LeaderboardView({ students }: { students: Student[] }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function ClassWarView({ classWar, classNames }: { classWar: ReturnType<typeof usePresentationMode>['classWar']; classNames: Record<string, string> }) {
-  if (!classWar) {
-    return (
-      <div className="text-center py-20">
-        <Swords size={48} className="mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.15)' }} />
-        <p style={{ fontSize: 22, color: 'rgba(255,255,255,0.3)' }}>Nenhuma Class War ativa</p>
-      </div>
-    );
-  }
-
-  const total = classWar.class_a_score + classWar.class_b_score;
-  const pctA = total > 0 ? (classWar.class_a_score / total) * 100 : 50;
-  const nameA = classNames[classWar.class_a_id] ?? 'Turma A';
-  const nameB = classNames[classWar.class_b_id] ?? 'Turma B';
-
-  return (
-    <div className="w-full max-w-3xl mx-auto space-y-10">
-      <p className="text-center font-display" style={{ fontSize: 24, color: 'rgba(255,255,255,0.5)' }}>{classWar.title}</p>
-      <div className="flex items-center justify-between">
-        <div className="text-center flex-1">
-          <p className="font-display font-bold uppercase" style={{ fontSize: 28, color: '#a78bfa' }}>{nameA}</p>
-          <p className="font-bold" style={{ fontSize: 80, color: '#a78bfa', lineHeight: 1 }}>{classWar.class_a_score}</p>
-        </div>
-        <Swords size={48} style={{ color: 'rgba(239,68,68,0.6)', flexShrink: 0 }} />
-        <div className="text-center flex-1">
-          <p className="font-display font-bold uppercase" style={{ fontSize: 28, color: '#ef4444' }}>{nameB}</p>
-          <p className="font-bold" style={{ fontSize: 80, color: '#ef4444', lineHeight: 1 }}>{classWar.class_b_score}</p>
-        </div>
-      </div>
-      <div className="w-full h-5 rounded-full overflow-hidden" style={{ background: 'rgba(239,68,68,0.15)' }}>
-        <div className="h-full rounded-full transition-all duration-1000"
-          style={{ width: `${pctA}%`, background: 'linear-gradient(90deg, #7c3aed, #a78bfa)' }} />
-      </div>
-      <p className="text-center" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15 }}>
-        Termina em: {new Date(classWar.ends_at).toLocaleDateString('pt-BR')}
-      </p>
     </div>
   );
 }
@@ -174,22 +131,14 @@ function StatsView({ students }: { students: Student[] }) {
 export default function PresentationMode() {
   const { teacher, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [selectedClass, setSelectedClass] = useState('');
-  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const { students, achievements, classWar, classNames, view, setView, isLoading, onlineCount } =
-    usePresentationMode(teacher?.id ?? '', selectedClass || undefined);
+  const { students, achievements, view, setView, isLoading, onlineCount } =
+    usePresentationMode(teacher?.id ?? '');
 
   useEffect(() => {
     if (!authLoading && !teacher) navigate('/professor/login');
   }, [authLoading, teacher, navigate]);
-
-  useEffect(() => {
-    if (!teacher) return;
-    supabase.from('classes').select('id, name').eq('teacher_id', teacher.id).order('name')
-      .then(({ data }) => setClasses(data ?? []));
-  }, [teacher]);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -207,7 +156,7 @@ export default function PresentationMode() {
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
-  const views: PresentationView[] = ['leaderboard', 'classwar', 'achievements', 'stats'];
+  const views: PresentationView[] = ['leaderboard', 'achievements', 'stats'];
   const currentIdx = views.indexOf(view);
   const nextView = () => setView(views[(currentIdx + 1) % views.length]);
 
@@ -229,19 +178,11 @@ export default function PresentationMode() {
         <div>
           <p className="font-display font-bold" style={{ fontSize: 26, color: '#00e5ff', letterSpacing: 4 }}>WIT DUNGEON</p>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
-            {selectedClass ? classes.find(c => c.id === selectedClass)?.name : teacher.name}
+            {teacher.name}
           </p>
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Class selector */}
-          <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)}
-            className="rounded-lg px-3 py-1.5 text-sm"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(0,229,255,0.15)', color: 'rgba(255,255,255,0.7)' }}>
-            <option value="">Todas as turmas</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-
           {/* Online count */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
             style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.12)' }}>
@@ -308,7 +249,6 @@ export default function PresentationMode() {
         ) : (
           <>
             {view === 'leaderboard' && <LeaderboardView students={students} />}
-            {view === 'classwar' && <ClassWarView classWar={classWar} classNames={classNames} />}
             {view === 'achievements' && <AchievementsView achievements={achievements} />}
             {view === 'stats' && <StatsView students={students} />}
           </>

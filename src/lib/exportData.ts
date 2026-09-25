@@ -4,7 +4,6 @@ export interface ExportOptions {
   teacherId: string;
   startDate: string;
   endDate: string;
-  classId?: string;
   studentId?: string;
   format: 'csv' | 'json';
   include: {
@@ -67,7 +66,6 @@ function buildQuery<T extends { eq(column: string, value: string): T }>(
   opts: ExportOptions,
 ): T {
   let q = query.eq('teacher_id', opts.teacherId);
-  if (opts.classId) q = q.eq('class_id', opts.classId);
   if (opts.studentId) q = q.eq('id', opts.studentId);
   return q;
 }
@@ -80,8 +78,7 @@ export async function exportData(options: ExportOptions) {
     let q = supabase
       .from('students')
       .select('name, character_name, character_class, level, xp, coins, diamonds, streak_current, streak_best, presencas_consecutivas, total_missions_completed, total_boss_kills, total_pvp_wins, total_crafts, status');
-    if (options.classId) q = q.eq('class_id', options.classId);
-    else q = q.eq('teacher_id', options.teacherId);
+    q = q.eq('teacher_id', options.teacherId);
     if (options.studentId) q = q.eq('id', options.studentId);
     const { data: rows } = await q;
     data.students = rows || [];
@@ -90,13 +87,12 @@ export async function exportData(options: ExportOptions) {
   if (options.include.activity) {
     let q = supabase
       .from('analytics_events')
-      .select('event_type, student_id, class_id, event_data, created_at')
+      .select('event_type, student_id, event_data, created_at')
       .eq('teacher_id', options.teacherId)
       .gte('created_at', options.startDate)
       .lte('created_at', options.endDate)
       .order('created_at', { ascending: false })
       .limit(10000);
-    if (options.classId) q = q.eq('class_id', options.classId);
     if (options.studentId) q = q.eq('student_id', options.studentId);
     const { data: rows } = await q;
     data.activity = rows || [];
@@ -193,8 +189,6 @@ export async function exportData(options: ExportOptions) {
 
 async function getStudentIds(options: ExportOptions): Promise<string[]> {
   if (options.studentId) return [options.studentId];
-  let q = supabase.from('students').select('id').eq('teacher_id', options.teacherId);
-  if (options.classId) q = q.eq('class_id', options.classId);
-  const { data } = await q;
+  const { data } = await supabase.from('students').select('id').eq('teacher_id', options.teacherId);
   return (data || []).map((s: { id: string }) => s.id);
 }

@@ -1,6 +1,6 @@
 // POST /admin-create-student
 // {
-//   class_id: uuid,
+//   teacher_id: uuid,
 //   name: string,
 //   email: string,
 //   password: string,
@@ -15,7 +15,7 @@
 import { handleCors, isMasterAdminUserId, jsonResponse, requireAdmin } from '../_shared/admin.ts';
 
 interface Body {
-  class_id?: string;
+  teacher_id?: string;
   name?: string;
   email?: string;
   password?: string;
@@ -33,11 +33,11 @@ Deno.serve(async (req) => {
 
   let body: Body;
   try { body = await req.json(); } catch { return jsonResponse({ error: 'invalid JSON body' }, 400); }
-  const { class_id, name, email, password } = body;
+  const { teacher_id, name, email, password } = body;
   const status = body.status ?? 'active';
 
-  if (!class_id || !name?.trim() || !email?.trim() || !password) {
-    return jsonResponse({ error: 'class_id, name, email and password are required' }, 400);
+  if (!teacher_id || !name?.trim() || !email?.trim() || !password) {
+    return jsonResponse({ error: 'teacher_id, name, email and password are required' }, 400);
   }
   // Minimização de dados: só os dois primeiros nomes. O banco também recusa
   // (constraint students_name_first_two), aqui é só para a mensagem ser clara.
@@ -46,14 +46,14 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'use apenas os dois primeiros nomes do aluno, sem sobrenome' }, 400);
   }
 
-  // 1) Look up the class to derive teacher_id and validate.
-  const { data: klass, error: klassErr } = await admin
-    .from('classes')
-    .select('id, teacher_id')
-    .eq('id', class_id)
+  // 1) Valida o professor.
+  const { data: targetTeacher, error: targetErr } = await admin
+    .from('teachers')
+    .select('id')
+    .eq('id', teacher_id)
     .maybeSingle();
-  if (klassErr) return jsonResponse({ error: 'class lookup failed', detail: klassErr.message }, 500);
-  if (!klass) return jsonResponse({ error: 'class not found' }, 404);
+  if (targetErr) return jsonResponse({ error: 'teacher lookup failed', detail: targetErr.message }, 500);
+  if (!targetTeacher) return jsonResponse({ error: 'teacher not found' }, 404);
   if (!isMasterAdminUserId(callerUserId)) {
     const { data: callerTeacher, error: callerErr } = await admin
       .from('teachers')
@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (callerErr) return jsonResponse({ error: 'teacher lookup failed', detail: callerErr.message }, 500);
     if (!callerTeacher) return jsonResponse({ error: 'forbidden: caller is not a teacher' }, 403);
-    if (klass.teacher_id !== callerTeacher.id) {
-      return jsonResponse({ error: 'forbidden: class is not yours' }, 403);
+    if (teacher_id !== callerTeacher.id) {
+      return jsonResponse({ error: 'forbidden: student would not be yours' }, 403);
     }
   }
 
@@ -85,8 +85,7 @@ Deno.serve(async (req) => {
     .from('students')
     .insert({
       name: cleanName,
-      class_id,
-      teacher_id: klass.teacher_id,
+      teacher_id,
       user_id: authUserId,
       status,
       coins: 0,
@@ -107,7 +106,7 @@ Deno.serve(async (req) => {
     p_target_table: 'students',
     p_target_id:    student?.id ?? null,
     p_target_label: cleanName,
-    p_payload:      { class_id, teacher_id: klass.teacher_id, auth_user_id: authUserId },
+    p_payload:      { teacher_id, auth_user_id: authUserId },
   });
 
   return jsonResponse({ ok: true, student, auth_user_id: authUserId });

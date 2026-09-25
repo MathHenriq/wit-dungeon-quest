@@ -37,11 +37,11 @@ export function TradingPanel({ student, classmates: classmatesProp, inventory, o
     if (classmatesProp && classmatesProp.length > 0) return;
     supabaseAnon
       .from('student_profiles')
-      .select('id, name, character_name, class_id, level, teacher_id, coins, presencas_consecutivas')
-      .eq('class_id', student.class_id)
+      .select('id, name, character_name, level, teacher_id, coins, presencas_consecutivas')
+      .eq('teacher_id', student.teacher_id)
       .eq('status', 'active')
       .then(({ data }) => setClassmates((data ?? []) as Student[]));
-  }, [student.class_id, classmatesProp]);
+  }, [student.teacher_id, classmatesProp]);
   const [receiverId, setReceiverId] = useState('');
   const [myItemId, setMyItemId] = useState('');
   const [theirItemId, setTheirItemId] = useState('');

@@ -8,7 +8,6 @@ import type { Guild } from "@/types";
 interface Props {
   teacherId: string;
   students: { id: string; name: string; character_name: string | null }[];
-  classes: { id: string; name: string }[];
 }
 
 const inputStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)', outline: 'none' };

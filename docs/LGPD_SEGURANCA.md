@@ -9,9 +9,10 @@ O sistema guarda do aluno **apenas**:
 | E-mail | `auth.users` (login) | só o Supabase Auth |
 | Dois primeiros nomes | `students.name` | o próprio aluno, o professor dele, o admin |
 | Nickname do personagem | `students.character_name` | todos os alunos (rankings, trocas, guildas, PvP) |
-| Grupo (código neutro) | `students.class_id` → `classes.name` = `GRUPO-XXXX` | aluno e professor |
+| Professor | `students.teacher_id` | aluno e professor |
 
-Não existe mais: nome completo, escola (`school_name`), turma real, qualquer dado do
+Não existe mais: nome completo, escola (`school_name`), turma (a tabela `classes` e
+todas as colunas `class_id` foram apagadas em 25/09/2026), qualquer dado do
 Google Sala de Aula (`classroom_email`, `classroom_user_id`, tokens OAuth, turmas
 importadas), portal dos pais.
 
@@ -19,17 +20,18 @@ A regra dos dois nomes é imposta em três lugares: `src/lib/privacy.ts` (mensag
 aluno), `register_my_student()` (RPC de cadastro) e a constraint
 `students_name_first_two`.
 
-## Turmas → grupos
+## Sem turmas
 
-O nome do grupo é gerado pelo banco (trigger `classes_force_neutral_code`) e não
-pode ser editado. O professor cria o grupo no painel e passa o código aos alunos em
-sala; o mapeamento código ↔ turma real fica só com o professor, fora do sistema.
+O aluno escolhe só o professor. Tudo que era "da turma" passou a ser "do professor":
+rankings ("Colegas"), trocas, PvP, feed, chefões, cápsula do tempo, analytics.
+Guerra de turmas e comparação entre turmas foram removidas. O ranking semanal
+"sala" deixou de existir; o "geral" já é por professor.
 
 ## Como um aluno vê outro
 
 Só pela view `student_profiles`: nickname, classe, nível, XP e atributos. `name` na
-view é o nickname. Turma e professor só aparecem quando são os mesmos de quem
-consulta; foto nunca aparece. A tabela `students` só devolve a própria linha
+view é o nickname. O professor só aparece quando é o mesmo de quem consulta;
+foto nunca aparece. A tabela `students` só devolve a própria linha
 (professor: os alunos dele; admin: todos).
 
 ## Segurança
@@ -57,9 +59,10 @@ Todas aplicadas em produção em 24/09/2026.
 6. `20260924200400_security_storage_policies.sql`
 7. `20260924200500_security_fix_null_authz.sql` — achado no teste pós-deploy:
    `NULL` nas checagens deixava aluno ler analytics de professor
+8. `20260925120000_remove_classes.sql` — remove turmas por completo (25/09/2026)
 
 Verificado depois de aplicar, simulando os papéis no banco:
-- sem login: 0 alunos, 0 grupos, 0 professores; catálogo do jogo continua público;
+- sem login: 0 alunos, 0 professores; catálogo do jogo continua público;
 - aluno: lê só a própria linha; vê 673 perfis públicos, sem foto e sem nome real;
   não altera as próprias moedas nem as de outro aluno; não chama RPC em nome de
   outro aluno nem analytics de professor;
