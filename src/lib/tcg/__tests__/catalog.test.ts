@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CARD_ID_BY_SHOP_NAME, CATALOG } from '../cards/catalog';
 import { describeCard } from '../describe';
@@ -7,6 +8,11 @@ import shopNames from './shop-names.json';
 describe('catálogo', () => {
   it('cobre exatamente os itens da loja', () => {
     expect([...CARD_ID_BY_SHOP_NAME.keys()].sort()).toEqual(shopNames);
+  });
+
+  it('toda carta tem ilustração em public/cards/art', () => {
+    const sem = CATALOG.filter(c => !existsSync(`public/cards/art/${c.id}.webp`)).map(c => c.id);
+    expect(sem).toEqual([]);
   });
 
   it('ids únicos', () => {
