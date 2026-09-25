@@ -262,7 +262,7 @@ export const ART_PROMPTS_2: Record<string, string> = {
   'lanca-de-madeira': '1boy, ishigami senkuu, dr. stone, spiky green-white hair, wooden spear, stone world forest',
   'erva-medicinal': 'no humans, medicinal herbs, mortar and pestle, glowing green leaves, wooden table, sunlight',
   'kodama': 'no humans, mononoke hime, tiny white ghost-like tree spirits, round heads, black dot eyes, sitting on mossy tree branches, misty forest',
-  'estilingue-kabuto': 'no humans, wooden y-shaped slingshot with rubber band, small seeds, on wooden ship deck, sunset, still life',
+  'estilingue-kabuto': '1boy, usopp, one piece, long nose, bandana, overalls, aiming giant slingshot, pulling rubber band, ship deck, sunset',
   'armadura-de-madeira': 'no humans, wooden armor on stand, bark texture, leaves, forest workshop, fantasy item',
   'raizes-presas': 'no humans, mononoke hime, giant tree roots rising from ground, grabbing, forest, glowing moss',
   'floresta-densa': 'no humans, mononoke hime, dense ancient forest, giant trees, mist, sunbeams, deer silhouette',
