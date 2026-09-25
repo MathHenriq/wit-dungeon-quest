@@ -411,7 +411,7 @@ const ELETRICO: Entry[] = [
     slot: 'weapon',
     passives: [{ kind: 'attackBonus', match: { type: 'attack', element: 'Electric' }, add: 3, label: 'Bastão Dourado' }],
   }),
-  atk('Chidori', 'Electric', 'uncommon', 'Naruto', { damage: 16 }),
+  atk('Chidori', 'Electric', 'rare', 'Naruto', { damage: 16 }),
   atk('Raikiri', 'Electric', 'uncommon', 'Naruto', {
     damage: 14,
     effects: [{ kind: 'destroy', what: 'trap' }],
@@ -422,7 +422,7 @@ const ELETRICO: Entry[] = [
   arm('Para-Raios', 'Electric', 'uncommon', 'One Piece', {
     trap: { trigger: 'opponentAttack', effects: [{ kind: 'damage', amount: 5 }, { kind: 'status', status: 'freeze', turns: 2 }] },
   }),
-  atk('Railgun', 'Electric', 'rare', 'Toaru Kagaku no Railgun', {
+  atk('Railgun', 'Electric', 'epic', 'Toaru Kagaku no Railgun', {
     damage: 18,
     cost: [{ kind: 'discard', count: 1 }],
     effects: [{ kind: 'pierce' }],
@@ -447,7 +447,7 @@ const VENTO: Entry[] = [
     slot: 'weapon',
     passives: [{ kind: 'attackBonus', match: { type: 'attack', element: 'Flying' }, add: 3, label: 'Penas Afiadas' }],
   }),
-  atk('Rasengan', 'Flying', 'uncommon', 'Naruto', {
+  atk('Rasengan', 'Flying', 'rare', 'Naruto', {
     damage: 14,
     effects: [{
       kind: 'conditional',
@@ -459,7 +459,7 @@ const VENTO: Entry[] = [
   des('Dobra de Ar', 'Flying', 'uncommon', 'Avatar', {
     effects: [{ kind: 'draw', count: 1 }, { kind: 'destroy', what: 'trap' }],
   }),
-  atk('Rasenshuriken', 'Flying', 'rare', 'Naruto', {
+  atk('Rasenshuriken', 'Flying', 'epic', 'Naruto', {
     damage: 20,
     cost: [{ kind: 'payLife', amount: 8 }],
     effects: [{ kind: 'status', status: 'bleed', value: 4, turns: 2 }],

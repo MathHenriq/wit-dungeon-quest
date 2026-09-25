@@ -115,17 +115,17 @@ Não existe mais loja de cartas. O deck inicial do aluno também sai de pacotinh
 
 ## Raridade
 
-Raridade é **chance de sair no pacotinho**, não força. Quem equilibra a carta é o custo. A simulação de 15 mil partidas confirma: a taxa média de vitória por raridade fica entre 49% e 53%.
+Raridade é **chance de sair no pacotinho**, não força. Quem equilibra a carta é o custo. A simulação de 15 mil partidas com as 350 cartas confirma: a taxa média de vitória por raridade fica entre 48,6% e 51,6%.
 
-| Raridade | Cartas (de 300) |
+| Raridade | Cartas (de 350) |
 |---|---|
-| Comum | 105 |
-| Incomum | 72 |
-| Rara | 54 |
-| Épica | 36 |
-| Lendária | 20 |
-| Mítica | 9 |
-| Desconhecida | 4 |
+| Comum | 90 |
+| Incomum | 70 |
+| Rara | 65 |
+| Épica | 50 |
+| Lendária | 40 |
+| Mítica | 25 |
+| Desconhecida | 10 |
 
 ## Inimigos
 

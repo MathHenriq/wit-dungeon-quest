@@ -722,7 +722,7 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
 export function playCard(stateIn: GameState, uid: string, choices: PlayChoices = {}): GameState {
   const state = structuredClone(stateIn);
   const check = canPlay(state, uid);
-  if (!check.ok) throw new IllegalPlay(check.reason);
+  if (check.ok === false) throw new IllegalPlay(check.reason);
 
   const i = state.active;
   const p = state.players[i];

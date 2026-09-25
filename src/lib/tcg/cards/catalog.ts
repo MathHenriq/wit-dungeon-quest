@@ -4,17 +4,19 @@
  * Coleção 1 (este arquivo): as cartas da loja do WIT Dungeon 1 traduzidas.
  * Cada entrada guarda o nome que o item tinha na loja (`shop`), para migrar o
  * inventário dos alunos. Coleção 2 (`colecao2.ts`): cartas criadas para o TCG.
+ * Coleção 3 (`colecao3.ts`): os golpes mais icônicos, de Épica para cima.
  * O texto das cartas NÃO é escrito aqui: sai de `describeCard`, a partir dos efeitos.
  *
  * Raridade = chance de sair no pacotinho, NÃO força. O equilíbrio vem do custo:
- * uma Rara forte cobra mais caro que uma Comum simples. A pirâmide alvo para
- * 300 cartas é 105 Comuns, 72 Incomuns, 54 Raras, 36 Épicas, 20 Lendárias,
- * 9 Míticas e 4 Desconhecidas.
+ * uma Rara forte cobra mais caro que uma Comum simples. A distribuição alvo
+ * para 350 cartas é 90 Comuns, 70 Incomuns, 65 Raras, 50 Épicas, 40 Lendárias,
+ * 25 Míticas e 10 Desconhecidas.
  */
 
 import type { CardDef } from '../types';
 import { type Entry, fromShop } from './build';
 import { COLECAO_2 } from './colecao2';
+import { COLECAO_3 } from './colecao3';
 
 const atk = fromShop('attack');
 const des = fromShop('challenger');
@@ -66,11 +68,11 @@ const ARMAMENTOS_COMUNS: Entry[] = [
     passives: [{ kind: 'damageReduction', amount: 2, label: 'Botas de Couro' }],
     effects: [{ kind: 'draw', count: 1 }],
   }),
-  atk('Cannon Arm', 'Braço-Canhão', 'Steel', 'common', 'Berserk', {
+  atk('Cannon Arm', 'Braço-Canhão', 'Steel', 'rare', 'Berserk', {
     damage: 8,
     effects: [{ kind: 'destroy', what: 'armor' }],
   }),
-  atk('Dark Magician', 'Mago Negro', 'Dark', 'common', 'Yu-Gi-Oh!', {
+  atk('Dark Magician', 'Mago Negro', 'Dark', 'rare', 'Yu-Gi-Oh!', {
     damage: 10,
     effects: [{
       kind: 'conditional',
@@ -78,7 +80,7 @@ const ARMAMENTOS_COMUNS: Entry[] = [
       then: [{ kind: 'bonus', add: 6, label: 'Magia Negra' }],
     }],
   }),
-  atk('Disaster', 'Disaster', 'Dark', 'common', 'Seven Deadly Sins', {
+  atk('Disaster', 'Disaster', 'Dark', 'rare', 'Seven Deadly Sins', {
     damage: 8,
     effects: [{ kind: 'discardRandom', count: 1 }],
   }),
@@ -90,7 +92,7 @@ const ARMAMENTOS_COMUNS: Entry[] = [
       then: [{ kind: 'bonus', add: 6, label: 'Enma devora o Haki' }],
     }],
   }),
-  des('Erasure', 'Apagar', 'Dark', 'common', 'My Hero Academia', {
+  des('Erasure', 'Apagar', 'Dark', 'rare', 'My Hero Academia', {
     effects: [{ kind: 'purge', what: 'modifiers', target: 'opponent' }],
   }),
   atk('Explosion Rush', 'Explosion Rush', 'Fire', 'common', 'My Hero Academia', { damage: 12 }),
@@ -106,11 +108,11 @@ const ARMAMENTOS_COMUNS: Entry[] = [
       then: [{ kind: 'bonus', add: 8, label: 'Gear' }],
     }],
   }),
-  atk('gura gura', 'Gura Gura no Mi', 'Ground', 'common', 'One Piece', {
+  atk('gura gura', 'Gura Gura no Mi', 'Ground', 'rare', 'One Piece', {
     damage: 10,
     effects: [{ kind: 'destroy', what: 'trap' }],
   }),
-  atk('Half-Cold Half-Hot', 'Metade Gelo, Metade Fogo', 'Ice', 'common', 'My Hero Academia', {
+  atk('Half-Cold Half-Hot', 'Metade Gelo, Metade Fogo', 'Ice', 'rare', 'My Hero Academia', {
     damage: 10,
     effects: [{
       kind: 'conditional',
@@ -118,7 +120,7 @@ const ARMAMENTOS_COMUNS: Entry[] = [
       then: [{ kind: 'bonus', add: 8, label: 'Lado quente' }],
     }],
   }),
-  atk('Hamon Overdrive', 'Hamon Overdrive', 'Fire', 'common', 'JoJo', {
+  atk('Hamon Overdrive', 'Hamon Overdrive', 'Fire', 'rare', 'JoJo', {
     damage: 10,
     effects: [{ kind: 'heal', amount: 4 }],
   }),
@@ -126,7 +128,7 @@ const ARMAMENTOS_COMUNS: Entry[] = [
     effects: [{ kind: 'draw', count: 1 }],
   }),
   atk('Knight Killer', 'Matadora de Cavaleiros', 'Steel', 'common', 'Solo Leveling', { damage: 12 }),
-  arm('Kurapika’s Chains', 'Correntes de Kurapika', 'Steel', 'common', 'Hunter x Hunter', {
+  arm('Kurapika’s Chains', 'Correntes de Kurapika', 'Steel', 'rare', 'Hunter x Hunter', {
     trap: { trigger: 'opponentAttack', effects: [{ kind: 'damage', amount: 8 }] },
   }),
   cmp('Mana Zone', 'Zona de Mana', 'Flying', 'common', 'Black Clover', {
@@ -148,7 +150,7 @@ const ARMAMENTOS_COMUNS: Entry[] = [
   des('Predator Eye', 'Olho de Predador', 'Dark', 'common', 'Blue Lock', {
     effects: [{ kind: 'addModifier', spec: { match: { type: 'attack' }, add: 6, label: 'Olho de Predador' } }],
   }),
-  arm('Puppet naruto', 'Marionete Venenosa', 'Poison', 'common', 'Naruto', {
+  arm('Puppet naruto', 'Marionete Venenosa', 'Poison', 'rare', 'Naruto', {
     trap: { trigger: 'opponentAttack', effects: [{ kind: 'status', status: 'poison', value: 3, turns: 3 }] },
   }),
   atk('Quick Attack', 'Ataque Rápido', 'Flying', 'common', 'Haikyuu!!', {
@@ -159,16 +161,16 @@ const ARMAMENTOS_COMUNS: Entry[] = [
     slot: 'weapon',
     passives: [{ kind: 'attackBonus', match: { type: 'attack', element: 'Dark' }, add: 4, label: 'Quinque' }],
   }),
-  atk('Rinkaku Kagune', 'Kagune Rinkaku', 'Dark', 'common', 'Tokyo Ghoul', {
+  atk('Rinkaku Kagune', 'Kagune Rinkaku', 'Dark', 'rare', 'Tokyo Ghoul', {
     damage: 10,
     effects: [{ kind: 'lifesteal', ratio: 0.5 }],
   }),
-  atk('samehada', 'Samehada', 'Water', 'common', 'Naruto', {
+  atk('samehada', 'Samehada', 'Water', 'rare', 'Naruto', {
     damage: 8,
     effects: [{ kind: 'lifesteal', ratio: 1 }],
   }),
   atk('Sekki', 'Sekki', 'Ghost', 'common', 'Noragami', { damage: 12 }),
-  arm('Sharingan', 'Sharingan', 'Dark', 'common', 'Naruto', {
+  arm('Sharingan', 'Sharingan', 'Dark', 'rare', 'Naruto', {
     trap: { trigger: 'opponentPlays', filter: { type: 'challenger' }, effects: [{ kind: 'draw', count: 1 }] },
   }),
   eqp('Staff of Frieren', 'Cajado de Frieren', 'Ice', 'common', 'Frieren', {
@@ -202,7 +204,7 @@ const ARMAMENTOS_EPICOS: Entry[] = [
     damage: 22,
     effects: [{ kind: 'status', status: 'burn', value: 4, turns: 2 }],
   }),
-  atk('Golpe Conquistador', 'Golpe Conquistador', 'Fighting', 'rare', 'One Piece', {
+  atk('Golpe Conquistador', 'Golpe Conquistador', 'Fighting', 'epic', 'One Piece', {
     damage: 22,
     cost: [{ kind: 'discard', count: 1 }],
     effects: [{ kind: 'lock', cardType: 'attack', turns: 1 }],
@@ -215,7 +217,7 @@ const ARMAMENTOS_EPICOS: Entry[] = [
       then: [{ kind: 'bonus', mult: 2, label: 'Dança do Deus do Fogo' }],
     }],
   }),
-  atk('Inverted Spear of Heaven', 'Lança Invertida do Céu', 'Steel', 'rare', 'Jujutsu Kaisen', {
+  atk('Inverted Spear of Heaven', 'Lança Invertida do Céu', 'Steel', 'epic', 'Jujutsu Kaisen', {
     damage: 18,
     effects: [
       { kind: 'purge', what: 'modifiers', target: 'opponent' },
@@ -230,7 +232,7 @@ const ARMAMENTOS_EPICOS: Entry[] = [
     damage: 14,
     effects: [{ kind: 'status', status: 'poison', value: 5, turns: 3 }],
   }),
-  atk('One For All Smash', 'Smash do One For All', 'Fighting', 'rare', 'My Hero Academia', {
+  atk('One For All Smash', 'Smash do One For All', 'Fighting', 'epic', 'My Hero Academia', {
     damage: 30,
     cost: [{ kind: 'payLife', amount: 10 }],
   }),
@@ -381,7 +383,7 @@ const ARMAMENTOS_LENDARIOS: Entry[] = [
       { kind: 'damageReduction', amount: 3, label: 'Forja Divina' },
     ],
   }),
-  atk('Z Sword', 'Espada Z', 'Steel', 'rare', 'Dragon Ball', {
+  atk('Z Sword', 'Espada Z', 'Steel', 'epic', 'Dragon Ball', {
     damage: 24,
     cost: [{ kind: 'discard', count: 1 }],
     effects: [{ kind: 'draw', count: 2 }],
@@ -582,7 +584,7 @@ const ARMAMENTOS_DESCONHECIDOS: Entry[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const COLECAO: Entry[] = [
-  des('Behelit', 'Behelit', 'Dark', 'common', 'Berserk', {
+  des('Behelit', 'Behelit', 'Dark', 'rare', 'Berserk', {
     cost: [{ kind: 'payLife', amount: 10 }],
     effects: [{ kind: 'draw', count: 2 }],
   }),
@@ -605,7 +607,7 @@ const COLECAO: Entry[] = [
     slot: 'weapon',
     passives: [{ kind: 'attackBonus', match: { type: 'attack', element: 'Electric' }, add: 4, label: 'Recipiente de Metal' }],
   }),
-  des('Millennium Puzzle', 'Enigma do Milênio', 'Dark', 'common', 'Yu-Gi-Oh!', {
+  des('Millennium Puzzle', 'Enigma do Milênio', 'Dark', 'rare', 'Yu-Gi-Oh!', {
     effects: [{ kind: 'draw', count: 2 }],
   }),
   atk('Pequena espada', 'Pequena Espada', 'Steel', 'common', null, {
@@ -723,7 +725,7 @@ const HABILIDADES: Entry[] = [
       { kind: 'addModifier', spec: { match: { type: 'attack', element: 'Flying' }, add: 4, label: 'Meta Visão' } },
     ],
   }),
-  des('Ruler’s Authority', 'Autoridade do Governante', 'Ghost', 'common', 'Solo Leveling', {
+  des('Ruler’s Authority', 'Autoridade do Governante', 'Ghost', 'rare', 'Solo Leveling', {
     effects: [{ kind: 'destroy', what: 'trap' }],
   }),
   des('Soul Resonance', 'Ressonância de Almas', 'Ghost', 'common', 'Soul Eater', {
@@ -947,6 +949,7 @@ const ENTRIES: Entry[] = [
   ...COLECAO,
   ...HABILIDADES,
   ...COLECAO_2,
+  ...COLECAO_3,
 ];
 
 /** Todas as cartas oficiais. */

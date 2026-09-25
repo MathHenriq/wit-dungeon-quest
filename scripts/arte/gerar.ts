@@ -17,9 +17,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { CATALOG } from '../../src/lib/tcg/cards/catalog';
 import { FULL_ART_RARITIES } from '../../src/lib/tcg/labels';
 import type { CardDef } from '../../src/lib/tcg/types';
-import { ART_PROMPTS as P1, ART_PROMPTS_2 } from './prompts';
+import { ART_PROMPTS as P1, ART_PROMPTS_2, ART_PROMPTS_3 } from './prompts';
 
-const ART_PROMPTS: Record<string, string> = { ...P1, ...ART_PROMPTS_2 };
+const ART_PROMPTS: Record<string, string> = { ...P1, ...ART_PROMPTS_2, ...ART_PROMPTS_3 };
 
 const API = 'https://aihorde.net/api/v2';
 const HEADERS = {

@@ -19,7 +19,8 @@
     "db:migrate": "supabase db push",
     "test:build": "vite build && node scripts/smoke-build.mjs",
     "smoke": "node scripts/smoke-build.mjs",
-    "perf": "node scripts/perf.mjs"
+    "perf": "node scripts/perf.mjs",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
