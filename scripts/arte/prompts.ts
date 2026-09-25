@@ -344,7 +344,7 @@ export const ART_PROMPTS_2: Record<string, string> = {
   'penas-afiadas': '1boy, hawks (boku no hero academia), boku no hero academia, red wings, blonde hair, feathers flying',
   'rasengan': '1boy, uzumaki naruto, naruto (series), orange jumpsuit, rasengan, blue spinning sphere in hand',
   'tatsumaki': '1boy, roronoa zoro, one piece, green hair, three swords, tornado slash, wind',
-  'dobra-de-ar': '1boy, aang, avatar: the last airbender, child, bald, blue arrow tattoo, orange monk robes, air scooter, wind',
+  'dobra-de-ar': 'no humans, avatar: the last airbender, airbending, swirling ball of air, spiraling wind, air temple on mountain, clouds, orange and yellow prayer flags',
   'rasenshuriken': '1boy, uzumaki naruto, naruto (series), sage mode, rasenshuriken, giant wind shuriken',
   'ceus-de-skypiea': 'no humans, one piece, skypiea, sky island, white clouds sea, giant beanstalk, blue sky',
   // Luta
