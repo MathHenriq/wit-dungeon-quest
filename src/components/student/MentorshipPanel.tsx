@@ -33,8 +33,8 @@ export function MentorshipPanel({ student }: MentorshipPanelProps) {
       setMentorship(m);
       // Load mentor/mentee info
       const [{ data: mentorData }, { data: menteeData }] = await Promise.all([
-        supabaseStudent.from("students").select("*").eq("id", m.mentor_id).maybeSingle(),
-        supabaseStudent.from("students").select("*").eq("id", m.mentee_id).maybeSingle(),
+        supabaseStudent.from("student_profiles").select("*").eq("id", m.mentor_id).maybeSingle(),
+        supabaseStudent.from("student_profiles").select("*").eq("id", m.mentee_id).maybeSingle(),
       ]);
       setMentorStudent(mentorData as unknown as Student | null);
       setMenteeStudent(menteeData as unknown as Student | null);

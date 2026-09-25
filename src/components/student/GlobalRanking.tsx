@@ -918,7 +918,6 @@ function Divider({ color }: { color: string }) {
 
 // Test admin account — hidden from all rankings (see migration
 // 20260429010000_create_admin_test_student.sql).
-const ADMIN_STUDENT_NAME = "Conta ADM Teste";
 
 export function GlobalRanking({ student }: GlobalRankingProps) {
   const [activeScope, setActiveScope] = useState<RankScope>("sala");
@@ -936,9 +935,9 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
   useEffect(() => {
     if (loadedRef.current.class) return;
     loadedRef.current.class = true;
-    supabaseStudent.from("students").select(SELECT)
+    supabaseStudent.from("student_profiles").select(SELECT)
       .eq("class_id", student.class_id).eq("status", "active")
-      .neq("name", ADMIN_STUDENT_NAME)
+      .eq("is_test_account", false)
       .order("level", { ascending: false })
       .then(({ data }) => {
         setClassEntries((data || []) as RankEntry[]);
@@ -949,9 +948,9 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
   useEffect(() => {
     if (loadedRef.current.world) return;
     loadedRef.current.world = true;
-    supabaseStudent.from("students").select(SELECT)
+    supabaseStudent.from("student_profiles").select(SELECT)
       .eq("status", "active")
-      .neq("name", ADMIN_STUDENT_NAME)
+      .eq("is_test_account", false)
       .order("level", { ascending: false })
       .limit(100)
       .then(({ data, error }) => {
@@ -968,7 +967,7 @@ export function GlobalRanking({ student }: GlobalRankingProps) {
     (async () => {
       // Resolve guilds the ADM belongs to so we can exclude them.
       const { data: adminRows } = await supabaseStudent
-        .from("students").select("id").eq("name", ADMIN_STUDENT_NAME).limit(1);
+        .from("student_profiles").select("id").eq("is_test_account", true).limit(1);
       const adminId = adminRows?.[0]?.id ?? null;
 
       let excludedGuildIds: string[] = [];

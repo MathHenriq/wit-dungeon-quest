@@ -43,8 +43,6 @@ export interface Student {
   personality: string | null;
   presencas_consecutivas: number;
   profile_photo_url: string | null;
-  /** School the student attends — used for the "escola" ranking scope. */
-  school_name?: string | null;
   /** Auth user id for students who self-registered via email/password. Null for imported students. */
   user_id?: string | null;
   /** 'pending' = awaiting teacher approval, 'active' = full access. */

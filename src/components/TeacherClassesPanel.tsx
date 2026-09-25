@@ -12,8 +12,11 @@ interface TeacherClassesPanelProps {
   onDataChanged: () => void;
 }
 
+// Grupos no lugar de turmas. O nome é um código neutro gerado pelo banco
+// (trigger em `classes`, ex.: GRUPO-7K3F) — nada de série, escola ou nome do
+// professor, para que um vazamento não ligue o aluno à turma real. O
+// professor passa o código aos alunos em sala; o mapeamento fica com ele.
 export function TeacherClassesPanel({ teacherId, classes, students, onDataChanged }: TeacherClassesPanelProps) {
-  const [newClassName, setNewClassName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Class | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -22,9 +25,7 @@ export function TeacherClassesPanel({ teacherId, classes, students, onDataChange
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClassName.trim() || isAdding) return;
-
-    const name = newClassName.trim();
+    if (isAdding) return;
     setIsAdding(true);
 
     const timeout = setTimeout(() => {
@@ -33,19 +34,19 @@ export function TeacherClassesPanel({ teacherId, classes, students, onDataChange
     }, 10000);
 
     try {
-      const { error } = await supabase.from("classes").insert({ teacher_id: teacherId, name });
+      // `name` é sobrescrito pelo trigger classes_force_neutral_code.
+      const { error } = await supabase.from("classes").insert({ teacher_id: teacherId, name: "GRUPO" });
       clearTimeout(timeout);
 
       if (error) {
-        toast.error("Erro ao criar turma", { description: error.message });
+        toast.error("Erro ao criar grupo", { description: error.message });
       } else {
-        toast.success("Turma criada!");
-        setNewClassName("");
+        toast.success("Grupo criado! Passe o código aos alunos.");
         onDataChanged();
       }
     } catch {
       clearTimeout(timeout);
-      toast.error("Erro inesperado ao criar turma. Tente novamente.");
+      toast.error("Erro inesperado ao criar grupo. Tente novamente.");
     } finally {
       clearTimeout(timeout);
       setIsAdding(false);
@@ -60,9 +61,9 @@ export function TeacherClassesPanel({ teacherId, classes, students, onDataChange
       const { error } = await supabase.from("classes").delete().eq("id", deleteTarget.id);
 
       if (error) {
-        toast.error("Erro ao excluir turma", { description: error.message });
+        toast.error("Erro ao excluir grupo", { description: error.message });
       } else {
-        toast.success(`Turma "${deleteTarget.name}" excluída!`);
+        toast.success(`Grupo "${deleteTarget.name}" excluído!`);
         onDataChanged();
       }
     } catch {
@@ -76,16 +77,13 @@ export function TeacherClassesPanel({ teacherId, classes, students, onDataChange
   return (
     <div className="space-y-4">
       <form onSubmit={handleAdd} className="card-fantasy flex gap-3">
-        <input
-          type="text"
-          value={newClassName}
-          onChange={e => setNewClassName(e.target.value)}
-          placeholder="Nome da turma (ex: 7A)"
-          className="flex-1 px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-        />
+        <p className="flex-1 text-sm text-muted-foreground self-center">
+          Cada grupo recebe um código neutro. Não é possível usar o nome real da turma
+          ou da escola, por exigência de proteção de dados dos alunos.
+        </p>
         <button type="submit" disabled={isAdding} className="btn-fantasy flex items-center gap-2 disabled:opacity-50">
           <Plus size={18} />
-          {isAdding ? "Criando..." : "Criar"}
+          {isAdding ? "Criando..." : "Novo grupo"}
         </button>
       </form>
 
@@ -104,7 +102,7 @@ export function TeacherClassesPanel({ teacherId, classes, students, onDataChange
                 <button
                   onClick={() => setDeleteTarget(cls)}
                   className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-                  title="Excluir turma"
+                  title="Excluir grupo"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -118,11 +116,11 @@ export function TeacherClassesPanel({ teacherId, classes, students, onDataChange
         open={!!deleteTarget}
         onOpenChange={open => !open && setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
-        title="Excluir turma?"
+        title="Excluir grupo?"
         description={`Você está prestes a excluir "${deleteTarget?.name}". Esta ação não pode ser desfeita.`}
         warning={
           deleteTarget && getStudentCount(deleteTarget.id) > 0
-            ? `Esta turma possui ${getStudentCount(deleteTarget.id)} aluno(s) vinculado(s). Eles também serão removidos.`
+            ? `Este grupo possui ${getStudentCount(deleteTarget.id)} aluno(s) vinculado(s). Eles também serão removidos.`
             : undefined
         }
         isLoading={isDeleting}
