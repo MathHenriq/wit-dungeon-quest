@@ -6,7 +6,6 @@ import { useTeacherAnalytics } from "@/hooks/useTeacherAnalytics";
 import { AnalyticsOverview } from "@/components/analytics/AnalyticsOverview";
 import { DailyActivityChart } from "@/components/analytics/DailyActivityChart";
 import { EngagementHeatmap } from "@/components/analytics/EngagementHeatmap";
-import { ClassComparisonChart } from "@/components/analytics/ClassComparisonChart";
 import { StudentRiskPanel } from "@/components/analytics/StudentRiskPanel";
 import { StudentDNARadar } from "@/components/analytics/StudentDNARadar";
 import { AchievementTimeline } from "@/components/analytics/AchievementTimeline";
@@ -21,14 +20,13 @@ import { toast } from "sonner";
 export default function TeacherAnalytics() {
   const { teacher, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [students, setStudents] = useState<{ id: string; name: string }[]>([]);
   const [seeding, setSeeding] = useState(false);
   const [clearing, setClearing] = useState(false);
 
   const {
     filters, setFilters,
-    overview, heatmap, dailyActivity, riskScores, classComparison,
+    overview, heatmap, dailyActivity, riskScores,
     isLoading, loadStudentDNA, seedDemo, clearDemo, refresh,
   } = useTeacherAnalytics(teacher?.id);
 
@@ -38,8 +36,6 @@ export default function TeacherAnalytics() {
 
   useEffect(() => {
     if (!teacher) return;
-    supabase.from("classes").select("id, name").eq("teacher_id", teacher.id).order("name")
-      .then(({ data }) => setClasses(data ?? []));
     supabase.from("students").select("id, name").eq("teacher_id", teacher.id).eq("status", "active").order("name")
       .then(({ data }) => setStudents(data ?? []));
   }, [teacher]);
@@ -105,7 +101,7 @@ export default function TeacherAnalytics() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <AnalyticsFilters filters={filters} onChange={setFilters} classes={classes} />
+            <AnalyticsFilters filters={filters} onChange={setFilters} />
             <Button
               variant="outline"
               size="sm"
@@ -123,33 +119,24 @@ export default function TeacherAnalytics() {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Weekly Summary */}
         {teacher && (
-          <WeeklySummary teacherId={teacher.id} classId={filters.classId} />
+          <WeeklySummary teacherId={teacher.id} />
         )}
 
         {/* KPI Overview */}
         <AnalyticsOverview overview={overview} isLoading={isLoading} />
 
         {/* Daily Activity */}
-        <DailyActivityChart
-          data={dailyActivity}
-          isLoading={isLoading}
-          classes={classes}
-          onClassChange={(classId) => setFilters((f) => ({ ...f, classId }))}
-        />
+        <DailyActivityChart data={dailyActivity} isLoading={isLoading} />
 
-        {/* Heatmap + Class Comparison */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <EngagementHeatmap data={heatmap} isLoading={isLoading} />
-          <ClassComparisonChart data={classComparison} isLoading={isLoading} />
-        </div>
+        <EngagementHeatmap data={heatmap} isLoading={isLoading} />
 
         {/* Risk Panel */}
-        <StudentRiskPanel data={riskScores} isLoading={isLoading} classes={classes} />
+        <StudentRiskPanel data={riskScores} isLoading={isLoading} />
 
         {/* DNA Radar + Achievement Timeline */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <StudentDNARadar students={students} loadStudentDNA={loadStudentDNA} isLoading={isLoading} />
-          <AchievementTimeline teacherId={teacher?.id ?? ""} classId={filters.classId} />
+          <AchievementTimeline teacherId={teacher?.id ?? ""} />
         </div>
 
         {/* Demo Seed */}
@@ -185,7 +172,7 @@ export default function TeacherAnalytics() {
         {/* Full Export */}
         <div className="px-4 pb-8">
           {teacher && (
-            <FullExport teacherId={teacher.id} classes={classes} students={students} />
+            <FullExport teacherId={teacher.id} students={students} />
           )}
         </div>
       </main>

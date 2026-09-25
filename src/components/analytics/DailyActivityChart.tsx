@@ -1,7 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
 
 interface DayData {
   date: string;
@@ -14,8 +12,6 @@ interface DayData {
 interface Props {
   data: DayData[] | null;
   isLoading: boolean;
-  classes: { id: string; name: string }[];
-  onClassChange: (classId: string | null) => void;
 }
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
@@ -30,14 +26,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   );
 };
 
-export function DailyActivityChart({ data, isLoading, classes, onClassChange }: Props) {
-  const [selectedClass, setSelectedClass] = useState<string>("all");
-
-  const handleChange = (v: string) => {
-    setSelectedClass(v);
-    onClassChange(v === "all" ? null : v);
-  };
-
+export function DailyActivityChart({ data, isLoading }: Props) {
   const formatted = (data ?? []).map((d) => ({
     ...d,
     date: new Date(d.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
@@ -47,15 +36,6 @@ export function DailyActivityChart({ data, isLoading, classes, onClassChange }: 
     <div className="card-fantasy">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h3 className="font-display text-lg text-gold">📈 Atividade Diária</h3>
-        <Select value={selectedClass} onValueChange={handleChange}>
-          <SelectTrigger className="w-44 bg-dungeon-dark border-gold/30 text-primary-foreground">
-            <SelectValue placeholder="Todas as turmas" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as turmas</SelectItem>
-            {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
       </div>
 
       {isLoading ? (

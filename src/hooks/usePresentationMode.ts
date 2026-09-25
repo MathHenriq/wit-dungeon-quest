@@ -2,16 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Student } from "@/types";
 
-export interface ClassWar {
-  id: string;
-  title: string;
-  class_a_id: string;
-  class_b_id: string;
-  class_a_score: number;
-  class_b_score: number;
-  ends_at: string;
-}
-
 export interface LiveAchievement {
   id: string;
   student_name: string;
@@ -20,47 +10,23 @@ export interface LiveAchievement {
   created_at: string;
 }
 
-export type PresentationView = 'leaderboard' | 'classwar' | 'achievements' | 'stats';
+export type PresentationView = 'leaderboard' | 'achievements' | 'stats';
 
-export function usePresentationMode(teacherId: string, classId?: string) {
+export function usePresentationMode(teacherId: string) {
   const [students, setStudents] = useState<Student[]>([]);
   const [achievements, setAchievements] = useState<LiveAchievement[]>([]);
-  const [classWar, setClassWar] = useState<ClassWar | null>(null);
-  const [classNames, setClassNames] = useState<Record<string, string>>({});
   const [view, setView] = useState<PresentationView>('leaderboard');
   const [isLoading, setIsLoading] = useState(true);
   const [onlineCount, setOnlineCount] = useState(0);
 
   const loadStudents = useCallback(async () => {
-    let q = supabase
+    const { data } = await supabase
       .from('students')
       .select('*')
       .eq('teacher_id', teacherId)
       .eq('status', 'active')
       .order('xp', { ascending: false });
-    if (classId) q = q.eq('class_id', classId);
-    const { data } = await q;
     setStudents((data ?? []) as Student[]);
-  }, [teacherId, classId]);
-
-  const loadClassWar = useCallback(async () => {
-    const { data } = await supabase
-      .from('class_wars')
-      .select('*')
-      .eq('teacher_id', teacherId)
-      .eq('status', 'active')
-      .gte('ends_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setClassWar(data as ClassWar | null);
-  }, [teacherId]);
-
-  const loadClasses = useCallback(async () => {
-    const { data } = await supabase.from('classes').select('id, name').eq('teacher_id', teacherId);
-    const m: Record<string, string> = {};
-    for (const c of data ?? []) m[c.id] = c.name;
-    setClassNames(m);
   }, [teacherId]);
 
   const loadAchievements = useCallback(async () => {
@@ -103,7 +69,7 @@ export function usePresentationMode(teacherId: string, classId?: string) {
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
-      await Promise.all([loadStudents(), loadClassWar(), loadClasses(), loadAchievements()]);
+      await Promise.all([loadStudents(), loadAchievements()]);
       setIsLoading(false);
     };
     init();
@@ -122,7 +88,6 @@ export function usePresentationMode(teacherId: string, classId?: string) {
           created_at: row.created_at,
         }, ...prev].slice(0, 20));
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'class_wars' }, () => loadClassWar())
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') setOnlineCount(prev => prev);
       });
@@ -143,7 +108,7 @@ export function usePresentationMode(teacherId: string, classId?: string) {
       supabase.removeChannel(channel);
       supabase.removeChannel(presenceChannel);
     };
-  }, [teacherId, loadStudents, loadClassWar, loadClasses, loadAchievements]);
+  }, [teacherId, loadStudents, loadAchievements]);
 
-  return { students, achievements, classWar, classNames, view, setView, isLoading, onlineCount };
+  return { students, achievements, view, setView, isLoading, onlineCount };
 }

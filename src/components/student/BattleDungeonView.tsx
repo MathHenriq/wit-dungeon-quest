@@ -111,7 +111,6 @@ interface BattleDungeonViewProps {
   character:         BattleCharacter;
   studentId:         string;
   teacherId:         string;
-  classId?:          string;
   onRewardApplied?:  () => void;
   onBack:            () => void;
 }
@@ -122,7 +121,6 @@ export function BattleDungeonView({
   character, 
   studentId, 
   teacherId, 
-  classId, 
   onRewardApplied, 
   onBack 
 }: BattleDungeonViewProps) {
@@ -344,9 +342,9 @@ export function BattleDungeonView({
 
               // 4. Track Analytics
               if (phase.enemy.isBoss) {
-                trackBossAttempt(teacherId, studentId, classId ?? '', phase.enemy.id, true, xp);
+                trackBossAttempt(teacherId, studentId, phase.enemy.id, true, xp);
               } else {
-                trackEnemyVictory(teacherId, studentId, classId ?? '', String(phase.floor.id), phase.enemy.id, xp);
+                trackEnemyVictory(teacherId, studentId, String(phase.floor.id), phase.enemy.id, xp);
               }
 
               // 5. Transition to victory screen once both drop pools resolved.

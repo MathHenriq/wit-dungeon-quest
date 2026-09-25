@@ -19,11 +19,10 @@ const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
 
 interface Props {
   teacherId: string;
-  classes: { id: string; name: string }[];
   onDataChanged?: () => void;
 }
 
-export function TeacherAIGenerator({ teacherId, classes, onDataChanged }: Props) {
+export function TeacherAIGenerator({ teacherId, onDataChanged }: Props) {
   const [apiKey, setApiKeyState] = useState(getApiKey());
   const [showKey, setShowKey] = useState(false);
   const [showKeyInput, setShowKeyInput] = useState(!getApiKey());
@@ -34,7 +33,6 @@ export function TeacherAIGenerator({ teacherId, classes, onDataChanged }: Props)
   const [generateChallenges, setGenerateChallenges] = useState(true);
   const [generateSkillNodes, setGenerateSkillNodes] = useState(false);
   const [difficulty, setDifficulty] = useState<Difficulty>('normal');
-  const [classId, setClassId] = useState(classes[0]?.id ?? '');
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -88,7 +86,6 @@ export function TeacherAIGenerator({ teacherId, classes, onDataChanged }: Props)
       if (editedMissions.length > 0) {
         const rows = editedMissions.map(m => ({
           teacher_id: teacherId,
-          class_id: classId || null,
           title: m.title,
           description: m.description,
           reward: m.reward,
@@ -104,8 +101,7 @@ export function TeacherAIGenerator({ teacherId, classes, onDataChanged }: Props)
           .from('boss_battles')
           .insert({
             teacher_id: teacherId,
-            class_id: classId || null,
-            title: editedBoss.title,
+              title: editedBoss.title,
             boss_name: editedBoss.boss_name,
             boss_hp: editedBoss.boss_hp,
             reward_coins: editedBoss.reward_coins,
@@ -134,7 +130,6 @@ export function TeacherAIGenerator({ teacherId, classes, onDataChanged }: Props)
       if (editedChallenges.length > 0) {
         const rows = editedChallenges.map(c => ({
           teacher_id: teacherId,
-          class_id: classId || null,
           title: c.title,
           description: c.description,
           reward: c.reward,
@@ -276,19 +271,6 @@ export function TeacherAIGenerator({ teacherId, classes, onDataChanged }: Props)
             </select>
           </div>
 
-          {classes.length > 0 && (
-            <div>
-              <label className="text-sm font-semibold text-foreground block mb-1">Turma:</label>
-              <select
-                value={classId}
-                onChange={e => setClassId(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="">— Todas as turmas —</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-          )}
         </div>
       </div>
 

@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Award, Star, Heart, Crown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import type { TitleType, Student, StudentTitle, Class } from "@/types";
+import type { TitleType, Student, StudentTitle } from "@/types";
 
 interface TeacherTitlesPanelProps {
   teacherId: string;
   students: Student[];
-  classes: Class[];
   titles: StudentTitle[];
   onDataChanged: () => void;
 }
@@ -21,19 +20,15 @@ const TITLE_OPTIONS: { value: TitleType; label: string; icon: typeof Award }[] =
 export function TeacherTitlesPanel({
   teacherId,
   students,
-  classes,
   titles,
   onDataChanged,
 }: TeacherTitlesPanelProps) {
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedTitle, setSelectedTitle] = useState<TitleType>("helper_of_week");
   const [durationDays, setDurationDays] = useState(7);
-  const [filterClass, setFilterClass] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
 
-  const filteredStudents = filterClass
-    ? students.filter((s) => s.class_id === filterClass)
-    : students;
+  const filteredStudents = students;
 
   const activeTitles = titles.filter((t) => new Date(t.expires_at) > new Date());
 
@@ -118,25 +113,6 @@ export function TeacherTitlesPanel({
         </h3>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label className="text-sm text-muted-foreground">Filtrar por turma</label>
-            <select
-              value={filterClass}
-              onChange={(e) => {
-                setFilterClass(e.target.value);
-                setSelectedStudent("");
-              }}
-              className="w-full px-3 py-2 rounded-lg bg-background border border-border"
-            >
-              <option value="">Todas as turmas</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div>
             <label className="text-sm text-muted-foreground">Aluno</label>
             <select

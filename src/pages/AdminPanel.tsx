@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/hooks/useAdmin";
 import type {
-  AdminClassRow, AdminStudentRow, AdminTeacherRow, ShopItemLite, ActionLogRow,
+  AdminStudentRow, AdminTeacherRow, ShopItemLite, ActionLogRow,
 } from "@/hooks/useAdmin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -101,7 +101,6 @@ export default function AdminPanel() {
 
   const [loading, setLoading] = useState(true);
   const [teachers, setTeachers] = useState<AdminTeacherRow[]>([]);
-  const [classes,  setClasses]  = useState<AdminClassRow[]>([]);
   const [students, setStudents] = useState<AdminStudentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -119,7 +118,6 @@ export default function AdminPanel() {
     try {
       const data = await adminApi.list();
       setTeachers(data.teachers);
-      setClasses(data.classes);
       setStudents(data.students);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -169,7 +167,6 @@ export default function AdminPanel() {
         <TabsList style={{ background: "rgba(255,255,255,0.04)" }}>
           <TabsTrigger value="students">Alunos ({students.length})</TabsTrigger>
           <TabsTrigger value="teachers">Professores ({teachers.length})</TabsTrigger>
-          <TabsTrigger value="classes">Turmas ({classes.length})</TabsTrigger>
           <TabsTrigger value="wave11classes">Classes (S2)</TabsTrigger>
           <TabsTrigger value="tickets">Tickets</TabsTrigger>
           <TabsTrigger value="events">Eventos</TabsTrigger>
@@ -180,7 +177,7 @@ export default function AdminPanel() {
 
         <TabsContent value="students">
           <StudentsTab
-            students={students} classes={classes} teachers={teachers}
+            students={students} teachers={teachers}
             loading={loading} onChanged={load}
             onDeleted={(id) => setStudents(prev => prev.filter(s => s.id !== id))}
           />
@@ -188,15 +185,8 @@ export default function AdminPanel() {
 
         <TabsContent value="teachers">
           <TeachersTab
-            teachers={teachers} classes={classes} students={students}
+            teachers={teachers} students={students}
             currentUserId={teacher?.user_id ?? null}
-            loading={loading} onChanged={load}
-          />
-        </TabsContent>
-
-        <TabsContent value="classes">
-          <ClassesTab
-            classes={classes} teachers={teachers} students={students}
             loading={loading} onChanged={load}
           />
         </TabsContent>
@@ -233,17 +223,16 @@ export default function AdminPanel() {
 // STUDENTS TAB
 // =====================================================
 function StudentsTab({
-  students, classes, teachers, loading, onChanged, onDeleted,
+  students, teachers, loading, onChanged, onDeleted,
 }: {
   students: AdminStudentRow[];
-  classes: AdminClassRow[];
   teachers: AdminTeacherRow[];
   loading: boolean;
   onChanged: () => void | Promise<void>;
   onDeleted: (id: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [classFilter, setClassFilter] = useState<string>("");
+  const [teacherFilter, setTeacherFilter] = useState<string>("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [pwdTarget, setPwdTarget] = useState<AdminStudentRow | null>(null);
@@ -254,19 +243,18 @@ function StudentsTab({
   const [titleTarget, setTitleTarget] = useState<AdminStudentRow | null>(null);
 
   const teacherById = useMemo(() => new Map(teachers.map(t => [t.id, t])), [teachers]);
-  const classById   = useMemo(() => new Map(classes.map(c => [c.id, c])), [classes]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return students.filter(s => {
-      if (classFilter && s.class_id !== classFilter) return false;
+      if (teacherFilter && s.teacher_id !== teacherFilter) return false;
       if (!q) return true;
       return (
         s.name.toLowerCase().includes(q) ||
         (s.email ?? "").toLowerCase().includes(q)
       );
     });
-  }, [students, search, classFilter]);
+  }, [students, search, teacherFilter]);
 
   async function performDelete(s: AdminStudentRow) {
     setBusyId(s.id);
@@ -297,12 +285,12 @@ function StudentsTab({
           />
         </div>
         <select
-          value={classFilter}
-          onChange={e => setClassFilter(e.target.value)}
+          value={teacherFilter}
+          onChange={e => setTeacherFilter(e.target.value)}
           style={{ ...inputStyle, width: 240 }}
         >
-          <option value="">Todas as turmas</option>
-          {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          <option value="">Todos os professores</option>
+          {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         <button onClick={() => setCreateOpen(true)} style={btnPrimary}>
           <UserPlus size={14} /> Criar aluno
@@ -317,7 +305,7 @@ function StudentsTab({
             <thead>
               <tr style={{ textAlign: "left", color: "rgba(255,255,255,0.5)", fontSize: 11, textTransform: "uppercase" }}>
                 <th style={th}>Nome</th>
-                <th style={th}>Turma / Professor</th>
+                <th style={th}>Professor</th>
                 <th style={th}>E-mail</th>
                 <th style={th}>Status</th>
                 <th style={th}>Lvl</th>
@@ -326,15 +314,11 @@ function StudentsTab({
             </thead>
             <tbody>
               {filtered.map(s => {
-                const klass = classById.get(s.class_id);
-                const teacherName = klass ? teacherById.get(klass.teacher_id)?.name ?? "—" : "—";
+                const teacherName = teacherById.get(s.teacher_id)?.name ?? "—";
                 return (
                   <tr key={s.id} style={trStyle}>
                     <td style={td}>{s.name}</td>
-                    <td style={td}>
-                      <div style={{ fontSize: 13 }}>{klass?.name ?? "—"}</div>
-                      <div style={{ fontSize: 11, opacity: 0.6 }}>{teacherName}</div>
-                    </td>
+                    <td style={td}>{teacherName}</td>
                     <td style={{ ...td, fontFamily: "monospace", fontSize: 12 }}>{s.email ?? "—"}</td>
                     <td style={td}>
                       <span style={statusPill(s.status)}>{s.status}</span>
@@ -344,7 +328,7 @@ function StudentsTab({
                       <button
                         onClick={() => setMoveTarget(s)}
                         style={btnBase}
-                        title="Mudar de turma"
+                        title="Mudar de professor"
                       >
                         <Move size={12} />
                       </button>
@@ -399,7 +383,7 @@ function StudentsTab({
 
       <CreateStudentModal
         open={createOpen}
-        classes={classes}
+        teachers={teachers}
         onClose={() => setCreateOpen(false)}
         onCreated={async () => { setCreateOpen(false); await onChanged(); }}
       />
@@ -410,9 +394,9 @@ function StudentsTab({
         onClose={() => setPwdTarget(null)}
       />
 
-      <MoveClassModal
+      <MoveTeacherModal
         target={moveTarget}
-        classes={classes}
+        teachers={teachers}
         onClose={() => setMoveTarget(null)}
         onMoved={async () => { setMoveTarget(null); await onChanged(); }}
       />
@@ -549,10 +533,9 @@ function GrantTitleModal({ target, onClose }: { target: AdminStudentRow | null; 
 // TEACHERS TAB
 // =====================================================
 function TeachersTab({
-  teachers, classes, students, currentUserId, loading, onChanged,
+  teachers, students, currentUserId, loading, onChanged,
 }: {
   teachers: AdminTeacherRow[];
-  classes: AdminClassRow[];
   students: AdminStudentRow[];
   currentUserId: string | null;
   loading: boolean;
@@ -572,9 +555,6 @@ function TeachersTab({
     );
   }, [teachers, search]);
 
-  function classCount(teacherId: string) {
-    return classes.filter(c => c.teacher_id === teacherId).length;
-  }
   function studentCount(teacherId: string) {
     return students.filter(s => s.teacher_id === teacherId).length;
   }
@@ -632,7 +612,6 @@ function TeachersTab({
               <tr style={{ textAlign: "left", color: "rgba(255,255,255,0.5)", fontSize: 11, textTransform: "uppercase" }}>
                 <th style={th}>Nome</th>
                 <th style={th}>E-mail</th>
-                <th style={th}>Turmas</th>
                 <th style={th}>Alunos</th>
                 <th style={th}>Admin?</th>
                 <th style={th}>Ações</th>
@@ -645,7 +624,6 @@ function TeachersTab({
                   <tr key={t.id} style={trStyle}>
                     <td style={td}>{t.name}{isSelf && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.6 }}>(você)</span>}</td>
                     <td style={{ ...td, fontFamily: "monospace", fontSize: 12 }}>{t.email ?? "—"}</td>
-                    <td style={td}>{classCount(t.id)}</td>
                     <td style={td}>{studentCount(t.id)}</td>
                     <td style={td}>
                       <button
@@ -710,7 +688,6 @@ function TeachersTab({
         bullets={
           deleteTarget
             ? [
-                `${classCount(deleteTarget.id)} turma(s)`,
                 `${studentCount(deleteTarget.id)} aluno(s) e seus personagens`,
                 "o login do professor",
               ]
@@ -719,116 +696,6 @@ function TeachersTab({
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && performDelete(deleteTarget)}
         busy={busyId === deleteTarget?.id}
-      />
-    </div>
-  );
-}
-
-// =====================================================
-// CLASSES TAB (full CRUD)
-// =====================================================
-function ClassesTab({
-  classes, teachers, students, loading, onChanged,
-}: {
-  classes: AdminClassRow[];
-  teachers: AdminTeacherRow[];
-  students: AdminStudentRow[];
-  loading: boolean;
-  onChanged: () => void | Promise<void>;
-}) {
-  const [search, setSearch] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<AdminClassRow | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AdminClassRow | null>(null);
-  const teacherById = useMemo(() => new Map(teachers.map(t => [t.id, t])), [teachers]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return classes;
-    return classes.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      (teacherById.get(c.teacher_id)?.name ?? "").toLowerCase().includes(q),
-    );
-  }, [classes, search, teacherById]);
-
-  return (
-    <div style={{ ...card, marginTop: 12 }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
-          <Search size={14} style={{ position: "absolute", left: 10, top: 11, opacity: 0.5 }} />
-          <input
-            placeholder="Buscar turma ou professor…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ ...inputStyle, paddingLeft: 30 }}
-          />
-        </div>
-        <button onClick={() => setCreateOpen(true)} style={btnPrimary}>
-          <Plus size={14} /> Nova turma
-        </button>
-      </div>
-
-      {loading ? (
-        <Loader2 className="animate-spin" />
-      ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: "rgba(255,255,255,0.5)", fontSize: 11, textTransform: "uppercase" }}>
-                <th style={th}>Turma</th>
-                <th style={th}>Professor</th>
-                <th style={th}>Bioma</th>
-                <th style={th}>Alunos</th>
-                <th style={th}>Criada em</th>
-                <th style={th}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(c => {
-                const studentCount = students.filter(s => s.class_id === c.id).length;
-                return (
-                  <tr key={c.id} style={trStyle}>
-                    <td style={td}>{c.name}</td>
-                    <td style={td}>{teacherById.get(c.teacher_id)?.name ?? "—"}</td>
-                    <td style={td}>{c.biome ?? "—"}</td>
-                    <td style={td}>{studentCount}</td>
-                    <td style={{ ...td, fontSize: 12, opacity: 0.7 }}>
-                      {new Date(c.created_at).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td style={{ ...td, whiteSpace: "nowrap" }}>
-                      <button onClick={() => setEditTarget(c)} style={btnBase} title="Editar">
-                        <Pencil size={12} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(c)}
-                        style={{ ...btnDanger, marginLeft: 4 }}
-                        title="Deletar turma"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <CreateOrEditClassModal
-        open={createOpen || !!editTarget}
-        target={editTarget}
-        teachers={teachers}
-        onClose={() => { setCreateOpen(false); setEditTarget(null); }}
-        onDone={async () => { setCreateOpen(false); setEditTarget(null); await onChanged(); }}
-      />
-
-      <DeleteClassModal
-        target={deleteTarget}
-        classes={classes}
-        students={students}
-        onClose={() => setDeleteTarget(null)}
-        onDeleted={async () => { setDeleteTarget(null); await onChanged(); }}
       />
     </div>
   );
@@ -955,28 +822,28 @@ function rolePill(role: string): React.CSSProperties {
 // MODALS
 // =====================================================
 function CreateStudentModal({
-  open, classes, onClose, onCreated,
+  open, teachers, onClose, onCreated,
 }: {
-  open: boolean; classes: AdminClassRow[];
+  open: boolean; teachers: AdminTeacherRow[];
   onClose: () => void; onCreated: () => void | Promise<void>;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [classId, setClassId] = useState("");
+  const [teacherId, setTeacherId] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) { setName(""); setEmail(""); setPassword(""); setClassId(""); }
+    if (open) { setName(""); setEmail(""); setPassword(""); setTeacherId(""); }
   }, [open]);
 
   async function submit() {
-    if (!name.trim() || !email.trim() || !password || !classId) {
+    if (!name.trim() || !email.trim() || !password || !teacherId) {
       toast.error("Preencha todos os campos."); return;
     }
     setBusy(true);
     try {
-      await adminApi.createStudent({ class_id: classId, name, email, password });
+      await adminApi.createStudent({ teacher_id: teacherId, name, email, password });
       toast.success(`Aluno ${name} criado.`);
       await onCreated();
     } catch (e) {
@@ -989,7 +856,7 @@ function CreateStudentModal({
   return (
     <Modal open={open} onClose={onClose} title="Criar aluno (manual)">
       <div style={{ display: "grid", gap: 10 }}>
-        <Field label="Nome completo">
+        <Field label="Dois primeiros nomes (sem sobrenome)">
           <input value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
         </Field>
         <Field label="E-mail">
@@ -998,10 +865,10 @@ function CreateStudentModal({
         <Field label="Senha (mínimo 6)">
           <input type="text" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} />
         </Field>
-        <Field label="Turma">
-          <select value={classId} onChange={e => setClassId(e.target.value)} style={inputStyle}>
+        <Field label="Professor">
+          <select value={teacherId} onChange={e => setTeacherId(e.target.value)} style={inputStyle}>
             <option value="">— escolha —</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </Field>
         <button onClick={() => void submit()} disabled={busy} style={{ ...btnPrimary, justifyContent: "center", marginTop: 8 }}>
@@ -1062,26 +929,26 @@ function ResetPasswordModal({
   );
 }
 
-function MoveClassModal({
-  target, classes, onClose, onMoved,
+function MoveTeacherModal({
+  target, teachers, onClose, onMoved,
 }: {
   target: AdminStudentRow | null;
-  classes: AdminClassRow[];
+  teachers: AdminTeacherRow[];
   onClose: () => void;
   onMoved: () => void | Promise<void>;
 }) {
-  const [classId, setClassId] = useState("");
+  const [teacherId, setTeacherId] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (target) setClassId(target.class_id); }, [target]);
+  useEffect(() => { if (target) setTeacherId(target.teacher_id); }, [target]);
 
   if (!target) return null;
 
   async function submit() {
-    if (!classId || classId === target!.class_id) { onClose(); return; }
+    if (!teacherId || teacherId === target!.teacher_id) { onClose(); return; }
     setBusy(true);
     try {
-      await adminApi.moveStudentToClass(target!.id, classId);
-      toast.success(`${target!.name} movido(a) de turma.`);
+      await adminApi.moveStudentToTeacher(target!.id, teacherId);
+      toast.success(`${target!.name} movido(a) de professor.`);
       await onMoved();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -1091,11 +958,11 @@ function MoveClassModal({
   }
 
   return (
-    <Modal open onClose={onClose} title={`Mover de turma — ${target.name}`}>
+    <Modal open onClose={onClose} title={`Mudar de professor — ${target.name}`}>
       <div style={{ display: "grid", gap: 10 }}>
-        <Field label="Nova turma">
-          <select value={classId} onChange={e => setClassId(e.target.value)} style={inputStyle}>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        <Field label="Novo professor">
+          <select value={teacherId} onChange={e => setTeacherId(e.target.value)} style={inputStyle}>
+            {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </Field>
         <button onClick={() => void submit()} disabled={busy} style={{ ...btnPrimary, justifyContent: "center" }}>
@@ -1344,157 +1211,6 @@ function ConfirmDeleteModal({
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             {busy ? "Deletando…" : "Deletar permanentemente"}
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-// =====================================================
-// CREATE / EDIT CLASS MODAL
-// =====================================================
-function CreateOrEditClassModal({
-  open, target, teachers, onClose, onDone,
-}: {
-  open: boolean;
-  target: AdminClassRow | null;
-  teachers: AdminTeacherRow[];
-  onClose: () => void;
-  onDone: () => void | Promise<void>;
-}) {
-  const [name, setName] = useState("");
-  const [biome, setBiome] = useState("");
-  const [teacherId, setTeacherId] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setName(target?.name ?? "");
-      setBiome(target?.biome ?? "");
-      setTeacherId(target?.teacher_id ?? "");
-    }
-  }, [open, target]);
-
-  if (!open) return null;
-  const isEdit = !!target;
-
-  async function submit() {
-    if (!name.trim()) { toast.error("Nome da turma é obrigatório."); return; }
-    if (!isEdit && !teacherId) { toast.error("Selecione o professor."); return; }
-    setBusy(true);
-    try {
-      if (isEdit) {
-        await adminApi.updateClass(target!.id, name.trim(), biome.trim() || null);
-        toast.success(`Turma "${name.trim()}" atualizada.`);
-      } else {
-        await adminApi.createClass(teacherId, name.trim(), biome.trim() || null);
-        toast.success(`Turma "${name.trim()}" criada.`);
-      }
-      await onDone();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Modal open onClose={onClose} title={isEdit ? `Editar turma — ${target!.name}` : "Nova turma"}>
-      <div style={{ display: "grid", gap: 10 }}>
-        <Field label="Nome">
-          <input value={name} onChange={e => setName(e.target.value)} style={inputStyle} autoFocus />
-        </Field>
-        <Field label="Bioma (opcional)">
-          <input value={biome} onChange={e => setBiome(e.target.value)} style={inputStyle} placeholder="ex: floresta, vulcão…" />
-        </Field>
-        {!isEdit && (
-          <Field label="Professor">
-            <select value={teacherId} onChange={e => setTeacherId(e.target.value)} style={inputStyle}>
-              <option value="">— escolha —</option>
-              {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-          </Field>
-        )}
-        <button onClick={() => void submit()} disabled={busy} style={{ ...btnPrimary, justifyContent: "center", marginTop: 8 }}>
-          {busy ? <Loader2 size={14} className="animate-spin" /> : isEdit ? <Pencil size={14} /> : <Plus size={14} />}
-          {busy ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar turma"}
-        </button>
-      </div>
-    </Modal>
-  );
-}
-
-// =====================================================
-// DELETE CLASS MODAL (forces reassign-or-block on students)
-// =====================================================
-function DeleteClassModal({
-  target, classes, students, onClose, onDeleted,
-}: {
-  target: AdminClassRow | null;
-  classes: AdminClassRow[];
-  students: AdminStudentRow[];
-  onClose: () => void;
-  onDeleted: () => void | Promise<void>;
-}) {
-  const [reassignTo, setReassignTo] = useState<string>("");
-  const [typed, setTyped] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => { if (target) { setReassignTo(""); setTyped(""); } }, [target]);
-
-  if (!target) return null;
-  const studentCount = students.filter(s => s.class_id === target.id).length;
-  const otherClasses = classes.filter(c => c.id !== target.id);
-  const matches = typed.trim().toLowerCase() === target.name.trim().toLowerCase();
-  const needsReassign = studentCount > 0;
-  const canDelete = matches && (!needsReassign || !!reassignTo);
-
-  async function submit() {
-    setBusy(true);
-    try {
-      const moved = await adminApi.deleteClass(target!.id, needsReassign ? reassignTo : null);
-      if (moved > 0) toast.success(`Turma deletada. ${moved} aluno(s) reatribuído(s).`);
-      else toast.success("Turma deletada.");
-      await onDeleted();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Modal open onClose={busy ? () => undefined : onClose} title={`Deletar turma — ${target.name}`}>
-      <div style={{ display: "grid", gap: 12 }}>
-        <div style={{
-          background: "rgba(220,50,50,0.1)", border: "1px solid rgba(220,50,50,0.4)",
-          borderRadius: 8, padding: 12, color: "rgb(255,200,200)", fontSize: 13,
-        }}>
-          {needsReassign
-            ? `Esta turma tem ${studentCount} aluno(s). Escolha para qual turma movê-los antes de deletar.`
-            : "Esta turma não tem alunos — pode ser deletada com segurança."}
-        </div>
-        {needsReassign && (
-          <Field label="Mover alunos para">
-            <select value={reassignTo} onChange={e => setReassignTo(e.target.value)} style={inputStyle}>
-              <option value="">— escolha uma turma destino —</option>
-              {otherClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </Field>
-        )}
-        <Field label={`Para confirmar, digite o nome: "${target.name}"`}>
-          <input value={typed} onChange={e => setTyped(e.target.value)} style={inputStyle} placeholder={target.name} />
-        </Field>
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button onClick={onClose} disabled={busy} style={btnBase}>Cancelar</button>
-          <button
-            onClick={() => void submit()}
-            disabled={!canDelete || busy}
-            style={{ ...btnDanger, opacity: canDelete && !busy ? 1 : 0.4 }}
-          >
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-            {busy ? "Deletando…" : "Deletar turma"}
           </button>
         </div>
       </div>

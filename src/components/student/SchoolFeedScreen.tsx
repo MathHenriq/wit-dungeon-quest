@@ -5,12 +5,12 @@
 // any conversational surface that could enable bullying.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Eye, Users, Shield, Globe2, Crown, Skull, Mountain, Sparkles } from "lucide-react";
+import { Loader2, Eye, Shield, Globe2, Crown, Skull, Mountain, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { useOpenProfileCard } from "@/components/student/ProfileCard";
 
-type FilterKey = "class" | "guild" | "school";
+type FilterKey = "guild" | "school";
 type EventType = "chest_open_rare" | "first_obtained" | "raid_defeated" | "floor_milestone";
 
 interface FeedRow {
@@ -21,16 +21,14 @@ interface FeedRow {
   created_at: string;
   student_id: string;
   student_name: string;
-  class_id: string | null;
   guild_id: string | null;
   guild_name: string | null;
   viewed_by_me: boolean;
 }
 
 const FILTERS: { key: FilterKey; label: string; Icon: LucideIcon }[] = [
-  { key: "class",  label: "Minha turma",  Icon: Users },
+  { key: "school", label: "Colegas",      Icon: Globe2 },
   { key: "guild",  label: "Minha guilda", Icon: Shield },
-  { key: "school", label: "Escola",       Icon: Globe2 },
 ];
 
 const RARITY_TONE: Record<string, string> = {
@@ -97,7 +95,7 @@ function buildMessage(row: FeedRow): { title: string; body: string; tone: string
 }
 
 export function SchoolFeedScreen() {
-  const [filter, setFilter] = useState<FilterKey>("class");
+  const [filter, setFilter] = useState<FilterKey>("school");
   const [rows, setRows] = useState<FeedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const openProfile = useOpenProfileCard();

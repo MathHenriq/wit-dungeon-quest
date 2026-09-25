@@ -7,7 +7,6 @@ interface TrackEventParams {
   event_type: string;
   student_id?: string;
   teacher_id: string;
-  class_id?: string;
   event_data?: Json;
 }
 
@@ -18,7 +17,6 @@ export function useAnalytics() {
     event_type,
     student_id,
     teacher_id,
-    class_id,
     event_data = {},
   }: TrackEventParams) => {
     // Debounce: same event_type + student_id within 2 seconds = skip
@@ -34,7 +32,6 @@ export function useAnalytics() {
         event_type,
         student_id: student_id || null,
         teacher_id,
-        class_id: class_id || null,
         event_data,
       });
     } catch (err) {
@@ -44,50 +41,50 @@ export function useAnalytics() {
   }, []);
 
   const trackLogin = useCallback(
-    (teacherId: string, studentId: string, classId: string) =>
-      track({ event_type: "login", teacher_id: teacherId, student_id: studentId, class_id: classId }),
+    (teacherId: string, studentId: string) =>
+      track({ event_type: "login", teacher_id: teacherId, student_id: studentId }),
     [track]
   );
 
   const trackMissionComplete = useCallback(
-    (teacherId: string, studentId: string, classId: string, missionId: string, reward: number) =>
-      track({ event_type: "mission_complete", teacher_id: teacherId, student_id: studentId, class_id: classId, event_data: { mission_id: missionId, reward } }),
+    (teacherId: string, studentId: string, missionId: string, reward: number) =>
+      track({ event_type: "mission_complete", teacher_id: teacherId, student_id: studentId, event_data: { mission_id: missionId, reward } }),
     [track]
   );
 
   const trackChallengeComplete = useCallback(
-    (teacherId: string, studentId: string, classId: string, challengeId: string, reward: number) =>
-      track({ event_type: "challenge_complete", teacher_id: teacherId, student_id: studentId, class_id: classId, event_data: { challenge_id: challengeId, reward } }),
+    (teacherId: string, studentId: string, challengeId: string, reward: number) =>
+      track({ event_type: "challenge_complete", teacher_id: teacherId, student_id: studentId, event_data: { challenge_id: challengeId, reward } }),
     [track]
   );
 
   const trackShopPurchase = useCallback(
-    (teacherId: string, studentId: string, classId: string, itemId: string, cost: number, itemName: string) =>
-      track({ event_type: "shop_purchase", teacher_id: teacherId, student_id: studentId, class_id: classId, event_data: { item_id: itemId, cost, item_name: itemName } }),
+    (teacherId: string, studentId: string, itemId: string, cost: number, itemName: string) =>
+      track({ event_type: "shop_purchase", teacher_id: teacherId, student_id: studentId, event_data: { item_id: itemId, cost, item_name: itemName } }),
     [track]
   );
 
   const trackLevelUp = useCallback(
-    (teacherId: string, studentId: string, classId: string, newLevel: number) =>
-      track({ event_type: "level_up", teacher_id: teacherId, student_id: studentId, class_id: classId, event_data: { new_level: newLevel } }),
+    (teacherId: string, studentId: string, newLevel: number) =>
+      track({ event_type: "level_up", teacher_id: teacherId, student_id: studentId, event_data: { new_level: newLevel } }),
     [track]
   );
 
   const trackAttendance = useCallback(
-    (teacherId: string, studentId: string, classId: string, streak: number) =>
-      track({ event_type: "attendance", teacher_id: teacherId, student_id: studentId, class_id: classId, event_data: { streak } }),
+    (teacherId: string, studentId: string, streak: number) =>
+      track({ event_type: "attendance", teacher_id: teacherId, student_id: studentId, event_data: { streak } }),
     [track]
   );
 
   const trackBossAttempt = useCallback(
-    (teacherId: string, studentId: string, classId: string, bossId: string, defeated: boolean, score: number) =>
-      track({ event_type: defeated ? "boss_victory" : "boss_attempt", teacher_id: teacherId, student_id: studentId, class_id: classId, event_data: { boss_id: bossId, defeated, score } }),
+    (teacherId: string, studentId: string, bossId: string, defeated: boolean, score: number) =>
+      track({ event_type: defeated ? "boss_victory" : "boss_attempt", teacher_id: teacherId, student_id: studentId, event_data: { boss_id: bossId, defeated, score } }),
     [track]
   );
 
   const trackEnemyVictory = useCallback(
-    (teacherId: string, studentId: string, classId: string, floorId: string, enemyId: string, xp: number) =>
-      track({ event_type: "enemy_victory", teacher_id: teacherId, student_id: studentId, class_id: classId, event_data: { floor_id: floorId, enemy_id: enemyId, xp } }),
+    (teacherId: string, studentId: string, floorId: string, enemyId: string, xp: number) =>
+      track({ event_type: "enemy_victory", teacher_id: teacherId, student_id: studentId, event_data: { floor_id: floorId, enemy_id: enemyId, xp } }),
     [track]
   );
 
@@ -98,8 +95,8 @@ export function useAnalytics() {
   );
 
   const trackSessionStart = useCallback(
-    (teacherId: string, studentId: string, classId: string) =>
-      track({ event_type: "session_start", teacher_id: teacherId, student_id: studentId, class_id: classId }),
+    (teacherId: string, studentId: string) =>
+      track({ event_type: "session_start", teacher_id: teacherId, student_id: studentId }),
     [track]
   );
 

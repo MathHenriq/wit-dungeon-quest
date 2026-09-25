@@ -13,7 +13,6 @@ interface FeedItem {
 
 interface Props {
   teacherId: string;
-  classId: string | null;
 }
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -25,37 +24,26 @@ const ICONS: Record<string, React.ReactNode> = {
   pet_evolved:     <Star size={16} className="text-emerald-400" />,
 };
 
-export function AchievementTimeline({ teacherId, classId }: Props) {
+export function AchievementTimeline({ teacherId }: Props) {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      let query = supabase
+      const query = supabase
         .from("achievement_feed")
         .select("id, student_id, achievement_type, message, created_at")
         .eq("teacher_id", teacherId)
         .order("created_at", { ascending: false })
         .limit(30);
 
-      if (classId) {
-        // Filter by students in this class
-        const { data: studentIds } = await supabase
-          .from("students")
-          .select("id")
-          .eq("class_id", classId);
-        if (studentIds && studentIds.length > 0) {
-          query = query.in("student_id", studentIds.map((s) => s.id));
-        }
-      }
-
       const { data } = await query;
       setItems((data ?? []) as FeedItem[]);
       setLoading(false);
     };
     load();
-  }, [teacherId, classId]);
+  }, [teacherId]);
 
   return (
     <div className="card-fantasy">

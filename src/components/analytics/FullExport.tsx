@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 interface Props {
   teacherId: string;
-  classes: { id: string; name: string }[];
   students: { id: string; name: string }[];
 }
 
@@ -41,10 +40,9 @@ function monthAgoStr() {
   return d.toISOString().slice(0, 10);
 }
 
-export function FullExport({ teacherId, classes, students }: Props) {
+export function FullExport({ teacherId, students }: Props) {
   const [include, setInclude] = useState(DEFAULT_INCLUDE);
   const [format, setFormat] = useState<'csv' | 'json'>('csv');
-  const [classId, setClassId] = useState('');
   const [studentId, setStudentId] = useState('');
   const [startDate, setStartDate] = useState(monthAgoStr());
   const [endDate, setEndDate] = useState(todayStr());
@@ -66,7 +64,6 @@ export function FullExport({ teacherId, classes, students }: Props) {
         teacherId,
         startDate,
         endDate,
-        classId: classId || undefined,
         studentId: studentId || undefined,
         format,
         include,
@@ -89,7 +86,7 @@ export function FullExport({ teacherId, classes, students }: Props) {
         <Download size={16} /> Export Completo de Dados
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
         {/* Period */}
         <div className="space-y-1">
           <label className="text-xs text-foreground/50 uppercase tracking-wider">De</label>
@@ -100,13 +97,6 @@ export function FullExport({ teacherId, classes, students }: Props) {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={inputCls} />
         </div>
         {/* Filters */}
-        <div className="space-y-1">
-          <label className="text-xs text-foreground/50 uppercase tracking-wider">Turma</label>
-          <select value={classId} onChange={e => setClassId(e.target.value)} className={inputCls}>
-            <option value="">Todas</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
         <div className="space-y-1">
           <label className="text-xs text-foreground/50 uppercase tracking-wider">Aluno</label>
           <select value={studentId} onChange={e => setStudentId(e.target.value)} className={inputCls}>

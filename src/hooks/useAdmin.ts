@@ -31,19 +31,9 @@ export interface AdminTeacherRow {
   created_at: string;
 }
 
-export interface AdminClassRow {
-  id: string;
-  name: string;
-  teacher_id: string;
-  biome: string | null;
-  description: string | null;
-  created_at: string;
-}
-
 export interface AdminStudentRow {
   id: string;
   name: string;
-  class_id: string;
   teacher_id: string;
   user_id: string | null;
   status: string;
@@ -56,14 +46,13 @@ export interface AdminStudentRow {
 export interface AdminListResult {
   ok: boolean;
   teachers: AdminTeacherRow[];
-  classes: AdminClassRow[];
   students: AdminStudentRow[];
 }
 
 // `type` e nao `interface`: o helper `call` exige Record<string, unknown>, e
 // interfaces nao satisfazem essa restricao (nao tem index signature implicita).
 export type CreateStudentInput = {
-  class_id: string;
+  teacher_id: string;
   name: string;
   email: string;
   password: string;
@@ -112,11 +101,11 @@ export const adminApi = {
       { auth_user_id, new_password },
     ),
 
-  /** Move a student between classes, bypassing the "cannot change class" trigger. */
-  moveStudentToClass: async (student_id: string, class_id: string) => {
-    const { error } = await supabase.rpc("admin_assign_student_to_class", {
+  /** Move um aluno para outro professor (só admin; checado no servidor). */
+  moveStudentToTeacher: async (student_id: string, teacher_id: string) => {
+    const { error } = await supabase.rpc("admin_assign_student_to_teacher", {
       p_student_id: student_id,
-      p_class_id: class_id,
+      p_teacher_id: teacher_id,
     });
     if (error) throw new Error(error.message);
   },
@@ -154,30 +143,6 @@ export const adminApi = {
       .order("name");
     if (error) throw new Error(error.message);
     return (data ?? []) as ShopItemLite[];
-  },
-
-  // ── Master class CRUD ────────────────────────────────────────
-  createClass: async (teacher_id: string, name: string, biome: string | null) => {
-    const { data, error } = await supabase.rpc("master_create_class", {
-      p_teacher_id: teacher_id, p_name: name, p_biome: biome,
-    });
-    if (error) throw new Error(error.message);
-    return data as string;
-  },
-
-  updateClass: async (class_id: string, name: string, biome: string | null) => {
-    const { error } = await supabase.rpc("master_update_class", {
-      p_class_id: class_id, p_name: name, p_biome: biome,
-    });
-    if (error) throw new Error(error.message);
-  },
-
-  deleteClass: async (class_id: string, reassign_to_class_id: string | null) => {
-    const { data, error } = await supabase.rpc("master_delete_class", {
-      p_class_id: class_id, p_reassign_to_class_id: reassign_to_class_id,
-    });
-    if (error) throw new Error(error.message);
-    return data as number; // number of students reassigned
   },
 
   // ── Master teacher mutations ─────────────────────────────────
@@ -228,13 +193,6 @@ export const teacherApi = {
     });
     if (error) throw new Error(error.message);
     return data as string | null; // auth user id (or null)
-  },
-
-  moveStudentToOwnClass: async (student_id: string, class_id: string) => {
-    const { error } = await supabase.rpc("teacher_move_student_to_own_class", {
-      p_student_id: student_id, p_class_id: class_id,
-    });
-    if (error) throw new Error(error.message);
   },
 
   adjustXp: async (student_id: string, delta_xp: number) => {

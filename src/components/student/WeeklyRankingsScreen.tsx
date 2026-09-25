@@ -1,18 +1,18 @@
 // Patch 4.1 — Weekly Rankings UI.
 //
 // Reads from RPC public.get_weekly_ranking (live in-progress + finalized last
-// week) for the four ranking types: sala, geral, pvp, guildas.
+// week) for the ranking types: geral (todos os alunos do professor), pvp, guildas.
 //
 // A small "my position" card shows where the caller stands in each ranking.
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Crown, Users, Globe2, Swords, Shield, Trophy, CalendarDays, Clock } from "lucide-react";
+import { Loader2, Crown, Globe2, Swords, Shield, Trophy, CalendarDays, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabaseStudent } from "@/integrations/supabase/studentClient";
 import { useOpenProfileCard } from "@/components/student/ProfileCard";
 import type { Student } from "@/types";
 
-type RankingType = "sala" | "geral" | "pvp" | "guildas";
+type RankingType = "geral" | "pvp" | "guildas";
 
 interface Row {
   rank: number;
@@ -24,21 +24,18 @@ interface Row {
 }
 
 interface MyPositions {
-  sala?: { position: number; score: number };
   geral?: { position: number; score: number };
   pvp?: { position: number; score: number };
   guildas?: { position: number; score: number };
 }
 
 const TABS: { key: RankingType; label: string; Icon: LucideIcon; tone: string }[] = [
-  { key: "sala",    label: "Sala",    Icon: Users,   tone: "#60c8f8" },
   { key: "geral",   label: "Geral",   Icon: Globe2,  tone: "#f5c84b" },
   { key: "pvp",     label: "PvP",     Icon: Swords,  tone: "#f05050" },
   { key: "guildas", label: "Guildas", Icon: Shield,  tone: "#b57bee" },
 ];
 
 const SCORE_LABEL: Record<RankingType, string> = {
-  sala:    "XP",
   geral:   "XP",
   pvp:     "Vitórias",
   guildas: "XP coletivo",
@@ -55,7 +52,7 @@ interface Props {
 }
 
 export function WeeklyRankingsScreen({ student }: Props) {
-  const [activeTab, setActiveTab] = useState<RankingType>("sala");
+  const [activeTab, setActiveTab] = useState<RankingType>("geral");
   const [mode, setMode] = useState<"live" | "finalized">("live");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +69,6 @@ export function WeeklyRankingsScreen({ student }: Props) {
         p_ranking_type: activeTab,
         p_finalized: mode === "finalized",
         p_teacher_id: student.teacher_id,
-        p_class_id: activeTab === "sala" ? student.class_id : null,
         p_limit: 200,
         p_offset: 0,
       });
@@ -88,7 +84,7 @@ export function WeeklyRankingsScreen({ student }: Props) {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [activeTab, mode, student.teacher_id, student.class_id]);
+  }, [activeTab, mode, student.teacher_id]);
 
   useEffect(() => {
     let cancelled = false;

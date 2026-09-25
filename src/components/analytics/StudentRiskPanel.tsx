@@ -4,7 +4,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface RiskStudent {
   student_id: string;
   student_name: string;
-  class_id: string;
   level: number;
   days_since_last_login: number;
   logins_last_14_days: number;
@@ -16,7 +15,6 @@ interface RiskStudent {
 interface Props {
   data: RiskStudent[] | null;
   isLoading: boolean;
-  classes: { id: string; name: string }[];
 }
 
 function RiskBadge({ score }: { score: number }) {
@@ -33,7 +31,7 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-export function StudentRiskPanel({ data, isLoading, classes }: Props) {
+export function StudentRiskPanel({ data, isLoading }: Props) {
   if (isLoading) return (
     <div className="card-fantasy">
       <h3 className="font-display text-lg text-gold mb-4">🛡️ Alunos em Risco</h3>
@@ -43,7 +41,6 @@ export function StudentRiskPanel({ data, isLoading, classes }: Props) {
     </div>
   );
 
-  const className = (classId: string) => classes.find((c) => c.id === classId)?.name ?? "Turma";
 
   return (
     <div className="card-fantasy">
@@ -62,7 +59,7 @@ export function StudentRiskPanel({ data, isLoading, classes }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate">{s.student_name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {className(s.class_id)} · Nível {s.level}
+                  Nível {s.level}
                   {s.days_since_last_login >= 999 ? " · Nunca logou" : s.days_since_last_login > 0 ? ` · ${s.days_since_last_login}d sem login` : ""}
                   {s.streak_current === 0 ? " · Streak zerado" : ""}
                   {s.missions_last_14_days === 0 ? " · 0 missões/14d" : ""}

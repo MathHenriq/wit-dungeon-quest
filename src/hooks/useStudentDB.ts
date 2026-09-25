@@ -7,7 +7,7 @@ import { supabaseRetry } from "@/lib/supabaseRetry";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { applyOptimistic } from "@/utils/optimisticUpdate";
 import { rpcJson } from "@/integrations/supabase/rpcJson";
-import type { Student, Class, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem, InventoryItem } from "@/types";
+import type { Student, Teacher, Challenge, StudentRequest, Mission, MissionCompletion, StudentTitle, ShopItem, InventoryItem } from "@/types";
 
 // Auth state machine:
 //   loading           → determining if there's an active session
@@ -52,7 +52,6 @@ export function useStudentDB() {
   const [student, setStudent] = useState<Student | null>(null);
 
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [requests, setRequests] = useState<StudentRequest[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -87,7 +86,7 @@ export function useStudentDB() {
   // Derived: still loading
   const isLoading = authState === "loading";
 
-  // Load public data needed for the registration form (teachers/classes)
+  // Load public data needed for the registration form (teachers)
   const loadTeachers = async () => {
     // RPC em vez de ler `teachers`: a tabela guarda user_id e is_admin, que
     // alunos não precisam (e não devem) ver. A função devolve só id e nome.
@@ -100,20 +99,6 @@ export function useStudentDB() {
       return;
     }
     setTeachers(data || []);
-  };
-
-  const loadClassesByTeacher = async (teacherId: string) => {
-    const { data, error } = await supabaseAnon
-      .from("classes")
-      .select("id, name, teacher_id")
-      .eq("teacher_id", teacherId)
-      .order("name");
-    if (error) {
-      console.error("[useStudentDB] loadClassesByTeacher:", error);
-      setError("Não foi possível carregar as turmas.");
-      return;
-    }
-    setClasses(data || []);
   };
 
   // Load critical data needed immediately on login (default "challenges" tab + header)
@@ -283,8 +268,8 @@ export function useStudentDB() {
 
     // Fire-and-forget tracking
     sessionStartRef.current = Date.now();
-    void trackLogin(typedStudent.teacher_id, typedStudent.id, typedStudent.class_id);
-    void trackSessionStart(typedStudent.teacher_id, typedStudent.id, typedStudent.class_id);
+    void trackLogin(typedStudent.teacher_id, typedStudent.id);
+    void trackSessionStart(typedStudent.teacher_id, typedStudent.id);
     // Daily login pet XP (+3)
     void supabaseStudent.rpc("give_pet_xp", { p_student_id: typedStudent.id, p_xp: 3 });
   }, []);
@@ -448,7 +433,7 @@ export function useStudentDB() {
     return { error };
   };
 
-  const registerStudent = async (firstNames: string, nickname: string, teacherId: string, classId: string) => {
+  const registerStudent = async (firstNames: string, nickname: string, teacherId: string) => {
     if (!authUser) return { success: false, error: "Não autenticado." };
 
     // Cadastro passa por RPC: o servidor valida os dois primeiros nomes e o
@@ -460,7 +445,6 @@ export function useStudentDB() {
       p_first_names: firstNames,
       p_nickname: nickname,
       p_teacher_id: teacherId,
-      p_class_id: classId,
     });
 
     if (error) {
@@ -532,7 +516,7 @@ export function useStudentDB() {
 
     // Fire-and-forget tracking
     void trackShopPurchase(
-      student.teacher_id, student.id, student.class_id,
+      student.teacher_id, student.id,
       itemId, useDiamonds ? (item?.diamond_cost ?? 0) : (item?.cost ?? 0), item?.name ?? ""
     );
 
@@ -598,7 +582,7 @@ export function useStudentDB() {
     }
 
     void loadRequests(student.id);
-    void trackAttendance(student.teacher_id, student.id, student.class_id, student.presencas_consecutivas ?? 0);
+    void trackAttendance(student.teacher_id, student.id, student.presencas_consecutivas ?? 0);
     void supabaseStudent.rpc("give_pet_xp", { p_student_id: student.id, p_xp: 3 });
     return { error: null };
   };
@@ -669,7 +653,6 @@ export function useStudentDB() {
     authUser,
     student,
     teachers,
-    classes,
     challenges,
     missions,
     missionCompletions,
@@ -704,7 +687,6 @@ export function useStudentDB() {
     refreshMissions,
     ensureMissionsLoaded,
     ensureShopLoaded,
-    loadClassesByTeacher,
     getRewardIcon,
     getRewardName,
     getRewardLabel,

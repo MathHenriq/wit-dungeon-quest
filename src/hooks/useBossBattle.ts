@@ -18,25 +18,20 @@ export function useBossBattle(studentId: string) {
     if (!studentId) return;
     setIsLoading(true);
     try {
-      // Get student class info first
+      // Chefões são por professor (turmas não existem mais).
       const { data: studentData } = await supabaseStudent
         .from("students")
-        .select("class_id, teacher_id")
+        .select("teacher_id")
         .eq("id", studentId)
         .single();
 
       if (!studentData) return;
-
-      const classFilter = studentData.class_id
-        ? `class_id.is.null,class_id.eq.${studentData.class_id}`
-        : `class_id.is.null`;
 
       const { data: bossData } = await supabaseStudent
         .from("boss_battles")
         .select("*")
         .eq("teacher_id", studentData.teacher_id)
         .eq("is_active", true)
-        .or(classFilter)
         .order("created_at", { ascending: false });
 
       const { data: attemptsData } = await supabaseStudent

@@ -1,19 +1,18 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, TrendingUp, Package, X, Loader2, Swords, Copy, Check, RotateCcw, KeyRound, Move, Ban, Sparkles, Clock } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Package, X, Loader2, Swords, Copy, Check, RotateCcw, KeyRound, Ban, Sparkles, Clock } from "lucide-react";
 import { GameIcon } from "@/components/icons/GameIcon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfilePhoto } from "./ProfilePhoto";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { CATEGORY_META, ATTRIBUTES } from "@/types";
-import type { Student, Class, InventoryItem, AttrKey } from "@/types";
+import type { Student, InventoryItem, AttrKey } from "@/types";
 import { teacherApi } from "@/hooks/useAdmin";
 import { validateFirstNames } from "@/lib/privacy";
 
 interface TeacherStudentsPanelProps {
   teacherId: string;
   students: Student[];
-  classes: Class[];
   onDataChanged: () => void;
 }
 
@@ -336,8 +335,7 @@ function StudentAttributesModal({ student, onClose, onSaved }: { student: Studen
   );
 }
 
-export function TeacherStudentsPanel({ teacherId, students, classes, onDataChanged }: TeacherStudentsPanelProps) {
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
+export function TeacherStudentsPanel({ teacherId, students, onDataChanged }: TeacherStudentsPanelProps) {
   const [newStudentName, setNewStudentName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
@@ -345,17 +343,14 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
   const [inventoryStudent, setInventoryStudent] = useState<Student | null>(null);
   const [attrsStudent, setAttrsStudent] = useState<Student | null>(null);
   const [pwdTarget, setPwdTarget] = useState<Student | null>(null);
-  const [moveTarget, setMoveTarget] = useState<Student | null>(null);
   const [xpTarget, setXpTarget] = useState<Student | null>(null);
   const [suspendTarget, setSuspendTarget] = useState<Student | null>(null);
 
-  const filteredStudents = selectedClass
-    ? students.filter(s => s.class_id === selectedClass)
-    : students;
+  const filteredStudents = students;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClass || !newStudentName.trim() || isAdding) return;
+    if (!newStudentName.trim() || isAdding) return;
 
     // Mesma regra do cadastro do aluno: só os dois primeiros nomes.
     const { value: name, error: nameError } = validateFirstNames(newStudentName);
@@ -369,7 +364,6 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
 
     try {
       const { error } = await supabase.from("students").insert({
-        class_id: selectedClass,
         teacher_id: teacherId,
         name,
       });
@@ -418,19 +412,7 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
     <div className="space-y-4">
       <div className="card-fantasy">
         <div className="flex flex-col sm:flex-row gap-3">
-          <select
-            value={selectedClass || ""}
-            onChange={e => setSelectedClass(e.target.value || null)}
-            className="px-4 py-2 rounded-lg border-2 border-border bg-background focus:border-gold outline-none"
-          >
-            <option value="">Todas as turmas</option>
-            {classes.map(cls => (
-              <option key={cls.id} value={cls.id}>{cls.name}</option>
-            ))}
-          </select>
-
-          {selectedClass && (
-            <form onSubmit={handleAdd} className="flex-1 flex gap-3">
+          <form onSubmit={handleAdd} className="flex-1 flex gap-3">
               <input
                 type="text"
                 value={newStudentName}
@@ -443,7 +425,6 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
                 {isAdding ? "Adicionando..." : "Adicionar"}
               </button>
             </form>
-          )}
         </div>
       </div>
 
@@ -468,9 +449,6 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
                       </span>
                     )}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {classes.find(c => c.id === student.class_id)?.name}
-                  </p>
                 </div>
               </div>
 
@@ -514,13 +492,6 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
                   <Sparkles size={16} />
                 </button>
                 <button
-                  onClick={() => setMoveTarget(student)}
-                  className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
-                  title="Mover para outra turma sua"
-                >
-                  <Move size={16} />
-                </button>
-                <button
                   onClick={() => setSuspendTarget(student)}
                   className="p-2 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 transition-colors"
                   title={(student as Student & { suspended_until?: string | null }).suspended_until ? "Gerenciar suspensão" : "Suspender acesso"}
@@ -561,15 +532,6 @@ export function TeacherStudentsPanel({ teacherId, students, classes, onDataChang
         <TeacherResetStudentPasswordModal
           target={pwdTarget}
           onClose={() => setPwdTarget(null)}
-        />
-      )}
-
-      {moveTarget && (
-        <TeacherMoveStudentModal
-          target={moveTarget}
-          ownClasses={classes}
-          onClose={() => setMoveTarget(null)}
-          onMoved={() => { setMoveTarget(null); onDataChanged(); }}
         />
       )}
 
@@ -656,65 +618,6 @@ function TeacherResetStudentPasswordModal({
         >
           {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
           {busy ? "Aplicando…" : "Redefinir"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Move student between own classes (teacher-scoped) ──────────
-function TeacherMoveStudentModal({
-  target, ownClasses, onClose, onMoved,
-}: {
-  target: Student;
-  ownClasses: Class[];
-  onClose: () => void;
-  onMoved: () => void;
-}) {
-  const [classId, setClassId] = useState(target.class_id ?? "");
-  const [busy, setBusy] = useState(false);
-
-  async function submit() {
-    if (!classId || classId === target.class_id) { onClose(); return; }
-    setBusy(true);
-    try {
-      await teacherApi.moveStudentToOwnClass(target.id, classId);
-      toast.success(`${target.character_name || target.name} movido(a) de turma.`);
-      onMoved();
-    } catch (err) {
-      toast.error(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 font-semibold">
-            <Move size={16} className="text-cyan-400" />
-            <span>Mover de turma — {target.character_name || target.name}</span>
-          </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-secondary"><X size={16} /></button>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          Você só pode mover o aluno entre as suas próprias turmas.
-        </p>
-        <select
-          value={classId}
-          onChange={e => setClassId(e.target.value)}
-          className="w-full px-3 py-2 rounded bg-secondary text-sm outline-none"
-        >
-          {ownClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <button
-          onClick={() => void submit()}
-          disabled={busy}
-          className="w-full mt-3 py-2 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-sm font-medium flex items-center justify-center gap-2"
-        >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Move size={14} />}
-          {busy ? "Movendo…" : "Mover"}
         </button>
       </div>
     </div>

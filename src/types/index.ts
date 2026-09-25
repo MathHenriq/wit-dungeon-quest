@@ -33,7 +33,6 @@ export interface Student {
   coins: number;
   diamonds?: number;
   level: number;
-  class_id: string;
   teacher_id: string;
   race: string | null;
   character_class: string | null;
@@ -153,15 +152,6 @@ export interface StudentRequest {
   challenge?: Challenge;
 }
 
-export interface Class {
-  id: string;
-  name: string;
-  /** Present in student-facing queries; omitted in some teacher queries. */
-  teacher_id?: string;
-  /** Present in teacher-facing queries. */
-  created_at?: string;
-}
-
 export interface Teacher {
   id: string;
   name: string;
@@ -183,7 +173,6 @@ export interface StudentTitle {
 export interface BossBattle {
   id: string;
   teacher_id: string;
-  class_id: string | null;
   title: string;
   description: string | null;
   boss_name: string;

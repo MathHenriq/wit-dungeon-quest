@@ -7,7 +7,6 @@ import type { BossBattle, BossQuestion, BossAttempt } from "@/types";
 
 interface TeacherBossPanelProps {
   teacherId: string;
-  classes: { id: string; name: string }[];
   onDataChanged: () => void;
 }
 
@@ -133,7 +132,7 @@ function QuestionForm({ q, idx, onChange, onRemove }: {
   );
 }
 
-export function TeacherBossPanel({ teacherId, classes, onDataChanged }: TeacherBossPanelProps) {
+export function TeacherBossPanel({ teacherId, onDataChanged }: TeacherBossPanelProps) {
   const [bosses, setBosses] = useState<BossBattle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -148,7 +147,6 @@ export function TeacherBossPanel({ teacherId, classes, onDataChanged }: TeacherB
   const [rewardCoins, setRewardCoins] = useState(20);
   const [rewardXp, setRewardXp] = useState(50);
   const [difficulty, setDifficulty] = useState<BossBattle['difficulty']>('normal');
-  const [classId, setClassId] = useState<string>("");
   const [questions, setQuestions] = useState<Partial<BossQuestion>[]>([
     { question_type: 'multiple_choice', damage: 10, options: ['', '', '', ''], correct_answer: '' }
   ]);
@@ -183,7 +181,6 @@ export function TeacherBossPanel({ teacherId, classes, onDataChanged }: TeacherB
         reward_coins: rewardCoins,
         reward_xp: rewardXp,
         difficulty,
-        class_id: classId || null,
         is_active: true,
         time_limit_minutes: null,
       }).select().single();
@@ -215,7 +212,7 @@ export function TeacherBossPanel({ teacherId, classes, onDataChanged }: TeacherB
 
   const resetForm = () => {
     setBossName(""); setBossTitle(""); setBossDesc(""); setBossHp(100);
-    setRewardCoins(20); setRewardXp(50); setDifficulty('normal'); setClassId("");
+    setRewardCoins(20); setRewardXp(50); setDifficulty('normal');
     setQuestions([{ question_type: 'multiple_choice', damage: 10, options: ['', '', '', ''], correct_answer: '' }]);
   };
 
@@ -283,14 +280,6 @@ export function TeacherBossPanel({ teacherId, classes, onDataChanged }: TeacherB
                 {DIFFICULTIES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
             </div>
-          </div>
-
-          <div>
-            <label className="text-xs text-white/40 uppercase tracking-wider block mb-1">Turma (opcional)</label>
-            <select value={classId} onChange={e => setClassId(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
-              <option value="">Todas as turmas</option>
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
           </div>
 
           {/* Questions */}
