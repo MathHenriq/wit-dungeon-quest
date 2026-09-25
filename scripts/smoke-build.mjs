@@ -23,7 +23,7 @@ import { extname, join, normalize } from 'node:path';
 
 const DIST = 'dist';
 const PORTA = Number(process.env.SMOKE_PORT ?? 4178);
-const ROTAS = ['/', '/login', '/professor/login', '/pais/login'];
+const ROTAS = ['/', '/login', '/professor/login', '/cartas-demo'];
 const ESPERA_MS = Number(process.env.SMOKE_WAIT_MS ?? 6000);
 
 const TIPOS = {
