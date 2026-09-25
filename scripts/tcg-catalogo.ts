@@ -23,11 +23,11 @@ const ORDER: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'myt
 const cell = (s: string) => s.replace(/\|/g, '\\|');
 
 const out: string[] = [
-  '# Catálogo do TCG — cartas da loja traduzidas',
+  '# Catálogo do TCG',
   '',
   '> Gerado por `scripts/tcg-catalogo.ts` a partir de `src/lib/tcg/cards/catalog.ts`. Não edite à mão.',
   '> O texto de cada carta é gerado a partir dos efeitos programados.',
-  wr.size ? '> **Vitória sim.**: taxa de vitória dos decks que tinham a carta, em 12 mil partidas simuladas entre decks aleatórios (IA simples). Serve para comparar cartas, não é verdade absoluta.' : '',
+  wr.size ? '> **Vitória sim.**: taxa de vitória dos decks que tinham a carta, em 15 mil partidas simuladas entre decks aleatórios (IA simples). Serve para comparar cartas, não é verdade absoluta.' : '',
   '',
   `Total: **${CATALOG.length} cartas**.`,
   '',

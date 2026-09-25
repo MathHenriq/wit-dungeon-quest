@@ -17,7 +17,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { CATALOG } from '../../src/lib/tcg/cards/catalog';
 import { FULL_ART_RARITIES } from '../../src/lib/tcg/labels';
 import type { CardDef } from '../../src/lib/tcg/types';
-import { ART_PROMPTS } from './prompts';
+import { ART_PROMPTS as P1, ART_PROMPTS_2 } from './prompts';
+
+const ART_PROMPTS: Record<string, string> = { ...P1, ...ART_PROMPTS_2 };
 
 const API = 'https://aihorde.net/api/v2';
 const HEADERS = {
@@ -128,6 +130,10 @@ async function gerar(card: CardDef, seed: string): Promise<Resultado> {
 // ─── Fila ────────────────────────────────────────────────────────────────────
 
 mkdirSync(out, { recursive: true });
+
+// Falha cedo se alguma carta do catálogo não tem prompt.
+const semPrompt = CATALOG.filter(c => !ART_PROMPTS[c.id]).map(c => c.id);
+if (semPrompt.length) throw new Error(`Cartas sem prompt: ${semPrompt.join(', ')}`);
 
 const fila = CATALOG
   .filter(c => !ids || ids.includes(c.id))

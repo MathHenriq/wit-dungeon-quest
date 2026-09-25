@@ -96,12 +96,36 @@ O catálogo completo, com o texto de cada carta, está em [`cartas-tcg.md`](cart
 
 ## Como se ganha carta
 
-1. **Deck inicial** aleatório: comuns + incomuns, com trava de jogabilidade (elemento da classe + 1 sorteado, cartas baratas suficientes).
-2. **Chefes:** cada chefe tem um deck temático. Derrotá-lo dá uma carta do deck dele. **É repetível**: cartas duplicadas alimentam troca e venda entre alunos.
-3. **Baús.**
-4. **Loja.**
+Só existem **duas** formas (decidido):
 
-As funções de **troca** e **venda** ficam, porque são o destino natural das duplicatas.
+1. **Conquistando.** Cada chefe tem um deck temático; derrotá-lo dá uma carta do deck dele. É repetível: duplicatas alimentam a troca e a venda entre alunos.
+2. **Abrindo pacotinhos.** Os baús viram pacotinhos de cartas.
+
+Não existe mais loja de cartas. O deck inicial do aluno também sai de pacotinhos (comuns e incomuns, com trava de jogabilidade: elemento da classe + cartas baratas suficientes).
+
+### Pacotinho (proposta, **[aberto]**)
+
+5 cartas por pacotinho:
+
+| Posição | Conteúdo |
+|---|---|
+| 1–3 | Comum |
+| 4 | Incomum |
+| 5 | Rara ou melhor: Rara 70% · Épica 20% · Lendária 7% · Mítica 2,5% · Desconhecida 0,5% |
+
+## Raridade
+
+Raridade é **chance de sair no pacotinho**, não força. Quem equilibra a carta é o custo. A simulação de 15 mil partidas confirma: a taxa média de vitória por raridade fica entre 49% e 53%.
+
+| Raridade | Cartas (de 300) |
+|---|---|
+| Comum | 105 |
+| Incomum | 72 |
+| Rara | 54 |
+| Épica | 36 |
+| Lendária | 20 |
+| Mítica | 9 |
+| Desconhecida | 4 |
 
 ## Inimigos
 
