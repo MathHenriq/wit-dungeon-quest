@@ -59,7 +59,6 @@ aluno jogar em casa com o que ganhou na sala.
 - **"Descoberta por":** o primeiro aluno do jogo a tirar cada Lendária ou
   Mítica fica com o nick gravado na carta ("Descoberta por Nick"). Os outros
   alunos passam a ver a carta revelada, com esse crédito.
-  completa.
 - **Coleções temáticas** (ex.: "Girl Power", magical girl, idol/k-pop).
 
 ### Sistemas: fica, muda ou sai
