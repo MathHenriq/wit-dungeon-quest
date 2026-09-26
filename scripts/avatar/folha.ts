@@ -2,8 +2,7 @@
 //   npx vite-node scripts/avatar/folha.ts -- <saida.png> [escala]
 import { writeFileSync } from 'node:fs';
 import { deflateSync, crc32 } from 'node:zlib';
-import { FRAME, type Pose } from '../../src/game/avatar/base';
-import { composeFrame, type AvatarLook, type Facing } from '../../src/game/avatar/compose';
+import { composeFrame, FRAME, type AvatarLook, type Facing, type Pose } from '../../src/game/avatar/compose';
 
 const args = process.argv.slice(2).filter(a => a !== '--');
 const out = args[0] ?? 'folha.png';
@@ -11,11 +10,11 @@ const SCALE = Number(args[1] ?? 5);
 
 const LOOKS: AvatarLook[] = [
   { skin: 'clara', hair: 'curto', hairColor: 'castanho', eyes: 'escuro', top: 'vermelho', sleeves: 'curta', bottom: 'jeans', legs: 'comprida', shoes: 'preto' },
-  { skin: 'morena', hair: 'longo', hairColor: 'preto', eyes: 'castanho', top: 'lilas', sleeves: 'longa', bottom: 'branco', legs: 'curta', shoes: 'rosa' },
-  { skin: 'escura', hair: 'curto', hairColor: 'preto', eyes: 'escuro', top: 'amarelo', sleeves: 'curta', bottom: 'verde', legs: 'curta', shoes: 'branco' },
+  { skin: 'morena', hair: 'coques', hairColor: 'preto', eyes: 'castanho', top: 'lilas', sleeves: 'longa', bottom: 'branco', legs: 'curta', shoes: 'rosa' },
+  { skin: 'escura', hair: 'espetado', hairColor: 'preto', eyes: 'escuro', top: 'amarelo', sleeves: 'curta', bottom: 'verde', legs: 'curta', shoes: 'branco' },
   { skin: 'porcelana', hair: 'longo', hairColor: 'rosa', eyes: 'azul', top: 'branco', sleeves: 'longa', bottom: 'rosa', legs: 'comprida', shoes: 'vermelho' },
   { skin: 'canela', hair: 'longo', hairColor: 'loiro', eyes: 'verde', top: 'azul', sleeves: 'curta', bottom: 'caqui', legs: 'comprida', shoes: 'caqui' },
-  { skin: 'pessego', hair: 'curto', hairColor: 'azul', eyes: 'azul', top: 'preto', sleeves: 'longa', bottom: 'preto', legs: 'comprida', shoes: 'branco' },
+  { skin: 'pessego', hair: 'espetado', hairColor: 'verde', eyes: 'azul', top: 'preto', sleeves: 'longa', bottom: 'preto', legs: 'comprida', shoes: 'branco' },
 ];
 
 const FRAMES: [Facing, Pose][] = [

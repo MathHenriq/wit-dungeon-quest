@@ -22,6 +22,7 @@ export const HAIR_COLORS: Record<string, Ramp> = {
   azul:     ['#18285a', '#3456a6', '#5a82d6', '#94b4f4'],
   lilas:    ['#3a2266', '#6c4aac', '#9a78d6', '#c8b0f4'],
   branco:   ['#5a5a70', '#b4b4c8', '#dcdcec', '#ffffff'],
+  verde:    ['#1e3a14', '#4a8a34', '#78b852', '#b4e08a'],
 };
 
 export const CLOTH_COLORS: Record<string, Ramp> = {
