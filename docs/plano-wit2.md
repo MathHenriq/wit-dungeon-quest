@@ -138,27 +138,27 @@ tem um menu rápido que leva direto a qualquer lugar.
 
 ## 4. Economia (proposta)
 
-### 4.1 Duas moedas, papéis claros
-| Moeda | De onde vem | Para que serve |
-|---|---|---|
-| **Moedas** | Jogo (batalhas, andares, diárias) + sala | Pacote Comum, cosméticos, móveis |
-| **Diamantes** | **Só da sala** (presença, desempenho, missões do professor) e metas de guilda | Pacotes melhores, Recompensas da Sala (físicas) |
-
-Os diamantes já existem e hoje vêm quase só do professor (338 × 72). Só
-fixamos a regra.
+### 4.1 Uma moeda só (decidido em 26/09: diamantes saem)
+- **Moedas** vêm do jogo (batalhas, andares, diárias) e da sala.
+- A sala recompensa com **pacotes**, não com moeda. Pacote Raro e Épico
+  **não se compram com moedas**: saem da sala, de eventos, da guilda e da
+  garantia.
+- As moedas compram Pacote Comum, cosméticos, móveis e Recompensas da Sala.
+  As Recompensas da Sala só são usadas **dentro da sala**, então a presença
+  já está embutida nelas.
+- Diamantes atuais viram moedas na migração (taxa a definir).
 
 ### 4.2 Pacotes (proposta)
 | Pacote | Conteúdo | Como conseguir |
 |---|---|---|
 | Comum | 3 C + 1 I + 1 Rara ou melhor | 300 moedas · presença |
-| Raro | 2 I + 2 R + 1 Épica ou melhor | 15 diamantes · "foi bem" em sala |
-| Épico | 1 R + 3 É ou melhor + 1 Lendária ou melhor com chance maior | 50 diamantes · "excepcional" em sala · eventos |
+| Raro | 2 I + 2 R + 1 Épica ou melhor | "foi bem" em sala · meta de guilda |
+| Épico | 1 R + 3 É ou melhor + 1 Lendária ou melhor com chance maior | "excepcional" em sala · eventos · garantia |
 | Evento | Cartas da coleção do evento | Tempo limitado |
 
 - **Ritmo de jogo:** um dia de jogo dedicado rende ~300–500 moedas, ou seja,
-  ~1 Pacote Comum por dia. Ninguém fica "30 moedas contra um pacote de 10 mil".
-- **Ritmo de sala:** uma aula com bom desempenho vale mais que vários dias
-  de jogo em casa.
+  ~1 Pacote Comum por dia.
+- **Ritmo de sala:** uma aula vale pacotes que o jogo não vende.
 - Teto diário de moedas continua (já existe: 500/750).
 - **Garantia:** 10 pacotes sem Épica ou melhor → o próximo garante.
 
@@ -177,15 +177,15 @@ A 2ª cópia (até o limite do deck) **não** vira pó automaticamente: o aluno
 escolhe o que desmanchar.
 
 ### 4.4 Recompensas da Sala (tickets físicos)
-Compradas com diamantes e resgatadas com um toque do professor. Preço
+Compradas com moedas e resgatadas com um toque do professor. Preço
 proporcional a tempo e trabalho. O professor ajusta os preços do próprio
 catálogo.
 
 | Exemplo | Preço |
 |---|---|
-| Tablet ou celular, 15 min | 15 💎 (≈ Pacote Raro) |
-| Alexa: escolher a música da aula | 15 💎 |
-| Óculos VR, 10 min | 50 💎 (≈ Pacote Épico) |
+| Tablet ou celular, 15 min | 600 moedas (≈ 2 Pacotes Comuns) |
+| Alexa: escolher a música da aula | 600 moedas |
+| Óculos VR, 10 min | 2.000 moedas |
 
 ---
 
@@ -240,7 +240,7 @@ Nada de +dano ou +vida que decida uma partida.
 - Guilda = equipe de 4 a 8 alunos do mesmo professor.
 - **Meta semanal coletiva:** presença somada dos membros. Todo mundo que
   foi à aula enche a barra. **Se a barra enche, a guilda inteira ganha**
-  (pacote + diamantes). Quem faltou atrasa a equipe, e a equipe sabe.
+  (pacote). Quem faltou atrasa a equipe, e a equipe sabe.
 - O painel mostra "faltam 2 presenças para a meta". Não expõe quem faltou
   com nome e data, para não virar humilhação. Mostra só a contagem, e cada
   um vê a própria contribuição.
@@ -263,13 +263,13 @@ tela do professor abre em menos de 1 segundo.
 2. **Código de aula** opcional no projetor (4 dígitos, trocando a cada
    30 s): o aluno digita e a presença marca sozinha.
 3. Cada aluno tem **um toque** para o desempenho: faltou / presente /
-   foi bem / excepcional. Isso define o pacote e os diamantes dele.
+   foi bem / excepcional. Isso define o pacote dele.
 4. **"Entregar"** grava tudo de uma vez, numa única função no servidor, com
    histórico por aula.
 5. O aluno recebe um aviso no jogo ("Você foi bem hoje! Pacote Raro").
 
 ### 7.3 Outras telas
-- **Alunos:** busca instantânea, ajustar, dar pacote ou diamantes, resetar
+- **Alunos:** busca instantânea, ajustar, dar pacote ou moedas, resetar
   senha, suspender. Só os alunos do professor.
 - **Missões de sala:** criar, aprovar em lote.
 - **Recompensas da Sala:** catálogo e preços, fila de resgates, um toque
@@ -281,7 +281,7 @@ tela do professor abre em menos de 1 segundo.
 | Papel | Pode |
 |---|---|
 | **Master** (e-mail pessoal do Matheus) | Tudo, em todos os professores: excluir aluno ou professor, eventos, coleções, catálogo |
-| **Professor** | Os próprios alunos: ajustar, dar pacotes e diamantes, suspender, resetar senha. **Não exclui.** |
+| **Professor** | Os próprios alunos: ajustar, dar pacotes e moedas, suspender, resetar senha. **Não exclui.** |
 | **Aluno** | O próprio personagem |
 
 O master é identificado pelo e-mail, e o `is_admin` dos outros professores
@@ -291,7 +291,7 @@ deixa de dar acesso a todos os alunos.
 - Lista de alunos numa só consulta, filtrada pelo professor, **sem** buscar
   e-mail um por um no Auth.
 - Nada de recarregar tudo a cada mudança de qualquer aluno.
-- Toda escrita de moeda, diamante e pacote numa função do servidor (nunca
+- Toda escrita de moeda e pacote numa função do servidor (nunca
   "lê, soma e grava" no navegador).
 
 ---
@@ -339,7 +339,7 @@ dedicação?**
 | Cartas da loja antiga | A carta equivalente da Coleção 1 (`catalog.ts` já é essa loja convertida) |
 | Classe | O Herói correspondente (`Espiao` e `Espião` unificados) |
 | Nível e XP | Mantidos. Cada nível conquistado vale Pacotes de Legado. |
-| Moedas e diamantes | Mantidos, com teto para contas com saldo absurdo (ex.: 10.001.794 moedas, teste ou bug) |
+| Moedas | Mantidas; diamantes viram moedas. Teto para contas com saldo absurdo (ex.: 10.001.794 moedas, teste ou bug) |
 | Títulos | Mantidos + título "Veterano WIT 1" para todos |
 | Pontos de atributo e de skill | Pontos de Talento |
 | Materiais e consumíveis da forja antiga | Convertidos em pó |
