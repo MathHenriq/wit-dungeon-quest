@@ -35,6 +35,7 @@ Decisões já tomadas (não reabrir sem o Matheus pedir):
   dentro do TCG (a árvore de skills não faz mais sentido como está).
 - Evolução de cartas: fica para depois do básico.
 
+**Plano completo do WIT 2 (fases, economia, cidade, professor): `docs/plano-wit2.md`.**
 Regras completas: `docs/regras-tcg.md`. Lista das cartas: `docs/cartas-tcg.md`.
 
 **Em aberto:** conteúdo do pacotinho (proposta em `docs/regras-tcg.md`:
