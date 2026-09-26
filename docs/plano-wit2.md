@@ -83,6 +83,13 @@ A virada visual e o maior diferencial do WIT 2. **Referência de estilo:
 Pokémon Black & White**: visão de cima em 3/4, personagem pequeno e
 expressivo, prédios com cara de semi-3D.
 
+**Regra do 2D × semi-3D:** 2D só se ficar praticamente igual ao Black &
+White. Entre um 2D muito bonito e um semi-3D mediano, fica o 2D. O protótipo
+da fase 1 decide.
+
+**A cidade inicial é a mais bonita do jogo.** No futuro pode haver outras
+cidades liberadas por progresso (ex.: andar 20 libera a cidade X).
+
 ### 3.1 A cidade é o menu
 Cada tela do jogo é um lugar que o aluno visita andando:
 
@@ -97,8 +104,11 @@ Cada tela do jogo é um lugar que o aluno visita andando:
 | **NPCs** | Vendedores, brindes por acertar perguntas, eventos |
 | **Sua casa** | Customização do personagem e da casa |
 
-A **cidade é compartilhada**: os alunos se veem andando em tempo real, com o
-título sobre o nick. Clicar em alguém abre o **perfil** (estilo cartão de
+A **cidade é uma só para todos os jogadores**, de todos os professores: mais
+gente nas áreas públicas deixa a cidade viva. Os alunos se veem andando em
+tempo real, com o título sobre o nick. Se muita gente estiver no mesmo lugar,
+o jogo abre automaticamente um "canal" paralelo do mesmo mapa (como em MMO),
+para não pesar. Clicar em alguém abre o **perfil** (estilo cartão de
 treinador): moldura customizada, título, deck favorito, vitórias, álbum,
 pet.
 
@@ -112,7 +122,15 @@ tem um menu rápido que leva direto a qualquer lugar.
   pensa nisso em jogo educacional.
 - **Os inimigos resolvem-se sozinhos:** ~100 Desafiantes gerados sorteando
   as mesmas camadas, com nome e deck. Nada de importar imagem por inimigo.
-- Os chefes podem ter peças exclusivas (ganháveis ao derrotá-los).
+- **Chefes são montados à mão** e têm peças exclusivas que o aluno ganha ao
+  derrotá-los.
+- **NPCs** (vendedores, NPC de brinde com pergunta, NPC de evento) usam o
+  mesmo sistema de camadas. Todo mundo no jogo é humano no mesmo padrão.
+- **Cosméticos são economia:** roupa e acessório vêm da loja, de eventos,
+  de títulos e de chefes, e aparecem no perfil, na cidade e na batalha.
+- **Um padrão único de arte, criado por nós.** Nada de misturar catálogos de
+  terceiros. Definimos o boneco base (tamanho, proporção chibi, paleta,
+  poses, 4 direções) e toda peça segue esse padrão.
 
 ### 3.3 Sua casa
 - Casa em grade com móveis que o aluno compra, gira, pinta e posiciona.
@@ -125,8 +143,8 @@ tem um menu rápido que leva direto a qualquer lugar.
 - **Conversa em balão sobre a cabeça**, na cidade ou na casa, que some depois
   de alguns segundos.
 - Frases prontas + texto curto com filtro de palavrões.
-- **Todo texto fica gravado** e o aluno pode denunciar. O professor vê as
-  denúncias dos alunos dele. Não existe chat privado.
+- **Todo texto fica gravado** e o aluno pode denunciar. A denúncia vai para o professor
+  de quem escreveu e para o master. Não existe chat privado.
 
 ### 3.5 Pets (~50)
 - Seguem o personagem na cidade e aparecem ao lado dele na batalha.
@@ -355,10 +373,8 @@ da virada, a migração roda uma vez e o jogo troca.
 |---|---|---|
 | Motor da cidade | **Phaser 3** dentro do React | Gratuito, feito para mapa em tiles, sprite, câmera, toque; roda bem em PC fraco e celular |
 | Mapas | **Tiled** (editor gratuito) | Padrão da indústria para mapa 2D |
-| Arte do boneco em camadas | **LPC** (Liberated Pixel Cup) como base, com paleta e ajustes próprios | Milhares de peças livres (CC-BY-SA/GPL) já pensadas para camadas. Gerar camadas consistentes por IA não é viável. Exige tela de créditos. |
-| Móveis e prédios | LPC + Kenney (CC0) + ajustes | Gratuito |
-| Pets | A avaliar no teste de viabilidade (LPC tem poucos animais; talvez IA em pixel art + revisão) | |
-| Cidade compartilhada | **Supabase Realtime** (presença + broadcast), uma sala por professor | Já está no projeto. Verificar o limite de conexões simultâneas do plano. |
+| Arte (bonecos, móveis, prédios, pets) | **Padrão próprio**, pixel art desenhada por nós sobre um boneco base fixo, com paleta fixa. Cor de pele, cabelo e roupa trocadas por código. | Um catálogo só, sem risco de licença e sem estilos misturados |
+| Cidade compartilhada | **Supabase Realtime**, uma cidade global dividida por mapa e por canal; envia só "fui para o ponto X", não a posição a cada quadro | Já está no projeto. Medir o limite de conexões do plano na fase 1. |
 | Batalha | Motor do TCG existente (`src/lib/tcg/engine.ts`) + IA nova | O motor já é puro e testado |
 | Celular | **Tudo pensado para toque desde o início** (tocar para andar, cartas arrastáveis) | O jogo hoje não funciona no celular |
 
@@ -398,5 +414,5 @@ Cada fase termina com **prints aprovados pelo Matheus** antes da próxima.
 | Conversa entre crianças | Só balão, texto gravado, filtro, denúncia, professor vê |
 | Economia quebrada (inflação ou frustração) | Simular antes; ajustar preços no banco sem deploy |
 | Escopo gigante | Fases fechadas, cada uma usável sozinha; fase 0 dá resultado já |
-| Limite do plano gratuito do Supabase (Realtime) | Uma sala por professor; medir na fase 1 |
-| Licença da arte (LPC é CC-BY-SA/GPL) | Tela de créditos; peças modificadas continuam na mesma licença |
+| Limite do plano gratuito do Supabase (Realtime) com cidade global | Canais automáticos por mapa; medir na fase 1 |
+| Volume de arte própria (centenas de peças) | Boneco base aprovado primeiro; peças em lote, sempre no mesmo padrão; começar com poucas peças bem feitas |
