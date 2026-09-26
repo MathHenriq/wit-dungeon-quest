@@ -38,7 +38,8 @@ aluno jogar em casa com o que ganhou na sala.
   tanto quanto uma carta lendária.
 - **Qualquer herói usa qualquer carta.** Elemento nunca limita o deck.
 - Atributos saem. Árvore de skills sai do jeito que é hoje.
-- As classes viram **Heróis**, cada um com um **deck inicial temático**.
+- As classes viram **Caminhos**: estilos de jogo com um **deck inicial
+  temático** (seção 5.3). Nada de Mago ou Guerreiro.
   O aluno **mantém todas as cartas que já tem**.
 - Batalha comum: dá para vencer em **~2 min**. Chefe: **no máximo ~7 min**.
 - Nada de brilho exagerado. Visual com marca própria.
@@ -50,6 +51,15 @@ aluno jogar em casa com o que ganhou na sala.
 - **Forja:** duplicata vira pó; o pó cria a carta escolhida.
 - **Álbum** de coleção com espaços vazios visíveis e recompensa por página
   completa.
+- **O que o aluno vê antes de ter a carta:** Comum até Épica aparecem
+  inteiras na vitrine e no álbum. Lendária e Mítica aparecem como **espaço
+  vazio com a cor da raridade e uma dica** ("um poder que vem da força de um
+  guerreiro lendário"). Desconhecida aparece só como "???", sem dica.
+  Quando o aluno ganha a carta, ela se revela para ele.
+- **"Descoberta por":** o primeiro aluno do jogo a tirar cada Lendária ou
+  Mítica fica com o nick gravado na carta ("Descoberta por Nick"). Os outros
+  alunos passam a ver a carta revelada, com esse crédito.
+  completa.
 - **Coleções temáticas** (ex.: "Girl Power", magical girl, idol/k-pop).
 
 ### Sistemas: fica, muda ou sai
@@ -57,7 +67,7 @@ aluno jogar em casa com o que ganhou na sala.
 |---|---|
 | Guilda | **Fica e vira equipe.** Foco: *o aluno cobra o aluno que faltou.* Raids entram aqui. |
 | Quests + Missões + Diárias | **Viram um Quadro de Missões**: diárias e semanais de jogo + missões de sala do professor. |
-| Talentos | **Fica em outro formato**, ligado às cartas (seção 5.4). Pequeno; nunca o principal. |
+| Talentos | Vira o **Grimório** (seção 5.4). Pequeno; nunca o principal. |
 | Forja | **Fica**: pó de duplicatas → carta escolhida. |
 | Baús | Viram pacotinhos. |
 | Loja | Vitrine de todas as cartas + pacotes + cosméticos + **Recompensas da Sala** (tickets físicos). |
@@ -245,15 +255,31 @@ curta, sem esperar clique). Botão de "passar" visível.
   inimigo fica numa faixa definida por andar.
 
 ### 5.3 Decks
-- **Deck inicial por Herói:** 20 cartas comuns e incomuns com o tema da
-  classe (o Mago puxa magia), mas **qualquer herói usa qualquer carta**.
+- **Caminhos:** o aluno escolhe um estilo de jogo e ganha o deck inicial
+  dele (20 cartas comuns e incomuns). **Qualquer aluno usa qualquer carta**;
+  o Caminho é só o ponto de partida, sem bônus de poder.
+
+  | Caminho | Estilo | Mecânicas do deck inicial |
+  |---|---|---|
+  | **O Desafiante** | Equilibrado, bom para começar | Um pouco de tudo |
+  | **O Sábio** | Estratégia: prepara e explode | Compra, bônus guardado, combos |
+  | **O Louco** | Tudo ou nada: paga vida para bater forte | Pagar vida, dano alto, ataque rápido |
+  | **O Guardião** | Aguenta tudo e vira o jogo | Escudo, cura, armadura, refletir |
+  | **O Alquimista** | Dano que corrói aos poucos | Queimadura, veneno, sangramento |
+  | **O Ceifador** | O cemitério é a arma | Moer o deck, banir, dano que escala |
+  | **O Trapaceiro** | Pega o oponente desprevenido | Armadilhas, travas, roubo |
+  | **O Forjador** | Monta o arsenal | Equipamentos e Campo |
+
+- Na migração, o aluno escolhe o Caminho no primeiro login, com uma sugestão
+  baseada na classe antiga (Mago → Sábio, Necromante → Ceifador, Espião →
+  Trapaceiro...). 305 alunos nem tinham classe.
 - **Decks dos chefes:** temáticos, 20 cartas. Derrotar o chefe dá uma carta
   do deck dele (repetível).
 - **Construtor de deck:** filtros, contagem por tipo, aviso de deck
   injogável (pouco Ataque), sugestão automática para quem não quer montar,
   vários decks salvos.
 
-### 5.4 Talentos (nome a escolher: Grimório, Maestria de Cartas ou Selos)
+### 5.4 Grimório (os antigos "talentos")
 Pequenos, no máximo o peso de uma Comum. Um ponto por nível, ramos com
 nomes de carta:
 
@@ -368,7 +394,7 @@ dedicação?**
 | O aluno tem | Vira |
 |---|---|
 | Cartas da loja antiga | A carta equivalente da Coleção 1 (`catalog.ts` já é essa loja convertida) |
-| Classe | Um dos **8 Heróis** (os 5 mais escolhidos + 3 a definir); as classes raras vão para o Herói mais próximo. `Espiao` e `Espião` unificados. |
+| Classe | O aluno escolhe um dos 8 **Caminhos** no primeiro login, com sugestão baseada na classe antiga. |
 | Nível e XP | Mantidos. Pacotes de Legado por nível: **a definir na etapa de migração**. |
 | Moedas | Mantidas; 1 diamante = 20 moedas. Sem teto: o único saldo absurdo é de conta de teste (`is_test_account`), que fica fora da migração. |
 | Títulos | Mantidos + título "Veterano WIT 1" para todos |
@@ -406,7 +432,7 @@ termina com **prints aprovados pelo Matheus** antes da próxima.
 | **3 — Cidade inicial completa** | Todos os prédios, praça, NPCs e interiores, com as portas levando às telas (ainda vazias) |
 | **4 — Customização** | Peças de roupa, cabelo e acessório; editor do personagem; casa com móveis; perfil estilo cartão de treinador |
 | **5 — Telas do jogo (visual)** | Batalha, loja e abertura de pacote, álbum, Centro de Cartas, Torre, Quadro de Missões, guilda |
-| **6 — Batalha funcional** | Motor ligado, batalha curta, IA de 3 níveis, decks dos Heróis e dos chefes, construtor de deck, 100 inimigos gerados |
+| **6 — Batalha funcional** | Motor ligado, batalha curta, IA de 3 níveis, decks dos Caminhos e dos chefes, construtor de deck, 100 inimigos gerados |
 | **7 — Economia e coleção** | Pacotes configuráveis, garantia, forja, loja, Recompensas da Sala, títulos |
 | **8 — Social** | Cidade global com canais, amizades, conversa em balão com moderação, guilda nova, pedir ajuda |
 | **9 — Pets e cosméticos em volume** | ~50 pets, loja de roupas e móveis |
