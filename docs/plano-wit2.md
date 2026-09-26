@@ -142,7 +142,8 @@ tem um menu rápido que leva direto a qualquer lugar.
 - Pedido de amizade e visita à casa.
 - **Conversa em balão sobre a cabeça**, na cidade ou na casa, que some depois
   de alguns segundos.
-- Frases prontas + texto curto com filtro de palavrões.
+- Frases prontas + **texto livre curto desde a primeira versão**, com filtro de
+  palavrões.
 - **Todo texto fica gravado** e o aluno pode denunciar. A denúncia vai para o professor
   de quem escreveu e para o master. Não existe chat privado.
 
@@ -158,27 +159,38 @@ tem um menu rápido que leva direto a qualquer lugar.
 
 ### 4.1 Uma moeda só (decidido em 26/09: diamantes saem)
 - **Moedas** vêm do jogo (batalhas, andares, diárias) e da sala.
-- A sala recompensa com **pacotes**, não com moeda. Pacote Raro e Épico
-  **não se compram com moedas**: saem da sala, de eventos, da guilda e da
-  garantia.
-- As moedas compram Pacote Comum, cosméticos, móveis e Recompensas da Sala.
-  As Recompensas da Sala só são usadas **dentro da sala**, então a presença
-  já está embutida nelas.
-- Diamantes atuais viram moedas na migração (taxa a definir).
+- **Sem teto diário por enquanto**: deixamos livre e avaliamos com os dados.
+- Todos os pacotes, do Comum ao Mítico, **podem ser comprados com moedas**.
+  O Desconhecido ainda não tem pacote (a decidir).
+- A sala continua valendo mais porque o professor **dá pacotes direto**, sem
+  o aluno gastar moeda nenhuma.
+- As moedas também compram cosméticos, móveis e Recompensas da Sala. As
+  Recompensas da Sala só são usadas **dentro da sala**.
+- Diamantes atuais viram moedas na migração: **1 diamante = 20 moedas**.
 
-### 4.2 Pacotes (proposta)
-| Pacote | Conteúdo | Como conseguir |
-|---|---|---|
-| Comum | 3 C + 1 I + 1 Rara ou melhor | 300 moedas · presença |
-| Raro | 2 I + 2 R + 1 Épica ou melhor | "foi bem" em sala · meta de guilda |
-| Épico | 1 R + 3 É ou melhor + 1 Lendária ou melhor com chance maior | "excepcional" em sala · eventos · garantia |
-| Evento | Cartas da coleção do evento | Tempo limitado |
+### 4.2 Pacotes (preços e chances em proposta; tudo configurável)
+Cada pacote tem 5 cartas: 4 comuns do nível dele e 1 **destaque**. A carta
+destaque é **no mínimo** da raridade do nome do pacote, com chance pequena de
+vir acima.
 
-- **Ritmo de jogo:** um dia de jogo dedicado rende ~300–500 moedas, ou seja,
-  ~1 Pacote Comum por dia.
-- **Ritmo de sala:** uma aula vale pacotes que o jogo não vende.
-- Teto diário de moedas continua (já existe: 500/750).
-- **Garantia:** 10 pacotes sem Épica ou melhor → o próximo garante.
+| Pacote | 4 cartas | Destaque | Moedas |
+|---|---|---|---|
+| Comum | Comuns (20% Incomum) | Comum 60 · Incomum 25 · Rara 12 · Épica 2,5 · Lendária 0,5 | 300 |
+| Incomum | Comum/Incomum | Incomum 75 · Rara 20 · Épica 4 · Lendária 1 | 700 |
+| Raro | Comum/Incomum | Rara 80 · Épica 16 · Lendária 3 · Mítica 1 | 1.500 |
+| Épico | Incomum/Rara | Épica 85 · Lendária 12 · Mítica 2,5 · Desconhecida 0,5 | 4.000 |
+| Lendário | Rara/Épica | Lendária 90 · Mítica 9 · Desconhecida 1 | 10.000 |
+| Mítico | Épica/Lendária | **Mítica garantida** (2% de virar Desconhecida) | 25.000 |
+| Evento | Cartas da coleção do evento | — | Tempo limitado |
+
+- **Tudo é configurável pelo master no painel, sem deploy**: quantas cartas
+  vem no pacote, a raridade de cada posição e as chances.
+- **O professor pode dar qualquer pacote**, inclusive o Mítico.
+- Padrão da "Aula de hoje": presente = Comum · foi bem = Raro ·
+  excepcional = Épico. O professor troca por outro quando quiser.
+- **Garantia:** 10 pacotes sem Épica ou melhor → o próximo destaque é Épica
+  ou melhor.
+- Preços validados por simulação da economia antes do lançamento.
 
 ### 4.3 Forja (pó)
 | Raridade | Pó da duplicata | Custo para criar |
@@ -191,8 +203,8 @@ tem um menu rápido que leva direto a qualquer lugar.
 | Mítica | 400 | 3.200 |
 | Desconhecida | 1.000 | não pode ser forjada |
 
-A 2ª cópia (até o limite do deck) **não** vira pó automaticamente: o aluno
-escolhe o que desmanchar.
+**Nenhuma carta vira pó automaticamente.** Duplicata pode ser trocada com
+outro aluno; só vira pó quando o próprio aluno escolhe desmanchar.
 
 ### 4.4 Recompensas da Sala (tickets físicos)
 Compradas com moedas e resgatadas com um toque do professor. Preço
@@ -241,7 +253,7 @@ curta, sem esperar clique). Botão de "passar" visível.
   injogável (pouco Ataque), sugestão automática para quem não quer montar,
   vários decks salvos.
 
-### 5.4 Talentos das cartas (proposta)
+### 5.4 Talentos (nome a escolher: Grimório, Maestria de Cartas ou Selos)
 Pequenos, no máximo o peso de uma Comum. Um ponto por nível, ramos com
 nomes de carta:
 
@@ -255,7 +267,8 @@ Nada de +dano ou +vida que decida uma partida.
 
 ## 6. Guilda: "o aluno cobra o aluno que faltou"
 
-- Guilda = equipe de 4 a 8 alunos do mesmo professor.
+- Guilda = equipe de 4 a 8 alunos **do mesmo professor** (a cidade é global,
+  mas a meta de presença só faz sentido entre quem tem aula junto).
 - **Meta semanal coletiva:** presença somada dos membros. Todo mundo que
   foi à aula enche a barra. **Se a barra enche, a guilda inteira ganha**
   (pacote). Quem faltou atrasa a equipe, e a equipe sabe.
@@ -326,7 +339,7 @@ O WIT 2 adiciona coisas sociais, então:
   horário de aula que localize o aluno.
 - A foto de perfil real sai (o visual do boneco substitui).
 - As mensagens gravadas ficam só o tempo necessário para moderação
-  (proposta: 90 dias).
+  (90 dias, apagadas automaticamente por rotina diária, para não pesar).
 
 ---
 
@@ -335,7 +348,7 @@ O WIT 2 adiciona coisas sociais, então:
 A pergunta que o relatório responde: **o WIT 2 aumentou a presença e a
 dedicação?**
 
-- **Começar a medir já, antes do WIT 2** (fase 0): a presença por aula
+- **Medir a presença por aula** (fase 11): a presença por aula
   passa a ser registrada direito. Sem esse "antes" não há comparação.
 - Métricas por professor:
   - taxa de presença por aula e por aluno ao longo do tempo;
@@ -355,9 +368,9 @@ dedicação?**
 | O aluno tem | Vira |
 |---|---|
 | Cartas da loja antiga | A carta equivalente da Coleção 1 (`catalog.ts` já é essa loja convertida) |
-| Classe | O Herói correspondente (`Espiao` e `Espião` unificados) |
-| Nível e XP | Mantidos. Cada nível conquistado vale Pacotes de Legado. |
-| Moedas | Mantidas; diamantes viram moedas. Teto para contas com saldo absurdo (ex.: 10.001.794 moedas, teste ou bug) |
+| Classe | Um dos **8 Heróis** (os 5 mais escolhidos + 3 a definir); as classes raras vão para o Herói mais próximo. `Espiao` e `Espião` unificados. |
+| Nível e XP | Mantidos. Pacotes de Legado por nível: **a definir na etapa de migração**. |
+| Moedas | Mantidas; 1 diamante = 20 moedas. Sem teto: o único saldo absurdo é de conta de teste (`is_test_account`), que fica fora da migração. |
 | Títulos | Mantidos + título "Veterano WIT 1" para todos |
 | Pontos de atributo e de skill | Pontos de Talento |
 | Materiais e consumíveis da forja antiga | Convertidos em pó |
@@ -374,7 +387,7 @@ da virada, a migração roda uma vez e o jogo troca.
 | Motor da cidade | **Phaser 3** dentro do React | Gratuito, feito para mapa em tiles, sprite, câmera, toque; roda bem em PC fraco e celular |
 | Mapas | **Tiled** (editor gratuito) | Padrão da indústria para mapa 2D |
 | Arte (bonecos, móveis, prédios, pets) | **Padrão próprio**, pixel art desenhada por nós sobre um boneco base fixo, com paleta fixa. Cor de pele, cabelo e roupa trocadas por código. | Um catálogo só, sem risco de licença e sem estilos misturados |
-| Cidade compartilhada | **Supabase Realtime**, uma cidade global dividida por mapa e por canal; envia só "fui para o ponto X", não a posição a cada quadro | Já está no projeto. Medir o limite de conexões do plano na fase 1. |
+| Cidade compartilhada | **Supabase Realtime**, uma cidade global dividida por mapa e por canal; envia só "fui para o ponto X", não a posição a cada quadro | Já está no projeto. Medir o limite de conexões do plano na fase 2. |
 | Batalha | Motor do TCG existente (`src/lib/tcg/engine.ts`) + IA nova | O motor já é puro e testado |
 | Celular | **Tudo pensado para toque desde o início** (tocar para andar, cartas arrastáveis) | O jogo hoje não funciona no celular |
 
@@ -382,20 +395,28 @@ da virada, a migração roda uma vez e o jogo troca.
 
 ## 12. Fases
 
-Cada fase termina com **prints aprovados pelo Matheus** antes da próxima.
+**Visual primeiro** (decidido em 26/09): o Matheus quer ver o mundo pronto
+antes; as funções depois são ligadas no que já existe visualmente. Cada fase
+termina com **prints aprovados pelo Matheus** antes da próxima.
 
-| Fase | O quê | Por que nessa ordem |
-|---|---|---|
-| **0 — Professor rápido** | "Aula de hoje", presença no servidor com histórico, entrega de recompensa em lote, lista rápida, master por e-mail, permissões, primeiras métricas | Conserta o problema principal **já**, no WIT 1, e começa a medir o "antes" |
-| **1 — Identidade e teste de viabilidade** | Guia visual (paleta, tipografia, marca). Protótipo: 1 pedaço de cidade + 1 boneco customizável andando **no celular e no PC**, com 2 alunos se vendo | É o maior risco. Se não ficar bom, ajustamos antes de construir em cima. |
-| **2 — Batalha** | Regras da batalha curta, IA (3 níveis), decks dos chefes, decks iniciais dos Heróis, construtor de deck, tela de batalha nova | O coração do jogo. Precisa do guia visual. |
-| **3 — Economia e coleção** | Pacotes, garantia, álbum, forja, loja, Recompensas da Sala, Quadro de Missões, títulos novos | Depende da batalha e das cartas |
-| **4 — Cidade** | Cidade completa com os prédios levando às telas, NPCs, perfil, títulos sobre o nick, atalhos | Junta tudo |
-| **5 — Social** | Guilda nova, pedir ajuda, amizades, casa customizável, balões com moderação | Precisa da cidade |
-| **6 — Pets e cosméticos** | ~50 pets, loja de roupas e móveis | Conteúdo em volume |
-| **7 — PvP** | Assíncrono com IA + online em tempo real | Precisa da IA e da cidade |
-| **8 — Virada** | Migração, remoção dos sistemas antigos, `test:build`, medição de desempenho, relatório | Lançamento |
-| **9 — Lançamento** | **Comercial de lançamento** (gravação de tela + narração, como no projeto integrador) | Depois de tudo pronto |
+| Fase | O quê |
+|---|---|
+| **1 — Identidade e boneco base** | Guia visual (paleta, tipografia, marca). Boneco base parado e andando nas 4 direções. Teste: 2D no nível do Black & White ou não. |
+| **2 — Protótipo da cidade** | Um pedaço da cidade inicial, o boneco andando **no celular e no PC**, 2 jogadores se vendo em tempo real. Mede FPS e o limite do Realtime. |
+| **3 — Cidade inicial completa** | Todos os prédios, praça, NPCs e interiores, com as portas levando às telas (ainda vazias) |
+| **4 — Customização** | Peças de roupa, cabelo e acessório; editor do personagem; casa com móveis; perfil estilo cartão de treinador |
+| **5 — Telas do jogo (visual)** | Batalha, loja e abertura de pacote, álbum, Centro de Cartas, Torre, Quadro de Missões, guilda |
+| **6 — Batalha funcional** | Motor ligado, batalha curta, IA de 3 níveis, decks dos Heróis e dos chefes, construtor de deck, 100 inimigos gerados |
+| **7 — Economia e coleção** | Pacotes configuráveis, garantia, forja, loja, Recompensas da Sala, títulos |
+| **8 — Social** | Cidade global com canais, amizades, conversa em balão com moderação, guilda nova, pedir ajuda |
+| **9 — Pets e cosméticos em volume** | ~50 pets, loja de roupas e móveis |
+| **10 — PvP** | Assíncrono com IA usando o deck exato do colega + online em tempo real |
+| **11 — Professor rápido e métricas** | "Aula de hoje", presença no servidor com histórico, entrega em lote, lista rápida, master por e-mail, permissões, relatório |
+| **12 — Virada** | Migração, remoção dos sistemas antigos, `test:build`, medição de desempenho |
+| **13 — Lançamento** | **Comercial de lançamento** (gravação de tela + narração, como no projeto integrador) |
+
+Custo de deixar o professor para o fim: a presença só passa a ser medida
+direito perto do lançamento, então o "antes" do relatório fica curto.
 
 ### Depois do lançamento
 - Eventos com decoração da cidade + votação da próxima coleção.
@@ -410,9 +431,9 @@ Cada fase termina com **prints aprovados pelo Matheus** antes da próxima.
 
 | Risco | Como tratar |
 |---|---|
-| A cidade ficar feia ou lenta | Teste de viabilidade na fase 1, antes de tudo; medir FPS no celular |
+| A cidade ficar feia ou lenta | Boneco base (fase 1) e protótipo (fase 2) antes de tudo; medir FPS no celular |
 | Conversa entre crianças | Só balão, texto gravado, filtro, denúncia, professor vê |
 | Economia quebrada (inflação ou frustração) | Simular antes; ajustar preços no banco sem deploy |
-| Escopo gigante | Fases fechadas, cada uma usável sozinha; fase 0 dá resultado já |
-| Limite do plano gratuito do Supabase (Realtime) com cidade global | Canais automáticos por mapa; medir na fase 1 |
+| Escopo gigante | Fases fechadas, cada uma aprovada por print antes da próxima |
+| Limite do plano gratuito do Supabase (Realtime) com cidade global | Canais automáticos por mapa; medir na fase 2 |
 | Volume de arte própria (centenas de peças) | Boneco base aprovado primeiro; peças em lote, sempre no mesmo padrão; começar com poucas peças bem feitas |
