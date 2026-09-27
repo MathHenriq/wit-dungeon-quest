@@ -55,8 +55,17 @@ export class Pixmap {
     for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) {
       const sx = flipX ? src.w - 1 - x : x;
       const i = (y * src.w + sx) * 4;
-      if (src.data[i + 3] === 0) continue;
-      this.put(dx + x, dy + y, [src.data[i], src.data[i + 1], src.data[i + 2]]);
+      const a = src.data[i + 3];
+      if (a === 0 || !this.inside(dx + x, dy + y)) continue;
+      const o = ((dy + y) * this.w + dx + x) * 4, d = this.data;
+      if (a === 255 || d[o + 3] === 0) {
+        // opaco, ou destino vazio: copia (mantém a borda semitransparente dos sprites)
+        d[o] = src.data[i]; d[o + 1] = src.data[i + 1]; d[o + 2] = src.data[i + 2]; d[o + 3] = a;
+      } else {
+        const t = a / 255;
+        d[o] += (src.data[i] - d[o]) * t; d[o + 1] += (src.data[i + 1] - d[o + 1]) * t; d[o + 2] += (src.data[i + 2] - d[o + 2]) * t;
+        d[o + 3] = Math.max(d[o + 3], a);
+      }
     }
   }
 

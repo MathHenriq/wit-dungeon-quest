@@ -96,9 +96,17 @@ def shrink(rgb, alpha, box, size, colors):
     small = np.array(Image.fromarray(pre, 'RGBA').resize((w, h), Image.BOX)).astype(float)
     al = small[..., 3] / 255
     col = np.where(al[..., None] > 0.02, small[..., :3] / np.maximum(al[..., None], 0.02), 0).clip(0, 255)
-    mask = al > 0.45
+    # borda com meio-tom: o pixel que fica metade dentro, metade fora vira
+    # semitransparente (em vez de "tudo ou nada"), o que tira o serrilhado
+    # só na borda de FORA: o interior continua opaco (nada de ver a grama pelo telhado)
+    base = al >= 0.45
+    lab, _ = ndimage.label(~base)
+    border_labels = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    exterior = np.isin(lab, list(border_labels))
+    touch = ndimage.binary_dilation(base, structure=[[0, 1, 0], [1, 1, 1], [0, 1, 0]]) & exterior
+    alpha = np.where(base, 255, np.where(touch & (al >= 0.18), 110, 0))
     q = Image.fromarray(col.astype(np.uint8), 'RGB').quantize(colors, method=Image.Quantize.MEDIANCUT).convert('RGB')
-    out = np.dstack([np.array(q), mask * 255]).astype(np.uint8)
+    out = np.dstack([np.array(q), alpha]).astype(np.uint8)
     return out
 
 
