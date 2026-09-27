@@ -166,11 +166,19 @@ def save(name, px, manifest):
     manifest[name] = entry
 
 
+def find(name):
+    """Acha <name>.png em qualquer subpasta de public/Novos assets."""
+    for root, _, files in os.walk(SRC):
+        if name + '.png' in files:
+            return os.path.join(root, name + '.png')
+    return os.path.join(SRC, name + '.png')
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     manifest = {}
     for src, (name, size) in SINGLE.items():
-        path = os.path.join(SRC, src + '.png')
+        path = find(src)
         if not os.path.exists(path):
             print('faltando:', src); continue
         rgb, alpha = load(path)
@@ -178,7 +186,7 @@ def main():
         boxes, _ = components(alpha, 1)
         save(name, shrink(rgb, alpha, boxes[0] if boxes else bbox(alpha), size, 64), manifest)
     for src, items in SHEETS.items():
-        path = os.path.join(SRC, src + '.png')
+        path = find(src)
         if not os.path.exists(path):
             print('faltando:', src); continue
         rgb, alpha = load(path)

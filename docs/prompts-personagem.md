@@ -1,7 +1,7 @@
 # Prompts do personagem (GPT)
 
 Regras: uma imagem por prompt; anexe a **folha do corpo base de pele média** (`corpo-pele-4.png`) em todas as peças; nos corpos, anexe a folha do menino de cabelo castanho como referência de pose.
-Salve em `public/Novos assets/personagem/` com o nome indicado em cada prompt.
+Salve em `public/Novos assets/personagem/<pasta>/` (corpos, cabelos, acessorios, cima, baixo, sapatos; personagens completos em `prontos/`) com o nome indicado em cada prompt.
 
 | Parte | Arrumação | Imagens |
 |---|---|---|
