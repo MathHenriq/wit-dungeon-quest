@@ -58,8 +58,8 @@ describe('cidade inicial', () => {
 
   it('as saídas sul e leste estão abertas', () => {
     const ok = reachable();
-    expect(ok.has(`19,${MAP_H - 1}`) || ok.has(`20,${MAP_H - 1}`)).toBe(true);
-    expect(ok.has(`${MAP_W - 1},16`) || ok.has(`${MAP_W - 1},17`)).toBe(true);
+    expect(ok.has(`31,${MAP_H - 1}`) || ok.has(`32,${MAP_H - 1}`)).toBe(true);
+    expect(ok.has(`${MAP_W - 1},20`) || ok.has(`${MAP_W - 1},21`)).toBe(true);
   });
 
   it('é determinística: gerar de novo dá o mesmo chão', () => {

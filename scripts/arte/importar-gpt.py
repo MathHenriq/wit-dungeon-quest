@@ -55,6 +55,13 @@ SINGLE = {
     'casa-bibliotecaria': ('casa-bibliotecaria', {'w': 80}),
     'casa-artista': ('casa-artista', {'w': 80}),
 }
+# texturas de chão: viram quadrados de TILE_PX que se repetem sem emenda
+TILE_PX = 128
+TILES = {
+    'tile-grama': 'chao-grama', 'tile-mato': 'chao-mato', 'tile-areia': 'chao-areia',
+    'tile-calcada': 'chao-calcada', 'tile-agua': 'chao-agua', 'tile-flores': 'chao-flores',
+    'tile-floresta': 'chao-floresta',
+}
 SHEETS = {
     'arvores': [('pinheiro', {'w': 30}), ('arvore-redonda', {'w': 34}), ('cerejeira', {'w': 34}), ('arbusto', {'w': 18})],
     'folha-a': [('poste', {'h': 32}), ('totem', {'h': 30}), ('maquina', {'h': 32}),
@@ -166,6 +173,28 @@ def save(name, px, manifest):
     manifest[name] = entry
 
 
+def seamless(a):
+    """Tira a emenda: perto da borda usa a textura deslocada meio quadrado (cujas
+    bordas são o miolo contínuo da original); no meio fica a original."""
+    n = a.shape[0]
+    rolled = np.roll(np.roll(a, n // 2, 0), n // 2, 1)
+    t = np.minimum(np.arange(n), n - 1 - np.arange(n)) / (n * 0.22)
+    w1 = np.clip(t, 0, 1)
+    w = np.minimum(w1[:, None], w1[None, :])[..., None]
+    w = w * w * (3 - 2 * w)
+    return a * w + rolled * (1 - w)
+
+
+def tile(path, colors=40):
+    im = Image.open(path).convert('RGB')
+    s = min(im.size)
+    im = im.crop(((im.width - s) // 2, (im.height - s) // 2, (im.width - s) // 2 + s, (im.height - s) // 2 + s))
+    small = np.array(im.resize((TILE_PX, TILE_PX), Image.BOX)).astype(float)
+    small = seamless(small).clip(0, 255).astype(np.uint8)
+    q = np.array(Image.fromarray(small, 'RGB').quantize(colors, method=Image.Quantize.MEDIANCUT).convert('RGB'))
+    return np.dstack([q, np.full(q.shape[:2], 255, np.uint8)])
+
+
 def find(name):
     """Acha <name>.png em qualquer subpasta de public/Novos assets."""
     for root, _, files in os.walk(SRC):
@@ -195,6 +224,13 @@ def main():
             print(f'{src}: achei {len(boxes)} objetos, esperava {len(items)}')
         for (name, size), box in zip(items, boxes):
             save(name, shrink(rgb, alpha, box, size, 32), manifest)
+    for src, name in TILES.items():
+        path = find(src)
+        if not os.path.exists(path):
+            print('faltando:', src); continue
+        px = tile(path)
+        Image.fromarray(px, 'RGBA').save(os.path.join(OUT, name + '.png'))
+        manifest[name] = {'w': TILE_PX, 'h': TILE_PX}
     with open(os.path.join(OUT, 'manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=1, sort_keys=True)
     print(len(manifest), 'sprites em', os.path.relpath(OUT, ROOT))

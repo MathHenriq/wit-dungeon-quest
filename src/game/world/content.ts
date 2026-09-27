@@ -59,17 +59,17 @@ export interface NpcDef {
 }
 
 export const NPCS: NpcDef[] = [
-  { id: 'guia', tx: 17, ty: 16, dir: 'south', outfit: { hair: 'loiro', top: 'verde', bottom: 'jeans' },
+  { id: 'guia', tx: 33, ty: 23, dir: 'west', outfit: { hair: 'loiro', top: 'verde', bottom: 'jeans' },
     lines: ['Bem-vindo à Cidade WIT!', 'Aqui tudo gira em torno das cartas. Explore os prédios!'] },
-  { id: 'torre', tx: 22, ty: 11, dir: 'west', outfit: { hair: 'preto', top: 'marinho', bottom: 'preto' },
+  { id: 'torre', tx: 34, ty: 15, dir: 'west', outfit: { hair: 'preto', top: 'marinho', bottom: 'preto' },
     lines: ['Dizem que no andar 100 mora um chefe que ninguém venceu...', 'Será que você consegue?'] },
-  { id: 'loja', tx: 31, ty: 15, dir: 'south', outfit: { hair: 'rosa', top: 'amarelo', bottom: 'jeans' },
+  { id: 'loja', tx: 43, ty: 19, dir: 'south', outfit: { hair: 'rosa', top: 'amarelo', bottom: 'jeans' },
     lines: ['Chegaram pacotinhos novos na Loja!', 'Mas os melhores você ganha indo bem na aula.'] },
-  { id: 'arena', tx: 30, ty: 27, dir: 'north', outfit: { hair: 'ruivo', top: 'vermelho', bottom: 'caqui' },
+  { id: 'arena', tx: 49, ty: 31, dir: 'north', outfit: { hair: 'ruivo', top: 'vermelho', bottom: 'caqui' },
     lines: ['Quer duelar? A Arena abre em breve.', 'Treine seu deck na Torre enquanto isso!'] },
-  { id: 'guildas', tx: 9, ty: 27, dir: 'north', outfit: { hair: 'azul', top: 'roxo', bottom: 'preto' },
+  { id: 'guildas', tx: 19, ty: 31, dir: 'north', outfit: { hair: 'azul', top: 'roxo', bottom: 'preto' },
     lines: ['Na guilda, cada presença conta para a meta da equipe.', 'Faltou? A equipe inteira sente!'] },
-  { id: 'mural', tx: 17, ty: 12, dir: 'west', outfit: { hair: 'lilas', top: 'rosa', bottom: 'jeans' },
+  { id: 'mural', tx: 27, ty: 17, dir: 'west', outfit: { hair: 'lilas', top: 'rosa', bottom: 'jeans' },
     lines: ['O mural mostra os avisos do professor e as missões da semana.'] },
 ];
 

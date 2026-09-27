@@ -25,4 +25,6 @@ export interface Building {
   nightFrames?: Pixmap[];
   /** Fontes de luz que iluminam o chão à noite (refletor, fogo), relativas à arte. */
   glow?: { x: number; y: number; r: number; color: readonly [number, number, number]; k: number }[];
+  /** Deslocamento horizontal da arte (px) para a porta cair no meio do bloco da porta. */
+  offsetX?: number;
 }

@@ -19,7 +19,7 @@ import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 
 const DIRS: Dir[] = ['south', 'west', 'east', 'north'];
 /** ?passeio=1: o boneco passeia sozinho (para medir desempenho e gravar vídeo). */
-const TOUR: [number, number][] = [[20, 17], [8, 16], [7, 15], [8, 26], [22, 26], [31, 26], [34, 16], [33, 15], [48, 16], [50, 25], [39, 18], [45, 9], [24, 9], [15, 9], [4, 8], [20, 12]];
+const TOUR: [number, number][] = [[31, 23], [16, 21], [16, 19], [10, 27], [16, 32], [16, 31], [46, 33], [46, 31], [57, 21], [51, 14], [48, 10], [7, 11], [7, 9], [26, 13], [31, 23], [31, 40], [14, 42], [14, 41], [31, 33]];
 const WALK_MS = 230, RUN_MS = 125;
 /** Um dia inteiro do jogo dura 12 minutos (30 s por hora). */
 const MS_PER_HOUR = 30_000;
@@ -37,21 +37,32 @@ function toCanvas(pm: Pixmap): HTMLCanvasElement {
   return c;
 }
 
-/** Tela de rascunho reutilizada para escurecer uma arte na hora de desenhar (sem criar canvas novo). */
-const scratch = typeof document !== 'undefined' ? document.createElement('canvas') : null;
-function drawTinted(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, x: number, y: number, tint: string): void {
-  const sc = scratch!;
-  if (sc.width < src.width || sc.height < src.height) { sc.width = Math.max(sc.width, src.width, 128); sc.height = Math.max(sc.height, src.height, 128); }
-  const c = sc.getContext('2d')!;
-  const w = src.width, h = src.height;
-  c.globalCompositeOperation = 'copy';
-  c.drawImage(src, 0, 0);
-  c.globalCompositeOperation = 'multiply';
-  c.fillStyle = tint;
-  c.fillRect(0, 0, w, h);
-  c.globalCompositeOperation = 'destination-in';
-  c.drawImage(src, 0, 0);
-  ctx.drawImage(sc, 0, 0, w, h, x, y, w, h);
+/**
+ * Cópias escurecidas para a hora (personagens e o que fica na frente deles).
+ * Cada arte é escurecida uma vez por tom e guardada: usar como fonte um canvas
+ * que acabou de ser desenhado obriga a placa de vídeo a sincronizar, e isso
+ * dezenas de vezes por quadro derrubava o FPS à noite. No entardecer o tom
+ * muda aos poucos; para não recriar tudo de uma vez, no máximo `budget` por
+ * quadro (os outros usam a cópia anterior até a vez deles).
+ */
+const tintCache = new WeakMap<HTMLCanvasElement, { key: string; c: HTMLCanvasElement }>();
+const tintBudget = { left: 0 };
+function tinted(src: HTMLCanvasElement, key: string, css: string): HTMLCanvasElement {
+  const hit = tintCache.get(src);
+  if (hit && (hit.key === key || tintBudget.left <= 0)) return hit.c;
+  tintBudget.left--;
+  const c = hit?.c ?? document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  const x = c.getContext('2d')!;
+  x.globalCompositeOperation = 'copy';
+  x.drawImage(src, 0, 0);
+  x.globalCompositeOperation = 'multiply';
+  x.fillStyle = css;
+  x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'destination-in';
+  x.drawImage(src, 0, 0);
+  tintCache.set(src, { key, c });
+  return c;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -102,9 +113,11 @@ export default function CityDemo() {
   const [town, setTown] = useState<Town | null>(null);
   useEffect(() => {
     let alive = true;
+    // ?casa=modelo-gamer mostra a Sua Casa com outro modelo (as 3 iniciais e as 7 à venda)
+    const casa = new URLSearchParams(window.location.search).get('casa') ?? undefined;
     loadWorldAssets()
-      .then(a => { if (alive) setTown(buildTown(a)); })
-      .catch(err => { console.error('sprites da cidade', err); if (alive) setTown(buildTown()); });
+      .then(a => { if (alive) setTown(buildTown(a, { casa })); })
+      .catch(err => { console.error('sprites da cidade', err); if (alive) setTown(buildTown(undefined, { casa })); });
     return () => { alive = false; };
   }, []);
   if (!town) {
@@ -408,9 +421,12 @@ function CityView({ town }: { town: Town }) {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
       }
-      const tintCss = `rgb(${tod.tint[0]},${tod.tint[1]},${tod.tint[2]})`;
+      // tom da hora arredondado (muda pouco a pouco no entardecer)
+      const q = tod.tint.map(v => Math.min(255, (v >> 3) * 8 + 4));
+      const tintKey = q.join(','), tintCss = `rgb(${q[0]},${q[1]},${q[2]})`;
+      tintBudget.left = 4;
       /** Desenha a arte escurecida para a hora atual (de dia, direto). */
-      const put = (c: HTMLCanvasElement, x: number, y: number) => { if (white) ctx.drawImage(c, x, y); else drawTinted(ctx, c, x, y, tintCss); };
+      const put = (c: HTMLCanvasElement, x: number, y: number) => ctx.drawImage(white ? c : tinted(c, tintKey, tintCss), x, y);
       const nightOn = (n: HTMLCanvasElement | null | undefined, x: number, y: number) => {
         if (!lit || !n) return;
         ctx.globalAlpha = tod.light;

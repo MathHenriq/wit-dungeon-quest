@@ -19,7 +19,7 @@ async function run(name, viewport, steps, touch = false, query = '') {
 }
 await run('pc', { width: 1280, height: 720 }, [
   { shot: 'inicio' },
-  { key: 'ArrowDown', ms: 700 }, { key: 'ArrowLeft', ms: 2200 }, { shot: 'andando' },
+  { key: 'ArrowDown', ms: 900 }, { key: 'ArrowLeft', ms: 2600 }, { shot: 'andando' },
   { key: 'ArrowUp', ms: 250 }, { shot: 'virou' },
 ]);
 await run('pc2', { width: 1280, height: 720 }, [

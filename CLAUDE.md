@@ -62,7 +62,7 @@ construtor de deck.
 | Objetos tecnológicos no verde WIT (postes, totens, portal, fonte, mural) | `src/game/world/props-tech.ts` |
 | Fonte pixel 5×7 dos letreiros | `src/game/world/font.ts` |
 | Dia e noite (tinta por hora, halo das luzes) | `src/game/world/light.ts` (`/cidade-demo?hora=22&velocidade=20`; tecla T avança 2 h) |
-| Planta da cidade (terrenos, prédios, colisão, portas) | `src/game/world/town.ts` (+ testes em `__tests__/town.test.ts`) |
+| Planta da cidade (terrenos, prédios, colisão, portas) | `src/game/world/town.ts` (+ testes em `__tests__/town.test.ts`): 64×48 blocos em faixas (prédios em cima, rua embaixo), praça da Torre no meio; `DOOR_X` guarda onde fica a porta de cada sprite para o caminho cair embaixo dela; `?casa=modelo-gamer` troca o modelo da Sua Casa |
 | Movimento em grade, caminho, troca de cor do boneco | `src/game/world/{movement,recolor}.ts` |
 | Cidade jogável (`/cidade-demo`, `?passeio=1` anda sozinho) | `src/pages/CityDemo.tsx` + textos em `src/game/world/content.ts` |
 | Sprites de personagem e pets (PixelLab, 32 px) | `public/game/sprites/` (ver README lá) |
@@ -111,6 +111,8 @@ são do sistema anterior ao TCG: **não servem de referência**.
 2. `npm test`
 3. `npm run test:build` — build de produção + abre as rotas num navegador de verdade.
 4. Mudou visual? Tire print (Playwright + Chromium em `/opt/pw-browsers`) e mostre.
-5. Mexeu em desempenho? `npm run perf -- /rota` (medições em `ROADMAP.md` §0).
+5. Mexeu em desempenho? `npx vite build` e depois `npm run perf -- /rota` (medições em `ROADMAP.md` §0).
+   **O perf mede o build de produção (`dist`)**: sem gerar o build de novo, ele mede a versão antiga.
+   Para achar o culpado: `node scripts/mapa/perfil-cpu.mjs 22` (perfil de CPU com o `vite` rodando).
    Evite `backdrop-filter` e `mix-blend-mode` em elementos grandes ou repetidos
    (cartas na mão): eles derrubam o FPS.

@@ -153,6 +153,34 @@
   "h": 36,
   "w": 34
  },
+ "chao-agua": {
+  "h": 128,
+  "w": 128
+ },
+ "chao-areia": {
+  "h": 128,
+  "w": 128
+ },
+ "chao-calcada": {
+  "h": 128,
+  "w": 128
+ },
+ "chao-flores": {
+  "h": 128,
+  "w": 128
+ },
+ "chao-floresta": {
+  "h": 128,
+  "w": 128
+ },
+ "chao-grama": {
+  "h": 128,
+  "w": 128
+ },
+ "chao-mato": {
+  "h": 128,
+  "w": 128
+ },
  "cogumelos": {
   "h": 11,
   "w": 12
