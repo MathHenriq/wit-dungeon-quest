@@ -6,6 +6,7 @@ preto). Exibir sempre ampliado por número inteiro (2× ou 3×) e com
 
 | Pasta | O quê |
 |---|---|
+| `modelos/` | **Personagem atual** (jogador e moradores): 10 modelos-base, `modelo-XX.png` com 4 × 4 quadros de 32 × 40 (linhas frente, esquerda, direita, costas; colunas parado, pé esquerdo, parado, pé direito) pintados na paleta-molde. Gerado por `scripts/arte/importar-personagem.py`; o jogo repinta com `src/game/world/outfit.ts`. |
 | `base/` | Boneco base neutro. `south/west/east/north.png` parado; `andar-<direção>-<0..5>.png` caminhada em 6 quadros. Todas as camadas de customização (cabelo, roupa, acessório) são desenhadas por cima destes quadros. |
 | `pets/raposa-chama/` | Pet: 4 direções + caminhada (6 quadros). |
 | `pets/pintinho-broto/` | Pet: 4 direções (sem caminhada ainda). |

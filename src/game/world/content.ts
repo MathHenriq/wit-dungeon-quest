@@ -1,6 +1,6 @@
 // Textos da cidade: o que cada prédio vai ter e o que os moradores dizem.
 import type { Dir } from './movement';
-import type { Outfit } from './recolor';
+import type { Look } from './outfit';
 
 export const BUILDING_INFO: Record<string, { title: string; text: string }> = {
   torre: { title: 'Torre dos 100 Andares', text: 'A dungeon. Cada andar é um duelo de cartas; a cada 10 andares, um chefe que pode te dar uma carta do deck dele.' },
@@ -54,22 +54,22 @@ export interface NpcDef {
   tx: number;
   ty: number;
   dir: Dir;
-  outfit: Outfit;
+  look: Look;
   lines: string[];
 }
 
 export const NPCS: NpcDef[] = [
-  { id: 'guia', tx: 33, ty: 23, dir: 'west', outfit: { hair: 'loiro', top: 'verde', bottom: 'jeans' },
+  { id: 'guia', tx: 33, ty: 23, dir: 'west', look: { modelo: 'modelo-05', pele: 'pele-2', cabelo: 'loiro', cima: 'verde', baixo: 'jeans' },
     lines: ['Bem-vindo à Cidade WIT!', 'Aqui tudo gira em torno das cartas. Explore os prédios!'] },
-  { id: 'torre', tx: 34, ty: 15, dir: 'west', outfit: { hair: 'preto', top: 'marinho', bottom: 'preto' },
+  { id: 'torre', tx: 34, ty: 15, dir: 'west', look: { modelo: 'modelo-08', pele: 'pele-4', cabelo: 'preto', cima: 'marinho', baixo: 'preto' },
     lines: ['Dizem que no andar 100 mora um chefe que ninguém venceu...', 'Será que você consegue?'] },
-  { id: 'loja', tx: 43, ty: 19, dir: 'south', outfit: { hair: 'rosa', top: 'amarelo', bottom: 'jeans' },
+  { id: 'loja', tx: 43, ty: 19, dir: 'south', look: { modelo: 'modelo-03', pele: 'pele-1', cabelo: 'rosa', cima: 'amarelo', baixo: 'jeans' },
     lines: ['Chegaram pacotinhos novos na Loja!', 'Mas os melhores você ganha indo bem na aula.'] },
-  { id: 'arena', tx: 49, ty: 31, dir: 'north', outfit: { hair: 'ruivo', top: 'vermelho', bottom: 'caqui' },
+  { id: 'arena', tx: 49, ty: 31, dir: 'north', look: { modelo: 'modelo-09', pele: 'pele-5', cabelo: 'preto', cima: 'vermelho', baixo: 'preto' },
     lines: ['Quer duelar? A Arena abre em breve.', 'Treine seu deck na Torre enquanto isso!'] },
-  { id: 'guildas', tx: 19, ty: 31, dir: 'north', outfit: { hair: 'azul', top: 'roxo', bottom: 'preto' },
+  { id: 'guildas', tx: 19, ty: 31, dir: 'north', look: { modelo: 'modelo-06', pele: 'pele-6', cabelo: 'preto', cima: 'roxo', baixo: 'caqui' },
     lines: ['Na guilda, cada presença conta para a meta da equipe.', 'Faltou? A equipe inteira sente!'] },
-  { id: 'mural', tx: 27, ty: 17, dir: 'west', outfit: { hair: 'lilas', top: 'rosa', bottom: 'jeans' },
+  { id: 'mural', tx: 27, ty: 17, dir: 'west', look: { modelo: 'modelo-07', pele: 'pele-3', cabelo: 'ruivo', cima: 'laranja', baixo: 'jeans' },
     lines: ['O mural mostra os avisos do professor e as missões da semana.'] },
 ];
 

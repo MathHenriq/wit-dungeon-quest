@@ -65,7 +65,8 @@ construtor de deck.
 | Planta da cidade (terrenos, prédios, colisão, portas) | `src/game/world/town.ts` (+ testes em `__tests__/town.test.ts`): 64×48 blocos em faixas (prédios em cima, rua embaixo), praça da Torre no meio; `DOOR_X` guarda onde fica a porta de cada sprite para o caminho cair embaixo dela; `?casa=modelo-gamer` troca o modelo da Sua Casa |
 | Movimento em grade, caminho, troca de cor do boneco | `src/game/world/{movement,recolor}.ts` |
 | Cidade jogável (`/cidade-demo`, `?passeio=1` anda sozinho) | `src/pages/CityDemo.tsx` + textos em `src/game/world/content.ts` |
-| Sprites de personagem e pets (PixelLab, 32 px) | `public/game/sprites/` (ver README lá) |
+| **Personagem do jogador e moradores**: 10 modelos-base do GPT em cores-molde (`public/Novos assets/personagem/modelos/`) convertidos para `public/game/sprites/modelos/` (4×4 quadros de 32×40) | `python3 scripts/arte/importar-personagem.py --folha saida.png`; paleta e rampas de cor em `src/game/world/outfit.ts` (a paleta tem de bater com a do script); tela de visual em `src/components/city/LookEditor.tsx` (botão VISUAL, `/cidade-demo?visual`) |
+| Pets (PixelLab, 32 px) e o boneco antigo | `public/game/sprites/` (ver README lá) |
 
 O texto de uma carta **nunca** é escrito à mão: sai de `describeCard`. Para
 mudar o que a carta diz, mude o efeito.

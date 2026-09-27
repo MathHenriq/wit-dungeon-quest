@@ -7,7 +7,9 @@ import { Pixmap } from '@/game/world/pixmap';
 import {
   ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker,
 } from '@/game/world/movement';
-import { recolorBase, type Outfit } from '@/game/world/recolor';
+import { DEFAULT_LOOK, MODEL_CELL, normalizeLook, type Look } from '@/game/world/outfit';
+import { MODEL_ROWS, modelFrames } from '@/game/world/model-sprite';
+import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 
@@ -74,18 +76,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-async function loadFrames(folder: string, outfit?: Outfit): Promise<Frames> {
+async function loadFrames(folder: string): Promise<Frames> {
   const prep = async (file: string) => {
     const img = await loadImage(`/game/sprites/${folder}/${file}.png`);
     const c = document.createElement('canvas');
     c.width = img.width; c.height = img.height;
     const ctx = c.getContext('2d')!;
     ctx.drawImage(img, 0, 0);
-    if (outfit) {
-      const d = ctx.getImageData(0, 0, c.width, c.height);
-      recolorBase(d.data, c.width, outfit);
-      ctx.putImageData(d, 0, 0);
-    }
     return c;
   };
   // Só os quadros de caminhada: os "parados" da PixelLab têm outro tamanho e
@@ -103,6 +100,20 @@ async function loadFrames(folder: string, outfit?: Outfit): Promise<Frames> {
     foot[d] = rows[rows.length >> 1];
   }));
   return { walk, foot };
+}
+
+/** Personagem a partir de um modelo-base pintado com o visual. */
+async function loadLookFrames(look: Look): Promise<Frames> {
+  const rows = await modelFrames(look);
+  const walk = {} as Record<Dir, HTMLCanvasElement[]>;
+  const foot = {} as Record<Dir, number>;
+  MODEL_ROWS.forEach((d, i) => { walk[d] = rows[i]; foot[d] = MODEL_CELL.foot; });
+  return { walk, foot };
+}
+
+const LOOK_KEY = 'wit.visual';
+function savedLook(): Look {
+  try { return normalizeLook(JSON.parse(localStorage.getItem(LOOK_KEY) ?? 'null')); } catch { return DEFAULT_LOOK; }
 }
 
 interface Npc { def: (typeof NPCS)[number]; w: Walker; frames: Frames | null; goal: Dir | null }
@@ -135,6 +146,8 @@ function CityView({ town }: { town: Town }) {
   const [view, setView] = useState({ w: 320, h: 208, scale: 3 });
   const [clock, setClock] = useState(8);
   const [near, setNear] = useState<string | null>(null);
+  const [look, setLook] = useState<Look>(savedLook);
+  const [editing, setEditing] = useState(() => new URLSearchParams(window.location.search).has('visual'));
 
   // estado do jogo fora do React (o laço de desenho lê direto)
   const g = useRef({
@@ -162,7 +175,17 @@ function CityView({ town }: { town: Town }) {
     dirty: true,
   });
 
-  useEffect(() => { g.current.modal = !!panel || !!dialog; g.current.dirty = true; }, [panel, dialog]);
+  useEffect(() => { g.current.modal = !!panel || !!dialog || editing; g.current.dirty = true; }, [panel, dialog, editing]);
+
+  // visual novo → repinta o boneco e guarda (só neste navegador por enquanto)
+  const firstLook = useRef(true);
+  useEffect(() => {
+    try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch { /* sem armazenamento */ }
+    if (firstLook.current) { firstLook.current = false; return; }
+    let alive = true;
+    loadLookFrames(look).then(f => { if (alive) { g.current.playerFrames = f; g.current.dirty = true; } }).catch(err => console.error('visual', err));
+    return () => { alive = false; };
+  }, [look]);
 
   // arte da cidade → canvas (uma vez)
   useEffect(() => {
@@ -203,9 +226,9 @@ function CityView({ town }: { town: Town }) {
     let alive = true;
     (async () => {
       const [pf, pet, ...npcFrames] = await Promise.all([
-        loadFrames('base'),
+        loadLookFrames(look),
         loadFrames('pets/raposa-chama'),
-        ...NPCS.map(n => loadFrames('base', n.outfit)),
+        ...NPCS.map(n => loadLookFrames(n.look)),
       ]);
       if (!alive) return;
       g.current.playerFrames = pf;
@@ -242,6 +265,7 @@ function CityView({ town }: { town: Town }) {
       return;
     }
     if (panel) { setPanel(null); return; }
+    if (g.current.modal) return;
     const f = ahead(s.player);
     const npc = s.npcs.find(n => n.w.tx === f.tx && n.w.ty === f.ty);
     if (npc) {
@@ -265,7 +289,7 @@ function CityView({ town }: { town: Town }) {
       }
       if (e.key === 'Shift') g.current.run = true;
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') { e.preventDefault(); interact(); }
-      if (e.key === 'Escape') { setPanel(null); setDialog(null); }
+      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); }
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
     };
@@ -441,11 +465,13 @@ function CityView({ town }: { town: Town }) {
       const person = (w: Walker, fr: Frames | null) => {
         if (!fr) return;
         const pos = pixelPos(w, TILE);
-        const frameMs = (w === s.player && s.run ? RUN_MS : WALK_MS) / 3;
-        const img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % 6 : 0];
+        // cada passo usa metade dos quadros da caminhada (6 da PixelLab, 4 dos modelos)
+        const n = fr.walk[w.dir].length;
+        const frameMs = (w === s.player && s.run ? RUN_MS : WALK_MS) / (n / 2);
+        const img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % n : 0];
         const wx = Math.round(pos.x - 8), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
         const x = wx - camX, y = wy - camY;
-        if (x > vw || y > vh || x < -32 || y < -32) return;
+        if (x > vw || y > vh || x < -32 || y < -48) return;
         people.push({ x: wx, y: wy, baseY: pos.y + 16 });
         list.push({
           baseY: pos.y + 16,
@@ -522,6 +548,13 @@ function CityView({ town }: { town: Town }) {
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
 
+      <button
+        onClick={() => setEditing(true)}
+        className={`absolute top-2 right-2 px-3 py-2 rounded-md bg-[#2f6b1e]/90 border-2 border-[#8cc63f] text-white text-[10px] ${pixelFont}`}
+      >VISUAL</button>
+
+      {editing && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
+
       {near && !panel && !dialog && (
         <div className={`absolute top-3 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg border-2 border-[#8cc63f] bg-[#0e3a1e]/85 text-white text-[11px] ${pixelFont}`}>
           {near}
@@ -545,7 +578,7 @@ function CityView({ town }: { town: Town }) {
         </div>
       )}
 
-      {touch && (
+      {touch && !editing && (
         <>
           <div className="absolute left-4 bottom-6 grid grid-cols-3 gap-1 opacity-80">
             {([[null, 'north', null], ['west', null, 'east'], [null, 'south', null]] as (Dir | null)[][]).flat().map((d, i) => d ? (
