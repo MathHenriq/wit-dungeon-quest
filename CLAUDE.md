@@ -56,7 +56,10 @@ construtor de deck.
 | Ilustrações das 350 cartas (webp) | `public/cards/art/<id>.webp` |
 | Testes do TCG (combos, mecânicas, catálogo) | `src/lib/tcg/__tests__/` |
 | Arte do mundo por código (chão, árvores, prédios, objetos, fonte pixel) | `src/game/world/{ground,props,buildings,palette,pixmap}.ts` |
-| Casas e prédios no estilo HGSS (os que a cidade usa) | `src/game/world/{house-hg,buildings-hg}.ts` |
+| Casas e prédios no estilo HGSS (os que a cidade usa), com a camada "noite" | `src/game/world/{house-hg,buildings-hg}.ts` |
+| Objetos tecnológicos no verde WIT (postes, totens, portal, fonte, mural) | `src/game/world/props-tech.ts` |
+| Fonte pixel 5×7 dos letreiros | `src/game/world/font.ts` |
+| Dia e noite (tinta por hora, halo das luzes) | `src/game/world/light.ts` (`/cidade-demo?hora=22&velocidade=20`; tecla T avança 2 h) |
 | Planta da cidade (terrenos, prédios, colisão, portas) | `src/game/world/town.ts` (+ testes em `__tests__/town.test.ts`) |
 | Movimento em grade, caminho, troca de cor do boneco | `src/game/world/{movement,recolor}.ts` |
 | Cidade jogável (`/cidade-demo`, `?passeio=1` anda sozinho) | `src/pages/CityDemo.tsx` + textos em `src/game/world/content.ts` |

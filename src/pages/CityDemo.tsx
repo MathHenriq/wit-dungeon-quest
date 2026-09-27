@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildTown, type Placed } from '@/game/world/town';
+import { addGlowSpots, buildTown, type Placed } from '@/game/world/town';
+import { lightHalo, timeOfDay } from '@/game/world/light';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
 import {
@@ -19,6 +20,8 @@ const DIRS: Dir[] = ['south', 'west', 'east', 'north'];
 /** ?passeio=1: o boneco passeia sozinho (para medir desempenho e gravar vídeo). */
 const TOUR: [number, number][] = [[20, 17], [8, 16], [7, 15], [8, 26], [22, 26], [31, 26], [34, 16], [33, 15], [24, 9], [15, 9], [4, 8], [20, 12]];
 const WALK_MS = 230, RUN_MS = 125;
+/** Um dia inteiro do jogo dura 12 minutos (30 s por hora). */
+const MS_PER_HOUR = 30_000;
 const KEY_DIR: Record<string, Dir> = {
   ArrowUp: 'north', ArrowDown: 'south', ArrowLeft: 'west', ArrowRight: 'east',
   w: 'north', s: 'south', a: 'west', d: 'east', W: 'north', S: 'south', A: 'west', D: 'east',
@@ -85,6 +88,7 @@ export default function CityDemo() {
   const [ready, setReady] = useState(false);
   const [touch] = useState(() => typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
   const [view, setView] = useState({ w: 320, h: 208, scale: 3 });
+  const [clock, setClock] = useState(8);
 
   // estado do jogo fora do React (o laço de desenho lê direto)
   const g = useRef({
@@ -98,9 +102,15 @@ export default function CityDemo() {
     petFrames: null as Frames | null,
     /** Chão + todos os objetos já compostos (desenhado de uma vez). */
     scene: null as HTMLCanvasElement | null,
-    objs: [] as { o: Placed; c: HTMLCanvasElement }[],
+    objs: [] as { o: Placed; c: HTMLCanvasElement; n: HTMLCanvasElement | null }[],
     /** Objetos animados: ficam fora da cena pré-composta. */
-    anims: [] as { o: Placed; cs: HTMLCanvasElement[] }[],
+    anims: [] as { o: Placed; cs: HTMLCanvasElement[]; ns: HTMLCanvasElement[] | null }[],
+    /** Luzes fixas da cidade e o halo delas (tamanho do mapa). */
+    lights: null as HTMLCanvasElement | null,
+    halo: null as HTMLCanvasElement | null,
+    /** Hora do jogo (0–24). */
+    hour: 8,
+    clockSpeed: 1,
     modal: false,
     dirty: true,
   });
@@ -109,12 +119,30 @@ export default function CityDemo() {
 
   // arte da cidade → canvas (uma vez)
   useEffect(() => {
-    g.current.objs = town.objects.filter(o => !o.frames).map(o => ({ o, c: toCanvas(o.pix) }));
-    g.current.anims = town.objects.filter(o => o.frames).map(o => ({ o, cs: o.frames!.map(toCanvas) }));
+    g.current.objs = town.objects.filter(o => !o.frames).map(o => ({ o, c: toCanvas(o.pix), n: o.night ? toCanvas(o.night) : null }));
+    g.current.anims = town.objects.filter(o => o.frames).map(o => ({
+      o, cs: o.frames!.map(toCanvas), ns: o.nightFrames ? o.nightFrames.map(toCanvas) : null,
+    }));
     const scene = toCanvas(town.ground);
     const sctx = scene.getContext('2d')!;
     for (const { o, c } of g.current.objs) sctx.drawImage(c, o.x, o.y);
     g.current.scene = scene;
+    g.current.lights = toCanvas(town.lights);
+    const qs = new URLSearchParams(window.location.search);
+    const h = qs.get('hora'), v = Number(qs.get('velocidade'));
+    if (h !== null && !Number.isNaN(Number(h))) { g.current.hour = Number(h) % 24; setClock(g.current.hour); }
+    // ?velocidade=N: o relógio corre N vezes mais rápido (para vídeo e testes)
+    if (v > 0) g.current.clockSpeed = v;
+    // halo das luzes: calculado uma vez, depois do primeiro quadro
+    const haloTimer = window.setTimeout(() => {
+      const src = new Pixmap(town.lights.w, town.lights.h);
+      src.data.set(town.lights.data);
+      for (const o of town.objects) if (o.frames && o.night) src.blit(o.night, o.x, o.y);
+      const halo = lightHalo(src, 6, 1.2, 2);   // meia resolução: desenhado ampliado
+      addGlowSpots(halo, town.glowSpots, 2);
+      g.current.halo = toCanvas(halo);
+      g.current.dirty = true;
+    }, 30);
     let alive = true;
     (async () => {
       const [pf, pet, ...npcFrames] = await Promise.all([
@@ -129,7 +157,7 @@ export default function CityDemo() {
       g.current.dirty = true;
       setReady(true);
     })().catch(err => console.error('sprites', err));
-    return () => { alive = false; };
+    return () => { alive = false; window.clearTimeout(haloTimer); };
   }, [town]);
 
   // tamanho da tela → escala inteira (pixel perfeito)
@@ -181,6 +209,8 @@ export default function CityDemo() {
       if (e.key === 'Shift') g.current.run = true;
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') { e.preventDefault(); interact(); }
       if (e.key === 'Escape') { setPanel(null); setDialog(null); }
+      // T: avança 2 horas (para ver o dia e a noite sem esperar)
+      if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
     };
     const up = (e: KeyboardEvent) => {
       const d = KEY_DIR[e.key];
@@ -200,6 +230,9 @@ export default function CityDemo() {
     let last = performance.now(), raf = 0, petQueue: { tx: number; ty: number }[] = [];
     let npcTimer = 0;
     let lastAnimKey = '';
+    let lastTodKey = -1, lastPulse = -1, lastHourShown = -1;
+    const lightsFrame = document.createElement('canvas');
+    const lf = lightsFrame.getContext('2d')!;
     const tour = new URLSearchParams(window.location.search).has('passeio');
     let tourIdx = 0;
 
@@ -276,6 +309,13 @@ export default function CityDemo() {
       // quadros de animação dos objetos
       const animKey = s.anims.map(a => Math.floor(now / (a.o.frameMs ?? 500)) % a.cs.length).join(',');
       if (animKey !== lastAnimKey) { lastAnimKey = animKey; s.dirty = true; }
+      // relógio do jogo: a luz muda aos poucos; à noite os pulsos correm nos circuitos
+      s.hour = (s.hour + (dt * s.clockSpeed) / MS_PER_HOUR) % 24;
+      const tod = timeOfDay(s.hour);
+      const todKey = Math.round(s.hour * 30);
+      if (todKey !== lastTodKey) { lastTodKey = todKey; s.dirty = true; }
+      if (tod.light > 0) { const pk = Math.floor(now / 60); if (pk !== lastPulse) { lastPulse = pk; s.dirty = true; } }
+      if (Math.floor(s.hour) !== lastHourShown) { lastHourShown = Math.floor(s.hour); setClock(s.hour); }
 
       // ── desenho: só quando algo mudou ──
       if (!s.dirty || !s.scene) { raf = requestAnimationFrame(loop); return; }
@@ -294,7 +334,7 @@ export default function CityDemo() {
       // personagens + só os objetos que ficam na frente de algum deles
       type D = { baseY: number; draw: () => void };
       const list: D[] = [];
-      const people: { x: number; y: number; baseY: number }[] = [];
+      const people: { x: number; y: number; baseY: number; img: HTMLCanvasElement; sx: number; sy: number }[] = [];
       const person = (w: Walker, fr: Frames | null) => {
         if (!fr) return;
         const pos = pixelPos(w, TILE);
@@ -303,7 +343,7 @@ export default function CityDemo() {
         const wx = Math.round(pos.x - 8), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
         const x = wx - camX, y = wy - camY;
         if (x > vw || y > vh || x < -32 || y < -32) return;
-        people.push({ x: wx, y: wy, baseY: pos.y + 16 });
+        people.push({ x: wx, y: wy, baseY: pos.y + 16, img, sx: x, sy: y });
         list.push({
           baseY: pos.y + 16,
           draw: () => {
@@ -321,13 +361,62 @@ export default function CityDemo() {
         if (o.x > camX + vw || o.x + c.width < camX || o.y > camY + vh || o.y + c.height < camY) continue;
         list.push({ baseY: o.baseY, draw: () => ctx.drawImage(c, o.x - camX, o.y - camY) });
       }
-      for (const { o, c } of s.objs) {
+      const frontLit: { o: Placed; n: HTMLCanvasElement }[] = [];
+      for (const { o, c, n } of s.objs) {
         const front = people.some(h => o.baseY > h.baseY
           && o.x < h.x + 32 && o.x + c.width > h.x && o.y < h.y + 32 && o.y + c.height > h.y);
-        if (front) list.push({ baseY: o.baseY, draw: () => ctx.drawImage(c, o.x - camX, o.y - camY) });
+        if (front) {
+          list.push({ baseY: o.baseY, draw: () => ctx.drawImage(c, o.x - camX, o.y - camY) });
+          if (n) frontLit.push({ o, n });
+        }
       }
       list.sort((a, b) => a.baseY - b.baseY);
       for (const d of list) d.draw();
+
+      // ── hora do dia: escurece tudo, acende as luzes por cima, soma o halo ──
+      const white = tod.tint.every(v => v === 255);
+      if (!white) {
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = `rgb(${tod.tint[0]},${tod.tint[1]},${tod.tint[2]})`;
+        ctx.fillRect(0, 0, vw, vh);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      if (tod.light > 0 && s.lights) {
+        if (lightsFrame.width !== vw || lightsFrame.height !== vh) { lightsFrame.width = vw; lightsFrame.height = vh; }
+        lf.imageSmoothingEnabled = false;
+        lf.globalCompositeOperation = 'source-over';
+        lf.clearRect(0, 0, vw, vh);
+        lf.drawImage(s.lights, -camX, -camY);
+        for (const { o, ns } of s.anims) {
+          if (!ns) continue;
+          lf.drawImage(ns[Math.floor(now / (o.frameMs ?? 500)) % ns.length], o.x - camX, o.y - camY);
+        }
+        // pulsos: pontinhos claros correndo da Torre para fora
+        lf.fillStyle = '#eaffc8';
+        for (const path of town.circuits) {
+          for (let k = 0; k < path.length; k += 90) {
+            const idx = (k + Math.floor(now / 22)) % path.length;
+            const [px, py] = path[idx];
+            lf.fillRect(px - camX - 1, py - camY - 1, 2, 2);
+          }
+        }
+        // quem está na frente tapa as luzes de trás; objetos na frente das pessoas acendem de novo
+        lf.globalCompositeOperation = 'destination-out';
+        for (const h of people) lf.drawImage(h.img, h.sx, h.sy);
+        lf.globalCompositeOperation = 'source-over';
+        for (const { o, n } of frontLit) lf.drawImage(n, o.x - camX, o.y - camY);
+        ctx.globalAlpha = tod.light;
+        ctx.drawImage(lightsFrame, 0, 0);
+        if (s.halo) {
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = tod.light * 0.6;
+          ctx.imageSmoothingEnabled = true;
+          ctx.drawImage(s.halo, -camX, -camY, s.halo.width * 2, s.halo.height * 2);
+          ctx.imageSmoothingEnabled = false;
+          ctx.globalCompositeOperation = 'source-over';
+        }
+        ctx.globalAlpha = 1;
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -372,8 +461,9 @@ export default function CityDemo() {
         aria-label="Cidade WIT"
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
-        CIDADE WIT <span className="text-cyan-300">· protótipo</span>
-        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar</div>}
+        CIDADE WIT <span className="text-lime-300">· protótipo</span>
+        <span className="ml-2 text-white/90">{clock >= 6 && clock < 18.5 ? '☀' : '☾'} {String(Math.floor(clock)).padStart(2, '0')}:00</span>
+        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
 

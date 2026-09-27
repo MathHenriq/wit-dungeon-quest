@@ -3,12 +3,12 @@ import { chromium } from 'playwright-core';
 const S = process.argv[2], base = process.argv[3] ?? 'http://127.0.0.1:5199';
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const errors = [];
-async function run(name, viewport, steps, touch = false) {
+async function run(name, viewport, steps, touch = false, query = '') {
   const ctx = await browser.newContext({ viewport, hasTouch: touch, isMobile: touch, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'error') errors.push(`${name}: ${m.text()}`); });
   page.on('pageerror', e => errors.push(`${name}: ${e.message}`));
-  await page.goto(`${base}/cidade-demo`, { waitUntil: 'networkidle' });
+  await page.goto(`${base}/cidade-demo${query}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
   for (const s of steps) {
     if (s.key) { await page.keyboard.down(s.key); await page.waitForTimeout(s.ms ?? 400); await page.keyboard.up(s.key); await page.waitForTimeout(250); }
@@ -29,5 +29,11 @@ await run('pc3', { width: 1280, height: 720 }, [
   { key: 'ArrowUp', ms: 700 }, { shot: 'porta' },
 ]);
 await run('celular', { width: 390, height: 844 }, [{ shot: 'inicio' }], true);
+// dia e noite: entardecer e noite (?hora=)
+await run('tarde', { width: 1280, height: 720 }, [{ shot: 'praca' }], false, '?hora=18.3');
+await run('noite', { width: 1280, height: 720 }, [
+  { shot: 'praca' }, { key: 'ArrowDown', ms: 1800 }, { shot: 'sul' },
+], false, '?hora=22');
+await run('noite-celular', { width: 390, height: 844 }, [{ shot: 'inicio' }], true, '?hora=22');
 console.log(errors.length ? 'ERROS:\n' + errors.join('\n') : 'sem erros no console');
 await browser.close();

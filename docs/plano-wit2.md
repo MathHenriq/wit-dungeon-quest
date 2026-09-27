@@ -411,7 +411,9 @@ da virada, a migração roda uma vez e o jogo troca.
 |---|---|---|
 | Motor da cidade | **Canvas próprio** (`src/game/world` + `src/pages/CityDemo.tsx`), sem dependência nova | Decidido em 27/09: cena pré-composta, só redesenha o que fica na frente dos personagens; 60 fps com CPU 4× |
 | Mapas | **Planta em código** (`town.ts`): terrenos, prédios e objetos por coordenada de bloco, com teste de portas alcançáveis | Mais simples que editor externo enquanto a cidade é uma só |
-| Arte do mapa (chão, árvores, prédios, objetos) | **Gerada por código** no estilo Emerald/FireRed com toque tecnológico (`src/game/world`) | Decidido em 27/09: custo zero, variações por parâmetro, padrão único. Horde e PixelLab testados para prédios: perspectiva e estilo inconsistentes |
+| Arte do mapa (chão, árvores, prédios, objetos) | **Gerada por código** no estilo HeartGold/SoulSilver com toque tecnológico (`src/game/world`) | Decidido em 27/09: custo zero, variações por parâmetro, padrão único. Horde e PixelLab testados para prédios: perspectiva e estilo inconsistentes |
+| Identidade visual da cidade | **Verde da marca WIT** (verde escuro → lima, quadradinhos da logo) nos detalhes tecnológicos: letreiros, totens, postes, portal, coroa da Torre, circuitos na calçada | Pedido do Matheus em 27/09: de dia só um toque leve de tecnologia |
+| Dia e noite | Relógio do jogo (12 min por dia). Cada objeto tem uma camada "noite"; à noite a cena é multiplicada por uma tinta azul, as luzes acendem por cima e um halo (borrão das luzes) é somado. Circuitos com pulsos saindo da Torre | Pedido do Matheus em 27/09: à noite a cidade fica colorida com LED |
 | Arte de personagens e pets | **PixelLab** (32 px, estilo HGSS) a partir de uma referência de estilo; direções (1 geração) e caminhada (1 por direção); cores trocadas por código (`recolor.ts`) | Decidido em 27/09: único caminho que chegou no nível dos exemplos. Cota grátis de 5 gerações/dia; chave da API nunca no repositório |
 | Cidade compartilhada | **Supabase Realtime**, uma cidade global dividida por mapa e por canal; envia só "fui para o ponto X", não a posição a cada quadro | Já está no projeto. Medir o limite de conexões do plano na fase 2. |
 | Batalha | Motor do TCG existente (`src/lib/tcg/engine.ts`) + IA nova | O motor já é puro e testado |
@@ -429,7 +431,7 @@ termina com **prints aprovados pelo Matheus** antes da próxima.
 |---|---|
 | **1 — Identidade e boneco base** | Guia visual (paleta, tipografia, marca). Boneco base parado e andando nas 4 direções. Teste: 2D no nível do Black & White ou não. |
 | **2 — Protótipo da cidade** | Um pedaço da cidade inicial, o boneco andando **no celular e no PC**, 2 jogadores se vendo em tempo real. Mede FPS e o limite do Realtime. **Feito em 27/09 (sem multijogador): `/cidade-demo`.** |
-| **3 — Cidade inicial completa** | Todos os prédios, praça, NPCs e interiores, com as portas levando às telas (ainda vazias). **Exterior feito em 27/09; faltam interiores e multijogador.** |
+| **3 — Cidade inicial completa** | Todos os prédios, praça, NPCs e interiores, com as portas levando às telas (ainda vazias). **Exterior feito em 27/09 (estilo HGSS, verde WIT, dia e noite); faltam interiores e multijogador.** Todo imóvel terá interior próprio; o da Torre substitui a tela de andares atual (o boneco anda até mesas de desafio, vence os desafiantes do andar e chega ao chefe). |
 | **4 — Customização** | Peças de roupa, cabelo e acessório; editor do personagem; casa com móveis; perfil estilo cartão de treinador |
 | **5 — Telas do jogo (visual)** | Batalha, loja e abertura de pacote, álbum, Centro de Cartas, Torre, Quadro de Missões, guilda |
 | **6 — Batalha funcional** | Motor ligado, batalha curta, IA de 3 níveis, decks dos Caminhos e dos chefes, construtor de deck, 100 inimigos gerados |

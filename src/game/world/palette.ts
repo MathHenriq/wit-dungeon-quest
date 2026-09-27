@@ -96,6 +96,29 @@ export const NEON = {
 
 export const WHITE = hex('#ffffff');
 
+/** Verde da marca WIT (logo: degradê do verde escuro ao lima + quadradinhos). */
+export const WIT = {
+  deep: hex('#0a5a2c'),
+  dark: hex('#107a38'),
+  base: hex('#23964a'),
+  mid: hex('#4cb048'),
+  lime: hex('#8cc63f'),
+  limeLight: hex('#c4e47a'),
+};
+
+/** Cores de luz para a noite (camada que acende por cima do escuro). */
+export const LED = {
+  green: hex('#9cff5a'),
+  greenSoft: hex('#e2ffb8'),
+  warm: hex('#ffd878'),
+  warmSoft: hex('#fff2c4'),
+  cyan: hex('#6cf0ff'),
+  pink: hex('#ff7ab8'),
+  purple: hex('#c89cff'),
+  orange: hex('#ffae5a'),
+  white: hex('#fffcf0'),
+};
+
 /** Rampas de telhado: claro (topo das tábuas), base, listra, beiral. */
 export const ROOFS = {
   laranja: { top: hex('#fcc898'), base: hex('#ee9a6c'), stripe: hex('#d06a4a'), eave: hex('#a84436') },

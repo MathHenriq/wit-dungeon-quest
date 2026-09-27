@@ -1,8 +1,9 @@
 // Chão do mapa, pintado pixel a pixel a partir de uma grade de terrenos.
 // Trilha e água ganham cantos arredondados (abertura morfológica), borda e
-// sombra; a calçada tem juntas, meio-fio e linhas de luz.
+// sombra; a calçada tem juntas, meio-fio e traços de circuito (discretos de
+// dia, acesos à noite) que ligam a Torre às avenidas.
 import { hash, mix, Pixmap } from './pixmap';
-import { FOREST_FLOOR, GRASS, PATH, PAVE, TREE, WATER } from './palette';
+import { FOREST_FLOOR, GRASS, LED, PATH, PAVE, TREE, WATER, WIT } from './palette';
 import { TILE } from './buildings';
 
 export type Terrain = 'grama' | 'trilha' | 'calcada' | 'agua' | 'mato' | 'floresta';
@@ -130,16 +131,6 @@ export function paintGround(grid: Terrain[][]): Pixmap {
     // sombra do meio-fio na grama
     if (!inV(x, y + 1) && y + 1 < H) pm.put(x, y + 1, GRASS.shadowDeep);
   }
-  // linhas de luz no centro das avenidas (onde a calçada tem 2 blocos de largura)
-  for (let ty = 0; ty < TH; ty++) for (let tx = 0; tx < TW; tx++) {
-    const t = grid[ty][tx];
-    if (t !== 'calcada') continue;
-    const horiz = grid[ty + 1]?.[tx] === 'calcada' && grid[ty - 1]?.[tx] !== 'calcada' && grid[ty + 2]?.[tx] !== 'calcada';
-    const vert = grid[ty]?.[tx + 1] === 'calcada' && grid[ty]?.[tx - 1] !== 'calcada' && grid[ty]?.[tx + 2] !== 'calcada';
-    if (horiz) for (let x = 0; x < TILE; x += 2) pm.put(tx * TILE + x, ty * TILE + 15, PAVE.glow);
-    if (vert) for (let y = 0; y < TILE; y += 2) pm.put(tx * TILE + 15, ty * TILE + y, PAVE.glow);
-  }
-
   // ── água ──
   const water = round(maskOf(grid, 'agua', W, H), W, H, 6);
   const inW = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && water[y * W + x] === 1;
@@ -192,4 +183,55 @@ export function paintGround(grid: Terrain[][]): Pixmap {
     }
   }
   return pm;
+}
+
+// ─────────────────────── circuitos na calçada ───────────────────────
+
+/** Caminho de circuito: pontos em pixels, ligados por retas ou diagonais de 45°. */
+export type Circuit = [number, number][];
+
+/** Todos os pixels do caminho, na ordem (do começo ao fim). */
+export function circuitPixels(path: Circuit): [number, number][] {
+  const out: [number, number][] = [];
+  for (let i = 0; i + 1 < path.length; i++) {
+    let [x, y] = path[i];
+    const [x1, y1] = path[i + 1];
+    const sx = Math.sign(x1 - x), sy = Math.sign(y1 - y);
+    while (x !== x1 || y !== y1) {
+      out.push([x, y]);
+      if (x !== x1) x += sx;
+      if (y !== y1) y += sy;
+    }
+  }
+  const last = path[path.length - 1];
+  out.push([last[0], last[1]]);
+  return out;
+}
+
+const TRACE_DAY: [number, number, number] = [0xa6, 0xb8, 0xbe];
+
+/**
+ * Pinta os circuitos: de dia um traço fino embutido na calçada (quase
+ * sumindo) e plaquinhas lima nas pontas e curvas; à noite o traço acende.
+ */
+export function paintCircuits(pm: Pixmap, nt: Pixmap, paths: Circuit[]): void {
+  const pad = (x: number, y: number) => {
+    pm.rect(x - 1, y - 1, 3, 3, TRACE_DAY);
+    pm.put(x, y, WIT.limeLight);
+    nt.rect(x - 1, y - 1, 3, 3, mix(LED.green, [0, 0, 0], 0.2));
+    nt.put(x, y, LED.greenSoft);
+  };
+  for (const path of paths) {
+    for (const [x, y] of circuitPixels(path)) {
+      pm.put(x, y, TRACE_DAY);
+      pm.put(x + 1, y + 1, PAVE.light);
+      nt.put(x, y, mix(LED.green, [20, 60, 30], 0.3));
+    }
+    pad(path[0][0], path[0][1]);
+    pad(path[path.length - 1][0], path[path.length - 1][1]);
+    for (let i = 1; i + 1 < path.length; i++) {
+      const [x, y] = path[i];
+      nt.put(x, y, LED.green);
+    }
+  }
 }

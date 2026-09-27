@@ -3,7 +3,7 @@
 // ponto que encosta no chão) fica sempre na última linha da área de colisão.
 import { hash, hex, mix, Pixmap, type RGB } from './pixmap';
 import {
-  BLOSSOM, GLASS, GRASS, LINE, LINE_DARK, METAL, NEON, TREE, WATER, WHITE, WOOD,
+  BLOSSOM, GRASS, LINE, METAL, TREE, WHITE, WOOD,
 } from './palette';
 
 type LeafPal = { line: RGB; dark: RGB; mid: RGB; light: RGB; hi: RGB };
@@ -253,23 +253,6 @@ export function signPost(): Pixmap {
   return pm;
 }
 
-/** Poste de luz tecnológico (16×32). */
-export function lamp(frame = 0): Pixmap {
-  const pm = new Pixmap(16, 32);
-  const on = frame % 2 === 1;
-  pm.stamp([
-    '....oooooooo....',
-    '...occcccccco...',
-    '...ocaaaaaaco...',
-    '....oooooooo....',
-    '.......om.......',
-  ], 0, 2, { o: LINE, c: on ? WHITE : NEON.cyanSoft, a: on ? NEON.cyanSoft : NEON.cyan, m: METAL.base });
-  for (let y = 7; y < 28; y++) { pm.put(7, y, LINE); pm.put(8, y, (y + frame * 3) % 6 === 0 ? NEON.cyan : METAL.base); pm.put(9, y, LINE); }
-  pm.stamp(['.ooooo.', 'ommmmso', 'ooooooo'], 5, 27, { o: LINE, m: METAL.base, s: METAL.shade });
-  for (let x = 3; x < 13; x++) pm.put(x, 30, GRASS.shadow);
-  return pm;
-}
-
 /** Banco de praça (32×16). */
 export function bench(): Pixmap {
   const pm = new Pixmap(32, 16);
@@ -289,125 +272,6 @@ export function bench(): Pixmap {
   return pm;
 }
 
-/** Máquina de venda (16×32): cartas e sucos. */
-export function vending(): Pixmap {
-  const pm = new Pixmap(16, 32);
-  pm.rect(1, 2, 14, 28, LINE);
-  pm.rect(2, 3, 12, 26, hex('#5a7ee0'));
-  pm.rect(2, 3, 12, 2, hex('#8eaaf4'));
-  pm.rect(3, 6, 8, 12, GLASS.low);
-  pm.rect(3, 6, 8, 3, GLASS.mid);
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
-    const col = [NEON.pink, NEON.yellow, NEON.cyan][(r + c) % 3];
-    pm.rect(4 + c * 2 + (c > 0 ? c - 1 : 0), 10 + r * 3, 2, 2, col);
-  }
-  pm.put(4, 7, WHITE); pm.put(5, 7, WHITE);
-  pm.rect(12, 7, 1, 8, NEON.cyan);
-  pm.rect(4, 21, 8, 4, LINE_DARK);
-  pm.rect(5, 22, 6, 2, hex('#28304c'));
-  pm.rect(2, 27, 12, 2, hex('#3c56b0'));
-  for (let x = 1; x < 15; x++) pm.put(x, 30, GRASS.shadow);
-  return pm;
-}
-
-/** Mural / Quadro de avisos (48×32). */
-export function noticeBoard(): Pixmap {
-  const pm = new Pixmap(48, 34);
-  pm.rect(1, 1, 46, 24, WOOD.line);
-  pm.rect(2, 2, 44, 22, WOOD.base);
-  pm.rect(2, 2, 44, 2, WOOD.light);
-  pm.rect(4, 5, 40, 17, hex('#e8d4a8'));
-  const papers: [number, number, number, number, RGB][] = [
-    [6, 7, 9, 7, WHITE], [17, 6, 8, 10, hex('#ffe6a0')], [27, 8, 9, 6, hex('#c8ecff')],
-    [37, 6, 6, 9, hex('#ffd0e4')], [8, 15, 11, 5, hex('#d4f4c8')], [22, 16, 12, 5, WHITE],
-  ];
-  for (const [x, y, w, h, c] of papers) {
-    pm.rect(x, y, w, h, c);
-    for (let k = 1; k < h - 1; k += 2) pm.rect(x + 1, y + k, w - 3, 1, mix(c, LINE, 0.35));
-    pm.put(x + (w >> 1), y, NEON.pink);
-  }
-  // título "MURAL" em placa
-  pm.rect(15, 0, 18, 5, LINE);
-  pm.rect(16, 1, 16, 3, NEON.yellow);
-  // pés
-  for (const px of [6, 40]) { pm.rect(px, 25, 3, 7, WOOD.line); pm.rect(px + 1, 25, 1, 7, WOOD.base); }
-  for (let x = 3; x < 45; x++) pm.put(x, 32, GRASS.shadow);
-  return pm;
-}
-
-/** Fonte da praça (64×44), com água e jato. */
-export function fountain(frame = 0): Pixmap {
-  const pm = new Pixmap(64, 46);
-  const cx = 32, cy = 28, rx = 30, ry = 15;
-  for (let y = 0; y < pm.h; y++) for (let x = 0; x < 64; x++) {
-    const d = ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2;
-    const d2 = ((x + 0.5 - cx) / (rx - 5)) ** 2 + ((y + 0.5 - cy + 1) / (ry - 4)) ** 2;
-    if (d > 1) continue;
-    if (d > 0.88) pm.put(x, y, LINE);
-    else if (d2 > 1) pm.put(x, y, y < cy - 4 ? METAL.light : y > cy + 5 ? METAL.shade : METAL.base);
-    else {
-      pm.put(x, y, d2 > 0.75 && y < cy ? WATER.deep : WATER.base);
-      if ((x * 3 + y * 7 + frame * 5) % 23 === 0) pm.put(x, y, WATER.light);
-      if ((x * 5 + y * 11 + frame * 3) % 61 === 0) pm.put(x, y, WATER.foam);
-    }
-  }
-  // espessura da borda na frente
-  for (let x = 3; x < 61; x++) {
-    const yEdge = Math.round(cy + ry * Math.sqrt(Math.max(0, 1 - ((x + 0.5 - cx) / rx) ** 2)));
-    pm.put(x, yEdge - 1, METAL.dark); pm.put(x, yEdge, METAL.dark); pm.put(x, yEdge + 1, LINE);
-  }
-  // pilar central com anel de luz e jato
-  pm.rect(28, 15, 8, 14, LINE); pm.rect(29, 15, 6, 13, METAL.base); pm.rect(29, 15, 2, 13, METAL.light);
-  pm.rect(29, 22, 6, 1, NEON.cyan);
-  pm.rect(25, 12, 14, 4, LINE); pm.rect(26, 12, 12, 3, METAL.light); pm.rect(26, 14, 12, 1, METAL.shade);
-  const jets = [
-    ['....w....', '...wcw...', '..wc.cw..', '.wc...cw.', 'wc.....cw', 'c.......c'],
-    ['....w....', '...wcw...', '..wcwcw..', '.wc...cw.', '.c.....c.', 'c.......c'],
-    ['...w.w...', '...wcw...', '..wc.cw..', '.wc...cw.', 'wc.....cw', '.c.....c.'],
-  ];
-  pm.stamp(jets[frame % 3], 28, 4, { w: WHITE, c: NEON.cyanSoft });
-  pm.stamp(frame % 2 ? ['.w.', 'wcw', 'wcw', '.c.'] : ['...', '.w.', 'wcw', 'wcw'], 31, 0, { w: WHITE, c: NEON.cyanSoft });
-  return pm;
-}
-
-/** Vaso de planta da praça (16×20). */
-export function planter(flower: RGB = NEON.pink): Pixmap {
-  const pm = new Pixmap(16, 22);
-  const m = scaleCanopy(pm, 8, [{ y: 8, halfW: 5, n: 2, h: 5 }, { y: 11, halfW: 6, n: 2, h: 4 }], TREE, 3);
-  outlineMask(pm, m, TREE.line);
-  pm.put(5, 4, flower); pm.put(10, 6, flower); pm.put(7, 8, flower);
-  pm.stamp([
-    'oooooooooooooo',
-    'owwwwwwwwwwwso',
-    'owccccccccccso',
-    '.owwwwwwwwwso.',
-    '.owwwwwwwwwso.',
-    '..ossssssssso.',
-    '..oooooooooo..',
-  ], 1, 13, { o: LINE, w: METAL.light, s: METAL.shade, c: NEON.cyan });
-  return pm;
-}
-
-/** Portal de boas-vindas com letreiro neon (64×44): pilares nas pontas. */
-export function welcomeArch(text: string, drawText: (pm: Pixmap, t: string, x: number, y: number, c: RGB, sh?: RGB) => void, width: (t: string) => number): Pixmap {
-  const pm = new Pixmap(64, 46);
-  for (const px of [1, 53]) {
-    pm.rect(px, 8, 10, 36, LINE);
-    pm.rect(px + 1, 9, 8, 34, METAL.base);
-    pm.rect(px + 1, 9, 2, 34, METAL.light);
-    pm.rect(px + 7, 9, 2, 34, METAL.shade);
-    for (let y = 14; y < 40; y += 6) pm.rect(px + 4, y, 2, 3, NEON.cyan);
-    pm.rect(px - 1, 42, 12, 3, LINE); pm.rect(px, 42, 10, 2, METAL.shade);
-  }
-  pm.rect(0, 2, 64, 14, LINE);
-  pm.rect(1, 3, 62, 12, hex('#1c2046'));
-  pm.rect(1, 3, 62, 1, NEON.purple);
-  pm.rect(1, 14, 62, 1, NEON.cyan);
-  const w = width(text);
-  drawText(pm, text, 32 - (w >> 1), 6, NEON.cyanSoft, hex('#2a6a8a'));
-  return pm;
-}
-
 export function rock(): Pixmap {
   const pm = new Pixmap(16, 16);
   pm.stamp([
@@ -423,24 +287,3 @@ export function rock(): Pixmap {
   return pm;
 }
 
-/** Totem holográfico com a logo WIT (16×32) — toque tecnológico. */
-export function holoTotem(frame = 0): Pixmap {
-  const pm = new Pixmap(16, 32);
-  pm.stamp([
-    '...oooooooooo...',
-    '..occcccccccco..',
-    '..ocaaaaaaaaco..',
-    '..ocaWaWaWaaco..',
-    '..ocaWaWaWaaco..',
-    '..ocaaWaWaaaco..',
-    '..ocaaaaaaaaco..',
-    '..occcccccccco..',
-    '...oooooooooo...',
-  ], 0, 1, { o: LINE, c: NEON.cyanSoft, a: hex('#2a3a6e'), W: NEON.cyan });
-  const scan = 3 + (frame % 5);
-  for (let x = 4; x < 12; x++) if (!pm.get(x, scan) || pm.get(x, scan)![2] < 200) pm.put(x, scan, hex('#3e5aa0'));
-  pm.rect(7, 10, 2, 16, LINE); pm.rect(7, 10, 1, 16, METAL.base);
-  pm.stamp(['.oooooo.', 'ommmmmso', 'oooooooo'], 4, 26, { o: LINE, m: METAL.base, s: METAL.shade });
-  for (let x = 3; x < 13; x++) pm.put(x, 29, GRASS.shadow);
-  return pm;
-}

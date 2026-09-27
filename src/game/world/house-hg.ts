@@ -1,9 +1,11 @@
 // Casa no estilo HeartGold/SoulSilver: telhado de duas águas em perspectiva
 // (empena triangular na frente, as duas águas indo para trás), degradê,
 // contorno na cor escura de cada material, tábuas em 3 tons, janela com
-// reflexo diagonal e floreira.
+// reflexo diagonal e floreira. À noite: janelas acesas, luminária da porta e
+// fita de LED na borda do telhado (a cor de cada casa).
 import { mix, Pixmap, hex, type RGB } from './pixmap';
 import { TILE, type Building } from './buildings';
+import { LED, WIT } from './palette';
 
 export interface RoofHG { hi: RGB; light: RGB; base: RGB; shade: RGB; dark: RGB; line: RGB }
 export interface WoodHG { hi: RGB; light: RGB; base: RGB; shade: RGB; line: RGB }
@@ -30,9 +32,23 @@ export interface HouseHGOpts {
   wood?: keyof typeof WOOD_HG;
   door?: string;
   flowers?: boolean;
+  /** Cor da fita de LED do telhado (acende à noite). */
+  led?: keyof typeof LED;
+  /** Detalhe tecnológico no telhado. */
+  tech?: 'solar' | 'antena';
 }
 
-export function windowHG(pm: Pixmap, x: number, y: number, w: number, h: number): void {
+/** Vidro aceso à noite: luz quente com a cruz da janela em contraluz. */
+export function litGlass(nt: Pixmap, x: number, y: number, w: number, h: number, warm: RGB = LED.warm): void {
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+    let c = mix(mix(LED.warmSoft, warm, 0.35), mix(warm, hex('#c07830'), 0.3), yy / Math.max(1, h - 1));
+    if (xx === (w >> 1) || yy === (h >> 1)) c = mix(warm, hex('#b0702c'), 0.45);
+    nt.put(x + xx, y + yy, c);
+  }
+}
+
+export function windowHG(pm: Pixmap, x: number, y: number, w: number, h: number, nt?: Pixmap): void {
+  if (nt) litGlass(nt, x, y, w, h);
   pm.rect(x - 2, y - 2, w + 4, h + 4, GLASS_HG.line);
   pm.rect(x - 1, y - 1, w + 2, h + 2, GLASS_HG.frame);
   for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
@@ -155,8 +171,20 @@ export function houseHG(id: string, name: string, o: HouseHGOpts = {}): Building
   pm.rect(cx - 4, vy, 8, 5, hex('#f8f4ee'));
   pm.rect(cx - 3, vy + 1, 6, 3, hex('#3c3848'));
   pm.rect(cx - 3, vy + 2, 6, 1, hex('#58546a'));
+  const nt = new Pixmap(W, H);
+  litGlass(nt, cx - 3, vy + 1, 6, 3, LED.orange);
 
   gableRoof(pm, { left, right, cx, backY, peakY, eaveY }, R);
+  // fita de LED na borda da empena: de dia só uns pontinhos claros
+  const ledC = LED[o.led ?? 'green'];
+  for (let x = left + 2; x <= right - 2; x += 3) {
+    const e = Math.round(edgeY(x));
+    pm.put(x, e + 2, mix(R.hi, hex('#ffffff'), 0.5));
+    nt.put(x, e + 2, ledC);
+    nt.put(x, e + 1, mix(ledC, hex('#ffffff'), 0.5));
+  }
+  if (o.tech === 'solar') solarPanel(pm, nt, Math.round(cx + 8), backY + 6, Math.round((right - cx) * 0.55), R);
+  if (o.tech === 'antena') antenna(pm, nt, Math.round(cx - 18), backY + 10);
   // sombra do beiral sobre a parede
   for (let x = left + 3; x <= right - 3; x++) {
     const e = Math.round(edgeY(x));
@@ -176,10 +204,41 @@ export function houseHG(id: string, name: string, o: HouseHGOpts = {}): Building
   pm.rect(dx + 3, dy + 4, dw - 7, 2, hex('#7a1c2c'));
   pm.put(dx + dw - 4, dy + 12, hex('#ffe070')); pm.put(dx + dw - 4, dy + 13, hex('#b08a30'));
   pm.rect(dx - 3, wallBottom - 3, dw + 6, 2, hex('#e8e4ee')); // degrau
+  // luminária sobre a porta
+  const lx = dx + (dw >> 1) - 2, ly = dy - 6;
+  pm.stamp(['.oo.', 'oggo', 'oggo', '.oo.'], lx, ly, { o: hex('#4a4660'), g: hex('#e8eef4') });
+  nt.stamp(['.ww.', 'wyyw', 'wyyw', '.ww.'], lx, ly, { w: LED.warm, y: LED.warmSoft });
   const winX = dx + dw + 8, winW = Math.min(20, right - 8 - winX);
-  if (winW >= 12) windowHG(pm, winX, dy + 3, winW, 12);
+  if (winW >= 12) windowHG(pm, winX, dy + 3, winW, 12, nt);
   if (o.flowers !== false && right - 4 - (winX + winW + 6) >= 8) flowerBox(pm, winX + winW + 6, wallBottom - 14, right - 6 - (winX + winW + 6));
   else if (o.flowers !== false) flowerBox(pm, winX - 1, dy + 19, Math.max(8, winW + 2));
 
-  return { id, name, pix: pm, tilesW: tw, tilesH: th, extraTop, doorCols: [doorCol] };
+  return { id, name, pix: pm, tilesW: tw, tilesH: th, extraTop, doorCols: [doorCol], night: nt };
+}
+
+/** Placa solar sobre a água direita do telhado (vidro verde-escuro com grade). */
+function solarPanel(pm: Pixmap, nt: Pixmap, x: number, y: number, w: number, R: RoofHG): void {
+  const h = 12, line = hex('#1c3a34');
+  for (let yy = -1; yy <= h; yy++) for (let xx = -1; xx <= w; xx++) {
+    const sx = x + xx - Math.floor(yy / 3);
+    if (yy === -1 || yy === h || xx === -1 || xx === w) { pm.put(sx, y + yy, line); continue; }
+    let c = mix(hex('#3c8a78'), hex('#1e4e48'), yy / h);
+    if (xx % 5 === 4 || yy % 4 === 3) c = mix(c, hex('#a8d8c8'), 0.35);
+    if (xx - yy * 1.5 > 2 && xx - yy * 1.5 < 4.5) c = mix(c, hex('#ffffff'), 0.45);
+    pm.put(sx, y + yy, c);
+  }
+  // sombra no telhado
+  for (let xx = 0; xx <= w; xx++) pm.put(x + xx - Math.floor(h / 3), y + h + 1, R.dark);
+  pm.put(x + w - 2, y + 1, WIT.lime);
+  nt.put(x + w - 2, y + 1, LED.green);
+}
+
+/** Antena com luz de topo (vermelha, pisca à noite). */
+function antenna(pm: Pixmap, nt: Pixmap, x: number, y: number): void {
+  const line = hex('#3c3a50'), metal = hex('#b8bccc');
+  for (let yy = 0; yy < 14; yy++) { pm.put(x, y - yy, line); pm.put(x + 1, y - yy, metal); pm.put(x + 2, y - yy, line); }
+  pm.rect(x - 3, y - 9, 9, 1, line); pm.rect(x - 2, y - 6, 7, 1, line);
+  pm.rect(x - 2, y - 9, 7, 1, metal);
+  pm.stamp(['.o.', 'oro', '.o.'], x, y - 17, { o: line, r: hex('#e84a5a') });
+  nt.stamp(['.r.', 'rwr', '.r.'], x, y - 17, { r: hex('#ff5a6a'), w: hex('#ffd0d4') });
 }

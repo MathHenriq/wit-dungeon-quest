@@ -1,4 +1,5 @@
-// Renderiza a cidade inicial em PNG (inteira + recortes do tamanho da tela).
+// Renderiza a cidade inicial em PNG (inteira + recortes do tamanho da tela),
+// de dia e à noite (e no entardecer, só a cidade inteira).
 //   npx vite-node scripts/mapa/render-cidade.ts -- <pasta-saida> [escala]
 import { readFileSync, mkdirSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
@@ -58,16 +59,19 @@ const people = [
   sp('base/south.png', town.spawn.tx, town.spawn.ty + 3),
   sp('pets/raposa-chama/andar-west-0.png', town.spawn.tx + 1, town.spawn.ty + 3),
 ];
-const full = renderTown(town, people);
-savePixmap(full, `${dir}/cidade.png`, scale);
-// recortes do tamanho de uma tela de jogo (20×13 blocos)
-const crops: [string, number, number][] = [['praca', 10, 6], ['oeste', 0, 6], ['leste', 20, 6], ['sul', 10, 17], ['norte', 0, 0]];
-for (const [name, tx, ty] of crops) {
-  const c = new Pixmap(320, 208);
-  for (let y = 0; y < 208; y++) for (let x = 0; x < 320; x++) {
-    const px = full.get(tx * 16 + x, ty * 16 + y);
-    if (px) c.put(x, y, px);
+for (const [suffix, hour] of [['', undefined], ['-noite', 22], ['-tarde', 18.4]] as [string, number | undefined][]) {
+  const full = renderTown(town, people, hour);
+  savePixmap(full, `${dir}/cidade${suffix}.png`, scale);
+  if (suffix === '-tarde') continue;
+  // recortes do tamanho de uma tela de jogo (20×13 blocos)
+  const crops: [string, number, number][] = [['praca', 10, 6], ['oeste', 0, 6], ['leste', 20, 6], ['sul', 10, 17], ['norte', 0, 0]];
+  for (const [name, tx, ty] of crops) {
+    const c = new Pixmap(320, 208);
+    for (let y = 0; y < 208; y++) for (let x = 0; x < 320; x++) {
+      const px = full.get(tx * 16 + x, ty * 16 + y);
+      if (px) c.put(x, y, px);
+    }
+    savePixmap(c, `${dir}/tela-${name}${suffix}.png`, 3);
   }
-  savePixmap(c, `${dir}/tela-${name}.png`, 3);
 }
 console.log(`cidade gerada em ${t1 - t0} ms; ${town.objects.length} objetos; ${town.doors.length} portas`);
