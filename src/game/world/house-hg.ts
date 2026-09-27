@@ -192,7 +192,7 @@ export function houseHG(id: string, name: string, o: HouseHGOpts = {}): Building
   }
 
   // ── porta, janela, floreira ──
-  const doorCol = Math.floor(tw * 0.35);
+  const doorCol = Math.floor(tw / 2);
   const dx = doorCol * TILE + 1, dw = 16, dh = 22, dy = wallBottom - 3 - dh;
   const door = hex(o.door ?? '#d84c50'), doorL = mix(door, hex('#ffffff'), 0.35), doorD = mix(door, hex('#301018'), 0.45);
   pm.rect(dx - 2, dy - 2, dw + 4, dh + 2, Wd.line);

@@ -1,0 +1,205 @@
+{
+ "arbusto": {
+  "h": 14,
+  "w": 18
+ },
+ "arbusto-florido": {
+  "h": 13,
+  "w": 16
+ },
+ "arena": {
+  "h": 85,
+  "noite": true,
+  "w": 128
+ },
+ "arvore-redonda": {
+  "h": 35,
+  "w": 34
+ },
+ "banco": {
+  "h": 22,
+  "w": 32
+ },
+ "casa-arvore": {
+  "h": 85,
+  "noite": true,
+  "w": 80
+ },
+ "casa-azul": {
+  "h": 86,
+  "noite": true,
+  "w": 80
+ },
+ "casa-castelo": {
+  "h": 91,
+  "noite": true,
+  "w": 80
+ },
+ "casa-chale": {
+  "h": 86,
+  "noite": true,
+  "w": 80
+ },
+ "casa-foguete": {
+  "h": 92,
+  "noite": true,
+  "w": 64
+ },
+ "casa-futurista": {
+  "h": 73,
+  "noite": true,
+  "w": 80
+ },
+ "casa-gamer": {
+  "h": 89,
+  "noite": true,
+  "w": 80
+ },
+ "casa-japonesa": {
+  "h": 75,
+  "noite": true,
+  "w": 80
+ },
+ "casa-laranja": {
+  "h": 86,
+  "noite": true,
+  "w": 80
+ },
+ "casa-moderna": {
+  "h": 72,
+  "noite": true,
+  "w": 80
+ },
+ "casa-montanha": {
+  "h": 84,
+  "noite": true,
+  "w": 80
+ },
+ "casa-rosa": {
+  "h": 57,
+  "noite": true,
+  "w": 80
+ },
+ "casa-roxa": {
+  "h": 86,
+  "noite": true,
+  "w": 80
+ },
+ "casa-tijolo": {
+  "h": 82,
+  "noite": true,
+  "w": 80
+ },
+ "casa-verde": {
+  "h": 86,
+  "noite": true,
+  "w": 80
+ },
+ "casa-vermelha-antena": {
+  "h": 86,
+  "noite": true,
+  "w": 80
+ },
+ "castelo": {
+  "h": 107,
+  "noite": true,
+  "w": 112
+ },
+ "cerca": {
+  "h": 10,
+  "w": 16
+ },
+ "cerejeira": {
+  "h": 36,
+  "w": 34
+ },
+ "cogumelos": {
+  "h": 11,
+  "w": 12
+ },
+ "correio": {
+  "h": 18,
+  "w": 9
+ },
+ "fonte": {
+  "h": 52,
+  "noite": true,
+  "w": 64
+ },
+ "lixeira": {
+  "h": 16,
+  "w": 11
+ },
+ "maquina": {
+  "h": 32,
+  "noite": true,
+  "w": 19
+ },
+ "mato": {
+  "h": 15,
+  "w": 16
+ },
+ "mural": {
+  "h": 40,
+  "noite": true,
+  "w": 48
+ },
+ "oficina": {
+  "h": 85,
+  "noite": true,
+  "w": 112
+ },
+ "palacio-cartas": {
+  "h": 69,
+  "noite": true,
+  "w": 80
+ },
+ "pedra": {
+  "h": 12,
+  "w": 14
+ },
+ "pedrinhas": {
+  "h": 11,
+  "w": 16
+ },
+ "pinheiro": {
+  "h": 38,
+  "w": 30
+ },
+ "placa": {
+  "h": 19,
+  "w": 16
+ },
+ "portal": {
+  "h": 48,
+  "noite": true,
+  "w": 64
+ },
+ "poste": {
+  "h": 32,
+  "noite": true,
+  "w": 10
+ },
+ "toco": {
+  "h": 11,
+  "w": 14
+ },
+ "torre": {
+  "h": 178,
+  "noite": true,
+  "w": 89
+ },
+ "totem": {
+  "h": 30,
+  "noite": true,
+  "w": 10
+ },
+ "tulipas": {
+  "h": 13,
+  "w": 16
+ },
+ "vaso": {
+  "h": 18,
+  "w": 16
+ }
+}

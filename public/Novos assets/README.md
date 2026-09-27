@@ -1,18 +1,12 @@
 # Novos assets
 
 Imagens geradas no GPT (fundo magenta #FF00FF), antes da conversão para o jogo.
-O Claude corta, reduz para a grade de pixels, ajusta à paleta e move a versão
-final para a pasta do jogo. Estas aqui são as originais.
+Converter: `python3 scripts/arte/importar-gpt.py --folha saida.png` — gera
+`public/game/world/<nome>.png`, `<nome>-noite.png` e `manifest.json`.
 
-Nomes sugeridos (um arquivo por imagem):
-
-| Arquivo | O que é |
-|---|---|
-| `torre.png`, `loja.png`, `oficina.png`, `arena.png`, `castelo.png` | Prédios principais |
-| `casa-chale.png`, `casa-tijolo.png`, `casa-moderna.png` | Casas iniciais |
-| `casa-futurista.png`, `casa-arvore.png`, `casa-gamer.png`, `casa-japonesa.png`, `casa-montanha.png`, `casa-castelo.png`, `casa-foguete.png` | Casas compráveis |
-| `arvores.png` | Folha das 4 árvores (pinheiro, redonda, cerejeira, arbusto) |
-| `tile-grama.png`, `tile-mato.png`, `tile-areia.png`, `tile-calcada.png`, `tile-agua.png`, `tile-flores.png`, `tile-floresta.png` | Chão |
-| `folha-a.png` … `folha-e.png` | Objetos da cidade |
+Para acrescentar uma imagem: salve aqui com um nome curto (ex.: `casa-padaria.png`)
+e registre o nome e o tamanho no jogo em `SINGLE` ou `SHEETS` no topo do script.
+Folhas com vários objetos são cortadas na ordem de leitura (linha a linha,
+da esquerda para a direita).
 
 Toda imagem é revisada antes de entrar no jogo (público infantil).

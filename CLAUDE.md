@@ -57,6 +57,7 @@ construtor de deck.
 | Testes do TCG (combos, mecânicas, catálogo) | `src/lib/tcg/__tests__/` |
 | Arte do mundo por código (chão, árvores, prédios, objetos, fonte pixel) | `src/game/world/{ground,props,buildings,palette,pixmap}.ts` |
 | Casas e prédios no estilo HGSS (os que a cidade usa), com a camada "noite" | `src/game/world/{house-hg,buildings-hg}.ts` |
+| **Sprites do GPT (arte principal da cidade)**: originais em `public/Novos assets/` (fundo magenta), convertidos para `public/game/world/*.png` + `*-noite.png` + `manifest.json` | `python3 scripts/arte/importar-gpt.py --folha saida.png` (pillow, numpy, scipy); tamanhos e cortes das folhas no topo do script; carregados por `src/game/world/assets.ts` |
 | Prédios-tema: Loja = pacotinho gigante, Oficina de Cartas = carta gigante + álbum + forja, Guildas = castelo | `src/game/world/landmarks.ts` (folha: `docs/cidade-wit-predios.png`) |
 | Objetos tecnológicos no verde WIT (postes, totens, portal, fonte, mural) | `src/game/world/props-tech.ts` |
 | Fonte pixel 5×7 dos letreiros | `src/game/world/font.ts` |
@@ -80,7 +81,7 @@ são do sistema anterior ao TCG: **não servem de referência**.
   aleatórios e mostra a taxa de vitória de cada carta. Toda carta nova ou
   alterada passa por aqui (faixa aceitável: ~40% a 60%).
 - `npx vite-node scripts/tcg-catalogo.ts <wr.json>` — regenera `docs/cartas-tcg.md`.
-- `npx vite-node scripts/mapa/render-cidade.ts -- <pasta> 2` — PNG da cidade inteira + recortes do tamanho da tela.
+- `npx vite-node scripts/mapa/render-cidade.ts -- <pasta> 2` — PNG da cidade inteira + recortes do tamanho da tela (dia, noite, tarde; `--codigo` usa a arte por código).
 - `npx vite-node scripts/mapa/folha-predios.ts -- saida.png 3` e `folha-objetos.ts` — folhas de revisão.
 - `node scripts/mapa/prints-cidade.mjs <pasta>` e `video-cidade.mjs <pasta> 20` — prints e vídeo da cidade
   jogável (precisa do `vite` rodando em 127.0.0.1:5199 e de um `.env` com as chaves públicas do Supabase).

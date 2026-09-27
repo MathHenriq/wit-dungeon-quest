@@ -1,6 +1,6 @@
 // Utilitários dos scripts de revisão: salvar Pixmap em PNG ampliado.
-import { writeFileSync } from 'node:fs';
-import { crc32, deflateSync } from 'node:zlib';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { crc32, deflateSync, inflateSync } from 'node:zlib';
 import { Pixmap } from '../../src/game/world/pixmap';
 
 export function encodePng(w: number, h: number, rgba: Uint8Array | Uint8ClampedArray): Buffer {
@@ -33,3 +33,40 @@ export function savePixmap(pm: Pixmap, file: string, scale = 1): void {
   }
   writeFileSync(file, encodePng(W, H, out));
 }
+
+/** Leitor mínimo de PNG RGBA 8 bits (os sprites do jogo). */
+export function readPng(file: string): Pixmap {
+  const buf = readFileSync(file);
+  let pos = 8, w = 0, h = 0, ct = 6;
+  const idat: Buffer[] = [];
+  while (pos < buf.length) {
+    const len = buf.readUInt32BE(pos), type = buf.toString('ascii', pos + 4, pos + 8);
+    const data = buf.subarray(pos + 8, pos + 8 + len);
+    if (type === 'IHDR') { w = data.readUInt32BE(0); h = data.readUInt32BE(4); ct = data[9]; }
+    if (type === 'IDAT') idat.push(data);
+    pos += 12 + len;
+  }
+  const bpp = ct === 6 ? 4 : 3;
+  const raw = inflateSync(Buffer.concat(idat));
+  const pm = new Pixmap(w, h);
+  const prev = new Uint8Array(w * bpp), cur = new Uint8Array(w * bpp);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (w * bpp + 1)];
+    for (let i = 0; i < w * bpp; i++) {
+      const x = raw[y * (w * bpp + 1) + 1 + i];
+      const a = i >= bpp ? cur[i - bpp] : 0, b = prev[i], c = i >= bpp ? prev[i - bpp] : 0;
+      let v = x;
+      if (f === 1) v = x + a; else if (f === 2) v = x + b; else if (f === 3) v = x + ((a + b) >> 1);
+      else if (f === 4) { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); v = x + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c); }
+      cur[i] = v & 255;
+    }
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      pm.data[i] = cur[x * bpp]; pm.data[i + 1] = cur[x * bpp + 1]; pm.data[i + 2] = cur[x * bpp + 2];
+      pm.data[i + 3] = bpp === 4 ? cur[x * bpp + 3] : 255;
+    }
+    prev.set(cur);
+  }
+  return pm;
+}
+

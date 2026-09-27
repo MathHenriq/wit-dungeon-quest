@@ -27,7 +27,9 @@ describe('cidade inicial', () => {
   it('tem o tamanho da planta e o chão pintado inteiro', () => {
     expect(town.ground.w).toBe(MAP_W * 16);
     expect(town.ground.h).toBe(MAP_H * 16);
-    for (let i = 3; i < town.ground.data.length; i += 4) expect(town.ground.data[i]).toBe(255);
+    let transparentes = 0;
+    for (let i = 3; i < town.ground.data.length; i += 4) if (town.ground.data[i] !== 255) transparentes++;
+    expect(transparentes).toBe(0);
   });
 
   it('tem todos os prédios do plano, cada um com porta', () => {
@@ -151,4 +153,16 @@ describe('troca de cor do boneco', () => {
     expect([data[j], data[j + 1], data[j + 2]]).toEqual([before[j], before[j + 1], before[j + 2]]); // pele intacta
     for (let k = 3; k < data.length; k += 4) expect(data[k]).toBe(before[k]);
   });
+});
+
+describe('cidade com os sprites convertidos do GPT', () => {
+  it('usa a mesma planta: portas alcançáveis e todo sprite cabe no seu lugar', async () => {
+    const { loadWorldAssetsNode } = await import('../../../../scripts/mapa/assets-node');
+    const assets = loadWorldAssetsNode();
+    expect(Object.keys(assets).length).toBeGreaterThan(40);
+    const t = buildTown(assets);
+    expect(t.doors.length).toBe(town.doors.length);
+    expect(t.solid).toEqual(town.solid);
+    for (const o of t.objects) expect(o.x + o.pix.w, `${o.id} passa da borda`).toBeLessThanOrEqual(t.ground.w + 32);
+  }, 20000);
 });
