@@ -3,7 +3,7 @@
 import * as B from './buildings';
 import { TILE, type Building } from './buildings';
 import { paintGround, type Terrain } from './ground';
-import { hex, Pixmap } from './pixmap';
+import { hash, hex, Pixmap } from './pixmap';
 import { PAVE } from './palette';
 import * as P from './props';
 
@@ -18,6 +18,9 @@ export interface Placed {
   y: number;
   /** Linha do chão (px) usada para ordenar quem fica na frente. */
   baseY: number;
+  /** Quadros de animação (opcional). `pix` é o primeiro. */
+  frames?: Pixmap[];
+  frameMs?: number;
 }
 
 export interface Door {
@@ -54,14 +57,16 @@ export function buildTown(): Town {
     }
   };
   /** Objeto cuja base ocupa (tx..tx+tw-1, ty..ty+th-1); a arte encosta embaixo. */
-  const put = (id: string, pix: Pixmap, tx: number, ty: number, tw: number, th: number, isSolid = true) => {
-    const x = tx * TILE + ((tw * TILE - pix.w) >> 1);
-    const y = (ty + th) * TILE - pix.h;
-    objects.push({ id, pix, x, y, baseY: (ty + th) * TILE });
+  const put = (id: string, pix: Pixmap | Pixmap[], tx: number, ty: number, tw: number, th: number, isSolid = true, frameMs = 500) => {
+    const frames = Array.isArray(pix) ? pix : undefined;
+    const first = frames ? frames[0] : (pix as Pixmap);
+    const x = tx * TILE + ((tw * TILE - first.w) >> 1);
+    const y = (ty + th) * TILE - first.h;
+    objects.push({ id, pix: first, x, y, baseY: (ty + th) * TILE, frames, frameMs: frames ? frameMs : undefined });
     if (isSolid) block(tx, ty, tw, th);
   };
   const building = (b: Building, tx: number, ty: number) => {
-    objects.push({ id: b.id, pix: b.pix, x: tx * TILE, y: ty * TILE - b.extraTop, baseY: (ty + b.tilesH) * TILE });
+    objects.push({ id: b.id, pix: b.pix, x: tx * TILE, y: ty * TILE - b.extraTop, baseY: (ty + b.tilesH) * TILE, frames: b.frames, frameMs: b.frames ? 450 : undefined });
     block(tx, ty, b.tilesW, b.tilesH);
     for (const c of b.doorCols) {
       const d = { tx: tx + c, ty: ty + b.tilesH - 1, building: b.id, name: b.name };
@@ -141,14 +146,14 @@ export function buildTown(): Town {
   put('arbusto-4', P.tree('arbusto', 4), 3, 20, 1, 1);
 
   // ── praça ──
-  put('fonte', P.fountain(), 18, 13, 4, 2);
+  put('fonte', [0, 1, 2].map(f => P.fountain(f)), 18, 13, 4, 2, true, 180);
   put('mural', P.noticeBoard(), 14, 12, 3, 1);
   put('banco-1', P.bench(), 14, 15, 2, 1);
   put('banco-2', P.bench(), 24, 15, 2, 1);
-  put('totem-1', P.holoTotem(), 13, 18, 1, 1);
-  put('totem-2', P.holoTotem(), 26, 18, 1, 1);
+  put('totem-1', [0, 1, 2, 3, 4].map(f => P.holoTotem(f)), 13, 18, 1, 1, true, 160);
+  put('totem-2', [2, 3, 4, 0, 1].map(f => P.holoTotem(f)), 26, 18, 1, 1, true, 160);
   for (const [tx, ty] of [[16, 11], [23, 11], [16, 18], [23, 18], [3, 15], [9, 15], [30, 15], [36, 15], [18, 21], [21, 21]]) {
-    put(`poste-${tx}-${ty}`, P.lamp(), tx, ty, 1, 1);
+    put(`poste-${tx}-${ty}`, [0, 1].map(f => P.lamp(f)), tx, ty, 1, 1, true, 900);
   }
   put('maquina', P.vending(), 35, 14, 1, 1);
   for (const [tx, ty, c] of [[13, 15, '#b07cff'], [26, 15, '#40e4ff']] as [number, number, string][]) {
@@ -181,6 +186,18 @@ export function buildTown(): Town {
   block(18, 27, 1, 1); block(21, 27, 1, 1);
   put('pedra-1', P.rock(), 36, 23, 1, 1);
   put('pedra-2', P.rock(), 3, 25, 1, 1);
+
+  // brilho que se mexe no lago
+  const lake = { x0: 31 * TILE + 6, y0: 18 * TILE + 5, x1: 38 * TILE - 7, y1: 20 * TILE - 5 };
+  const sparkle = (f: number) => {
+    const pm = new Pixmap(lake.x1 - lake.x0, lake.y1 - lake.y0);
+    for (let k = 0; k < 9; k++) {
+      const x = Math.floor(hash(k, f, 3) * (pm.w - 4)), y = Math.floor(hash(f, k, 5) * (pm.h - 1));
+      pm.put(x, y, hex('#e4f6ff')); pm.put(x + 1, y, hex('#8ccaf6')); pm.put(x + 2, y, hex('#e4f6ff'));
+    }
+    return pm;
+  };
+  objects.push({ id: 'lago-brilho', pix: sparkle(0), x: lake.x0, y: lake.y0, baseY: lake.y0 - 64, frames: [0, 1, 2, 3].map(sparkle), frameMs: 420 });
 
   // água bloqueia
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) if (terrain[y][x] === 'agua') solid[y][x] = true;

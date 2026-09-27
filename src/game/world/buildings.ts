@@ -20,6 +20,8 @@ export interface Building {
   extraTop: number;
   /** Colunas (relativas) das portas, na última fileira do prédio. */
   doorCols: number[];
+  /** Quadros de animação (o primeiro é igual a `pix`). */
+  frames?: Pixmap[];
 }
 
 // ───────────────────────── fonte pixel ─────────────────────────
@@ -330,6 +332,11 @@ export function shop(): Building {
 // ─────────────────────── Torre dos 100 andares ───────────────────────
 
 export function tower(): Building {
+  const frames = [0, 1, 2, 3].map(towerFrame);
+  return { id: 'torre', name: 'Torre dos 100 Andares', pix: frames[0], tilesW: 6, tilesH: 7, extraTop: 56, doorCols: [2, 3], frames };
+}
+
+function towerFrame(frame: number): Pixmap {
   const tw = 6, th = 7, extraTop = 56;
   const pm = newPix(tw, th, extraTop);
   const W = tw * TILE, H = th * TILE + extraTop;
@@ -347,7 +354,8 @@ export function tower(): Building {
   // janelas acesas em grade (algumas apagadas)
   for (let fy = topY + 13, row = 0; fy < H - 36; fy += 9, row++) {
     for (let fx = x0 + 6, col = 0; fx < x1 - 8; fx += 8, col++) {
-      const on = hash(row, col, 7) > 0.28;
+      const flick = hash(row, col, 11) > 0.9 && frame % 2 === 1;
+      const on = (hash(row, col, 7) > 0.28) !== flick;
       const c = on ? (hash(col, row, 3) > 0.7 ? NEON.purple : NEON.cyanSoft) : hex('#3a3f70');
       pm.rect(fx, fy, 4, 5, c);
       if (on) pm.put(fx, fy, WHITE);
@@ -367,8 +375,9 @@ export function tower(): Building {
   pm.rect(cx0 + 3, topY - 7, cw - 6, 3, NEON.cyan);
   // antena e farol
   pm.rect((W >> 1) - 1, 4, 2, topY - 16, METAL.base);
-  pm.rect((W >> 1) - 3, 1, 6, 4, NEON.pink);
-  pm.rect((W >> 1) - 2, 2, 4, 2, WHITE);
+  pm.rect((W >> 1) - 3, 1, 6, 4, frame % 2 === 0 ? NEON.pink : hex('#8a2a5a'));
+  if (frame % 2 === 0) pm.rect((W >> 1) - 2, 2, 4, 2, WHITE);
+  pm.rect(cx0 + 3 + ((frame * 5) % (cw - 10)), topY - 7, 4, 3, WHITE);
   // entrada em arco com o painel "100"
   const ew = 30, ex = (W - ew) >> 1, ey = H - 30;
   pm.rect(ex - 3, ey - 12, ew + 6, 11, LINE_DARK);
@@ -384,7 +393,7 @@ export function tower(): Building {
   // contorno
   for (let y = topY; y < H; y++) { pm.put(x0 - 1, y, LINE_DARK); pm.put(x1, y, LINE_DARK); }
   pm.rect(x0 - 1, H - 1, x1 - x0 + 2, 1, LINE_DARK);
-  return { id: 'torre', name: 'Torre dos 100 Andares', pix: pm, tilesW: tw, tilesH: th, extraTop, doorCols: [2, 3] };
+  return pm;
 }
 
 // ─────────────────────────── Arena ───────────────────────────

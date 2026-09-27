@@ -55,6 +55,11 @@ construtor de deck.
 | Vitrine das cartas (`/cartas-demo?q=id1,id2`) | `src/pages/CardsDemo.tsx` |
 | Ilustrações das 350 cartas (webp) | `public/cards/art/<id>.webp` |
 | Testes do TCG (combos, mecânicas, catálogo) | `src/lib/tcg/__tests__/` |
+| Arte do mundo por código (chão, árvores, prédios, objetos, fonte pixel) | `src/game/world/{ground,props,buildings,palette,pixmap}.ts` |
+| Planta da cidade (terrenos, prédios, colisão, portas) | `src/game/world/town.ts` (+ testes em `__tests__/town.test.ts`) |
+| Movimento em grade, caminho, troca de cor do boneco | `src/game/world/{movement,recolor}.ts` |
+| Cidade jogável (`/cidade-demo`, `?passeio=1` anda sozinho) | `src/pages/CityDemo.tsx` + textos em `src/game/world/content.ts` |
+| Sprites de personagem e pets (PixelLab, 32 px) | `public/game/sprites/` (ver README lá) |
 
 O texto de uma carta **nunca** é escrito à mão: sai de `describeCard`. Para
 mudar o que a carta diz, mude o efeito.
@@ -70,6 +75,10 @@ são do sistema anterior ao TCG: **não servem de referência**.
   aleatórios e mostra a taxa de vitória de cada carta. Toda carta nova ou
   alterada passa por aqui (faixa aceitável: ~40% a 60%).
 - `npx vite-node scripts/tcg-catalogo.ts <wr.json>` — regenera `docs/cartas-tcg.md`.
+- `npx vite-node scripts/mapa/render-cidade.ts -- <pasta> 2` — PNG da cidade inteira + recortes do tamanho da tela.
+- `npx vite-node scripts/mapa/folha-predios.ts -- saida.png 3` e `folha-objetos.ts` — folhas de revisão.
+- `node scripts/mapa/prints-cidade.mjs <pasta>` e `video-cidade.mjs <pasta> 20` — prints e vídeo da cidade
+  jogável (precisa do `vite` rodando em 127.0.0.1:5199 e de um `.env` com as chaves públicas do Supabase).
 - Arte: `npx vite-node scripts/arte/gerar.ts -- --ids a,b --paralelo 4`
   (AI Horde, modelo noobEvo, gratuito) e depois `python3 scripts/arte/processar.py --folha`.
   Prompts em `scripts/arte/prompts.ts`.

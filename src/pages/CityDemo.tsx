@@ -91,6 +91,8 @@ export default function CityDemo() {
     /** Chão + todos os objetos já compostos (desenhado de uma vez). */
     scene: null as HTMLCanvasElement | null,
     objs: [] as { o: Placed; c: HTMLCanvasElement }[],
+    /** Objetos animados: ficam fora da cena pré-composta. */
+    anims: [] as { o: Placed; cs: HTMLCanvasElement[] }[],
     modal: false,
     dirty: true,
   });
@@ -99,7 +101,8 @@ export default function CityDemo() {
 
   // arte da cidade → canvas (uma vez)
   useEffect(() => {
-    g.current.objs = town.objects.map(o => ({ o, c: toCanvas(o.pix) }));
+    g.current.objs = town.objects.filter(o => !o.frames).map(o => ({ o, c: toCanvas(o.pix) }));
+    g.current.anims = town.objects.filter(o => o.frames).map(o => ({ o, cs: o.frames!.map(toCanvas) }));
     const scene = toCanvas(town.ground);
     const sctx = scene.getContext('2d')!;
     for (const { o, c } of g.current.objs) sctx.drawImage(c, o.x, o.y);
@@ -188,6 +191,7 @@ export default function CityDemo() {
     const ctx = cv.getContext('2d')!;
     let last = performance.now(), raf = 0, petQueue: { tx: number; ty: number }[] = [];
     let npcTimer = 0;
+    let lastAnimKey = '';
     const tour = new URLSearchParams(window.location.search).has('passeio');
     let tourIdx = 0;
 
@@ -231,13 +235,29 @@ export default function CityDemo() {
       }
       advance(pet, dt, s.run ? RUN_MS : WALK_MS);
       if (!pet.from) pet.anim = 0;
-      // moradores olham em volta de vez em quando
+      // moradores olham em volta e dão uns passinhos perto de casa
       npcTimer += dt;
-      if (npcTimer > 2200) {
+      if (npcTimer > 1600) {
         npcTimer = 0;
         const n = s.npcs[Math.floor(Math.random() * s.npcs.length)];
-        if (!s.modal) { n.w.dir = DIRS[Math.floor(Math.random() * 4)]; s.dirty = true; }
+        if (!s.modal && !n.w.from) {
+          const home = n.w.tx === n.def.tx && n.w.ty === n.def.ty;
+          const occupied = (tx: number, ty: number) => blocked(tx, ty)
+            || (p.tx === tx && p.ty === ty) || (pet.tx === tx && pet.ty === ty)
+            || town.doors.some(d => d.tx === tx && d.ty === ty);
+          if (home && Math.random() < 0.5) {
+            tryStep(n.w, DIRS[Math.floor(Math.random() * 4)], occupied);
+          } else if (!home) {
+            const d: Dir = n.def.tx > n.w.tx ? 'east' : n.def.tx < n.w.tx ? 'west' : n.def.ty > n.w.ty ? 'south' : 'north';
+            tryStep(n.w, d, occupied);
+          } else n.w.dir = DIRS[Math.floor(Math.random() * 4)];
+          s.dirty = true;
+        }
       }
+      for (const n of s.npcs) { if (advance(n.w, dt, WALK_MS * 1.4)) s.dirty = true; if (n.w.from) s.dirty = true; else n.w.anim = 0; }
+      // quadros de animação dos objetos
+      const animKey = s.anims.map(a => Math.floor(now / (a.o.frameMs ?? 500)) % a.cs.length).join(',');
+      if (animKey !== lastAnimKey) { lastAnimKey = animKey; s.dirty = true; }
 
       // ── desenho: só quando algo mudou ──
       if (p.from || pet.from) s.dirty = true;
@@ -278,6 +298,11 @@ export default function CityDemo() {
       person(s.pet, s.petFrames);
       for (const n of s.npcs) person(n.w, n.frames);
       person(p, s.playerFrames);
+      for (const { o, cs } of s.anims) {
+        const c = cs[Math.floor(now / (o.frameMs ?? 500)) % cs.length];
+        if (o.x > camX + vw || o.x + c.width < camX || o.y > camY + vh || o.y + c.height < camY) continue;
+        list.push({ baseY: o.baseY, draw: () => ctx.drawImage(c, o.x - camX, o.y - camY) });
+      }
       for (const { o, c } of s.objs) {
         const front = people.some(h => o.baseY > h.baseY
           && o.x < h.x + 32 && o.x + c.width > h.x && o.y < h.y + 32 && o.y + c.height > h.y);

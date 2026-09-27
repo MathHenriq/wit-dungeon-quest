@@ -254,16 +254,17 @@ export function signPost(): Pixmap {
 }
 
 /** Poste de luz tecnológico (16×32). */
-export function lamp(): Pixmap {
+export function lamp(frame = 0): Pixmap {
   const pm = new Pixmap(16, 32);
+  const on = frame % 2 === 1;
   pm.stamp([
     '....oooooooo....',
     '...occcccccco...',
     '...ocaaaaaaco...',
     '....oooooooo....',
     '.......om.......',
-  ], 0, 2, { o: LINE, c: NEON.cyanSoft, a: NEON.cyan, m: METAL.base });
-  for (let y = 7; y < 28; y++) { pm.put(7, y, LINE); pm.put(8, y, y % 6 === 0 ? NEON.cyan : METAL.base); pm.put(9, y, LINE); }
+  ], 0, 2, { o: LINE, c: on ? WHITE : NEON.cyanSoft, a: on ? NEON.cyanSoft : NEON.cyan, m: METAL.base });
+  for (let y = 7; y < 28; y++) { pm.put(7, y, LINE); pm.put(8, y, (y + frame * 3) % 6 === 0 ? NEON.cyan : METAL.base); pm.put(9, y, LINE); }
   pm.stamp(['.ooooo.', 'ommmmso', 'ooooooo'], 5, 27, { o: LINE, m: METAL.base, s: METAL.shade });
   for (let x = 3; x < 13; x++) pm.put(x, 30, GRASS.shadow);
   return pm;
@@ -359,15 +360,13 @@ export function fountain(frame = 0): Pixmap {
   pm.rect(28, 15, 8, 14, LINE); pm.rect(29, 15, 6, 13, METAL.base); pm.rect(29, 15, 2, 13, METAL.light);
   pm.rect(29, 22, 6, 1, NEON.cyan);
   pm.rect(25, 12, 14, 4, LINE); pm.rect(26, 12, 12, 3, METAL.light); pm.rect(26, 14, 12, 1, METAL.shade);
-  pm.stamp([
-    '....w....',
-    '...wcw...',
-    '..wc.cw..',
-    '.wc...cw.',
-    'wc.....cw',
-    'c.......c',
-  ], 28 + (frame % 2 ? 0 : 0), 4, { w: WHITE, c: NEON.cyanSoft });
-  pm.stamp(['.w.', 'wcw', 'wcw', '.c.'], 31, 0, { w: WHITE, c: NEON.cyanSoft });
+  const jets = [
+    ['....w....', '...wcw...', '..wc.cw..', '.wc...cw.', 'wc.....cw', 'c.......c'],
+    ['....w....', '...wcw...', '..wcwcw..', '.wc...cw.', '.c.....c.', 'c.......c'],
+    ['...w.w...', '...wcw...', '..wc.cw..', '.wc...cw.', 'wc.....cw', '.c.....c.'],
+  ];
+  pm.stamp(jets[frame % 3], 28, 4, { w: WHITE, c: NEON.cyanSoft });
+  pm.stamp(frame % 2 ? ['.w.', 'wcw', 'wcw', '.c.'] : ['...', '.w.', 'wcw', 'wcw'], 31, 0, { w: WHITE, c: NEON.cyanSoft });
   return pm;
 }
 
@@ -425,7 +424,7 @@ export function rock(): Pixmap {
 }
 
 /** Totem holográfico com a logo WIT (16×32) — toque tecnológico. */
-export function holoTotem(): Pixmap {
+export function holoTotem(frame = 0): Pixmap {
   const pm = new Pixmap(16, 32);
   pm.stamp([
     '...oooooooooo...',
@@ -438,6 +437,8 @@ export function holoTotem(): Pixmap {
     '..occcccccccco..',
     '...oooooooooo...',
   ], 0, 1, { o: LINE, c: NEON.cyanSoft, a: hex('#2a3a6e'), W: NEON.cyan });
+  const scan = 3 + (frame % 5);
+  for (let x = 4; x < 12; x++) if (!pm.get(x, scan) || pm.get(x, scan)![2] < 200) pm.put(x, scan, hex('#3e5aa0'));
   pm.rect(7, 10, 2, 16, LINE); pm.rect(7, 10, 1, 16, METAL.base);
   pm.stamp(['.oooooo.', 'ommmmmso', 'oooooooo'], 4, 26, { o: LINE, m: METAL.base, s: METAL.shade });
   for (let x = 3; x < 13; x++) pm.put(x, 29, GRASS.shadow);
