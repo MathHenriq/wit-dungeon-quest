@@ -20,6 +20,11 @@
   "h": 22,
   "w": 32
  },
+ "casa-artista": {
+  "h": 74,
+  "noite": true,
+  "w": 80
+ },
  "casa-arvore": {
   "h": 85,
   "noite": true,
@@ -30,6 +35,11 @@
   "noite": true,
   "w": 80
  },
+ "casa-bibliotecaria": {
+  "h": 76,
+  "noite": true,
+  "w": 80
+ },
  "casa-castelo": {
   "h": 91,
   "noite": true,
@@ -37,6 +47,16 @@
  },
  "casa-chale": {
   "h": 86,
+  "noite": true,
+  "w": 80
+ },
+ "casa-fazendeiro": {
+  "h": 79,
+  "noite": true,
+  "w": 80
+ },
+ "casa-floricultura": {
+  "h": 66,
   "noite": true,
   "w": 80
  },
@@ -52,6 +72,11 @@
  },
  "casa-gamer": {
   "h": 89,
+  "noite": true,
+  "w": 80
+ },
+ "casa-inventor": {
+  "h": 80,
   "noite": true,
   "w": 80
  },
@@ -72,6 +97,21 @@
  },
  "casa-montanha": {
   "h": 84,
+  "noite": true,
+  "w": 80
+ },
+ "casa-musico": {
+  "h": 73,
+  "noite": true,
+  "w": 80
+ },
+ "casa-padaria": {
+  "h": 84,
+  "noite": true,
+  "w": 80
+ },
+ "casa-pescador": {
+  "h": 73,
   "noite": true,
   "w": 80
  },

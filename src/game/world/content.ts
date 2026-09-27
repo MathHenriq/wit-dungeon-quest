@@ -25,7 +25,21 @@ export const HOUSE_MODELS: { id: string; sprite: string; title: string; inicial:
   { id: 'modelo-foguete', sprite: 'casa-foguete', title: 'Casa Foguete', inicial: false, tilesW: 4 },
 ];
 
+/** Casas dos moradores do Bairro Novo (sprites em public/game/world). */
+export const NPC_HOUSES: { id: string; sprite: string; title: string }[] = [
+  { id: 'npc-padaria', sprite: 'casa-padaria', title: 'Padaria da Dona Rosa' },
+  { id: 'npc-floricultura', sprite: 'casa-floricultura', title: 'Floricultura' },
+  { id: 'npc-inventor', sprite: 'casa-inventor', title: 'Oficina do Inventor' },
+  { id: 'npc-pescador', sprite: 'casa-pescador', title: 'Casa do Pescador' },
+  { id: 'npc-musico', sprite: 'casa-musico', title: 'Casa do Músico' },
+  { id: 'npc-fazendeiro', sprite: 'casa-fazendeiro', title: 'Casa do Fazendeiro' },
+  { id: 'npc-bibliotecaria', sprite: 'casa-bibliotecaria', title: 'Casa da Bibliotecária' },
+  { id: 'npc-artista', sprite: 'casa-artista', title: 'Ateliê da Artista' },
+];
+
 export function houseInfo(id: string, name: string): { title: string; text: string } {
+  const npc = NPC_HOUSES.find(h => h.id === id);
+  if (npc) return { title: npc.title, text: 'Casa de um morador do Bairro Novo. No futuro: entrar, conversar e ganhar missões.' };
   const m = HOUSE_MODELS.find(h => h.id === id);
   if (!m) return { title: name, text: HOUSE_INFO.text };
   return m.inicial

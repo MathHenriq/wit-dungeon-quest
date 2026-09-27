@@ -46,6 +46,14 @@ SINGLE = {
     'casa-montanha': ('casa-montanha', {'w': 80}),
     'casa-castelo': ('casa-castelo', {'w': 80}),
     'casa-foguete': ('casa-foguete', {'w': 64}),
+    'casa-padaria': ('casa-padaria', {'w': 80}),
+    'casa-floricultura': ('casa-floricultura', {'w': 80}),
+    'casa-inventor': ('casa-inventor', {'w': 80}),
+    'casa-pescador': ('casa-pescador', {'w': 80}),
+    'casa-musico': ('casa-musico', {'w': 80}),
+    'casa-fazendeiro': ('casa-fazendeiro', {'w': 80}),
+    'casa-bibliotecaria': ('casa-bibliotecaria', {'w': 80}),
+    'casa-artista': ('casa-artista', {'w': 80}),
 }
 SHEETS = {
     'arvores': [('pinheiro', {'w': 30}), ('arvore-redonda', {'w': 34}), ('cerejeira', {'w': 34}), ('arbusto', {'w': 18})],

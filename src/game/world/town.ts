@@ -9,13 +9,13 @@ import * as P from './props';
 import * as T from './props-tech';
 import { findPlaque, lampNight, padTo, waterFrames, type Sprite, type WorldAssets } from './assets';
 import { drawText, textWidth } from './font';
-import { HOUSE_MODELS } from './content';
+import { HOUSE_MODELS, NPC_HOUSES } from './content';
 import { LED as LEDC, WIT } from './palette';
 import { houseHG } from './house-hg';
 import { arenaHG, towerHG } from './buildings-hg';
 import { cardWorkshop, guildCastle, packShop } from './landmarks';
 
-export const MAP_W = 62;
+export const MAP_W = 72;
 export const MAP_H = 30;
 
 export interface Placed {
@@ -177,8 +177,10 @@ export function buildTown(assets?: WorldAssets): Town {
   fill('trilha', 38, 24, MAP_W - 40, 2);       // rua de baixo
   const roofs = ['vermelho', 'azul', 'verde', 'roxo', 'laranja'] as const;
   const bairro: [number, number, number][] = [];
-  HOUSE_MODELS.forEach((m, i) => {
-    const row = Math.floor(i / 4), col = i % 4;
+  // 6 casas por fileira: primeiro os modelos (iniciais e à venda), depois as dos moradores
+  const lotes: { id: string; sprite: string; title: string; tilesW?: number }[] = [...HOUSE_MODELS, ...NPC_HOUSES];
+  lotes.forEach((m, i) => {
+    const row = Math.floor(i / 6), col = i % 6;
     const tx = 40 + col * 5, ty = [2, 10, 19][row];
     const tw = m.tilesW ?? 5;
     house(m.sprite, m.id, m.title, tx, ty, { roof: roofs[i % roofs.length], wood: i % 2 ? 'branco' : 'bege', led: 'green' }, tw);
@@ -225,12 +227,7 @@ export function buildTown(assets?: WorldAssets): Town {
   // bairro: árvores entre as casas e nos terrenos ainda vazios
   treeAt('redonda', 41, 26, 31); treeAt('florida', 47, 26, 32); treeAt('redonda', 53, 26, 33); treeAt('pinheiro', 57, 26, 34);
   treeAt('arbusto', 39, 15, 35);
-  const livres = HOUSE_MODELS.length;
-  for (let k = livres; k < 12; k++) {
-    const tx = 40 + (k % 4) * 5, ty = [2, 10, 19][Math.floor(k / 4)];
-    treeAt(k % 2 ? 'florida' : 'redonda', tx + 1, ty + 1, 40 + k);
-    treeAt('arbusto', tx + 3, ty + 3, 50 + k);
-  }
+  treeAt('florida', 60, 26, 36); treeAt('redonda', 64, 26, 37); treeAt('pinheiro', 67, 26, 38);
 
   // ── praça ──
   putLit('fonte', A.fonte ? waterFrames(A.fonte) : [0, 1, 2].map(f => T.fountainLit(f)), 18, 13, 4, 2, true, 180);
