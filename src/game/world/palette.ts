@@ -5,21 +5,23 @@ import { hex } from './pixmap';
 export const LINE = hex('#4a4660');   // contorno de prédios e objetos
 export const LINE_DARK = hex('#2e2a40');
 
-export const GRASS = {
-  base: hex('#98d0b8'),
-  tuft: hex('#7cb89c'),
-  tuftDark: hex('#66a488'),
-  light: hex('#b6e4cc'),
-  shadow: hex('#76b49a'),     // sombra de objeto no chão
-  shadowDeep: hex('#5c9c82'),
+export const GRASS = {       // tons do HeartGold/SoulSilver
+  base: hex('#74d4a8'),
+  tuft: hex('#5fbc93'),
+  tuftDark: hex('#4ea682'),
+  light: hex('#96e6c0'),
+  shadow: hex('#5cb48e'),     // sombra de objeto no chão
+  shadowDeep: hex('#4a9c7a'),
+  rim: hex('#8a9c8a'),        // borda "levantada" da grama sobre a areia
+  rimLight: hex('#a8e8c8'),
 };
 
-export const PATH = {        // terra batida clara
-  base: hex('#ecdcb0'),
-  shade: hex('#d8c494'),
-  edge: hex('#b8a074'),
-  light: hex('#fbf0cc'),
-  pebble: hex('#c4ac80'),
+export const PATH = {        // areia do HGSS
+  base: hex('#ecd49a'),
+  shade: hex('#d6bc84'),
+  edge: hex('#c4aa74'),
+  light: hex('#f8e8bc'),
+  pebble: hex('#cdb07a'),
 };
 
 export const PAVE = {        // calçada tecnológica

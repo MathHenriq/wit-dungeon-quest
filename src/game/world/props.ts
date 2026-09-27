@@ -162,23 +162,23 @@ export function tallGrass(): Pixmap {
   return pm;
 }
 
-/** Canteiro de flores (16×16): 4 flores de 5 pétalas. */
+/** Canteiro de tulipas (16×16), como os do HeartGold. */
 export function flowerTile(colors: RGB[], seed = 0): Pixmap {
   const pm = new Pixmap(16, 16);
-  const pos = [[1, 1], [9, 3], [3, 9], [10, 10]];
-  pos.forEach(([x, y], k) => {
+  const leaf = hex('#3e8a58'), leafL = hex('#5cae6e'), leafD = hex('#2c6a44');
+  const spots: [number, number][] = [[1, 1], [9, 0], [5, 7], [13, 8], [0, 9], [8, 12]];
+  spots.forEach(([x, y], k) => {
     const c = colors[(k + seed) % colors.length];
-    const dark = mix(c, LINE, 0.45);
-    const light = mix(c, WHITE, 0.55);
+    const d = mix(c, hex('#5a1838'), 0.45), l = mix(c, WHITE, 0.45);
     pm.stamp([
-      '.oco.',
-      'occco',
-      'cclcc',
-      'occco',
-      '.oco.',
-      '..g..',
-    ], x, y, { o: dark, c, l: NEON.yellow, g: TREE.mid });
-    pm.put(x + 1, y + 1, light);
+      'd.d.',
+      'dcld',
+      'dccd',
+      '.dd.',
+      '.gh.',
+      'ggh.',
+    ], x, y, { d, c, l, g: leaf, h: leafL });
+    pm.put(x + 1, y + 6, leafD);
   });
   return pm;
 }

@@ -73,21 +73,40 @@ export function paintGround(grid: Terrain[][]): Pixmap {
     }
   }
 
-  // ── trilha de terra (cantos arredondados) ──
-  const path = round(morph(morph(maskOf(grid, 'trilha', W, H), W, H, 3, true), W, H, 3, false), W, H, 3);
+  // ── trilha de areia: borda irregular, grama "levantada" com contorno ──
+  let path = round(morph(morph(maskOf(grid, 'trilha', W, H), W, H, 3, true), W, H, 3, false), W, H, 3);
+  // borda orgânica: tira/põe 1 px conforme um ruído suave ao longo do contorno
+  {
+    const jag = new Uint8Array(path);
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x;
+      const edge = path[i] !== path[i - 1] || path[i] !== path[i + 1] || path[i] !== path[i - W] || path[i] !== path[i + W];
+      if (!edge) continue;
+      const n = hash(x >> 1, y >> 1, 12);
+      if (path[i] && n < 0.22) jag[i] = 0;
+      else if (!path[i] && n > 0.8) jag[i] = 1;
+    }
+    path = jag;
+  }
   const inP = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && path[y * W + x] === 1;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     if (!inP(x, y)) {
-      if (inP(x, y - 1) || inP(x - 1, y) || inP(x + 1, y)) pm.put(x, y, GRASS.shadow);
+      // grama encostada na areia: contorno cinza e uma linha clara por dentro
+      const touch = inP(x, y + 1) || inP(x, y - 1) || inP(x - 1, y) || inP(x + 1, y);
+      const near = inP(x, y + 2) || inP(x, y - 2) || inP(x - 2, y) || inP(x + 2, y);
+      if (touch) pm.put(x, y, GRASS.rim);
+      else if (near) pm.put(x, y, GRASS.rimLight);
       continue;
     }
-    const edge = !inP(x + 1, y) || !inP(x - 1, y) || !inP(x, y + 1) || !inP(x, y - 1);
     let c = PATH.base;
-    if (edge) c = PATH.edge;
-    else if (!inP(x, y - 1) || !inP(x, y - 2)) c = PATH.shade;
-    else if (!inP(x, y + 2)) c = PATH.light;
-    else if (hash(x, y, 3) < 0.012) c = PATH.pebble;
-    else if (hash(x, y, 4) < 0.01) c = PATH.light;
+    // sombra da grama sobre a areia logo abaixo da borda de cima
+    if (!inP(x, y - 1) || !inP(x, y - 2)) c = PATH.shade;
+    else if (!inP(x - 1, y) || !inP(x + 1, y)) c = mix(PATH.base, PATH.shade, 0.5);
+    else {
+      const n = hash(x >> 2, y >> 2, 4);
+      if (n < 0.06 && hash(x, y, 5) < 0.5) c = PATH.pebble;
+      else if (n > 0.95 && hash(x, y, 6) < 0.45) c = PATH.light;
+    }
     pm.put(x, y, c);
   }
 

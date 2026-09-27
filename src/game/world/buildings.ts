@@ -248,7 +248,7 @@ export function house(id: string, name: string, o: HouseOpts = {}): Building {
 // ─────────────────────── Centro de Cartas ───────────────────────
 
 /** Emblema WIT: carta branca com estrela, dentro de um círculo. */
-function cardEmblem(pm: Pixmap, cx: number, cy: number, r: number, ring: RGB): void {
+export function cardEmblem(pm: Pixmap, cx: number, cy: number, r: number, ring: RGB): void {
   for (let y = -r - 1; y <= r + 1; y++) for (let x = -r - 1; x <= r + 1; x++) {
     const d = Math.sqrt((x + 0.5) ** 2 + (y + 0.5) ** 2);
     if (d <= r + 1 && d > r) pm.put(cx + x, cy + y, LINE);
@@ -344,13 +344,21 @@ function towerFrame(frame: number): Pixmap {
   const x0 = 10, x1 = W - 10;
   const topY = 26;
   // corpo
+  // degradê contínuo da esquerda (luz) para a direita, com a laje de cada andar
+  const navy = [hex('#6a70b8'), hex('#4a509a'), hex('#353a78'), hex('#272b5e'), hex('#1b1e46')];
+  const navyAt = (v: number) => {
+    const q = Math.round(Math.max(0, Math.min(4, v)) * 4) / 4, i = Math.min(3, Math.floor(q));
+    return mix(navy[i], navy[i + 1], q - i);
+  };
   for (let y = topY + 10; y < H - 1; y++) for (let x = x0; x < x1; x++) {
-    let c = body;
-    if (x < x0 + 3) c = bodyL;
-    else if (x > x1 - 4) c = bodyD;
-    if ((y - topY) % 9 === 0) c = mix(c, LINE_DARK, 0.5);
-    pm.put(x, y, c);
+    const t = (x - x0) / (x1 - x0 - 1);
+    let v = 0.9 + t * 2.4;
+    if (x < x0 + 2) v = 0.4;
+    const f = (y - topY) % 9;
+    if (f === 0) v -= 0.6; else if (f === 1) v += 0.5;
+    pm.put(x, y, navyAt(v));
   }
+  void body; void bodyL; void bodyD;
   // janelas acesas em grade (algumas apagadas)
   for (let fy = topY + 13, row = 0; fy < H - 36; fy += 9, row++) {
     for (let fx = x0 + 6, col = 0; fx < x1 - 8; fx += 8, col++) {

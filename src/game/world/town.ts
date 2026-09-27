@@ -6,6 +6,8 @@ import { paintGround, type Terrain } from './ground';
 import { hash, hex, Pixmap } from './pixmap';
 import { PAVE } from './palette';
 import * as P from './props';
+import { houseHG } from './house-hg';
+import { arenaHG, cardCenterHG, guildHallHG, shopHG } from './buildings-hg';
 
 export const MAP_W = 40;
 export const MAP_H = 30;
@@ -85,7 +87,7 @@ export function buildTown(): Town {
   fill('trilha', 15, 8, 2, 3);             // ligação com a praça
   fill('trilha', 23, 8, 2, 3);
   fill('trilha', 4, 7, 1, 1);              // porta da sua casa
-  fill('trilha', 11, 7, 1, 1);
+  fill('trilha', 10, 7, 1, 1);
   fill('trilha', 28, 7, 1, 1);
   fill('trilha', 34, 7, 1, 1);
   fill('calcada', 6, 15, 3, 1);            // Centro de Cartas → avenida
@@ -104,16 +106,16 @@ export function buildTown(): Town {
   // ── prédios ──
   building(B.tower(), 17, 4);
   block(17, 2, 6, 2); // a arte da Torre sobe até aqui: ninguém anda por trás dela
-  building(B.cardCenter(), 4, 10);
-  building(B.shop(), 30, 10);
-  building(B.arena(), 27, 21);
-  building(B.guildHall(), 4, 21);
-  building(B.house('sua-casa', 'Sua Casa', { roof: 'vermelho', wall: 'cinza', chimney: true, star: true }), 3, 3);
-  building(B.house('casa-azul', 'Casa', { roof: 'azul', wall: 'creme', tilesW: 5, solar: true }), 9, 3);
-  building(B.house('casa-rosa', 'Casa', { roof: 'rosa', wall: 'rosa', tilesW: 6, floors: 2, door: '#b0608a' }), 26, 2);
-  building(B.house('casa-verde', 'Casa', { roof: 'verde', wall: 'menta', tilesW: 5, chimney: true }), 33, 3);
-  building(B.house('casa-roxa', 'Casa', { roof: 'roxo', wall: 'cinza', tilesW: 5, solar: true }), 14, 22);
-  building(B.house('casa-laranja', 'Casa', { roof: 'laranja', wall: 'creme', tilesW: 5, chimney: true }), 21, 22);
+  building(cardCenterHG(), 4, 10);
+  building(shopHG(), 30, 10);
+  building(arenaHG(), 27, 21);
+  building(guildHallHG(), 4, 21);
+  building(houseHG('sua-casa', 'Sua Casa', { roof: 'vermelho', wood: 'bege' }), 3, 2);
+  building(houseHG('casa-azul', 'Casa', { roof: 'azul', wood: 'branco', door: '#4a78c8' }), 9, 2);
+  building(houseHG('casa-rosa', 'Casa', { roof: 'roxo', wood: 'rosa', tilesW: 6, door: '#b0608a' }), 26, 2);
+  building(houseHG('casa-verde', 'Casa', { roof: 'verde', wood: 'bege', door: '#5a9a4a' }), 33, 2);
+  building(houseHG('casa-roxa', 'Casa', { roof: 'roxo', wood: 'branco', door: '#7e60c0' }), 14, 21);
+  building(houseHG('casa-laranja', 'Casa', { roof: 'laranja', wood: 'bege', door: '#d07040' }), 21, 21);
 
   // ── borda de árvores (com saídas ao sul e a leste) ──
   const treeAt = (kind: P.TreeKind, tx: number, ty: number, seed: number) => put(`arvore-${tx}-${ty}`, P.tree(kind, seed), tx, ty, 2, 2);
@@ -136,11 +138,11 @@ export function buildTown(): Town {
   block(0, 0, MAP_W, 2); block(0, MAP_H - 2, 18, 2); block(22, MAP_H - 2, 18, 2);
   block(0, 0, 2, MAP_H); block(MAP_W - 2, 0, 2, 16); block(MAP_W - 2, 18, 2, 12);
   // árvores soltas pela cidade
-  treeAt('redonda', 13, 4, 11); treeAt('florida', 23, 4, 12); treeAt('redonda', 36, 12, 13);
+  treeAt('redonda', 14, 3, 11); treeAt('florida', 23, 4, 12); treeAt('redonda', 36, 12, 13);
   treeAt('florida', 2, 12, 14); treeAt('redonda', 11, 12, 15); treeAt('florida', 27, 12, 16);
   treeAt('redonda', 2, 19, 17); treeAt('florida', 15, 19, 18); treeAt('redonda', 23, 19, 19);
   treeAt('pinheiro', 13, 27, 20); treeAt('pinheiro', 26, 27, 21); treeAt('redonda', 8, 28, 22);
-  put('arbusto-1', P.tree('arbusto', 1), 12, 6, 1, 1);
+  put('arbusto-1', P.tree('arbusto', 1), 15, 6, 1, 1);
   put('arbusto-2', P.tree('arbusto', 2), 25, 6, 1, 1);
   put('arbusto-3', P.tree('arbusto', 3), 36, 20, 1, 1);
   put('arbusto-4', P.tree('arbusto', 4), 3, 20, 1, 1);
@@ -152,7 +154,7 @@ export function buildTown(): Town {
   put('banco-2', P.bench(), 24, 15, 2, 1);
   put('totem-1', [0, 1, 2, 3, 4].map(f => P.holoTotem(f)), 13, 18, 1, 1, true, 160);
   put('totem-2', [2, 3, 4, 0, 1].map(f => P.holoTotem(f)), 26, 18, 1, 1, true, 160);
-  for (const [tx, ty] of [[16, 11], [23, 11], [16, 18], [23, 18], [3, 15], [9, 15], [30, 15], [36, 15], [18, 21], [21, 21]]) {
+  for (const [tx, ty] of [[16, 11], [23, 11], [16, 18], [23, 18], [3, 15], [9, 15], [29, 15], [36, 15]]) {
     put(`poste-${tx}-${ty}`, [0, 1].map(f => P.lamp(f)), tx, ty, 1, 1, true, 900);
   }
   put('maquina', P.vending(), 35, 14, 1, 1);
@@ -167,7 +169,7 @@ export function buildTown(): Town {
   put('correio-verde', P.mailbox(hex('#3a9a4a')), 38 - 1, 7, 1, 1);
   put('correio-roxa', P.mailbox(hex('#7e60c0')), 13, 25, 1, 1);
   for (let tx = 2; tx <= 8; tx++) if (tx !== 4) put(`cerca-${tx}`, P.fence(), tx, 7, 1, 1);
-  const flores = [hex('#ff6a7a'), hex('#ffffff'), hex('#ffd84a'), hex('#b08aff')];
+  const flores = [hex('#e079a9'), hex('#f4f0f8'), hex('#d77033'), hex('#aa5284')];
   for (const [tx, ty, s] of [[5, 7, 0], [6, 7, 1], [9, 7, 2], [10, 7, 1], [26, 7, 3], [27, 7, 0], [29, 7, 1], [30, 7, 2], [14, 26, 0], [22, 26, 3], [35, 7, 2], [36, 7, 0]]) {
     if (terrain[ty][tx] !== 'grama' || solid[ty][tx]) continue;
     put(`flor-${tx}-${ty}`, P.flowerTile(flores, s), tx, ty, 1, 1, false);
