@@ -23,4 +23,6 @@ export interface Building {
   /** Pixels que acendem à noite (mesmo tamanho de `pix`). */
   night?: Pixmap;
   nightFrames?: Pixmap[];
+  /** Fontes de luz que iluminam o chão à noite (refletor, fogo), relativas à arte. */
+  glow?: { x: number; y: number; r: number; color: readonly [number, number, number]; k: number }[];
 }

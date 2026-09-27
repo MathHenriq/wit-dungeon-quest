@@ -57,6 +57,7 @@ construtor de deck.
 | Testes do TCG (combos, mecânicas, catálogo) | `src/lib/tcg/__tests__/` |
 | Arte do mundo por código (chão, árvores, prédios, objetos, fonte pixel) | `src/game/world/{ground,props,buildings,palette,pixmap}.ts` |
 | Casas e prédios no estilo HGSS (os que a cidade usa), com a camada "noite" | `src/game/world/{house-hg,buildings-hg}.ts` |
+| Prédios-tema: Loja = pacotinho gigante, Oficina de Cartas = carta gigante + álbum + forja, Guildas = castelo | `src/game/world/landmarks.ts` (folha: `docs/cidade-wit-predios.png`) |
 | Objetos tecnológicos no verde WIT (postes, totens, portal, fonte, mural) | `src/game/world/props-tech.ts` |
 | Fonte pixel 5×7 dos letreiros | `src/game/world/font.ts` |
 | Dia e noite (tinta por hora, halo das luzes) | `src/game/world/light.ts` (`/cidade-demo?hora=22&velocidade=20`; tecla T avança 2 h) |

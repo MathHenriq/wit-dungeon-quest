@@ -8,7 +8,8 @@ import { LED, PAVE } from './palette';
 import * as P from './props';
 import * as T from './props-tech';
 import { houseHG } from './house-hg';
-import { arenaHG, cardCenterHG, guildHallHG, shopHG, towerHG } from './buildings-hg';
+import { arenaHG, towerHG } from './buildings-hg';
+import { cardWorkshop, guildCastle, packShop } from './landmarks';
 
 export const MAP_W = 40;
 export const MAP_H = 30;
@@ -87,7 +88,9 @@ export function buildTown(): Town {
     if (list.length > 1) { o.nightFrames = list.map(l => l.night ?? new Pixmap(l.pix.w, l.pix.h)); o.night = o.nightFrames[0]; }
     else o.night = list[0].night;
   };
+  const buildingGlow: GlowSpot[] = [];
   const building = (b: Building, tx: number, ty: number) => {
+    for (const gl of b.glow ?? []) buildingGlow.push({ ...gl, x: tx * TILE + gl.x, y: ty * TILE - b.extraTop + gl.y });
     objects.push({
       id: b.id, pix: b.pix, x: tx * TILE, y: ty * TILE - b.extraTop, baseY: (ty + b.tilesH) * TILE,
       frames: b.frames, frameMs: b.frames ? 450 : undefined, night: b.night, nightFrames: b.nightFrames,
@@ -129,10 +132,10 @@ export function buildTown(): Town {
   // ── prédios ──
   building(towerHG(), 17, 4);
   block(17, 2, 6, 2); // a arte da Torre sobe até aqui: ninguém anda por trás dela
-  building(cardCenterHG(), 4, 10);
-  building(shopHG(), 30, 10);
+  building(cardWorkshop(), 4, 10);
+  building(packShop(), 30, 10);
   building(arenaHG(), 27, 21);
-  building(guildHallHG(), 4, 21);
+  building(guildCastle(), 4, 21);
   building(houseHG('sua-casa', 'Sua Casa', { roof: 'vermelho', wood: 'bege', led: 'green', tech: 'antena' }), 3, 2);
   building(houseHG('casa-azul', 'Casa', { roof: 'azul', wood: 'branco', door: '#4a78c8', led: 'cyan', tech: 'solar' }), 9, 2);
   building(houseHG('casa-rosa', 'Casa', { roof: 'roxo', wood: 'rosa', tilesW: 6, door: '#b0608a', led: 'pink' }), 26, 2);
@@ -241,7 +244,7 @@ export function buildTown(): Town {
     ground, objects, solid, doors, spawn: { tx: 20, ty: 12 }, terrain,
     lights: composeLights(groundNight, objects.filter(o => !o.frames)),
     circuits: CIRCUITS.map(circuitPixels),
-    glowSpots,
+    glowSpots: [...glowSpots, ...buildingGlow],
   };
 }
 
@@ -257,7 +260,7 @@ const CIRCUITS: Circuit[] = [
   [[316, 271], [316, 479]],
   [[324, 271], [324, 479]],
   [[120, 273], [120, 244]],
-  [[536, 273], [536, 244]],
+  [[520, 273], [520, 244]],
 ];
 
 /**

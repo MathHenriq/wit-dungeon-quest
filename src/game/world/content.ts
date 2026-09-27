@@ -4,10 +4,10 @@ import type { Outfit } from './recolor';
 
 export const BUILDING_INFO: Record<string, { title: string; text: string }> = {
   torre: { title: 'Torre dos 100 Andares', text: 'A dungeon. Cada andar é um duelo de cartas; a cada 10 andares, um chefe que pode te dar uma carta do deck dele.' },
-  centro: { title: 'Centro de Cartas', text: 'Monte seu deck, complete o álbum, forje a carta que falta e troque duplicatas com os colegas.' },
-  loja: { title: 'Loja', text: 'Pacotinhos de cartas, roupas, móveis e as Recompensas da Sala (tablet, VR, música na Alexa).' },
+  centro: { title: 'Oficina de Cartas', text: 'Aqui não se compra nada: monte seu deck, complete o álbum, forje a carta que falta e troque duplicatas com os colegas.' },
+  loja: { title: 'Loja de Pacotinhos', text: 'O único lugar que vende: pacotinhos de cartas, roupas, móveis e as Recompensas da Sala (tablet, VR, música na Alexa).' },
   arena: { title: 'Arena', text: 'Duelos PvP: contra a IA jogando com o deck de um colega, ou ao vivo.' },
-  guildas: { title: 'Sede das Guildas', text: 'Sua equipe, a meta de presença da semana e o chefe da guilda.' },
+  guildas: { title: 'Castelo das Guildas', text: 'Sua equipe, a meta de presença da semana e o chefe da guilda.' },
   'sua-casa': { title: 'Sua Casa', text: 'Personalize seu personagem e decore sua casa com móveis.' },
 };
 

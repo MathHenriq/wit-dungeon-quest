@@ -116,7 +116,7 @@ export function glassDoorHG(pm: Pixmap, nt: Pixmap, cx: number, yBottom: number,
 
 export type SignIcon = 'carta' | 'pacote' | 'espadas' | 'escudo';
 
-const ICONS: Record<SignIcon, { rows: string[]; legend: Record<string, string> }> = {
+export const SIGN_ICONS: Record<SignIcon, { rows: string[]; legend: Record<string, string> }> = {
   carta: {
     rows: ['.ooooooo.', '.owwwwwo.', '.owrrrwo.', '.owryrwo.', '.owyyywo.', '.owryrwo.', '.owrrrwo.', '.owwwwwo.', '.ooooooo.'],
     legend: { o: '#3a3450', w: '#ffffff', r: '#e0506a', y: '#ffd84a' },
@@ -165,7 +165,7 @@ export function signHG(pm: Pixmap, nt: Pixmap | null, cx: number, y: number, tex
     }
     let tx = x + 5;
     if (icon) {
-      const ic = ICONS[icon];
+      const ic = SIGN_ICONS[icon];
       const bx = x + 3, by = y + 2;
       dst.rect(bx, by, 11, 11, lit ? mix(WHITE, th.bg, 0.25) : mix(WHITE, th.bg, 0.12));
       dst.rect(bx, by + 10, 11, 1, mix(WHITE, th.line, 0.35));
@@ -199,7 +199,7 @@ function cardEmblem(pm: Pixmap, nt: Pixmap, cx: number, cy: number, r: number, R
       if (d > r - 2) nt.put(cx + x, cy + y, LED.green);
     }
   }
-  const ic = ICONS.carta, legend: Record<string, RGB> = {};
+  const ic = SIGN_ICONS.carta, legend: Record<string, RGB> = {};
   for (const [k, v] of Object.entries(ic.legend)) legend[k] = hex(v);
   pm.stamp(ic.rows, cx - 4, cy - 4, legend);
   nt.stamp(ic.rows, cx - 4, cy - 4, { ...legend, w: LED.white, y: LED.warm });
@@ -243,7 +243,7 @@ export function shopHG(): Building {
   slabRoof(pm, 1, W - 2, 3, 46, R, 0.28, 5);
   eaveLeds(pm, nt, 4, W - 5, 43, R, [LED.cyan, LED.green]);
   // pacotinho no telhado (desenhado em dobro)
-  const ic = ICONS.pacote, legend: Record<string, RGB> = {};
+  const ic = SIGN_ICONS.pacote, legend: Record<string, RGB> = {};
   for (const [k, v] of Object.entries(ic.legend)) legend[k] = hex(v);
   legend.o = R.line;
   const px0 = (W >> 1) - 9, py0 = 17;
@@ -286,7 +286,7 @@ export function guildHallHG(): Building {
     nt.put(x, e + 2, LED.green); nt.put(x, e + 1, LED.greenSoft);
   }
   // escudo no frontão (acende à noite)
-  const shield = ICONS.escudo, sl: Record<string, RGB> = {};
+  const shield = SIGN_ICONS.escudo, sl: Record<string, RGB> = {};
   for (const [k, v] of Object.entries(shield.legend)) sl[k] = hex(v);
   pm.stamp(shield.rows, icx - 4, peakY + 8, sl);
   nt.stamp(shield.rows, icx - 4, peakY + 8, { ...sl, y: LED.warmSoft, b: hex('#78a8ff') });
@@ -387,13 +387,48 @@ export function arenaHG(): Building {
     pm.put(x, cy - 2, k % 2 ? WIT.lime : WHITE);
     nt.put(x, cy - 2, ring[k % ring.length]); nt.put(x + 1, cy - 2, mix(ring[k % ring.length], WHITE, 0.5));
   }
-  // mastros com bandeiras
-  for (const [fx, c] of [[16, WIT.lime], [W - 18, hex('#ff5a9a')]] as [number, RGB][]) {
-    const dark = mix(c, hex('#101830'), 0.5);
-    pm.rect(fx, cy - 34, 2, 30, hex('#6a7088'));
-    pm.put(fx, cy - 34, WHITE);
-    nt.put(fx, cy - 35, hex('#ff5a6a'));
-    pm.stamp(['ooooooo', 'occcclo', 'occclo.', 'occo...', 'oo.....'], fx + 2, cy - 34, { o: dark, c, l: mix(c, WHITE, 0.5) });
+  // telão com o duelo (duas cartas e VS)
+  {
+    const sx0 = Math.round(cx) - 23, sx1 = Math.round(cx) + 22, sy0 = 13, sy1 = 35;
+    pm.rect(sx0 - 2, sy0 - 2, sx1 - sx0 + 5, sy1 - sy0 + 5, hex('#23232e'));
+    pm.rect(sx0 - 1, sy0 - 1, sx1 - sx0 + 3, 1, hex('#8a8ea4'));
+    for (let y = sy0; y <= sy1; y++) for (let x = sx0; x <= sx1; x++) {
+      const t = (y - sy0) / (sy1 - sy0);
+      const c = mix(hex('#2a3a78'), hex('#141c3c'), t);
+      pm.put(x, y, y % 2 ? mix(c, hex('#000000'), 0.15) : c);
+      nt.put(x, y, mix(hex('#3a58c8'), hex('#1c2a64'), t));
+    }
+    const cardAt = (dst: Pixmap, x: number, c: RGB) => {
+      dst.rect(x, sy0 + 4, 11, 15, hex('#0e0e18'));
+      dst.rect(x + 1, sy0 + 5, 9, 13, c);
+      dst.rect(x + 2, sy0 + 6, 7, 6, mix(c, WHITE, 0.55));
+      dst.put(x + 2, sy0 + 6, WHITE);
+    };
+    for (const dst of [pm, nt]) {
+      cardAt(dst, sx0 + 4, hex('#e84a5a'));
+      cardAt(dst, sx1 - 14, hex('#4a8aff'));
+      drawText(dst, 'VS', Math.round(cx) - 5, sy0 + 8, { fill: hex('#fff080'), fillBottom: hex('#ffa030'), outline: hex('#0e0e18') });
+    }
+  }
+  // torres de refletores nas pontas
+  const glow: NonNullable<Building['glow']> = [];
+  for (const px of [3, W - 10]) {
+    for (let y = 8; y < H - 3; y++) {
+      pm.put(px, y, hex('#5a6078')); pm.put(px + 5, y, hex('#5a6078'));
+      const d = (y - 8) % 8;
+      pm.put(px + 1 + Math.min(3, d >> 1), y, hex('#8a90a8'));
+      pm.put(px + 4 - Math.min(3, d >> 1), y, hex('#8a90a8'));
+    }
+    pm.rect(px - 3, 0, 12, 8, hex('#2c2e3c'));
+    pm.rect(px - 2, 1, 10, 6, hex('#e8eef4'));
+    for (const [lx, ly] of [[px - 1, 2], [px + 3, 2], [px - 1, 4], [px + 3, 4]]) {
+      pm.rect(lx, ly, 3, 1, hex('#ffffff')); pm.rect(lx, ly + 1, 3, 1, hex('#c8d0dc'));
+      nt.rect(lx, ly, 3, 2, LED.white);
+    }
+    nt.rect(px - 2, 1, 10, 1, LED.warmSoft);
+    pm.rect(px - 1, H - 4, 8, 2, hex('#3c3e50'));
+    glow.push({ x: px + 3, y: 4, r: 14, color: LED.white, k: 0.45 });
+    glow.push({ x: px < 40 ? px + 26 : px - 20, y: H + 10, r: 40, color: LED.white, k: 0.18 });
   }
   // portão em arco (por dentro, a luz do estádio à noite)
   const gw = 30, gx = Math.round(cx - gw / 2), gh = 28, gy = H - 3 - gh;
@@ -410,8 +445,8 @@ export function arenaHG(): Building {
   for (let y = gy + 6; y < H - 3; y += 5) { pm.rect(gx + 1, y, gw - 2, 1, hex('#3a2616')); nt.rect(gx + 1, y, gw - 2, 1, hex('#a06030')); }
   pm.rect(Math.round(cx), gy + 2, 1, gh - 2, hex('#2a1a0e'));
   nt.rect(Math.round(cx), gy + 2, 1, gh - 2, hex('#a06030'));
-  signHG(pm, nt, Math.round(cx), cy - 13, 'ARENA', { bg: R.base, line: R.line }, 'espadas');
-  return { id: 'arena', name: 'Arena', pix: pm, tilesW: tw, tilesH: th, extraTop, doorCols: [3, 4], night: nt };
+  signHG(pm, nt, Math.round(cx), cy - 14, 'ARENA', { bg: R.base, line: R.line }, 'espadas');
+  return { id: 'arena', name: 'Arena', pix: pm, tilesW: tw, tilesH: th, extraTop, doorCols: [3, 4], night: nt, glow };
 }
 
 // ─────────────────────── Torre dos 100 Andares ───────────────────────
