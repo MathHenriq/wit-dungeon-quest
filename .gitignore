@@ -41,3 +41,4 @@ botoes-*.png
 
 # Artes brutas geradas (as finais vão para public/cards/art)
 /arte/
+__pycache__/
