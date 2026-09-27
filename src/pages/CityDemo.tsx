@@ -3,7 +3,7 @@ import { buildTown, type Placed } from '@/game/world/town';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
 import {
-  advance, ahead, findPath, newWalker, pixelPos, tryStep, type Dir, type Walker,
+  ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker,
 } from '@/game/world/movement';
 import { recolorBase, type Outfit } from '@/game/world/recolor';
 import { BUILDING_INFO, HOUSE_INFO, MURAL_TEXT, NPCS } from '@/game/world/content';
@@ -18,13 +18,13 @@ import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 const DIRS: Dir[] = ['south', 'west', 'east', 'north'];
 /** ?passeio=1: o boneco passeia sozinho (para medir desempenho e gravar vídeo). */
 const TOUR: [number, number][] = [[20, 17], [8, 16], [7, 15], [8, 26], [22, 26], [31, 26], [34, 16], [33, 15], [24, 9], [15, 9], [4, 8], [20, 12]];
-const WALK_MS = 210, RUN_MS = 120, FRAME_MS = 95;
+const WALK_MS = 230, RUN_MS = 125;
 const KEY_DIR: Record<string, Dir> = {
   ArrowUp: 'north', ArrowDown: 'south', ArrowLeft: 'west', ArrowRight: 'east',
   w: 'north', s: 'south', a: 'west', d: 'east', W: 'north', S: 'south', A: 'west', D: 'east',
 };
 
-type Frames = { idle: Record<Dir, HTMLCanvasElement>; walk: Record<Dir, HTMLCanvasElement[]> };
+type Frames = { walk: Record<Dir, HTMLCanvasElement[]>; foot: Record<Dir, number> };
 
 function toCanvas(pm: Pixmap): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -56,16 +56,24 @@ async function loadFrames(folder: string, outfit?: Outfit): Promise<Frames> {
     }
     return c;
   };
-  const idle = {} as Record<Dir, HTMLCanvasElement>;
+  // Só os quadros de caminhada: os "parados" da PixelLab têm outro tamanho e
+  // faziam o boneco encolher e pular ao começar a andar.
   const walk = {} as Record<Dir, HTMLCanvasElement[]>;
+  const foot = {} as Record<Dir, number>;
   await Promise.all(DIRS.map(async d => {
-    idle[d] = await prep(d);
     walk[d] = await Promise.all([0, 1, 2, 3, 4, 5].map(k => prep(`andar-${d}-${k}`)));
+    // linha dos pés = última linha opaca, pela mediana dos quadros
+    const rows = walk[d].map(c => {
+      const data = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+      for (let y = c.height - 1; y >= 0; y--) for (let x = 0; x < c.width; x++) if (data[(y * c.width + x) * 4 + 3] > 128) return y;
+      return c.height - 1;
+    }).sort((a, b) => a - b);
+    foot[d] = rows[rows.length >> 1];
   }));
-  return { idle, walk };
+  return { walk, foot };
 }
 
-interface Npc { def: (typeof NPCS)[number]; w: Walker; frames: Frames | null }
+interface Npc { def: (typeof NPCS)[number]; w: Walker; frames: Frames | null; goal: Dir | null }
 
 export default function CityDemo() {
   // a cidade cobre a tela inteira: o fundo 3D do app não precisa desenhar
@@ -82,7 +90,7 @@ export default function CityDemo() {
   const g = useRef({
     player: newWalker(town.spawn.tx, town.spawn.ty, 'north'),
     pet: newWalker(town.spawn.tx - 1, town.spawn.ty, 'east'),
-    npcs: NPCS.map(def => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null })) as Npc[],
+    npcs: NPCS.map(def => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, goal: null })) as Npc[],
     held: [] as Dir[],
     run: false,
     path: [] as Dir[],
@@ -212,29 +220,33 @@ export default function CityDemo() {
         const [tx, ty] = TOUR[tourIdx++ % TOUR.length];
         s.path = findPath(p.tx, p.ty, tx, ty, blocked);
       }
-      if (!s.modal && !p.from) {
-        const want = s.held[0] ?? s.path[0];
-        if (want) {
-          const before = { tx: p.tx, ty: p.ty };
-          if (tryStep(p, want, blocked)) {
-            petQueue.push(before);
-            if (!s.held.length) s.path.shift();
-          } else if (!s.held.length) s.path = [];
-        }
-      }
-      if (advance(p, dt, s.run ? RUN_MS : WALK_MS)) onStepDone();
-      if (!p.from) p.anim = 0;
-      // pet segue o bloco que o jogador deixou
+      const ms = s.run ? RUN_MS : WALK_MS;
       const pet = s.pet;
-      if (!pet.from && petQueue.length) {
-        const tgt = petQueue.shift()!;
-        const dx = tgt.tx - pet.tx, dy = tgt.ty - pet.ty;
-        const d: Dir | null = dx > 0 ? 'east' : dx < 0 ? 'west' : dy > 0 ? 'south' : dy < 0 ? 'north' : null;
-        if (d && Math.abs(dx) + Math.abs(dy) === 1) tryStep(pet, d, () => false);
-        else { pet.tx = tgt.tx; pet.ty = tgt.ty; }
-      }
-      advance(pet, dt, s.run ? RUN_MS : WALK_MS);
-      if (!pet.from) pet.anim = 0;
+      // jogador: sem pausa entre blocos; toque rápido só vira
+      tick(p, dt, {
+        msPerTile: ms,
+        blocked,
+        fromPath: !s.held.length,
+        want: () => (s.modal ? null : s.held[0] ?? s.path[0] ?? null),
+        onStep: from => { petQueue.push(from); if (!s.held.length) s.path.shift(); s.dirty = true; },
+        onArrive: onStepDone,
+      });
+      if (!p.from && !s.held.length && s.path.length && blocked(p.tx + DELTA[s.path[0]][0], p.ty + DELTA[s.path[0]][1])) s.path = [];
+      // pet: segue exatamente os blocos que o jogador deixou
+      tick(pet, dt, {
+        msPerTile: ms,
+        blocked: () => false,
+        fromPath: true,
+        want: () => {
+          const tgt = petQueue[0];
+          if (!tgt) return null;
+          const dx = tgt.tx - pet.tx, dy = tgt.ty - pet.ty;
+          if (Math.abs(dx) + Math.abs(dy) !== 1) { pet.tx = tgt.tx; pet.ty = tgt.ty; petQueue.shift(); return null; }
+          return dx > 0 ? 'east' : dx < 0 ? 'west' : dy > 0 ? 'south' : 'north';
+        },
+        onStep: () => { petQueue.shift(); },
+      });
+      if (p.from || pet.from) s.dirty = true;
       // moradores olham em volta e dão uns passinhos perto de casa
       npcTimer += dt;
       if (npcTimer > 1600) {
@@ -242,25 +254,30 @@ export default function CityDemo() {
         const n = s.npcs[Math.floor(Math.random() * s.npcs.length)];
         if (!s.modal && !n.w.from) {
           const home = n.w.tx === n.def.tx && n.w.ty === n.def.ty;
-          const occupied = (tx: number, ty: number) => blocked(tx, ty)
-            || (p.tx === tx && p.ty === ty) || (pet.tx === tx && pet.ty === ty)
-            || town.doors.some(d => d.tx === tx && d.ty === ty);
-          if (home && Math.random() < 0.5) {
-            tryStep(n.w, DIRS[Math.floor(Math.random() * 4)], occupied);
-          } else if (!home) {
-            const d: Dir = n.def.tx > n.w.tx ? 'east' : n.def.tx < n.w.tx ? 'west' : n.def.ty > n.w.ty ? 'south' : 'north';
-            tryStep(n.w, d, occupied);
-          } else n.w.dir = DIRS[Math.floor(Math.random() * 4)];
+          const back: Dir = n.def.tx > n.w.tx ? 'east' : n.def.tx < n.w.tx ? 'west' : n.def.ty > n.w.ty ? 'south' : 'north';
+          if (home && Math.random() < 0.5) n.goal = DIRS[Math.floor(Math.random() * 4)];
+          else if (!home) n.goal = back;
+          else n.w.dir = DIRS[Math.floor(Math.random() * 4)];
           s.dirty = true;
         }
       }
-      for (const n of s.npcs) { if (advance(n.w, dt, WALK_MS * 1.4)) s.dirty = true; if (n.w.from) s.dirty = true; else n.w.anim = 0; }
+      for (const n of s.npcs) {
+        const occupied = (tx: number, ty: number) => blocked(tx, ty)
+          || (p.tx === tx && p.ty === ty) || (pet.tx === tx && pet.ty === ty)
+          || town.doors.some(d => d.tx === tx && d.ty === ty);
+        tick(n.w, dt, {
+          msPerTile: WALK_MS * 1.4,
+          blocked: occupied,
+          fromPath: true,
+          want: () => { const gd = n.goal; n.goal = null; return gd; },
+        });
+        if (n.w.from) s.dirty = true;
+      }
       // quadros de animação dos objetos
       const animKey = s.anims.map(a => Math.floor(now / (a.o.frameMs ?? 500)) % a.cs.length).join(',');
       if (animKey !== lastAnimKey) { lastAnimKey = animKey; s.dirty = true; }
 
       // ── desenho: só quando algo mudou ──
-      if (p.from || pet.from) s.dirty = true;
       if (!s.dirty || !s.scene) { raf = requestAnimationFrame(loop); return; }
       s.dirty = false;
       const vw = cv.width, vh = cv.height;
@@ -281,8 +298,9 @@ export default function CityDemo() {
       const person = (w: Walker, fr: Frames | null) => {
         if (!fr) return;
         const pos = pixelPos(w, TILE);
-        const img = w.from ? fr.walk[w.dir][Math.floor(w.anim / FRAME_MS) % 6] : fr.idle[w.dir];
-        const wx = Math.round(pos.x - 8), wy = Math.round(pos.y + 16 - 31);
+        const frameMs = (w === s.player && s.run ? RUN_MS : WALK_MS) / 3;
+        const img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % 6 : 0];
+        const wx = Math.round(pos.x - 8), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
         const x = wx - camX, y = wy - camY;
         if (x > vw || y > vh || x < -32 || y < -32) return;
         people.push({ x: wx, y: wy, baseY: pos.y + 16 });
@@ -290,7 +308,7 @@ export default function CityDemo() {
           baseY: pos.y + 16,
           draw: () => {
             ctx.fillStyle = 'rgba(40,80,60,0.28)';
-            ctx.beginPath(); ctx.ellipse(x + 16, y + 30, 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x + 16, y + fr.foot[w.dir], 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
             ctx.drawImage(img, x, y);
           },
         });

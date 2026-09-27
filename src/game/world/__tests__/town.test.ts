@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildTown, MAP_H, MAP_W } from '../town';
-import { advance, findPath, newWalker, tryStep, type Dir } from '../movement';
+import { advance, findPath, newWalker, tick, TURN_MS, tryStep, type Dir } from '../movement';
 import { NPCS } from '../content';
 import { recolorBase } from '../recolor';
 
@@ -92,6 +92,37 @@ describe('movimento em grade', () => {
     const d: Record<Dir, [number, number]> = { south: [0, 1], north: [0, -1], west: [-1, 0], east: [1, 0] };
     for (const s of path) { x += d[s][0]; y += d[s][1]; expect(wall(x, y)).toBe(false); }
     expect([x, y]).toEqual([5, 2]);
+  });
+
+  it('anda vários blocos seguidos sem pausa entre eles', () => {
+    const w = newWalker(0, 0, 'east');
+    let steps = 0;
+    // 10 quadros de 23 ms = 230 ms = 1 bloco a 230 ms/bloco; 46 quadros ≈ 4,6 blocos
+    for (let f = 0; f < 46; f++) tick(w, 23, { msPerTile: 230, blocked: () => false, want: () => 'east', onStep: () => steps++ });
+    expect(steps).toBe(5);           // começou o 5º passo sem esperar
+    expect(w.tx).toBe(5);
+    expect(w.anim).toBeGreaterThan(900); // animação contínua, não reiniciou a cada bloco
+  });
+
+  it('toque rápido numa direção nova só vira; segurar anda', () => {
+    const w = newWalker(3, 3, 'south');
+    tick(w, 16, { msPerTile: 230, blocked: () => false, want: () => 'north' });
+    expect(w.dir).toBe('north');
+    expect(w.from).toBeNull();        // virou sem andar
+    tick(w, TURN_MS + 5, { msPerTile: 230, blocked: () => false, want: () => 'north' });
+    expect(w.from).not.toBeNull();    // continuou segurando: andou
+    expect(w.ty).toBe(2);
+  });
+
+  it('ao soltar a tecla, termina o bloco e para com a animação zerada', () => {
+    const w = newWalker(0, 0, 'east');
+    let want: Dir | null = 'east';
+    tick(w, 50, { msPerTile: 230, blocked: () => false, want: () => want });
+    want = null;
+    for (let f = 0; f < 20; f++) tick(w, 16, { msPerTile: 230, blocked: () => false, want: () => want });
+    expect(w.from).toBeNull();
+    expect(w.tx).toBe(1);
+    expect(w.anim).toBe(0);
   });
 
   it('na cidade, vai do início até a porta da Loja', () => {
