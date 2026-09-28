@@ -53,6 +53,11 @@ construtor de deck.
 | Nomes em português | `src/lib/tcg/labels.ts` |
 | Catálogo: Coleção 1 (loja antiga), 2 e 3 | `src/lib/tcg/cards/{catalog,colecao2,colecao3}.ts` |
 | Componente da carta e verso | `src/components/tcg/TcgCard.tsx` (+ `.css`) |
+| **IA dos inimigos** (4 níveis: Aprendiz, Estudante, Duelista, Mestre; `planTurn` devolve as jogadas do turno) | `src/lib/tcg/ai.ts` |
+| **Adversários da Torre** (curva por andar: vida, tamanho do deck, raridade, complexidade, IA; decks temáticos gerados com semente; moedas; deck e coleção iniciais) | `src/lib/tcg/opponents.ts`; ajustar dificuldade e moedas ali e rodar `npx vite-node scripts/tcg-torre.ts 40 3` (vitória, duração e moedas por hora por faixa de andar) |
+| **Duelo** (tela do duelo; convite com elemento, vida, IA e prêmio; resultado com moedas, carta do chefe e andar liberado) e **construtor de deck** (coleção, filtros, 3 decks, SUGERIR) | `src/components/duel/{DuelView,DeckBuilder}.tsx`; `/cidade-demo?sala=torre&andar=1&duelo=3` abre o convite da mesa 3 (ou `duelo=chefe`); prints: `node scripts/mapa/prints-duelo.mjs <pasta>` |
+| **Progresso do aluno** (moedas, coleção, decks, andares e vitórias; chefe libera com 4 mesas; revencer rende 20%). Por enquanto no navegador (`wit.progresso`); é o ponto a ligar no banco | `src/game/progress.ts` (+ testes) |
+| Arte das cartas: um arquivo por carta no jogo; a demo empacotada usa folhas (`python3 scripts/arte/atlas-cartas.py <saída>/cards/atlas`) | `src/components/tcg/cardArt.ts` |
 | Vitrine das cartas (`/cartas-demo?q=id1,id2`) | `src/pages/CardsDemo.tsx` |
 | Ilustrações das 350 cartas (webp) | `public/cards/art/<id>.webp` |
 | Testes do TCG (combos, mecânicas, catálogo) | `src/lib/tcg/__tests__/` |

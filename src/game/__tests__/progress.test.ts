@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bossFoe, tableFoe, TABLES_FOR_BOSS } from '@/lib/tcg/opponents';
 import {
-  activeDeckCards, applyDuel, bossUnlocked, canGoUp, checkDeck, newProgress, sanitizeProgress, tablesWon,
+  activeDeckCards, applyDuel, bossUnlocked, canGoUp, checkDeck, newProgress, sanitizeProgress, suggestDeck, tablesWon,
 } from '../progress';
 
 describe('progresso', () => {
@@ -60,5 +60,15 @@ describe('progresso', () => {
     expect(s.wins).toEqual({ 'torre-1-mesa-1': 2 });
     expect(Object.keys(s.collection).length).toBeGreaterThan(0);
     expect(s.decks[0]).toEqual([]);
+  });
+
+  it('a sugestão monta um deck válido com a coleção, e a carta rara nova entra', () => {
+    const p = newProgress();
+    const d = suggestDeck(p.collection);
+    expect(checkDeck(d, p.collection).ok).toBe(true);
+    const boss = bossFoe(30, 'X');
+    const rare = boss.deck.find(c => c.rarity === 'epic' || c.rarity === 'legendary')!;
+    const col = { ...p.collection, [rare.id]: 1 };
+    expect(suggestDeck(col, rare.element)).toContain(rare.id);
   });
 });

@@ -7,6 +7,7 @@ import { ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walke
 import { CLOTH, MOLDE, type Look } from '@/game/world/outfit';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
 import { DuelView } from '@/components/duel/DuelView';
+import { DeckBuilder } from '@/components/duel/DeckBuilder';
 import { TcgCard } from '@/components/tcg/TcgCard';
 import { AI_NAMES } from '@/lib/tcg/ai';
 import { ELEMENT_PT } from '@/lib/tcg/labels';
@@ -160,6 +161,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   const [progress, setProgress] = useState<Progress>(loadProgress);
   const [ask, setAsk] = useState<{ npc: RoomNpc; foe: Foe } | null>(null);
   const [duel, setDuel] = useState<{ foe: Foe; sprite: string; result?: DuelResult } | null>(null);
+  const [deckOpen, setDeckOpen] = useState(false);
   // ?duelo=3 (ou chefe) abre o convite da mesa 3 do andar (prints e testes)
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('duelo');
@@ -195,7 +197,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     progress: null as unknown as Progress,
   });
   const S = g.current;
-  S.modal = !!dialog || decor || !!ask || !!duel;
+  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen;
   S.progress = progress;
 
   // personagens
@@ -604,6 +606,12 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         {decor && <div className="text-lime-300 mt-1">{holding ? 'toque para pôr · R gira · ESC devolve' : 'escolha um móvel ou toque num para mover'}</div>}
       </div>
 
+      {room.id.startsWith('torre') && (
+        <button onClick={() => setDeckOpen(true)}
+          className={`absolute top-2 right-2 px-3 py-2 rounded-md bg-[#3c56b0]/90 border-2 border-[#8fb0ff] text-white text-[10px] ${pixelFont}`}>DECK</button>
+      )}
+      {deckOpen && <DeckBuilder progress={progress} onClose={() => setDeckOpen(false)} />}
+
       {room.id === 'casa' && (
         <button
           onClick={() => { if (decor) { cancelHold(); setDecor(false); } else { setDialog(null); setDecor(true); } }}
@@ -629,6 +637,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
               </div>
               <div className="flex gap-2 mt-4 justify-end">
                 <button onClick={() => setAsk(null)} className="px-3 py-2 rounded-md bg-[#e4e0ec] text-[10px]">AGORA NÃO</button>
+                <button onClick={() => setDeckOpen(true)} className="px-3 py-2 rounded-md bg-[#3c56b0] text-white text-[10px]">DECK</button>
                 <button onClick={() => { setDuel({ foe: ask.foe, sprite: ask.npc.sprite }); setAsk(null); }}
                   className="px-4 py-2 rounded-md bg-[#e8485a] text-white text-[10px] border-2 border-[#b02a3a]">DUELAR!</button>
               </div>

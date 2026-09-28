@@ -3,6 +3,9 @@ import { describeCard } from '@/lib/tcg/describe';
 import { ELEMENT_PT, FULL_ART_RARITIES, RARITY_PT, TYPE_PT } from '@/lib/tcg/labels';
 import type { CardDef, Element, Rarity } from '@/lib/tcg/types';
 import './TcgCard.css';
+import { artAspect, atlasBackground, cardArtUrl } from './cardArt';
+
+export { cardArtUrl };
 
 /** Cor principal, cor escura e emblema de cada elemento (a moldura segue o elemento). */
 export const ELEMENT_STYLE: Record<Element, { el: string; el2: string; icon: string }> = {
@@ -25,8 +28,6 @@ const RARITY_GEMS: Record<Rarity, string> = {
   legendary: '◆◆◆◆◆', mythic: '✦✦✦✦✦', unknown: '???',
 };
 
-/** Onde fica a ilustração de cada carta (gerada por scripts/arte). */
-export const cardArtUrl = (id: string) => `/cards/art/${id}.webp`;
 
 // Números com unidade, multiplicadores e nomes de elemento ficam em destaque.
 const DESTAQUE = new RegExp(
@@ -61,6 +62,14 @@ export const TcgCard = memo(function TcgCard({ card, number, total, className = 
   const style = ELEMENT_STYLE[card.element];
   const full = FULL_ART_RARITIES.has(card.rarity);
   const art = `url(${cardArtUrl(card.id)})`;
+  // demo com folhas: a ilustração é uma célula da folha, recortada como "cover"
+  const cell = atlasBackground(card.id);
+  const atlasArt = (fullArt: boolean) => cell && (
+    <div style={{
+      ...cell, position: 'absolute', aspectRatio: String(artAspect()),
+      ...(fullArt ? { height: '100%', left: '50%', transform: 'translateX(-50%)' } : { width: '100%', top: '50%', transform: 'translateY(-50%)' }),
+    }} />
+  );
   const tipo = card.type === 'equipment' ? (card.slot === 'armor' ? 'Armadura' : 'Arma') : TYPE_PT[card.type];
   const colecao = number ? `WIT · ${String(number).padStart(3, '0')}${total ? `/${total}` : ''}` : 'WIT';
 
@@ -92,7 +101,7 @@ export const TcgCard = memo(function TcgCard({ card, number, total, className = 
     return (
       <div className={`tcg ${className}`}>
       <div className={`tcg-card tcg-card--full tcg-card--${card.rarity}`} style={vars}>
-        <div className="tcg-card__art" style={{ backgroundImage: art }} />
+        <div className="tcg-card__art" style={cell ? { overflow: 'hidden' } : { backgroundImage: art }}>{atlasArt(true)}</div>
         <div className="tcg-card__fade" />
         {head}
         {dano}
@@ -108,7 +117,7 @@ export const TcgCard = memo(function TcgCard({ card, number, total, className = 
     <div className={`tcg ${className}`}>
     <div className="tcg-card tcg-card--normal" style={vars}>
       {head}
-      <div className="tcg-card__window" style={{ backgroundImage: art }} />
+      <div className="tcg-card__window" style={cell ? { overflow: 'hidden' } : { backgroundImage: art }}>{atlasArt(false)}</div>
       <div className="tcg-card__strip">{card.anime ?? ELEMENT_PT[card.element]}</div>
       {dano}
       <div className="tcg-card__box">{custo}{corpo}</div>

@@ -11,7 +11,8 @@ import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/worl
 import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
-import { loadProgress } from '@/game/progress';
+import { loadProgress, type Progress } from '@/game/progress';
+import { DeckBuilder } from '@/components/duel/DeckBuilder';
 import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
@@ -123,6 +124,13 @@ function CityView({ town }: { town: Town }) {
   const [look, setLook] = useState<Look>(savedLook);
   const [editing, setEditing] = useState(() => new URLSearchParams(window.location.search).has('visual'));
   // ?sala=torre&andar=5 ou ?sala=casa começa dentro (prints e testes)
+  const [deckOpen, setDeckOpen] = useState(false);
+  const [progress, setProgress] = useState<Progress>(loadProgress);
+  useEffect(() => {
+    const on = (e: Event) => setProgress((e as CustomEvent<Progress>).detail);
+    window.addEventListener('wit-progresso', on);
+    return () => window.removeEventListener('wit-progresso', on);
+  }, []);
   const [inside, setInside] = useState<Sala | null>(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get('sala') === 'casa') return { kind: 'casa' };
@@ -170,7 +178,7 @@ function CityView({ town }: { town: Town }) {
     dirty: true,
   });
 
-  useEffect(() => { g.current.modal = !!panel || !!dialog || editing || !!inside; g.current.inside = !!inside; g.current.dirty = true; }, [panel, dialog, editing, inside]);
+  useEffect(() => { g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen; g.current.inside = !!inside; g.current.dirty = true; }, [panel, dialog, editing, inside, deckOpen]);
 
   // visual novo → repinta o boneco e guarda (só neste navegador por enquanto)
   const firstLook = useRef(true);
@@ -300,7 +308,7 @@ function CityView({ town }: { town: Town }) {
       }
       if (e.key === 'Shift') g.current.run = true;
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') { e.preventDefault(); interact(); }
-      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); }
+      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); setDeckOpen(false); }
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
     };
@@ -669,16 +677,21 @@ function CityView({ town }: { town: Town }) {
         aria-label="Cidade WIT"
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
-        CIDADE WIT <span className="text-lime-300">· protótipo</span>
+        CIDADE WIT <span className="text-lime-300 hidden sm:inline">· protótipo</span>
         <span className="ml-2 text-white/90">{String(Math.floor(clock)).padStart(2, '0')}:00 · {clock >= 6 && clock < 18.5 ? 'dia' : 'noite'}</span>
         {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
 
-      <button
-        onClick={() => setEditing(true)}
-        className={`absolute top-2 right-2 px-3 py-2 rounded-md bg-[#2f6b1e]/90 border-2 border-[#8cc63f] text-white text-[10px] ${pixelFont}`}
-      >VISUAL</button>
+      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+        <span className={`px-2 py-2 rounded-md bg-black/55 text-yellow-200 text-[10px] ${pixelFont}`} title="Moedas">🪙 {progress.coins}</span>
+        <button onClick={() => setDeckOpen(true)}
+          className={`px-3 py-2 rounded-md bg-[#3c56b0]/90 border-2 border-[#8fb0ff] text-white text-[10px] ${pixelFont}`}>DECK</button>
+        <button
+          onClick={() => setEditing(true)}
+          className={`px-3 py-2 rounded-md bg-[#2f6b1e]/90 border-2 border-[#8cc63f] text-white text-[10px] ${pixelFont}`}
+        >VISUAL</button>
+      </div>
 
       {editing && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
 
@@ -726,6 +739,7 @@ function CityView({ town }: { town: Town }) {
           >A</button>
         </>
       )}
+      {deckOpen && <DeckBuilder progress={progress} onClose={() => setDeckOpen(false)} />}
       {inside && <InteriorView sala={inside} look={look} pet={look.pet ?? DEFAULT_PET} onExit={exitInterior} />}
     </div>
   );

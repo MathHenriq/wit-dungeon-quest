@@ -96,6 +96,39 @@ export function activeDeckCards(p: Progress): CardDef[] {
   return starterDeck();
 }
 
+/**
+ * Monta o melhor deck possível com a coleção, para quem não quer montar:
+ * os 2 elementos que o aluno mais tem, cartas mais raras primeiro, ~45% de
+ * Ataques, no máximo 3 Armadilhas e 1 Campo.
+ */
+export function suggestDeck(collection: Record<string, number>, prefer?: string): string[] {
+  const RANK = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'unknown'];
+  const owned = Object.entries(collection)
+    .map(([id, n]) => ({ c: CARD_BY_ID.get(id), n }))
+    .filter((x): x is { c: CardDef; n: number } => !!x.c && x.n > 0);
+  const byEl = new Map<string, number>();
+  for (const { c, n } of owned) byEl.set(c.element, (byEl.get(c.element) ?? 0) + n);
+  const top = [...byEl.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
+  const main = prefer && byEl.has(prefer) ? prefer : top[0];
+  const second = top.find(e => e !== main);
+  const score = (c: CardDef) => RANK.indexOf(c.rarity) * 10 + (c.element === main ? 25 : c.element === second ? 12 : 0) + (c.damage ?? 0) / 5;
+  const sorted = owned.sort((a, b) => score(b.c) - score(a.c) || a.c.id.localeCompare(b.c.id));
+  const deck: string[] = [];
+  const add = (want: (c: CardDef) => boolean, limit: number) => {
+    for (const { c, n } of sorted) {
+      if (deck.length >= limit) return;
+      if (!want(c)) continue;
+      const have = deck.filter(id => id === c.id).length;
+      for (let k = have; k < Math.min(n, maxCopies(c)) && deck.length < limit; k++) deck.push(c.id);
+    }
+  };
+  add(c => c.type === 'attack', 9);
+  const typeCount = (t: CardDef['type']) => deck.filter(id => CARD_BY_ID.get(id)!.type === t).length;
+  add(c => c.type !== 'attack' && (c.type !== 'trap' || typeCount('trap') < 3) && (c.type !== 'field' || typeCount('field') < 1), DECK_SIZE);
+  add(() => true, DECK_SIZE); // completa com o que tiver
+  return deck;
+}
+
 // ─── Torre ──────────────────────────────────────────────────────────────────
 
 export const winsOf = (p: Progress, foeId: string) => p.wins[foeId] ?? 0;
