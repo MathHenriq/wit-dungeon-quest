@@ -6,6 +6,14 @@ import {
 import { ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker } from '@/game/world/movement';
 import { CLOTH, MOLDE, type Look } from '@/game/world/outfit';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
+import { DuelView } from '@/components/duel/DuelView';
+import { TcgCard } from '@/components/tcg/TcgCard';
+import { AI_NAMES } from '@/lib/tcg/ai';
+import { ELEMENT_PT } from '@/lib/tcg/labels';
+import { bossFoe, REPLAY_SHARE, tableFoe, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opponents';
+import {
+  activeDeckCards, applyDuel, bossUnlocked, canGoUp, loadProgress, saveProgress, tablesWon, winsOf, type DuelResult, type Progress,
+} from '@/game/progress';
 import {
   loadImage, loadLookFrames, loadNpcFrames, loadPetFrames, plateCanvas, R, type Frames,
 } from '@/game/world/sprites';
@@ -149,6 +157,24 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   const [decor, setDecor] = useState(false);
   const [holding, setHolding] = useState<Holding | null>(null);
   const [cat, setCat] = useState(HOUSE_CATS[0].id);
+  const [progress, setProgress] = useState<Progress>(loadProgress);
+  const [ask, setAsk] = useState<{ npc: RoomNpc; foe: Foe } | null>(null);
+  const [duel, setDuel] = useState<{ foe: Foe; sprite: string; result?: DuelResult } | null>(null);
+  // ?duelo=3 (ou chefe) abre o convite da mesa 3 do andar (prints e testes)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('duelo');
+    const npc = q && room.npcs.find(n => n.id === (q === 'chefe' ? 'chefe' : `mesa-${q}`));
+    const d = npc ? npc.duel : undefined;
+    if (!npc || !d) return;
+    setAsk({ npc, foe: d.kind === 'chefe' ? bossFoe(d.andar, npc.name) : tableFoe(d.andar, d.mesa, d.table, npc.name) });
+    // só ao abrir a sala
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const on = (e: Event) => setProgress((e as CustomEvent<Progress>).detail);
+    window.addEventListener('wit-progresso', on);
+    return () => window.removeEventListener('wit-progresso', on);
+  }, []);
   const [touch] = useState(() => typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
 
   const solid = useMemo(() => solidGrid(m, room), [m, room]);
@@ -166,9 +192,11 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     hover: null as { tx: number; ty: number } | null,
     modal: false,
     leaving: false,
+    progress: null as unknown as Progress,
   });
   const S = g.current;
-  S.modal = !!dialog || decor;
+  S.modal = !!dialog || decor || !!ask || !!duel;
+  S.progress = progress;
 
   // personagens
   useEffect(() => {
@@ -243,6 +271,11 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     }
     if (e.to === 'subir') {
       if (sala.kind !== 'torre') return;
+      if (!canGoUp(progress, sala.andar)) {
+        S.held = [];
+        setDialog({ lines: ['A escada está fechada. Vença o chefe deste andar para subir.'], i: 0 });
+        return;
+      }
       const andar = Math.min(100, sala.andar + 1);
       if (andar === sala.andar) { S.held = []; setDialog({ lines: ['Este é o topo da Torre: o andar 100!'], i: 0 }); return; }
       enter({ kind: 'torre', andar }, towerRoom(andar), room.id);
@@ -250,7 +283,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     }
     const id = e.to.slice(5);
     if (ROOMS[id]) enter({ kind: 'sala', id }, ROOMS[id](), room.id);
-  }, [sala, room, S, enter, onExit]);
+  }, [sala, room, S, enter, onExit, progress]);
 
   const interact = useCallback(() => {
     if (dialog) {
@@ -264,6 +297,17 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     if (npc) {
       const back: Record<Dir, Dir> = { north: 'south', south: 'north', west: 'east', east: 'west' };
       if (Math.abs(npc.w.tx - S.player.tx) + Math.abs(npc.w.ty - S.player.ty) === 1) npc.w.dir = back[S.player.dir];
+      const d = npc.def.duel;
+      if (d) {
+        if (d.kind === 'chefe' && !bossUnlocked(progress, d.andar)) {
+          const falta = TABLES_FOR_BOSS - tablesWon(progress, d.andar);
+          setDialog({ lines: [`${npc.def.name}: ${npc.def.lines[0]}`, `Vença mais ${falta} mesa(s) deste andar e volte aqui.`], i: 0 });
+          return;
+        }
+        const foe = d.kind === 'chefe' ? bossFoe(d.andar, npc.def.name) : tableFoe(d.andar, d.mesa, d.table, npc.def.name);
+        setAsk({ npc: npc.def, foe });
+        return;
+      }
       setDialog({ lines: [`${npc.def.name}: ${npc.def.lines[0]}`, ...npc.def.lines.slice(1)], i: 0 });
       return;
     }
@@ -272,7 +316,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     // olhando para a escada ou o portal: usa (a conversa do portal fica para quem olha de lado)
     if (exit) { takeExit(exit); return; }
     if (talk) setDialog({ lines: talk.lines, i: 0 });
-  }, [dialog, room, S, solid, takeExit]);
+  }, [dialog, room, S, solid, takeExit, progress]);
 
   // teclado
   useEffect(() => {
@@ -445,7 +489,11 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           ctx.drawImage(c, Math.round(pos.x + 8 - pw / 2 - camX), Math.round(pos.y - 13 - ph - camY + dy), pw, ph);
         };
         for (const n of S.npcs) {
-          if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) plate(n.w, plateCanvas(n.def.name, n.def.title, PLATE_NPC));
+          if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) {
+            const d = n.def.duel;
+            const won = d ? winsOf(S.progress, d.kind === 'chefe' ? `torre-${d.andar}-chefe` : `torre-${d.andar}-mesa-${d.mesa}`) > 0 : false;
+            plate(n.w, plateCanvas(n.def.name, won ? `${n.def.title} - VENCIDO` : n.def.title, PLATE_NPC));
+          }
         }
         plate(p, plateCanvas(look.apelido || 'Você', 'Novato', PLATE_PLAYER));
       }
@@ -551,7 +599,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         aria-label={title}
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
-        {title}
+        {title}{room.id.startsWith('torre') ? <span className="ml-2 text-yellow-200">🪙 {progress.coins}</span> : null}
         {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir' : ''}{room.id === 'arena' ? ' · portal: treino' : ''}</div>}
         {decor && <div className="text-lime-300 mt-1">{holding ? 'toque para pôr · R gira · ESC devolve' : 'escolha um móvel ou toque num para mover'}</div>}
       </div>
@@ -561,6 +609,70 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           onClick={() => { if (decor) { cancelHold(); setDecor(false); } else { setDialog(null); setDecor(true); } }}
           className={`absolute top-2 right-2 px-3 py-2 rounded-md bg-[#2f6b1e]/90 border-2 border-[#8cc63f] text-white text-[10px] ${pixelFont}`}
         >{decor ? 'PRONTO' : 'DECORAR'}</button>
+      )}
+
+      {ask && (() => {
+        const before = winsOf(progress, ask.foe.id);
+        const coins = before ? Math.max(1, Math.round(ask.foe.coins * REPLAY_SHARE)) : ask.foe.coins;
+        return (
+          <div className="absolute inset-0 z-20 flex items-end sm:items-center justify-center bg-black/45 p-3" onPointerDown={() => setAsk(null)}>
+            <div onPointerDown={e => e.stopPropagation()} className={`w-[min(94vw,520px)] rounded-xl border-4 border-[#4a4660] bg-white p-4 text-[#2e2a40] ${pixelFont}`}>
+              <div className="text-[12px] text-[#3c56b0]">{ask.npc.name}</div>
+              <div className="text-[9px] text-[#7a7090] mt-1">{ask.npc.title}</div>
+              <div className="text-[11px] leading-5 mt-3">{ask.npc.lines[0]}</div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 text-[9px] leading-4 text-[#4a4660]">
+                <span>ELEMENTO: {ELEMENT_PT[ask.foe.element].toUpperCase()}</span>
+                <span>VIDA: {ask.foe.life}</span>
+                <span>DECK: {ask.foe.deck.length} CARTAS</span>
+                <span>IA: {AI_NAMES[ask.foe.ai].toUpperCase()}</span>
+                <span className="col-span-2 text-[#2f6b1e]">PRÊMIO: {coins} MOEDAS{before ? ' (REVANCHE)' : ''}{ask.foe.kind === 'chefe' ? ' + 1 CARTA DO DECK' : ''}</span>
+              </div>
+              <div className="flex gap-2 mt-4 justify-end">
+                <button onClick={() => setAsk(null)} className="px-3 py-2 rounded-md bg-[#e4e0ec] text-[10px]">AGORA NÃO</button>
+                <button onClick={() => { setDuel({ foe: ask.foe, sprite: ask.npc.sprite }); setAsk(null); }}
+                  className="px-4 py-2 rounded-md bg-[#e8485a] text-white text-[10px] border-2 border-[#b02a3a]">DUELAR!</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {duel && (
+        <DuelView
+          foe={duel.foe}
+          foeSprite={duel.sprite}
+          deck={activeDeckCards(progress)}
+          look={look}
+          nick={look.apelido || 'Você'}
+          onQuit={() => setDuel(null)}
+          onEnd={won => {
+            const { progress: next, result } = applyDuel(progress, duel.foe, won, Math.random());
+            if (next !== progress) { saveProgress(next); setProgress(next); }
+            setDuel(d => (d ? { ...d, result } : d));
+          }}
+          result={duel.result && (
+            <div className={`w-[min(94vw,440px)] rounded-xl border-4 ${duel.result.won ? 'border-[#8cc63f]' : 'border-[#b02a3a]'} bg-[#141018] p-5 text-white text-center ${pixelFont}`}>
+              <div className={`text-[18px] ${duel.result.won ? 'text-lime-300' : 'text-red-300'}`}>{duel.result.won ? 'VITÓRIA!' : 'DERROTA'}</div>
+              {duel.result.won ? (
+                <>
+                  <div className="mt-4 text-[12px] text-yellow-200">+{duel.result.coins} MOEDAS</div>
+                  <div className="mt-1 text-[8px] text-white/60">{duel.result.firstWin ? 'primeira vitória contra este desafiante' : 'revanche: 20% das moedas'}</div>
+                  {duel.result.card && (
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                      <div className="text-[10px] text-lime-200">CARTA CONQUISTADA</div>
+                      <div className="w-[160px]"><TcgCard card={duel.result.card} /></div>
+                    </div>
+                  )}
+                  {duel.result.unlocked && <div className="mt-4 text-[10px] text-lime-300">ANDAR {duel.result.unlocked} LIBERADO! A ESCADA ESTÁ ABERTA.</div>}
+                </>
+              ) : (
+                <div className="mt-4 text-[10px] leading-5 text-white/80">Tente de novo! Dica: monte o deck no botão DECK e guarde os bônus para o ataque certo.</div>
+              )}
+              <div className="mt-5 text-[9px] text-white/60">MOEDAS: {progress.coins}</div>
+              <button onClick={() => setDuel(null)} className="mt-4 px-5 py-2.5 rounded-md bg-[#2f6b1e] border-2 border-[#8cc63f] text-[11px]">VOLTAR</button>
+            </div>
+          )}
+        />
       )}
 
       {dialog && (

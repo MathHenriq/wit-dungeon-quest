@@ -60,6 +60,8 @@ export interface RoomNpc {
   talk: [number, number][];
   /** Sentado atrás de uma mesa: desenhado por cima dela, um pouco mais baixo. */
   seated?: boolean;
+  /** Aceita duelo: qual adversário da Torre ele é (ver src/lib/tcg/opponents.ts). */
+  duel?: { kind: 'mesa'; andar: number; mesa: number; table: string } | { kind: 'chefe'; andar: number };
 }
 
 /**
@@ -250,9 +252,10 @@ export function towerRoom(andar: number): Room {
   npcs.push({
     id: 'chefe', sprite: andar % 10 === 0 ? 'npc-desafiante-12' : 'npc-desafiante-11', tx: 10, ty: 4, dir: 'south',
     name: andar % 10 === 0 ? 'Campeão' : 'Mestre', title: `Chefe do Andar ${andar}`,
-    lines: [`Andar ${andar}. Vença as 8 mesas e depois venha até mim.`, 'Quem me vence ganha uma carta do meu deck. (Os duelos chegam em breve.)'],
+    lines: [`Andar ${andar}. Quem me vence ganha uma carta do meu deck e sobe para o próximo andar.`],
     talk: [[10, 4], [8, 5], [9, 5], [10, 5], [11, 5], [8, 6], [9, 6], [10, 6], [11, 6]],
     seated: true,
+    duel: { kind: 'chefe', andar },
   });
   items.push({ id: 'escada', tx: 1, ty: 3 });
   items.push({ id: 'gongo', tx: 16, ty: 3 });
@@ -270,9 +273,10 @@ export function towerRoom(andar: number): Room {
       const sprite = `npc-desafiante-${String(((andar + k * 3) % 10) + 1).padStart(2, '0')}`;
       npcs.push({
         id: `mesa-${k}`, sprite, tx: tx + 1, ty: ty - 1, dir: 'south', name: nome, title: `Andar ${andar} · Mesa ${k}`,
-        lines: [FALAS[(andar + k) % FALAS.length], 'Sente-se! (Os duelos de cartas chegam em breve.)'],
+        lines: [FALAS[(andar + k) % FALAS.length]],
         talk: [[tx + 1, ty - 1], [tx, ty], [tx + 1, ty], [tx + 2, ty], [tx, ty + 1], [tx + 1, ty + 1], [tx + 2, ty + 1]],
         seated: true,
+        duel: { kind: 'mesa', andar, mesa: k, table: mesa },
       });
     }
   }

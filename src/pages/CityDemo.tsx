@@ -11,6 +11,7 @@ import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/worl
 import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
+import { loadProgress } from '@/game/progress';
 import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
@@ -332,7 +333,8 @@ function CityView({ town }: { town: Town }) {
       const door = town.doors.find(d => d.tx === s.player.tx && d.ty === s.player.ty);
       if (door && s.player.dir === 'north') {
         s.path = []; s.held = [];
-        if (door.building === 'torre') setInside({ kind: 'torre', andar: 1 });
+        // a Torre abre no andar mais alto já liberado
+        if (door.building === 'torre') setInside({ kind: 'torre', andar: loadProgress().towerMax });
         else if (door.building === 'sua-casa') setInside({ kind: 'casa' });
         else if (Object.values(ROOM_BUILDING).includes(door.building)) {
           // a primeira sala de cada prédio (a Arena abre no saguão)
