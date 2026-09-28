@@ -1,6 +1,9 @@
 // Quadros do personagem no navegador: carrega a folha do modelo (4 × 4) e
 // devolve os canvases já pintados com o visual escolhido.
-import { applyLook, MODEL_CELL, type Look } from './outfit';
+import { applyLook, CLOTH, MODEL_CELL, type Look } from './outfit';
+import {
+  ACC_INFO, DEFAULT_ACC_COLOR, loadAccessories, measureFrames, placeAcc, tintGray, type AccAssets,
+} from './accessories';
 
 const sheets = new Map<string, Promise<HTMLImageElement>>();
 
@@ -23,23 +26,61 @@ export function loadModelSheet(modelo: string): Promise<HTMLImageElement> {
 export const MODEL_ROWS = ['south', 'west', 'east', 'north'] as const;
 
 /** 4 linhas × 4 quadros (parado, pé esquerdo, parado, pé direito). */
-export function paintModel(img: HTMLImageElement, look: Look): HTMLCanvasElement[][] {
+export function paintModel(img: HTMLImageElement, look: Look, acc?: AccAssets | null): HTMLCanvasElement[][] {
   const { w, h } = MODEL_CELL;
   const full = document.createElement('canvas');
   full.width = img.width; full.height = img.height;
   const fx = full.getContext('2d', { willReadFrequently: true })!;
   fx.drawImage(img, 0, 0);
   const d = fx.getImageData(0, 0, full.width, full.height);
+  // mede cabeça e tronco antes de pintar (pelas cores-molde)
+  const worn = acc && look.acc ? Object.values(look.acc).filter(v => v && acc.manifest[v.id]) : [];
+  const bodies = worn.length ? measureFrames(d.data, full.width, w, h) : [];
   applyLook(d.data, look);
   fx.putImageData(d, 0, 0);
+  // cada acessório pintado na cor dele, uma vez (4 direções)
+  const pieces = worn.map(v => {
+    const def = acc!.manifest[v!.id];
+    return {
+      id: v!.id,
+      dirs: def.a.map(([ax, ay, aw, ah]) => {
+        const c = document.createElement('canvas');
+        c.width = aw; c.height = ah;
+        const x = c.getContext('2d', { willReadFrequently: true })!;
+        x.drawImage(acc!.atlas, ax, ay, aw, ah, 0, 0, aw, ah);
+        if (!def.fixo) {
+          const id = x.getImageData(0, 0, aw, ah);
+          tintGray(id.data, CLOTH[v!.cor ?? DEFAULT_ACC_COLOR] ?? CLOTH[DEFAULT_ACC_COLOR]);
+          x.putImageData(id, 0, 0);
+        }
+        return c;
+      }),
+    };
+  });
+  // corpo primeiro, depois cabeça e rosto por cima (óculos por cima do chapéu não)
+  const order = { corpo: 0, cabeca: 1, rosto: 2 } as const;
+  pieces.sort((a, b) => order[ACC_INFO[a.id].slot] - order[ACC_INFO[b.id].slot]);
   return MODEL_ROWS.map((_, r) => [0, 1, 2, 3].map(c => {
     const cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
-    cv.getContext('2d')!.drawImage(full, c * w, r * h, w, h, 0, 0, w, h);
+    const x = cv.getContext('2d')!;
+    const put = (behind: boolean) => {
+      for (const p of pieces) {
+        const src = p.dirs[r], pos = placeAcc(p.id, r, bodies[r * 4 + c], src.width, src.height);
+        if (!pos.hidden && pos.behind === behind) x.drawImage(src, pos.x, pos.y);
+      }
+    };
+    put(true);
+    x.drawImage(full, c * w, r * h, w, h, 0, 0, w, h);
+    put(false);
     return cv;
   }));
 }
 
 export async function modelFrames(look: Look): Promise<HTMLCanvasElement[][]> {
-  return paintModel(await loadModelSheet(look.modelo), look);
+  const [img, acc] = await Promise.all([
+    loadModelSheet(look.modelo),
+    look.acc ? loadAccessories().catch(() => null) : Promise.resolve(null),
+  ]);
+  return paintModel(img, look, acc);
 }

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CLOTH, DEFAULT_PET, HAIR, MODEL_CELL, MODELOS, SKIN, type Look, type Ramp } from '@/game/world/outfit';
 import { loadModelSheet, paintModel } from '@/game/world/model-sprite';
+import {
+  ACC_INFO, ACC_SLOTS, DEFAULT_ACC_COLOR, loadAccessories, tintGray, type AccAssets,
+} from '@/game/world/accessories';
 
 /**
  * Tela de visual do personagem: escolhe o modelo e as cores de pele, cabelo,
@@ -69,12 +72,37 @@ function usePets(): string[] {
   return pets;
 }
 
+/** Miniatura de um acessório (vista de frente, na cor escolhida). */
+function AccThumb({ acc, id, cor }: { acc: AccAssets; id: string; cor?: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current, def = acc.manifest[id];
+    if (!c || !def) return;
+    const [ax, ay, aw, ah] = def.a[0];
+    c.width = aw; c.height = ah;
+    const x = c.getContext('2d', { willReadFrequently: true })!;
+    x.drawImage(acc.atlas, ax, ay, aw, ah, 0, 0, aw, ah);
+    if (!def.fixo) {
+      const d = x.getImageData(0, 0, aw, ah);
+      tintGray(d.data, CLOTH[cor ?? DEFAULT_ACC_COLOR]);
+      x.putImageData(d, 0, 0);
+    }
+  }, [acc, id, cor]);
+  return <canvas ref={ref} className="max-w-[36px] max-h-[30px]" style={{ imageRendering: 'pixelated' }} />;
+}
+
 const petName = (id: string) => id.replace(/^pet-/, '').replace(/-/g, ' ');
 
 export function LookEditor({ value, onChange, onClose }: { value: Look; onChange: (l: Look) => void; onClose: () => void }) {
   const [sheets, setSheets] = useState<Record<string, HTMLImageElement>>({});
   const [tick, setTick] = useState(0);
   const pets = usePets();
+  const [acc, setAcc] = useState<AccAssets | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadAccessories().then(a => { if (alive) setAcc(a); }).catch(err => console.error('acessórios', err));
+    return () => { alive = false; };
+  }, []);
   const pet = value.pet ?? DEFAULT_PET;
 
   useEffect(() => {
@@ -92,8 +120,8 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
   }, []);
 
   const painted = useMemo(() => Object.fromEntries(
-    MODELOS.filter(m => sheets[m]).map(m => [m, paintModel(sheets[m], { ...value, modelo: m })]),
-  ), [sheets, value]);
+    MODELOS.filter(m => sheets[m]).map(m => [m, paintModel(sheets[m], { ...value, modelo: m }, acc)]),
+  ), [sheets, value, acc]);
   const cur = painted[value.modelo];
   const dirRow = [0, 1, 3, 2][Math.floor(tick / 16) % 4];
   const preview = cur ? cur[dirRow][tick % 4] : null;
@@ -110,7 +138,7 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
           <button onClick={onClose} className="px-3 py-2 rounded-md bg-[#2f6b1e] text-white text-[10px]">PRONTO</button>
         </div>
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex sm:flex-col items-center justify-center gap-2 rounded-lg bg-[#9fd67a] border-2 border-[#5aa33a] p-3 sm:w-[190px] shrink-0">
+          <div className="flex sm:flex-col items-center justify-center gap-2 rounded-lg bg-[#9fd67a] border-2 border-[#5aa33a] p-3 sm:w-[190px] sm:h-[220px] sm:sticky sm:top-0 sm:self-start shrink-0">
             <Sprite frame={preview} scale={2} />
           </div>
           <div className="flex-1 min-w-0">
@@ -141,6 +169,40 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
             <Swatches label="CABELO" table={HAIR} value={value.cabelo} onPick={v => set({ cabelo: v })} />
             <Swatches label="PARTE DE CIMA" table={CLOTH} value={value.cima} onPick={v => set({ cima: v })} />
             <Swatches label="PARTE DE BAIXO" table={CLOTH} value={value.baixo} onPick={v => set({ baixo: v })} />
+            {acc && ACC_SLOTS.map(({ id: slot, nome }) => {
+              const cur = value.acc?.[slot];
+              const wear = (v: { id: string; cor?: string } | null) => {
+                const next = { ...(value.acc ?? {}) };
+                if (v) next[slot] = v; else delete next[slot];
+                set({ acc: Object.keys(next).length ? next : undefined });
+              };
+              const ids = Object.keys(ACC_INFO).filter(k => ACC_INFO[k].slot === slot && acc.manifest[k]);
+              return (
+                <div key={slot} className="mb-3">
+                  <div className="text-[9px] text-[#2f6b1e] mb-1">{nome}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button onClick={() => wear(null)} aria-label={`${nome} nenhum`}
+                      className={`w-11 h-10 rounded-md border-2 bg-white text-[8px] text-[#2f6b1e] ${!cur ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}>—</button>
+                    {ids.map(id => (
+                      <button key={id} title={acc.manifest[id].nome} aria-label={acc.manifest[id].nome}
+                        onClick={() => wear({ id, cor: cur?.cor })}
+                        className={`w-11 h-10 rounded-md border-2 bg-white flex items-center justify-center ${cur?.id === id ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}>
+                        <AccThumb acc={acc} id={id} cor={cur?.id === id ? cur.cor : undefined} />
+                      </button>
+                    ))}
+                  </div>
+                  {cur && !acc.manifest[cur.id]?.fixo && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {Object.entries(CLOTH).map(([cid, r]) => (
+                        <button key={cid} aria-label={`cor ${cid}`} onClick={() => wear({ ...cur, cor: cid })}
+                          className={`w-6 h-6 rounded border-2 ${(cur.cor ?? DEFAULT_ACC_COLOR) === cid ? 'border-[#1f2a1c] ring-2 ring-[#8cc63f]' : 'border-black/25'}`}
+                          style={{ background: `linear-gradient(135deg, ${r[3]} 0 30%, ${r[2]} 30% 70%, ${r[1]} 70%)` }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {pets.length > 0 && (
               <>
                 <div className="text-[9px] text-[#2f6b1e] mb-1">PET</div>

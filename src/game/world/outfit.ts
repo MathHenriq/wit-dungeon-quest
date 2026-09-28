@@ -3,6 +3,8 @@
 // parte de cima e parte de baixo. Os modelos vêm pintados numa paleta fixa
 // (4 tons por parte); aqui cada tom vira o tom correspondente da rampa escolhida.
 
+import { normalizeWearing, type Wearing } from './accessories';
+
 export type Ramp = readonly [string, string, string, string];
 
 /** Paleta dos PNGs dos modelos: tem de ser igual à PALETTE do script. */
@@ -62,6 +64,8 @@ export interface Look {
   baixo: string;
   /** Pet que segue o jogador (folha em public/game/sprites/bichos). */
   pet?: string;
+  /** Acessórios vestidos (cabeça, rosto, corpo) e a cor de cada um. */
+  acc?: Wearing;
 }
 
 export const DEFAULT_PET = 'pet-raposa-chama';
@@ -74,9 +78,11 @@ export function normalizeLook(l: Partial<Look> | null | undefined): Look {
     v && (Array.isArray(table) ? table.includes(v) : v in table) ? v : d;
   const apelido = (l?.apelido ?? '').replace(/[^\p{L}\p{N} .!-]/gu, '').trim().slice(0, 14);
   const pet = typeof l?.pet === 'string' && /^pet-[a-z-]{2,40}$/.test(l.pet) ? l.pet : undefined;
+  const acc = normalizeWearing(l?.acc);
   return {
     ...(apelido ? { apelido } : {}),
     ...(pet ? { pet } : {}),
+    ...(acc ? { acc } : {}),
     modelo: ok(l?.modelo, MODELOS, DEFAULT_LOOK.modelo),
     pele: ok(l?.pele, SKIN, DEFAULT_LOOK.pele),
     cabelo: ok(l?.cabelo, HAIR, DEFAULT_LOOK.cabelo),
