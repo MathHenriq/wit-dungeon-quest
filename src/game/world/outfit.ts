@@ -93,5 +93,8 @@ export function applyLook(data: Uint8ClampedArray | Uint8Array, look: Look): voi
   }
 }
 
-/** Tamanho de cada quadro na folha do modelo e a linha dos pés. */
-export const MODEL_CELL = { w: 32, h: 40, foot: 38 } as const;
+/**
+ * Quadro na folha do modelo, em pixels da imagem (hd: 2 por pixel do mundo),
+ * e a linha dos pés em pixels do mundo.
+ */
+export const MODEL_CELL = { w: 64, h: 80, foot: 38 } as const;

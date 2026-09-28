@@ -93,7 +93,7 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
         </div>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex sm:flex-col items-center justify-center gap-2 rounded-lg bg-[#9fd67a] border-2 border-[#5aa33a] p-3 sm:w-[190px] shrink-0">
-            <Sprite frame={preview} scale={4} />
+            <Sprite frame={preview} scale={2} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[9px] text-[#2f6b1e] mb-1">MODELO</div>
@@ -105,7 +105,7 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
                   onClick={() => set({ modelo: m })}
                   className={`flex items-end justify-center rounded-md border-2 bg-white pt-1 ${value.modelo === m ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}
                 >
-                  <Sprite frame={painted[m]?.[0][0] ?? null} scale={2} />
+                  <Sprite frame={painted[m]?.[0][0] ?? null} scale={1} />
                 </button>
               ))}
             </div>

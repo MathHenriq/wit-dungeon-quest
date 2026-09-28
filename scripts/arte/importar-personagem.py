@@ -1,6 +1,7 @@
 """
 Converte os modelos-base do personagem (folhas do GPT em cores-molde) para o
-jogo: public/game/sprites/modelos/modelo-XX.png, 4 × 4 quadros de 32 × 40
+jogo: public/game/sprites/modelos/modelo-XX.png, 4 × 4 quadros de 64 × 80
+(resolução hd do jogo: 2 pixels por pixel do mundo; o boneco ocupa 32 × 40 no mundo)
 (linhas: frente, esquerda, direita, costas; colunas: parado, pé esquerdo,
 parado, pé direito).
 
@@ -25,10 +26,10 @@ from scipy import ndimage
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / 'public/Novos assets/personagem/modelos'
 OUT = ROOT / 'public/game/sprites/modelos'
-CELL, CELL_H, FEET = 32, 40, 38
+CELL, CELL_H, FEET = 64, 80, 76
 # O GPT desenha todas as folhas no mesmo tamanho de corpo, então a escala é
 # uma só: cabelo alto (black power, coque) fica mais alto, não encolhe o boneco.
-SCALE = 7.5
+SCALE = 3.75
 
 spec = importlib.util.spec_from_file_location('imp', ROOT / 'scripts/arte/importar-gpt.py')
 imp = importlib.util.module_from_spec(spec)
@@ -107,7 +108,7 @@ def shades(cls, lum):
 
 
 def reduce(frame, cls, tone, scale):
-    """Um quadro grande → 32 × 40, pés na linha FEET, tronco no centro."""
+    """Um quadro grande → CELL × CELL_H, pés na linha FEET, tronco no centro."""
     h, w = cls.shape
     opaque = cls > 0
     feet = np.where(opaque.any(1))[0][-1] + 1

@@ -13,6 +13,11 @@ export const mix = (a: RGB, b: RGB, t: number): RGB =>
 
 export class Pixmap {
   readonly data: Uint8ClampedArray;
+  /**
+   * Mesma arte no dobro da resolução (2w × 2h), quando existe (sprites do
+   * GPT). O jogo desenha esta; sem ela, amplia a normal.
+   */
+  hd?: Pixmap;
 
   constructor(readonly w: number, readonly h: number) {
     this.data = new Uint8ClampedArray(w * h * 4);

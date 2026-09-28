@@ -3,6 +3,7 @@
 Imagens geradas no GPT (fundo magenta #FF00FF), antes da conversão para o jogo.
 Converter: `python3 scripts/arte/importar-gpt.py --folha saida.png` — gera
 `public/game/world/<nome>.png`, `<nome>-noite.png` e `manifest.json`
+(e a mesma coisa em 2× em `public/game/world/hd/`, que é a que o jogo desenha)
 (o script acha a imagem pelo nome em qualquer subpasta).
 
 | Pasta | Conteúdo |

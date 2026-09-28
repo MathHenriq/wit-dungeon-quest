@@ -15,8 +15,41 @@ export function pixmapFromRGBA(w: number, h: number, data: Uint8ClampedArray | U
   return pm;
 }
 
-/** Carrega no navegador (manifest + PNGs). */
-export async function loadWorldAssets(base = '/game/world'): Promise<WorldAssets> {
+/** Carrega no navegador (manifest + PNGs), com a versão hd (2×) de cada sprite. */
+export async function loadWorldAssets(base = '/game/world', hd = true): Promise<WorldAssets> {
+  const [normal, big] = await Promise.all([loadDir(base), hd ? loadDir(`${base}/hd`).catch(() => null) : Promise.resolve(null)]);
+  if (big) attachHd(normal, big);
+  return normal;
+}
+
+/** Pendura em cada sprite a versão hd de mesmo nome (e a da noite). */
+export function attachHd(normal: WorldAssets, big: WorldAssets): void {
+  for (const [name, s] of Object.entries(normal)) {
+    const b = big[name];
+    if (!b) continue;
+    s.pix.hd = b.pix;
+    if (s.night && b.night) s.night.hd = b.night;
+    else if (s.night) s.night.hd = upscale(s.night);
+  }
+}
+
+/** Ampliação 2× sem suavizar (cada pixel vira 2 × 2). */
+export function upscale(pm: Pixmap): Pixmap {
+  const out = new Pixmap(pm.w * 2, pm.h * 2);
+  const s = pm.data, d = out.data;
+  for (let y = 0; y < out.h; y++) for (let x = 0; x < out.w; x++) {
+    const i = ((y >> 1) * pm.w + (x >> 1)) * 4, o = (y * out.w + x) * 4;
+    d[o] = s[i]; d[o + 1] = s[i + 1]; d[o + 2] = s[i + 2]; d[o + 3] = s[i + 3];
+  }
+  return out;
+}
+
+/** A arte hd de uma imagem (a própria, ou a normal ampliada). */
+export function hdOf(pm: Pixmap): Pixmap {
+  return pm.hd ?? upscale(pm);
+}
+
+async function loadDir(base: string): Promise<WorldAssets> {
   const manifest: Record<string, ManifestEntry> = await (await fetch(`${base}/manifest.json`)).json();
   const read = (src: string) => new Promise<Pixmap>((res, rej) => {
     const img = new Image();
@@ -42,23 +75,42 @@ export async function loadWorldAssets(base = '/game/world'): Promise<WorldAssets
 export function padTo(pm: Pixmap, w: number, h: number): Pixmap {
   if (pm.w === w && pm.h === h) return pm;
   const out = new Pixmap(Math.max(w, pm.w), Math.max(h, pm.h));
-  out.blit(pm, (out.w - pm.w) >> 1, out.h - pm.h);
+  const left = (out.w - pm.w) >> 1;
+  out.blit(pm, left, out.h - pm.h);
+  if (pm.hd) {
+    out.hd = new Pixmap(out.w * 2, out.h * 2);
+    out.hd.blit(pm.hd, left * 2, (out.h - pm.h) * 2);
+  }
   return out;
 }
 
 /** Acrescenta à noite os pixels claros das `rows` primeiras linhas (a cúpula de um poste). */
 export function lampNight(s: Sprite, rows: number): Pixmap {
-  const nt = new Pixmap(s.pix.w, s.pix.h);
-  if (s.night) nt.data.set(s.night.data);
-  for (let y = 0; y < Math.min(rows, s.pix.h); y++) for (let x = 0; x < s.pix.w; x++) {
-    const c = s.pix.get(x, y);
-    if (c && c[0] + c[1] + c[2] > 560) nt.put(x, y, mix(LED.warmSoft, LED.white, 0.4));
-  }
+  const one = (pix: Pixmap, night: Pixmap | undefined, r: number) => {
+    const nt = new Pixmap(pix.w, pix.h);
+    if (night) nt.data.set(night.data);
+    for (let y = 0; y < Math.min(r, pix.h); y++) for (let x = 0; x < pix.w; x++) {
+      const c = pix.get(x, y);
+      if (c && c[0] + c[1] + c[2] > 560) nt.put(x, y, mix(LED.warmSoft, LED.white, 0.4));
+    }
+    return nt;
+  };
+  const nt = one(s.pix, s.night, rows);
+  if (s.pix.hd) nt.hd = one(s.pix.hd, s.night?.hd, rows * 2);
   return nt;
 }
 
 /** Quadros de água cintilando (pixels azuis ganham brilhos que mudam). */
 export function waterFrames(s: Sprite, n = 3): Sprite[] {
+  const frames = waterFrames1(s, n);
+  if (s.pix.hd) {
+    const big = waterFrames1({ pix: s.pix.hd, night: s.night?.hd }, n);
+    frames.forEach((f, i) => { f.pix.hd = big[i].pix; f.night!.hd = big[i].night; });
+  }
+  return frames;
+}
+
+function waterFrames1(s: Sprite, n: number): Sprite[] {
   const isWater = (c: RGB | null) => !!c && c[2] > 170 && c[2] > c[0] + 50 && c[1] > 120;
   const frames: Sprite[] = [];
   for (let f = 0; f < n; f++) {

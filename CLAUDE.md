@@ -57,10 +57,11 @@ construtor de deck.
 | Testes do TCG (combos, mecânicas, catálogo) | `src/lib/tcg/__tests__/` |
 | Arte do mundo por código (chão, árvores, prédios, objetos, fonte pixel) | `src/game/world/{ground,props,buildings,palette,pixmap}.ts` |
 | Casas e prédios no estilo HGSS (os que a cidade usa), com a camada "noite" | `src/game/world/{house-hg,buildings-hg}.ts` |
-| **Sprites do GPT (arte principal da cidade)**: originais em `public/Novos assets/` (fundo magenta), convertidos para `public/game/world/*.png` + `*-noite.png` + `manifest.json` | `python3 scripts/arte/importar-gpt.py --folha saida.png` (pillow, numpy, scipy); tamanhos e cortes das folhas no topo do script; carregados por `src/game/world/assets.ts` |
+| **Sprites do GPT (arte principal da cidade)**: originais em `public/Novos assets/` (fundo magenta), convertidos para `public/game/world/*.png` + `*-noite.png` + `manifest.json`, e em 2× (mais detalhe) em `public/game/world/hd/` | `python3 scripts/arte/importar-gpt.py --folha saida.png` (pillow, numpy, scipy); tamanhos e cortes das folhas no topo do script; carregados por `src/game/world/assets.ts` |
 | Prédios-tema: Loja = pacotinho gigante, Oficina de Cartas = carta gigante + álbum + forja, Guildas = castelo | `src/game/world/landmarks.ts` (folha: `docs/cidade-wit-predios.png`) |
 | Objetos tecnológicos no verde WIT (postes, totens, portal, fonte, mural) | `src/game/world/props-tech.ts` |
 | Fonte pixel 5×7 dos letreiros | `src/game/world/font.ts` |
+| **Resolução hd**: a lógica é em pixels do mundo (1 bloco = 16), mas o jogo desenha em 2× (`R` em `CityDemo.tsx`). Cada `Pixmap` pode levar `.hd` (a mesma arte em 2×); `padTo`, espelhar, placas e o chão (`groundHd`) repassam a hd; sem ela, a arte é ampliada. Testes e scripts de mapa continuam em 1× | `src/game/world/{pixmap,assets,ground,town}.ts` |
 | Dia e noite (tinta por hora, halo das luzes) | `src/game/world/light.ts` (`/cidade-demo?hora=22&velocidade=20`; tecla T avança 2 h) |
 | Planta da cidade (terrenos, prédios, colisão, portas) | `src/game/world/town.ts` (+ testes em `__tests__/town.test.ts`): 64×48 blocos em faixas (prédios em cima, rua embaixo), praça da Torre no meio; `DOOR_X` guarda onde fica a porta de cada sprite para o caminho cair embaixo dela; `?casa=modelo-gamer` troca o modelo da Sua Casa |
 | Movimento em grade, caminho, troca de cor do boneco | `src/game/world/{movement,recolor}.ts` |

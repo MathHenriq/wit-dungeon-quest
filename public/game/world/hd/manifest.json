@@ -1,0 +1,273 @@
+{
+ "arbusto": {
+  "h": 27,
+  "w": 36
+ },
+ "arbusto-florido": {
+  "h": 27,
+  "w": 32
+ },
+ "arena": {
+  "h": 170,
+  "noite": true,
+  "w": 256
+ },
+ "arvore-redonda": {
+  "h": 70,
+  "w": 68
+ },
+ "banco": {
+  "h": 43,
+  "w": 64
+ },
+ "casa-artista": {
+  "h": 148,
+  "noite": true,
+  "w": 160
+ },
+ "casa-arvore": {
+  "h": 171,
+  "noite": true,
+  "w": 160
+ },
+ "casa-azul": {
+  "h": 172,
+  "noite": true,
+  "w": 160
+ },
+ "casa-bibliotecaria": {
+  "h": 151,
+  "noite": true,
+  "w": 160
+ },
+ "casa-castelo": {
+  "h": 182,
+  "noite": true,
+  "w": 160
+ },
+ "casa-chale": {
+  "h": 172,
+  "noite": true,
+  "w": 160
+ },
+ "casa-fazendeiro": {
+  "h": 157,
+  "noite": true,
+  "w": 160
+ },
+ "casa-floricultura": {
+  "h": 132,
+  "noite": true,
+  "w": 160
+ },
+ "casa-foguete": {
+  "h": 183,
+  "noite": true,
+  "w": 128
+ },
+ "casa-futurista": {
+  "h": 146,
+  "noite": true,
+  "w": 160
+ },
+ "casa-gamer": {
+  "h": 179,
+  "noite": true,
+  "w": 160
+ },
+ "casa-inventor": {
+  "h": 161,
+  "noite": true,
+  "w": 160
+ },
+ "casa-japonesa": {
+  "h": 150,
+  "noite": true,
+  "w": 160
+ },
+ "casa-laranja": {
+  "h": 172,
+  "noite": true,
+  "w": 160
+ },
+ "casa-moderna": {
+  "h": 144,
+  "noite": true,
+  "w": 160
+ },
+ "casa-montanha": {
+  "h": 167,
+  "noite": true,
+  "w": 160
+ },
+ "casa-musico": {
+  "h": 147,
+  "noite": true,
+  "w": 160
+ },
+ "casa-padaria": {
+  "h": 168,
+  "noite": true,
+  "w": 160
+ },
+ "casa-pescador": {
+  "h": 146,
+  "noite": true,
+  "w": 160
+ },
+ "casa-rosa": {
+  "h": 115,
+  "noite": true,
+  "w": 160
+ },
+ "casa-roxa": {
+  "h": 172,
+  "noite": true,
+  "w": 160
+ },
+ "casa-tijolo": {
+  "h": 165,
+  "noite": true,
+  "w": 160
+ },
+ "casa-verde": {
+  "h": 172,
+  "noite": true,
+  "w": 160
+ },
+ "casa-vermelha-antena": {
+  "h": 172,
+  "noite": true,
+  "w": 160
+ },
+ "castelo": {
+  "h": 214,
+  "noite": true,
+  "w": 224
+ },
+ "cerca": {
+  "h": 20,
+  "w": 32
+ },
+ "cerejeira": {
+  "h": 71,
+  "w": 68
+ },
+ "chao-agua": {
+  "h": 256,
+  "w": 256
+ },
+ "chao-areia": {
+  "h": 256,
+  "w": 256
+ },
+ "chao-calcada": {
+  "h": 256,
+  "w": 256
+ },
+ "chao-flores": {
+  "h": 256,
+  "w": 256
+ },
+ "chao-floresta": {
+  "h": 256,
+  "w": 256
+ },
+ "chao-grama": {
+  "h": 256,
+  "w": 256
+ },
+ "chao-mato": {
+  "h": 256,
+  "w": 256
+ },
+ "cogumelos": {
+  "h": 21,
+  "w": 24
+ },
+ "correio": {
+  "h": 36,
+  "w": 18
+ },
+ "fonte": {
+  "h": 103,
+  "noite": true,
+  "w": 128
+ },
+ "lixeira": {
+  "h": 32,
+  "w": 22
+ },
+ "maquina": {
+  "h": 64,
+  "noite": true,
+  "w": 39
+ },
+ "mato": {
+  "h": 29,
+  "w": 32
+ },
+ "mural": {
+  "h": 81,
+  "noite": true,
+  "w": 96
+ },
+ "oficina": {
+  "h": 171,
+  "noite": true,
+  "w": 224
+ },
+ "palacio-cartas": {
+  "h": 139,
+  "noite": true,
+  "w": 160
+ },
+ "pedra": {
+  "h": 25,
+  "w": 28
+ },
+ "pedrinhas": {
+  "h": 23,
+  "w": 32
+ },
+ "pinheiro": {
+  "h": 77,
+  "w": 60
+ },
+ "placa": {
+  "h": 37,
+  "w": 32
+ },
+ "portal": {
+  "h": 95,
+  "noite": true,
+  "w": 128
+ },
+ "poste": {
+  "h": 64,
+  "noite": true,
+  "w": 21
+ },
+ "toco": {
+  "h": 23,
+  "w": 28
+ },
+ "torre": {
+  "h": 356,
+  "noite": true,
+  "w": 178
+ },
+ "totem": {
+  "h": 60,
+  "noite": true,
+  "w": 21
+ },
+ "tulipas": {
+  "h": 27,
+  "w": 32
+ },
+ "vaso": {
+  "h": 35,
+  "w": 32
+ }
+}

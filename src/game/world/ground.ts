@@ -239,25 +239,35 @@ function paintGroundTextured(grid: Terrain[][], tex: GroundTextures): Pixmap {
   const W = TW * TILE, H = TH * TILE;
   const pm = new Pixmap(W, H);
   const d = pm.data;
+  // de que textura veio cada pixel (e o quanto escureceu), para refazer em hd
+  const texList = [tex.grama, tex.mato, tex.areia, tex.calcada, tex.agua, tex.flores, tex.floresta];
+  const from = new Uint8Array(W * H), shade = new Float32Array(W * H);
   // escreve direto no buffer (o chão tem ~800 mil pixels: nada de criar array por pixel)
   const texel = (t: Pixmap, x: number, y: number) => ((y % t.h) * t.w + (x % t.w)) * 4;
   /** Copia o texel de `t` para (x, y), escurecendo (k > 0) ou clareando (k < 0). */
   const paint = (t: Pixmap, x: number, y: number, k = 0) => {
+    from[y * W + x] = texList.indexOf(t) + 1; shade[y * W + x] = k;
     const s = texel(t, x, y), o = (y * W + x) * 4, td = t.data;
     if (k === 0) { d[o] = td[s]; d[o + 1] = td[s + 1]; d[o + 2] = td[s + 2]; }
     else if (k > 0) { d[o] = td[s] * (1 - k); d[o + 1] = td[s + 1] * (1 - k); d[o + 2] = td[s + 2] * (1 - k); }
     else { const q = -k; d[o] = td[s] + (255 - td[s]) * q; d[o + 1] = td[s + 1] + (255 - td[s + 1]) * q; d[o + 2] = td[s + 2] + (255 - td[s + 2]) * q; }
     d[o + 3] = 255;
   };
-  const solid = (x: number, y: number, c: RGBt) => { const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255; };
+  const solid = (x: number, y: number, c: RGBt) => { from[y * W + x] = 0; const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255; };
   /** Mistura a cor atual do pixel com `c`. */
   const blend = (x: number, y: number, c: RGBt, t: number) => {
+    from[y * W + x] = 0;
     const o = (y * W + x) * 4;
     d[o] += (c[0] - d[o]) * t; d[o + 1] += (c[1] - d[o + 1]) * t; d[o + 2] += (c[2] - d[o + 2]) * t;
   };
-  const darkenAt = (x: number, y: number, k: number) => { const o = (y * W + x) * 4; d[o] *= 1 - k; d[o + 1] *= 1 - k; d[o + 2] *= 1 - k; };
+  const darkenAt = (x: number, y: number, k: number) => {
+    const i = y * W + x, o = i * 4;
+    if (shade[i] >= 0) shade[i] = 1 - (1 - shade[i]) * (1 - k); else from[i] = 0;
+    d[o] *= 1 - k; d[o + 1] *= 1 - k; d[o + 2] *= 1 - k;
+  };
 
   // ── grama (fundo de tudo): cópia por linha ──
+  from.fill(1);
   const g = tex.grama;
   for (let y = 0; y < H; y++) {
     const row = (y % g.h) * g.w * 4;
@@ -365,6 +375,7 @@ function paintGroundTextured(grid: Terrain[][], tex: GroundTextures): Pixmap {
     else if (!inW(x, y - 2) || !inW(x, y - 3) || !inW(x, y - 4)) paint(tex.agua, x, y, 0.2);
     else paint(tex.agua, x, y);
   }
+  if (texList.every(t => t.hd)) HD_SOURCE.set(pm, { from, shade, snap: new Uint8ClampedArray(d), tex: texList.map(t => t.hd!) });
   for (let ty = 0; ty < TH; ty++) for (let tx = 0; tx < TW; tx++) {
     if (grid[ty][tx] !== 'agua' || hash(tx, ty, 9) < 0.72) continue;
     const X = tx * TILE + 4, Y = ty * TILE + 5;
@@ -373,6 +384,36 @@ function paintGroundTextured(grid: Terrain[][], tex: GroundTextures): Pixmap {
     if (hash(ty, tx, 2) > 0.5) pm.put(X + 2, Y + 1, mix(TREE.hi, [255, 180, 210], 0.6));
   }
   return pm;
+}
+
+const HD_SOURCE = new WeakMap<Pixmap, { from: Uint8Array; shade: Float32Array; snap: Uint8ClampedArray; tex: Pixmap[] }>();
+
+/**
+ * Versão hd (2×) do chão pintado com textura: onde o pixel ainda é o que a
+ * textura deu, usa a textura hd (mais detalhe); o resto (bordas, meio-fio,
+ * enfeites e circuitos pintados depois) é ampliado da normal. Sem texturas
+ * hd, devolve undefined.
+ */
+export function groundHd(pm: Pixmap): Pixmap | undefined {
+  const src = HD_SOURCE.get(pm);
+  if (!src) return undefined;
+  const { from, shade, snap, tex } = src;
+  const W = pm.w, H = pm.h, out = new Pixmap(W * 2, H * 2), o = out.data, d = pm.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, p = i * 4;
+    const t = from[i];
+    const same = t > 0 && d[p] === snap[p] && d[p + 1] === snap[p + 1] && d[p + 2] === snap[p + 2];
+    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+      const X = x * 2 + dx, Y = y * 2 + dy, q = (Y * W * 2 + X) * 4;
+      if (same) {
+        const tx = tex[t - 1], s = ((Y % tx.h) * tx.w + (X % tx.w)) * 4, td = tx.data, k = shade[i];
+        if (k >= 0) { o[q] = td[s] * (1 - k); o[q + 1] = td[s + 1] * (1 - k); o[q + 2] = td[s + 2] * (1 - k); }
+        else { const c = -k; o[q] = td[s] + (255 - td[s]) * c; o[q + 1] = td[s + 1] + (255 - td[s + 1]) * c; o[q + 2] = td[s + 2] + (255 - td[s + 2]) * c; }
+      } else { o[q] = d[p]; o[q + 1] = d[p + 1]; o[q + 2] = d[p + 2]; }
+      o[q + 3] = 255;
+    }
+  }
+  return out;
 }
 
 // ─────────────────────── circuitos na calçada ───────────────────────

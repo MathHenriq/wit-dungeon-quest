@@ -1,7 +1,7 @@
 // Planta da cidade inicial: terrenos, prédios, objetos, colisão e portas.
 // Tudo em coordenadas de bloco (16 px). A arte sai de ground/props/buildings.
 import { TILE, type Building } from './buildings';
-import { circuitPixels, paintCircuits, paintGround, type Circuit, type GroundTextures, type Terrain } from './ground';
+import { circuitPixels, groundHd, paintCircuits, paintGround, type Circuit, type GroundTextures, type Terrain } from './ground';
 import { applyTimeOfDay, lightHalo, timeOfDay } from './light';
 import { hash, hex, Pixmap } from './pixmap';
 import { LED, PAVE } from './palette';
@@ -51,6 +51,8 @@ export interface Town {
   terrain: Terrain[][];
   /** Luzes fixas da cidade (chão + objetos sem animação), já com a oclusão. */
   lights: Pixmap;
+  /** Só as luzes do chão (circuitos, anel da praça). */
+  groundNight: Pixmap;
   /** Pixels de cada circuito da calçada, da Torre para fora (pulsos à noite). */
   circuits: [number, number][][];
   /** Poças de luz no chão (postes), somadas à noite. */
@@ -138,7 +140,8 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
     return sp ? { pix: sp.pix, night: sp.night } : fallback();
   };
   const flipped = (sp: Sprite): Sprite => {
-    const f = (pm: Pixmap) => { const o = new Pixmap(pm.w, pm.h); o.blit(pm, 0, 0, true); return o; };
+    const f1 = (pm: Pixmap) => { const o = new Pixmap(pm.w, pm.h); o.blit(pm, 0, 0, true); return o; };
+    const f = (pm: Pixmap) => { const o = f1(pm); if (pm.hd) o.hd = f1(pm.hd); return o; };
     return { pix: f(sp.pix), night: sp.night ? f(sp.night) : undefined };
   };
 
@@ -396,10 +399,18 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
   decoratePlaza(ground, groundNight, ring.cx, ring.cy);
   const circuits = plazaCircuits(ring.cx, ring.cy);
   paintCircuits(ground, groundNight, circuits);
+  ground.hd = groundHd(ground);
+  if (ground.hd) {
+    // anel e circuitos redesenhados em hd (traço fino, curva lisa), de dia e à noite
+    groundNight.hd = new Pixmap(ground.hd.w, ground.hd.h);
+    decoratePlaza(ground.hd, groundNight.hd, ring.cx * 2, ring.cy * 2, 2);
+    paintCircuits(ground.hd, groundNight.hd, circuits.map(c => c.map(([x, y]) => [x * 2, y * 2] as [number, number])));
+  }
   objects.sort((a, b) => a.baseY - b.baseY);
   return {
     ground, objects, solid, doors, spawn: { tx: 31, ty: 23 }, terrain,
     lights: composeLights(groundNight, objects.filter(o => !o.frames)),
+    groundNight,
     circuits: circuits.map(circuitPixels),
     glowSpots: [...glowSpots, ...buildingGlow],
   };
@@ -460,19 +471,21 @@ function composeLights(groundNight: Pixmap, objs: Placed[]): Pixmap {
   const out = new Pixmap(groundNight.w, groundNight.h);
   out.data.set(groundNight.data);
   for (const o of objs) {
-    for (let y = 0; y < o.pix.h; y++) for (let x = 0; x < o.pix.w; x++) {
-      const si = (y * o.pix.w + x) * 4;
-      if (o.pix.data[si + 3] === 0) continue;
+    const pix = o.pix, night = o.night;
+    for (let y = 0; y < pix.h; y++) for (let x = 0; x < pix.w; x++) {
+      const si = (y * pix.w + x) * 4;
+      if (pix.data[si + 3] === 0) continue;
       const X = o.x + x, Y = o.y + y;
       if (X < 0 || Y < 0 || X >= out.w || Y >= out.h) continue;
       const di = (Y * out.w + X) * 4;
-      if (o.night && o.night.data[si + 3] > 0) {
-        out.data[di] = o.night.data[si]; out.data[di + 1] = o.night.data[si + 1]; out.data[di + 2] = o.night.data[si + 2]; out.data[di + 3] = 255;
+      if (night && night.data[si + 3] > 0) {
+        out.data[di] = night.data[si]; out.data[di + 1] = night.data[si + 1]; out.data[di + 2] = night.data[si + 2]; out.data[di + 3] = 255;
       } else out.data[di + 3] = 0;
     }
   }
   return out;
 }
+
 
 /** Escreve `text` na placa lisa (verde-escura) de um sprite; à noite o texto acende. */
 function labeled(sp: Sprite, text: string): T.Lit {
@@ -489,16 +502,37 @@ function labeled(sp: Sprite, text: string): T.Lit {
   }
   drawText(pix, t, x, y, { fill: [255, 255, 255], fillBottom: WIT.limeLight, shadow: WIT.deep });
   drawText(night, t, x, y, { fill: [255, 255, 255], fillBottom: LEDC.greenSoft, shadow: WIT.deep });
+  // hd: a arte grande com as letras (e a placa acesa) ampliadas por cima
+  if (sp.pix.hd) {
+    pix.hd = withChanges(sp.pix.hd, sp.pix, pix, box);
+    night.hd = withChanges(sp.night?.hd ?? new Pixmap(sp.pix.hd.w, sp.pix.hd.h), sp.night ?? new Pixmap(pix.w, pix.h), night, box);
+  }
   return { pix, night };
 }
 
+/** Cópia de `big` (2×) com os pixels em que `after` difere de `before` ampliados por cima. */
+function withChanges(big: Pixmap, before: Pixmap, after: Pixmap, box: { x0: number; y0: number; x1: number; y1: number }): Pixmap {
+  const out = new Pixmap(big.w, big.h);
+  out.data.set(big.data);
+  for (let y = box.y0; y <= box.y1; y++) for (let x = box.x0; x <= box.x1; x++) {
+    const i = (y * after.w + x) * 4;
+    const a = after.data, b = before.data;
+    if (a[i] === b[i] && a[i + 1] === b[i + 1] && a[i + 2] === b[i + 2] && a[i + 3] === b[i + 3]) continue;
+    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+      const o = ((y * 2 + dy) * out.w + x * 2 + dx) * 4;
+      out.data[o] = a[i]; out.data[o + 1] = a[i + 1]; out.data[o + 2] = a[i + 2]; out.data[o + 3] = a[i + 3];
+    }
+  }
+  return out;
+}
+
 /** Anel de pedra em volta da fonte, com um circuito no meio que acende à noite. */
-function decoratePlaza(pm: Pixmap, nt: Pixmap, cx: number, cy: number): void {
-  const { rx, ry } = RING;
-  for (let y = cy - ry - 6; y <= cy + ry + 6; y++) for (let x = cx - rx - 6; x <= cx + rx + 6; x++) {
+function decoratePlaza(pm: Pixmap, nt: Pixmap, cx: number, cy: number, k = 1): void {
+  const rx = RING.rx * k, ry = RING.ry * k, sh = 2 + k;
+  for (let y = cy - ry - 6 * k; y <= cy + ry + 6 * k; y++) for (let x = cx - rx - 6 * k; x <= cx + rx + 6 * k; x++) {
     const d = Math.sqrt(((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2);
     if (d > 1.08 || d < 0.9) continue;
-    let c = (((x >> 3) + (y >> 3)) & 1) ? PAVE.light : hex('#dfe4ec');
+    let c = (((x >> sh) + (y >> sh)) & 1) ? PAVE.light : hex('#dfe4ec');
     if (d > 1.05) c = PAVE.curb;
     else if (d > 1.03) c = PAVE.joint;
     else if (d < 0.92) c = PAVE.curbLight;

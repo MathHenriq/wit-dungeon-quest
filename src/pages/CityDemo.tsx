@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { addGlowSpots, buildTown, type Placed, type Town } from '@/game/world/town';
-import { loadWorldAssets } from '@/game/world/assets';
+import { hdOf, loadWorldAssets } from '@/game/world/assets';
 import { lightHalo, timeOfDay } from '@/game/world/light';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
@@ -30,7 +30,29 @@ const KEY_DIR: Record<string, Dir> = {
   w: 'north', s: 'south', a: 'west', d: 'east', W: 'north', S: 'south', A: 'west', D: 'east',
 };
 
+/**
+ * Resolução da arte: cada pixel do mundo (1 bloco = 16) vira R × R pixels da
+ * tela interna, onde a arte hd (2×) aparece com todo o detalhe. A lógica
+ * (posições, colisão, câmera) continua em pixels do mundo.
+ */
+const R = 2;
+
 type Frames = { walk: Record<Dir, HTMLCanvasElement[]>; foot: Record<Dir, number> };
+
+/** Canvas da arte em hd (a hd do sprite, ou a normal ampliada). */
+function toCanvasHd(pm: Pixmap): HTMLCanvasElement {
+  return toCanvas(hdOf(pm));
+}
+
+/** Amplia um canvas R× sem suavizar (arte que só existe na resolução normal). */
+function upCanvas(c: HTMLCanvasElement): HTMLCanvasElement {
+  const o = document.createElement('canvas');
+  o.width = c.width * R; o.height = c.height * R;
+  const x = o.getContext('2d')!;
+  x.imageSmoothingEnabled = false;
+  x.drawImage(c, 0, 0, o.width, o.height);
+  return o;
+}
 
 function toCanvas(pm: Pixmap): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -83,7 +105,7 @@ async function loadFrames(folder: string): Promise<Frames> {
     c.width = img.width; c.height = img.height;
     const ctx = c.getContext('2d')!;
     ctx.drawImage(img, 0, 0);
-    return c;
+    return upCanvas(c);
   };
   // Só os quadros de caminhada: os "parados" da PixelLab têm outro tamanho e
   // faziam o boneco encolher e pular ao começar a andar.
@@ -94,8 +116,8 @@ async function loadFrames(folder: string): Promise<Frames> {
     // linha dos pés = última linha opaca, pela mediana dos quadros
     const rows = walk[d].map(c => {
       const data = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
-      for (let y = c.height - 1; y >= 0; y--) for (let x = 0; x < c.width; x++) if (data[(y * c.width + x) * 4 + 3] > 128) return y;
-      return c.height - 1;
+      for (let y = c.height - 1; y >= 0; y--) for (let x = 0; x < c.width; x++) if (data[(y * c.width + x) * 4 + 3] > 128) return y / R;
+      return c.height / R - 1;
     }).sort((a, b) => a - b);
     foot[d] = rows[rows.length >> 1];
   }));
@@ -164,10 +186,15 @@ function CityView({ town }: { town: Town }) {
     objs: [] as { o: Placed; c: HTMLCanvasElement; n: HTMLCanvasElement | null }[],
     /** Objetos animados: ficam fora da cena pré-composta. */
     anims: [] as { o: Placed; cs: HTMLCanvasElement[]; ns: HTMLCanvasElement[] | null }[],
-    /** Luzes fixas da cidade e o halo delas (tamanho do mapa). */
-    lights: null as HTMLCanvasElement | null,
     /** Luzes fixas + halo numa imagem só, somada à cena à noite. */
     nightOverlay: null as HTMLCanvasElement | null,
+    /**
+     * Cena já escurecida e com as luzes somadas (o mapa inteiro, em hd), para
+     * a hora `key`. Desenhar isso é uma passada só pela tela, em vez de três
+     * (cena, escurecer, luzes). Quando a hora muda, a nova é montada em `back`
+     * uma faixa por quadro e depois troca de lugar com a da frente.
+     */
+    lit: { front: null as HTMLCanvasElement | null, frontKey: '', back: null as HTMLCanvasElement | null, backKey: '', row: 0 },
     /** Hora do jogo (0–24). */
     hour: 8,
     clockSpeed: 1,
@@ -189,15 +216,14 @@ function CityView({ town }: { town: Town }) {
 
   // arte da cidade → canvas (uma vez)
   useEffect(() => {
-    g.current.objs = town.objects.filter(o => !o.frames).map(o => ({ o, c: toCanvas(o.pix), n: o.night ? toCanvas(o.night) : null }));
+    g.current.objs = town.objects.filter(o => !o.frames).map(o => ({ o, c: toCanvasHd(o.pix), n: o.night ? toCanvasHd(o.night) : null }));
     g.current.anims = town.objects.filter(o => o.frames).map(o => ({
-      o, cs: o.frames!.map(toCanvas), ns: o.nightFrames ? o.nightFrames.map(toCanvas) : null,
+      o, cs: o.frames!.map(toCanvasHd), ns: o.nightFrames ? o.nightFrames.map(toCanvasHd) : null,
     }));
-    const scene = toCanvas(town.ground);
+    const scene = toCanvasHd(town.ground);
     const sctx = scene.getContext('2d')!;
-    for (const { o, c } of g.current.objs) sctx.drawImage(c, o.x, o.y);
+    for (const { o, c } of g.current.objs) sctx.drawImage(c, o.x * R, o.y * R);
     g.current.scene = scene;
-    g.current.lights = toCanvas(town.lights);
     const qs = new URLSearchParams(window.location.search);
     const h = qs.get('hora'), v = Number(qs.get('velocidade'));
     if (h !== null && !Number.isNaN(Number(h))) { g.current.hour = Number(h) % 24; setClock(g.current.hour); }
@@ -210,16 +236,27 @@ function CityView({ town }: { town: Town }) {
       for (const o of town.objects) if (o.frames && o.night) src.blit(o.night, o.x, o.y);
       const halo = lightHalo(src, 6, 1.2, 2);   // meia resolução: ampliado com suavização
       addGlowSpots(halo, town.glowSpots, 2);
+      // as luzes nítidas em hd (janelas, LEDs), montadas com o canvas: na ordem
+      // de desenho, cada objeto apaga a luz que está atrás dele e põe a sua
+      const sharp = toCanvasHd(town.groundNight);
+      const sh = sharp.getContext('2d')!;
+      for (const { o, c, n } of g.current.objs) {
+        sh.globalCompositeOperation = 'destination-out';
+        sh.drawImage(c, o.x * R, o.y * R);
+        if (n) { sh.globalCompositeOperation = 'source-over'; sh.drawImage(n, o.x * R, o.y * R); }
+      }
+      sh.globalCompositeOperation = 'source-over';
+      for (const { o, ns } of g.current.anims) if (ns) sh.drawImage(ns[0], o.x * R, o.y * R);
       const ov = document.createElement('canvas');
-      ov.width = src.w; ov.height = src.h;
+      ov.width = sharp.width; ov.height = sharp.height;
       const octx = ov.getContext('2d')!;
       // somadas à cena escura: um pouco abaixo do máximo, senão o verde vira branco
       octx.globalAlpha = 0.8;
-      octx.drawImage(toCanvas(src), 0, 0);
+      octx.drawImage(sharp, 0, 0);
       octx.globalCompositeOperation = 'lighter';
       octx.globalAlpha = 0.45;
       octx.imageSmoothingEnabled = true;
-      octx.drawImage(toCanvas(halo), 0, 0, src.w, src.h);
+      octx.drawImage(toCanvas(halo), 0, 0, sharp.width, sharp.height);
       g.current.nightOverlay = ov;
       g.current.dirty = true;
     }, 30);
@@ -243,7 +280,9 @@ function CityView({ town }: { town: Town }) {
   // tamanho da tela → escala inteira (pixel perfeito)
   useEffect(() => {
     const fit = () => {
-      const scale = Math.max(2, Math.min(4, Math.floor(Math.min(window.innerWidth / 300, window.innerHeight / 200))));
+      // escala do mundo sempre múltipla de R: a tela interna (hd) aparece em
+      // número inteiro de pixels da tela, sem pixel torto (~320 × 180 visíveis)
+      const scale = R * Math.max(1, Math.floor(Math.min(window.innerWidth / 480, window.innerHeight / 320)));
       setView({ w: Math.ceil(window.innerWidth / scale), h: Math.ceil(window.innerHeight / scale), scale });
     };
     fit();
@@ -407,33 +446,78 @@ function CityView({ town }: { town: Town }) {
       // ── desenho: só quando algo mudou ──
       if (!s.dirty || !s.scene) { raf = requestAnimationFrame(loop); return; }
       s.dirty = false;
-      const vw = cv.width, vh = cv.height;
+      const vw = cv.width / R, vh = cv.height / R;
       const pp = pixelPos(p, TILE);
       const mapW = town.ground.w, mapH = town.ground.h;
       let camX = Math.round(pp.x + 8 - vw / 2), camY = Math.round(pp.y + 8 - vh / 2);
       camX = mapW <= vw ? Math.round((mapW - vw) / 2) : Math.max(0, Math.min(mapW - vw, camX));
       camY = mapH <= vh ? Math.round((mapH - vh) / 2) : Math.max(0, Math.min(mapH - vh, camY));
+      ctx.setTransform(R, 0, 0, R, 0, 0);
       ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = '#3f6e3a';
-      ctx.fillRect(0, 0, vw, vh);
+      if (mapW < vw || mapH < vh) {
+        ctx.fillStyle = '#3f6e3a';
+        ctx.fillRect(0, 0, vw, vh);
+      }
       // só o pedaço visível (desenhar o mapa inteiro recortado custa caro no software)
       const sx = Math.max(0, camX), sy = Math.max(0, camY);
       const sw = Math.min(vw, mapW - sx), sh = Math.min(vh, mapH - sy);
-      ctx.drawImage(s.scene, sx, sy, sw, sh, sx - camX, sy - camY, sw, sh);
 
-      // ── hora do dia: escurece a cena e soma as luzes (chão + objetos parados + halo) ──
+      // ── hora do dia: cena escurecida + luzes (chão + objetos parados + halo) ──
       const white = tod.tint.every(v => v === 255);
-      if (!white) {
+      const lit = tod.light > 0 && !!s.nightOverlay;
+      // tom e luz de meia em meia hora do jogo (15 s): a cena pronta só é
+      // refeita quando mudam de verdade, e leva 32 quadros para ficar pronta
+      const todQ = timeOfDay(Math.round(s.hour * 2) / 2);
+      const q = todQ.tint.map(v => Math.min(255, (v >> 3) * 8 + 4));
+      const lq = lit ? Math.round(todQ.light * 16) / 16 : 0;
+      // de noite, só monta a cena pronta quando a camada de luzes já existe
+      const waiting = todQ.light > 0 && !s.nightOverlay;
+      const sceneKey = (white && !lit) || waiting ? '' : `${q.join(',')}|${lq}`;
+      const L = s.lit;
+      if (sceneKey && L.frontKey !== sceneKey) {
+        // monta a nova em faixas (1/32 do mapa por quadro), sem travar
+        if (L.backKey !== sceneKey) { L.backKey = sceneKey; L.row = 0; }
+        if (!L.back) { L.back = document.createElement('canvas'); L.back.width = s.scene.width; L.back.height = s.scene.height; }
+        // a primeira sai de uma vez (um quadro lento na entrada); as outras, em faixas
+        const b = L.back.getContext('2d')!, H = s.scene.height, step = L.front ? Math.ceil(H / 32) : H;
+        const y0 = L.row, hh = Math.min(step, H - y0);
+        // (limpa só a faixa: o modo 'copy' apagaria o canvas inteiro)
+        b.clearRect(0, y0, s.scene.width, hh);
+        b.globalCompositeOperation = 'source-over';
+        b.drawImage(s.scene, 0, y0, s.scene.width, hh, 0, y0, s.scene.width, hh);
+        b.globalCompositeOperation = 'multiply';
+        b.fillStyle = `rgb(${q[0]},${q[1]},${q[2]})`;
+        b.fillRect(0, y0, s.scene.width, hh);
+        if (lq > 0) {
+          b.globalCompositeOperation = 'lighter';
+          b.globalAlpha = lq;
+          b.drawImage(s.nightOverlay!, 0, y0, s.scene.width, hh, 0, y0, s.scene.width, hh);
+          b.globalAlpha = 1;
+        }
+        b.globalCompositeOperation = 'source-over';
+        L.row += step;
+        if (L.row >= H) { [L.front, L.back] = [L.back, L.front]; L.frontKey = sceneKey; L.backKey = ''; }
+        s.dirty = true;
+      }
+      if (!sceneKey && !waiting) ctx.drawImage(s.scene, sx * R, sy * R, sw * R, sh * R, sx - camX, sy - camY, sw, sh);
+      else if (L.front && sceneKey) ctx.drawImage(L.front, sx * R, sy * R, sw * R, sh * R, sx - camX, sy - camY, sw, sh);
+      else {
+        // primeira vez (a cena pronta ainda está sendo montada): do jeito direto
+        ctx.drawImage(s.scene, sx * R, sy * R, sw * R, sh * R, sx - camX, sy - camY, sw, sh);
         ctx.globalCompositeOperation = 'multiply';
         ctx.fillStyle = `rgb(${tod.tint[0]},${tod.tint[1]},${tod.tint[2]})`;
         ctx.fillRect(0, 0, vw, vh);
+        if (lit) {
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = tod.light;
+          ctx.drawImage(s.nightOverlay!, sx * R, sy * R, sw * R, sh * R, sx - camX, sy - camY, sw, sh);
+          ctx.globalAlpha = 1;
+        }
         ctx.globalCompositeOperation = 'source-over';
       }
-      const lit = tod.light > 0 && !!s.nightOverlay;
       if (lit) {
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = tod.light;
-        ctx.drawImage(s.nightOverlay!, sx, sy, sw, sh, sx - camX, sy - camY, sw, sh);
         // pulsos: pontinhos claros correndo da Torre para fora
         ctx.fillStyle = '#7ad84a';
         for (const path of town.circuits) {
@@ -446,15 +530,15 @@ function CityView({ town }: { town: Town }) {
         ctx.globalCompositeOperation = 'source-over';
       }
       // tom da hora arredondado (muda pouco a pouco no entardecer)
-      const q = tod.tint.map(v => Math.min(255, (v >> 3) * 8 + 4));
       const tintKey = q.join(','), tintCss = `rgb(${q[0]},${q[1]},${q[2]})`;
-      tintBudget.left = 4;
+      tintBudget.left = 2;
       /** Desenha a arte escurecida para a hora atual (de dia, direto). */
-      const put = (c: HTMLCanvasElement, x: number, y: number) => ctx.drawImage(white ? c : tinted(c, tintKey, tintCss), x, y);
+      // toda arte em canvas está em hd: desenha na metade do tamanho (pixels do mundo)
+      const put = (c: HTMLCanvasElement, x: number, y: number) => ctx.drawImage(white ? c : tinted(c, tintKey, tintCss), x, y, c.width / R, c.height / R);
       const nightOn = (n: HTMLCanvasElement | null | undefined, x: number, y: number) => {
         if (!lit || !n) return;
         ctx.globalAlpha = tod.light;
-        ctx.drawImage(n, x, y);
+        ctx.drawImage(n, x, y, n.width / R, n.height / R);
         ctx.globalAlpha = 1;
       };
 
@@ -488,12 +572,12 @@ function CityView({ town }: { town: Town }) {
       for (const { o, cs, ns } of s.anims) {
         const f = Math.floor(now / (o.frameMs ?? 500)) % cs.length;
         const c = cs[f];
-        if (o.x > camX + vw || o.x + c.width < camX || o.y > camY + vh || o.y + c.height < camY) continue;
+        if (o.x > camX + vw || o.x + c.width / R < camX || o.y > camY + vh || o.y + c.height / R < camY) continue;
         list.push({ baseY: o.baseY, draw: () => { put(c, o.x - camX, o.y - camY); nightOn(ns?.[f % ns.length], o.x - camX, o.y - camY); } });
       }
       for (const { o, c, n } of s.objs) {
         const front = people.some(h => o.baseY > h.baseY
-          && o.x < h.x + 32 && o.x + c.width > h.x && o.y < h.y + 32 && o.y + c.height > h.y);
+          && o.x < h.x + 32 && o.x + c.width / R > h.x && o.y < h.y + 40 && o.y + c.height / R > h.y);
         if (front) list.push({ baseY: o.baseY, draw: () => { put(c, o.x - camX, o.y - camY); nightOn(n, o.x - camX, o.y - camY); } });
       }
       list.sort((a, b) => a.baseY - b.baseY);
@@ -512,12 +596,13 @@ function CityView({ town }: { town: Town }) {
     if (s.modal) { interact(); return; }
     const cv = canvasRef.current!;
     const rect = cv.getBoundingClientRect();
-    const vx = ((e.clientX - rect.left) / rect.width) * cv.width;
-    const vy = ((e.clientY - rect.top) / rect.height) * cv.height;
+    const cw = cv.width / R, ch = cv.height / R;
+    const vx = ((e.clientX - rect.left) / rect.width) * cw;
+    const vy = ((e.clientY - rect.top) / rect.height) * ch;
     const pp = pixelPos(s.player, TILE);
     const mapW = town.ground.w, mapH = town.ground.h;
-    const camX = mapW <= cv.width ? Math.round((mapW - cv.width) / 2) : Math.max(0, Math.min(mapW - cv.width, Math.round(pp.x + 8 - cv.width / 2)));
-    const camY = mapH <= cv.height ? Math.round((mapH - cv.height) / 2) : Math.max(0, Math.min(mapH - cv.height, Math.round(pp.y + 8 - cv.height / 2)));
+    const camX = mapW <= cw ? Math.round((mapW - cw) / 2) : Math.max(0, Math.min(mapW - cw, Math.round(pp.x + 8 - cw / 2)));
+    const camY = mapH <= ch ? Math.round((mapH - ch) / 2) : Math.max(0, Math.min(mapH - ch, Math.round(pp.y + 8 - ch / 2)));
     const tx = Math.floor((vx + camX) / TILE), ty = Math.floor((vy + camY) / TILE);
     // tocar num morador ou prédio: vai até o bloco livre mais perto e olha para ele
     const target = blocked(tx, ty)
@@ -534,8 +619,8 @@ function CityView({ town }: { town: Town }) {
     <div className="fixed inset-0 bg-[#1b2a22] overflow-hidden select-none touch-none">
       <canvas
         ref={canvasRef}
-        width={view.w}
-        height={view.h}
+        width={view.w * R}
+        height={view.h * R}
         onPointerDown={onTap}
         style={{ width: view.w * view.scale, height: view.h * view.scale, imageRendering: 'pixelated' }}
         className="block"

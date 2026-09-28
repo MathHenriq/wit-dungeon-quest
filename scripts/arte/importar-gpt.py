@@ -5,6 +5,10 @@ manifest.json com os tamanhos.
 
   python3 scripts/arte/importar-gpt.py [--folha saida.png]
 
+Gera duas resoluções: a normal (1 bloco = 16 px) em public/game/world e a
+dobrada (1 bloco = 32 px, mais detalhe) em public/game/world/hd, com os
+mesmos nomes. O jogo desenha a hd; a normal fica para os testes e scripts.
+
 Passos para cada imagem: tira o fundo magenta (e a franja rosada), corta no
 contorno, reduz pela média (caixa) até o tamanho do jogo, deixa a borda
 binária (pixel art), reduz a paleta e gera a camada da noite (janelas
@@ -110,7 +114,7 @@ def shrink(rgb, alpha, box, size, colors):
     return out
 
 
-def night(px):
+def night(px, k=1):
     """O que acende à noite: janelas amarelas, LEDs lima, telas azuis claras, fogo."""
     r, g, b, a = [px[..., i].astype(int) for i in range(4)]
     on = a > 0
@@ -120,7 +124,7 @@ def night(px):
     lab, k = ndimage.label(led)
     if k:
         sizes = ndimage.sum(led, lab, range(1, k + 1))
-        led = np.isin(lab, [i + 1 for i in range(k) if sizes[i] <= 10])
+        led = np.isin(lab, [i + 1 for i in range(k) if sizes[i] <= 10 * k * k])
     screen = on & (b > 215) & (g > 200) & (r < 190)
     fire = on & (r > 230) & (g > 90) & (g < 200) & (b < 90)
     lit = window | led | screen | fire
@@ -166,17 +170,17 @@ NO_NIGHT = {'pinheiro', 'arvore-redonda', 'cerejeira', 'arbusto', 'arbusto-flori
             'cogumelos', 'pedrinhas', 'pedra', 'banco', 'cerca', 'placa', 'correio', 'lixeira', 'vaso'}
 
 
-def save(name, px, manifest):
-    Image.fromarray(px, 'RGBA').save(os.path.join(OUT, name + '.png'))
-    npath = os.path.join(OUT, name + '-noite.png')
+def save(name, px, manifest, out=OUT, k=1):
+    Image.fromarray(px, 'RGBA').save(os.path.join(out, name + '.png'))
+    npath = os.path.join(out, name + '-noite.png')
     if os.path.exists(npath):
         os.remove(npath)
-    nt, count = night(px)
+    nt, count = night(px, k)
     if name in NO_NIGHT:
         count = 0
     entry = {'w': int(px.shape[1]), 'h': int(px.shape[0])}
     if count > 0:
-        Image.fromarray(nt, 'RGBA').save(os.path.join(OUT, name + '-noite.png'))
+        Image.fromarray(nt, 'RGBA').save(os.path.join(out, name + '-noite.png'))
         entry['noite'] = True
     manifest[name] = entry
 
@@ -193,11 +197,12 @@ def seamless(a):
     return a * w + rolled * (1 - w)
 
 
-def tile(path, colors=40):
+def tile(path, colors=40, px=None):
+    px = px or TILE_PX
     im = Image.open(path).convert('RGB')
     s = min(im.size)
     im = im.crop(((im.width - s) // 2, (im.height - s) // 2, (im.width - s) // 2 + s, (im.height - s) // 2 + s))
-    small = np.array(im.resize((TILE_PX, TILE_PX), Image.BOX)).astype(float)
+    small = np.array(im.resize((px, px), Image.BOX)).astype(float)
     small = seamless(small).clip(0, 255).astype(np.uint8)
     q = np.array(Image.fromarray(small, 'RGB').quantize(colors, method=Image.Quantize.MEDIANCUT).convert('RGB'))
     return np.dstack([q, np.full(q.shape[:2], 255, np.uint8)])
@@ -211,8 +216,13 @@ def find(name):
     return os.path.join(SRC, name + '.png')
 
 
-def main():
-    os.makedirs(OUT, exist_ok=True)
+def scaled(size, k):
+    return {key: v * k for key, v in size.items()}
+
+
+def build(out, k):
+    """Converte tudo na escala k (1 = normal, 2 = hd) para a pasta out."""
+    os.makedirs(out, exist_ok=True)
     manifest = {}
     for src, (name, size) in SINGLE.items():
         path = find(src)
@@ -221,7 +231,7 @@ def main():
         rgb, alpha = load(path)
         # só o maior pedaço (ignora sujeira solta no fundo)
         boxes, _ = components(alpha, 1)
-        save(name, shrink(rgb, alpha, boxes[0] if boxes else bbox(alpha), size, 64), manifest)
+        save(name, shrink(rgb, alpha, boxes[0] if boxes else bbox(alpha), scaled(size, k), 64 * k), manifest, out, k)
     for src, items in SHEETS.items():
         path = find(src)
         if not os.path.exists(path):
@@ -231,17 +241,23 @@ def main():
         if len(boxes) != len(items):
             print(f'{src}: achei {len(boxes)} objetos, esperava {len(items)}')
         for (name, size), box in zip(items, boxes):
-            save(name, shrink(rgb, alpha, box, size, 32), manifest)
+            save(name, shrink(rgb, alpha, box, scaled(size, k), 32 * k), manifest, out, k)
     for src, name in TILES.items():
         path = find(src)
         if not os.path.exists(path):
             print('faltando:', src); continue
-        px = tile(path)
-        Image.fromarray(px, 'RGBA').save(os.path.join(OUT, name + '.png'))
-        manifest[name] = {'w': TILE_PX, 'h': TILE_PX}
-    with open(os.path.join(OUT, 'manifest.json'), 'w') as f:
+        px = tile(path, 40 * k, TILE_PX * k)
+        Image.fromarray(px, 'RGBA').save(os.path.join(out, name + '.png'))
+        manifest[name] = {'w': TILE_PX * k, 'h': TILE_PX * k}
+    with open(os.path.join(out, 'manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=1, sort_keys=True)
-    print(len(manifest), 'sprites em', os.path.relpath(OUT, ROOT))
+    print(len(manifest), 'sprites em', os.path.relpath(out, ROOT))
+    return manifest
+
+
+def main():
+    manifest = build(OUT, 1)
+    build(os.path.join(OUT, 'hd'), 2)
 
     if '--folha' in sys.argv:
         out = sys.argv[sys.argv.index('--folha') + 1]
