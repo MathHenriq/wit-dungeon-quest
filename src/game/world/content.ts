@@ -55,21 +55,24 @@ export interface NpcDef {
   ty: number;
   dir: Dir;
   look: Look;
+  /** Nome e título na plaquinha (aparece quando o jogador chega perto). */
+  name: string;
+  title: string;
   lines: string[];
 }
 
 export const NPCS: NpcDef[] = [
-  { id: 'guia', tx: 33, ty: 23, dir: 'west', look: { modelo: 'modelo-05', pele: 'pele-2', cabelo: 'loiro', cima: 'verde', baixo: 'jeans' },
+  { id: 'guia', name: 'Lia', title: 'Guia da Cidade', tx: 33, ty: 23, dir: 'west', look: { modelo: 'modelo-05', pele: 'pele-2', cabelo: 'loiro', cima: 'verde', baixo: 'jeans' },
     lines: ['Bem-vindo à Cidade WIT!', 'Aqui tudo gira em torno das cartas. Explore os prédios!'] },
-  { id: 'torre', tx: 34, ty: 15, dir: 'west', look: { modelo: 'modelo-08', pele: 'pele-4', cabelo: 'preto', cima: 'marinho', baixo: 'preto' },
+  { id: 'torre', name: 'Kaio', title: 'Guardião da Torre', tx: 34, ty: 15, dir: 'west', look: { modelo: 'modelo-08', pele: 'pele-4', cabelo: 'preto', cima: 'marinho', baixo: 'preto' },
     lines: ['Dizem que no andar 100 mora um chefe que ninguém venceu...', 'Será que você consegue?'] },
-  { id: 'loja', tx: 43, ty: 19, dir: 'south', look: { modelo: 'modelo-03', pele: 'pele-1', cabelo: 'rosa', cima: 'amarelo', baixo: 'jeans' },
+  { id: 'loja', name: 'Duda', title: 'Vendedora', tx: 43, ty: 19, dir: 'south', look: { modelo: 'modelo-03', pele: 'pele-1', cabelo: 'rosa', cima: 'amarelo', baixo: 'jeans' },
     lines: ['Chegaram pacotinhos novos na Loja!', 'Mas os melhores você ganha indo bem na aula.'] },
-  { id: 'arena', tx: 49, ty: 31, dir: 'north', look: { modelo: 'modelo-09', pele: 'pele-5', cabelo: 'preto', cima: 'vermelho', baixo: 'preto' },
+  { id: 'arena', name: 'Rex', title: 'Campeão da Arena', tx: 49, ty: 31, dir: 'north', look: { modelo: 'modelo-09', pele: 'pele-5', cabelo: 'preto', cima: 'vermelho', baixo: 'preto' },
     lines: ['Quer duelar? A Arena abre em breve.', 'Treine seu deck na Torre enquanto isso!'] },
-  { id: 'guildas', tx: 19, ty: 31, dir: 'north', look: { modelo: 'modelo-06', pele: 'pele-6', cabelo: 'preto', cima: 'roxo', baixo: 'caqui' },
+  { id: 'guildas', name: 'Nina', title: 'Mestre de Guilda', tx: 19, ty: 31, dir: 'north', look: { modelo: 'modelo-06', pele: 'pele-6', cabelo: 'preto', cima: 'roxo', baixo: 'caqui' },
     lines: ['Na guilda, cada presença conta para a meta da equipe.', 'Faltou? A equipe inteira sente!'] },
-  { id: 'mural', tx: 27, ty: 17, dir: 'west', look: { modelo: 'modelo-07', pele: 'pele-3', cabelo: 'ruivo', cima: 'laranja', baixo: 'jeans' },
+  { id: 'mural', name: 'Téo', title: 'Mensageiro', tx: 27, ty: 17, dir: 'west', look: { modelo: 'modelo-07', pele: 'pele-3', cabelo: 'ruivo', cima: 'laranja', baixo: 'jeans' },
     lines: ['O mural mostra os avisos do professor e as missões da semana.'] },
 ];
 

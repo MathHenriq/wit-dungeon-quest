@@ -53,6 +53,8 @@ export const CLOTH: Record<string, Ramp> = {
 };
 
 export interface Look {
+  /** Apelido que aparece na plaquinha (até 14 letras). */
+  apelido?: string;
   modelo: string;
   pele: string;
   cabelo: string;
@@ -66,7 +68,9 @@ export const DEFAULT_LOOK: Look = { modelo: 'modelo-01', pele: 'pele-3', cabelo:
 export function normalizeLook(l: Partial<Look> | null | undefined): Look {
   const ok = <T extends string>(v: string | undefined, table: Record<string, unknown> | readonly string[], d: T) =>
     v && (Array.isArray(table) ? table.includes(v) : v in table) ? v : d;
+  const apelido = (l?.apelido ?? '').replace(/[^\p{L}\p{N} .!-]/gu, '').trim().slice(0, 14);
   return {
+    ...(apelido ? { apelido } : {}),
     modelo: ok(l?.modelo, MODELOS, DEFAULT_LOOK.modelo),
     pele: ok(l?.pele, SKIN, DEFAULT_LOOK.pele),
     cabelo: ok(l?.cabelo, HAIR, DEFAULT_LOOK.cabelo),

@@ -22,6 +22,26 @@ export async function loadWorldAssets(base = `${import.meta.env.BASE_URL}game/wo
   return normal;
 }
 
+/**
+ * Chão da cidade já pintado em hd (gerado por scripts/mapa/chao-pronto.ts),
+ * com a chave da planta. Sem ele (ou com erro), undefined: a cidade calcula.
+ */
+export async function loadPrebuiltGround(base = `${import.meta.env.BASE_URL}game/world/cidade`): Promise<{ pix: Pixmap; key: string } | undefined> {
+  try {
+    const info: { key: string } = await (await fetch(`${base}/chao.json`)).json();
+    const img = new Image();
+    img.src = `${base}/chao.webp`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const ctx = c.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(img, 0, 0);
+    return { pix: pixmapFromRGBA(img.width, img.height, ctx.getImageData(0, 0, img.width, img.height).data), key: info.key };
+  } catch {
+    return undefined;
+  }
+}
+
 /** Pendura em cada sprite a versão hd de mesmo nome (e a da noite). */
 export function attachHd(normal: WorldAssets, big: WorldAssets): void {
   for (const [name, s] of Object.entries(normal)) {

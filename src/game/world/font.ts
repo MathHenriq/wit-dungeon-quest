@@ -50,7 +50,8 @@ const G: Record<string, string[]> = {
 };
 
 function glyph(ch: string): string[] {
-  return G[ch.toUpperCase()] ?? G[' '];
+  // acentos saem sem o acento (Á → A, Ç → C): a fonte só tem as letras base
+  return G[ch.toUpperCase()] ?? G[ch.normalize('NFD')[0].toUpperCase()] ?? G[' '];
 }
 
 export function textWidth(text: string): number {

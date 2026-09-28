@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { addGlowSpots, buildTown, type Placed, type Town } from '@/game/world/town';
-import { hdOf, loadWorldAssets } from '@/game/world/assets';
+import { hdOf, loadPrebuiltGround, loadWorldAssets } from '@/game/world/assets';
 import { lightHalo, timeOfDay } from '@/game/world/light';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
@@ -12,6 +12,8 @@ import { MODEL_ROWS, modelFrames } from '@/game/world/model-sprite';
 import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
+import { drawAmbient } from '@/game/world/ambient';
+import { nameplate, PLATE_NPC, PLATE_PLAYER, type PlateStyle } from '@/game/world/nameplate';
 
 /**
  * Protótipo jogável da Cidade WIT: andar pela cidade (setas/WASD ou toque),
@@ -39,9 +41,12 @@ const R = 2;
 
 type Frames = { walk: Record<Dir, HTMLCanvasElement[]>; foot: Record<Dir, number> };
 
-/** Canvas da arte em hd (a hd do sprite, ou a normal ampliada). */
+/** Canvas da arte em hd (a hd do sprite, ou a normal ampliada); um por arte (árvores iguais dividem). */
+const hdCanvases = new WeakMap<Pixmap, HTMLCanvasElement>();
 function toCanvasHd(pm: Pixmap): HTMLCanvasElement {
-  return toCanvas(hdOf(pm));
+  let c = hdCanvases.get(pm);
+  if (!c) { c = toCanvas(hdOf(pm)); hdCanvases.set(pm, c); }
+  return c;
 }
 
 /** Amplia um canvas R× sem suavizar (arte que só existe na resolução normal). */
@@ -133,6 +138,15 @@ async function loadLookFrames(look: Look): Promise<Frames> {
   return { walk, foot };
 }
 
+/** Plaquinhas prontas (canvas hd), por texto. */
+const plates = new Map<string, HTMLCanvasElement>();
+function plateCanvas(name: string, title: string | undefined, st: PlateStyle): HTMLCanvasElement {
+  const key = `${name}|${title ?? ''}|${st.border.join(',')}`;
+  let c = plates.get(key);
+  if (!c) { c = toCanvas(nameplate(name, title, st)); plates.set(key, c); }
+  return c;
+}
+
 const LOOK_KEY = 'wit.visual';
 function savedLook(): Look {
   try { return normalizeLook(JSON.parse(localStorage.getItem(LOOK_KEY) ?? 'null')); } catch { return DEFAULT_LOOK; }
@@ -148,8 +162,8 @@ export default function CityDemo() {
     let alive = true;
     // ?casa=modelo-gamer mostra a Sua Casa com outro modelo (as 3 iniciais e as 7 à venda)
     const casa = new URLSearchParams(window.location.search).get('casa') ?? undefined;
-    loadWorldAssets()
-      .then(a => { if (alive) setTown(buildTown(a, { casa })); })
+    Promise.all([loadWorldAssets(), loadPrebuiltGround()])
+      .then(([a, g]) => { if (alive) setTown(buildTown(a, { casa, groundHd: g?.pix, groundKey: g?.key })); })
       .catch(err => { console.error('sprites da cidade', err); if (alive) setTown(buildTown(undefined, { casa })); });
     return () => { alive = false; };
   }, []);
@@ -159,7 +173,17 @@ export default function CityDemo() {
   return <CityView town={town} />;
 }
 
+function startTile(town: Town): { tx: number; ty: number } {
+  const m = /^(\d+),(\d+)$/.exec(new URLSearchParams(window.location.search).get('pos') ?? '');
+  if (m) {
+    const tx = Number(m[1]), ty = Number(m[2]);
+    if (!town.solid[ty]?.[tx]) return { tx, ty };
+  }
+  return town.spawn;
+}
+
 function CityView({ town }: { town: Town }) {
+  const START = startTile(town);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [panel, setPanel] = useState<{ title: string; text: string } | null>(null);
   const [dialog, setDialog] = useState<{ lines: string[]; i: number } | null>(null);
@@ -173,19 +197,25 @@ function CityView({ town }: { town: Town }) {
 
   // estado do jogo fora do React (o laço de desenho lê direto)
   const g = useRef({
-    player: newWalker(town.spawn.tx, town.spawn.ty, 'north'),
-    pet: newWalker(town.spawn.tx - 1, town.spawn.ty, 'east'),
+    // ?pos=tx,ty começa em outro lugar (para prints e testes)
+    player: newWalker(START.tx, START.ty, 'north'),
+    pet: newWalker(START.tx - 1, START.ty, 'east'),
     npcs: NPCS.map(def => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, goal: null })) as Npc[],
     held: [] as Dir[],
     run: false,
     path: [] as Dir[],
     playerFrames: null as Frames | null,
+    /** Apelido e título do jogador (na plaquinha). */
+    nick: 'Você',
+    playerTitle: 'Novato' as string | undefined,
     petFrames: null as Frames | null,
     /** Chão + todos os objetos já compostos (desenhado de uma vez). */
     scene: null as HTMLCanvasElement | null,
     objs: [] as { o: Placed; c: HTMLCanvasElement; n: HTMLCanvasElement | null }[],
     /** Objetos animados: ficam fora da cena pré-composta. */
     anims: [] as { o: Placed; cs: HTMLCanvasElement[]; ns: HTMLCanvasElement[] | null }[],
+    /** Os ritmos (ms por quadro) diferentes entre os objetos animados. */
+    animRates: [] as number[],
     /** Luzes fixas + halo numa imagem só, somada à cena à noite. */
     nightOverlay: null as HTMLCanvasElement | null,
     /**
@@ -208,6 +238,8 @@ function CityView({ town }: { town: Town }) {
   const firstLook = useRef(true);
   useEffect(() => {
     try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch { /* sem armazenamento */ }
+    g.current.nick = look.apelido || 'Você';
+    g.current.dirty = true;
     if (firstLook.current) { firstLook.current = false; return; }
     let alive = true;
     loadLookFrames(look).then(f => { if (alive) { g.current.playerFrames = f; g.current.dirty = true; } }).catch(err => console.error('visual', err));
@@ -220,6 +252,7 @@ function CityView({ town }: { town: Town }) {
     g.current.anims = town.objects.filter(o => o.frames).map(o => ({
       o, cs: o.frames!.map(toCanvasHd), ns: o.nightFrames ? o.nightFrames.map(toCanvasHd) : null,
     }));
+    g.current.animRates = [...new Set(g.current.anims.map(a => a.o.frameMs ?? 500))];
     const scene = toCanvasHd(town.ground);
     const sctx = scene.getContext('2d')!;
     for (const { o, c } of g.current.objs) sctx.drawImage(c, o.x * R, o.y * R);
@@ -426,7 +459,8 @@ function CityView({ town }: { town: Town }) {
         if (n.w.from) s.dirty = true;
       }
       // quadros de animação dos objetos
-      const animKey = s.anims.map(a => Math.floor(now / (a.o.frameMs ?? 500)) % a.cs.length).join(',');
+      // (só o relógio de cada ritmo: com a fase, cada objeto troca de quadro junto com o seu ritmo)
+      const animKey = s.animRates.map(ms => Math.floor(now / ms)).join(',');
       if (animKey !== lastAnimKey) { lastAnimKey = animKey; s.dirty = true; }
       // relógio do jogo: a luz muda aos poucos; à noite os pulsos correm nos circuitos
       s.hour = (s.hour + (dt * s.clockSpeed) / MS_PER_HOUR) % 24;
@@ -545,7 +579,7 @@ function CityView({ town }: { town: Town }) {
       // personagens + objetos animados + só os objetos parados que ficam na frente de alguém
       type D = { baseY: number; draw: () => void };
       const list: D[] = [];
-      const people: { x: number; y: number; baseY: number }[] = [];
+      const people: { x: number; y: number; w: number; h: number; baseY: number }[] = [];
       const person = (w: Walker, fr: Frames | null) => {
         if (!fr) return;
         const pos = pixelPos(w, TILE);
@@ -556,13 +590,35 @@ function CityView({ town }: { town: Town }) {
         const wx = Math.round(pos.x - 8), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
         const x = wx - camX, y = wy - camY;
         if (x > vw || y > vh || x < -32 || y < -48) return;
-        people.push({ x: wx, y: wy, baseY: pos.y + 16 });
+        people.push({ x: wx, y: wy, w: 32, h: 40, baseY: pos.y + 16 });
         list.push({
           baseY: pos.y + 16,
           draw: () => {
-            ctx.fillStyle = 'rgba(30,50,60,0.3)';
-            ctx.beginPath(); ctx.ellipse(x + 16, y + fr.foot[w.dir], 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+            const tx = Math.round(pos.x / TILE), ty = Math.round(pos.y / TILE);
+            const inGrass = town.terrain[ty]?.[tx] === 'mato';
+            if (!inGrass) {
+              ctx.fillStyle = 'rgba(30,50,60,0.3)';
+              ctx.beginPath(); ctx.ellipse(x + 16, y + fr.foot[w.dir], 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+            }
+            // poeirinha nos pés de quem corre
+            if (w === s.player && s.run && w.from) {
+              const back = DELTA[w.dir];
+              for (let k = 0; k < 3; k++) {
+                const life = ((now / 260) + k / 3) % 1;
+                const dx = -back[0] * (4 + life * 8) + (k - 1) * 2, dy = -back[1] * (4 + life * 8);
+                ctx.fillStyle = `rgba(214,196,160,${0.55 * (1 - life)})`;
+                const sz = Math.round((1 + life * 2) * 2) / 2;
+                ctx.fillRect(Math.round((x + 16 + dx - sz / 2) * 2) / 2, Math.round((y + fr.foot[w.dir] - 1 + dy - life * 3) * 2) / 2, sz, sz);
+              }
+            }
             put(img, x, y);
+            // capim alto: a parte de baixo do bloco (o mato) é desenhada de novo por cima das pernas
+            if (inGrass) {
+              const src = sceneKey && L.front ? L.front : s.scene!;
+              const gx = tx * TILE, gy = ty * TILE + 8;
+              const sway = Math.floor(now / 180) % 2 && w.from ? R === 2 ? 0.5 : 1 : 0;
+              ctx.drawImage(src, gx * R, gy * R, TILE * R, 8 * R, gx - camX + sway, gy - camY, TILE, 8);
+            }
           },
         });
       };
@@ -570,18 +626,33 @@ function CityView({ town }: { town: Town }) {
       for (const n of s.npcs) person(n.w, n.frames);
       person(p, s.playerFrames);
       for (const { o, cs, ns } of s.anims) {
-        const f = Math.floor(now / (o.frameMs ?? 500)) % cs.length;
+        const f = (Math.floor(now / (o.frameMs ?? 500)) + (o.phase ?? 0)) % cs.length;
         const c = cs[f];
         if (o.x > camX + vw || o.x + c.width / R < camX || o.y > camY + vh || o.y + c.height / R < camY) continue;
         list.push({ baseY: o.baseY, draw: () => { put(c, o.x - camX, o.y - camY); nightOn(ns?.[f % ns.length], o.x - camX, o.y - camY); } });
+        people.push({ x: o.x, y: o.y, w: c.width / R, h: c.height / R, baseY: o.baseY });
       }
+      // objeto parado que fica na frente de alguém (ou de algo que se mexe) é redesenhado por cima
       for (const { o, c, n } of s.objs) {
         const front = people.some(h => o.baseY > h.baseY
-          && o.x < h.x + 32 && o.x + c.width / R > h.x && o.y < h.y + 40 && o.y + c.height / R > h.y);
+          && o.x < h.x + h.w && o.x + c.width / R > h.x && o.y < h.y + h.h && o.y + c.height / R > h.y);
         if (front) list.push({ baseY: o.baseY, draw: () => { put(c, o.x - camX, o.y - camY); nightOn(n, o.x - camX, o.y - camY); } });
       }
       list.sort((a, b) => a.baseY - b.baseY);
       for (const d of list) d.draw();
+      // vida da cidade (fumaça, brilhos, borboletas, pássaros, nuvens, vaga-lumes)
+      drawAmbient(ctx, town.fx, { now, camX, camY, vw, vh, tint: tod.tint, light: tod.light }, mapW, mapH);
+      // plaquinhas: a do jogador sempre; a dos moradores quando o jogador chega perto
+      const plateAt = (w: Walker, c: HTMLCanvasElement) => {
+        const pos = pixelPos(w, TILE);
+        const x = Math.round(pos.x + 8 - c.width / R / 2 - camX), y = Math.round(pos.y - 13 - c.height / R - camY);
+        ctx.drawImage(c, x, y, c.width / R, c.height / R);
+      };
+      for (const n of s.npcs) {
+        if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) plateAt(n.w, plateCanvas(n.def.name, n.def.title, PLATE_NPC));
+      }
+      plateAt(p, plateCanvas(s.nick, s.playerTitle, PLATE_PLAYER));
+      s.dirty = true;   // os efeitos se mexem todo quadro
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);

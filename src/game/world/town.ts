@@ -1,12 +1,13 @@
 // Planta da cidade inicial: terrenos, prédios, objetos, colisão e portas.
 // Tudo em coordenadas de bloco (16 px). A arte sai de ground/props/buildings.
 import { TILE, type Building } from './buildings';
-import { circuitPixels, groundHd, paintCircuits, paintGround, type Circuit, type GroundTextures, type Terrain } from './ground';
+import { circuitPixels, groundKey, paintCircuits, paintGround, paintGroundHd, type Circuit, type GroundTextures, type Terrain } from './ground';
 import { applyTimeOfDay, lightHalo, timeOfDay } from './light';
 import { hash, hex, Pixmap } from './pixmap';
 import { LED, PAVE } from './palette';
 import * as P from './props';
 import * as T from './props-tech';
+import { swayFrames } from './motion';
 import { findPlaque, lampNight, padTo, waterFrames, type Sprite, type WorldAssets } from './assets';
 import { drawText, textWidth } from './font';
 import { HOUSE_MODELS, NPC_HOUSES } from './content';
@@ -29,6 +30,8 @@ export interface Placed {
   /** Quadros de animação (opcional). `pix` é o primeiro. */
   frames?: Pixmap[];
   frameMs?: number;
+  /** Quadro inicial (para objetos iguais não se mexerem juntos). */
+  phase?: number;
   /** O que acende à noite (mesmo tamanho de `pix`). */
   night?: Pixmap;
   nightFrames?: Pixmap[];
@@ -57,6 +60,21 @@ export interface Town {
   circuits: [number, number][][];
   /** Poças de luz no chão (postes), somadas à noite. */
   glowSpots: GlowSpot[];
+  /** Onde acontecem os efeitos de ambiente (fumaça, brilhos, borboletas…), em pixels do mundo. */
+  fx: Ambient;
+}
+
+export interface Ambient {
+  /** Topo das chaminés. */
+  chimneys: [number, number][];
+  /** Janelas e letreiros (onde aparece um brilho de vez em quando, de dia). */
+  glints: [number, number][];
+  /** Flores e canteiros (borboletas). */
+  flowers: [number, number][];
+  /** Copa das cerejeiras (pétalas caindo). */
+  blossoms: [number, number][];
+  /** Áreas com vaga-lumes à noite. */
+  fireflies: { x0: number; y0: number; x1: number; y1: number }[];
 }
 
 export interface GlowSpot { x: number; y: number; r: number; color: readonly [number, number, number]; k: number }
@@ -66,7 +84,18 @@ export interface GlowSpot { x: number; y: number; r: number; color: readonly [nu
  * sem eles, a arte feita por código. A planta, a colisão e as portas são as
  * mesmas nos dois casos.
  */
-export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): Town {
+export interface BuildOptions {
+  /** Modelo da Sua Casa. */
+  casa?: string;
+  /**
+   * Chão hd já pintado (sem o anel e os circuitos da praça), gerado por
+   * scripts/mapa/chao-pronto.ts. Só é usado se `groundKey` bater com a planta.
+   */
+  groundHd?: Pixmap;
+  groundKey?: string;
+}
+
+export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   const A: WorldAssets = assets ?? {};
   const groundTex: GroundTextures | undefined = A['chao-grama'] && A['chao-areia'] && A['chao-calcada'] && A['chao-agua']
     && A['chao-mato'] && A['chao-flores'] && A['chao-floresta']
@@ -108,8 +137,22 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
     else o.night = list[0].night;
   };
   const buildingGlow: GlowSpot[] = [];
+  const fx: Ambient = { chimneys: [], glints: [], flowers: [], blossoms: [], fireflies: [] };
   const building = (b: Building, tx: number, ty: number) => {
     for (const gl of b.glow ?? []) buildingGlow.push({ ...gl, x: tx * TILE + gl.x, y: ty * TILE - b.extraTop + gl.y });
+    const ox = tx * TILE + (b.offsetX ?? 0), oy = ty * TILE - b.extraTop;
+    if (b.chimney) fx.chimneys.push([ox + b.chimney.x, oy + b.chimney.y]);
+    // janelas: pontos acesos da camada da noite, um a cada 10 px no máximo
+    if (b.night) {
+      const seen = new Set<string>();
+      for (let y = 0; y < b.night.h; y++) for (let x = 0; x < b.night.w; x++) {
+        if (b.night.data[(y * b.night.w + x) * 4 + 3] === 0) continue;
+        const key = `${(x / 10) | 0},${(y / 10) | 0}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        fx.glints.push([ox + x, oy + y]);
+      }
+    }
     objects.push({
       id: b.id, pix: b.pix, x: tx * TILE + (b.offsetX ?? 0), y: ty * TILE - b.extraTop, baseY: (ty + b.tilesH) * TILE,
       frames: b.frames, frameMs: b.frames ? 450 : undefined, night: b.night, nightFrames: b.nightFrames,
@@ -132,14 +175,24 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
     const left = (pix.w - sp.pix.w) >> 1;
     const want = ((doorCols[0] + doorCols[doorCols.length - 1] + 1) / 2) * TILE;
     const offsetX = Math.round(want - (left + (DOOR_X[name] ?? sp.pix.w / 2)));
-    return { id, name: title, pix, night: sp.night ? padTo(sp.night, W, H) : undefined, tilesW: tw, tilesH: th, extraTop: pix.h - th * TILE, doorCols, offsetX };
+    const ch = CHIMNEY.has(name) ? chimneyTop(sp.pix) : undefined;
+    const chimney = ch ? { x: left + ch.x, y: pix.h - sp.pix.h + ch.y } : undefined;
+    return { id, name: title, pix, night: sp.night ? padTo(sp.night, W, H) : undefined, tilesW: tw, tilesH: th, extraTop: pix.h - th * TILE, doorCols, offsetX, chimney };
   };
   /** Objeto a partir de um sprite, ou a versão por código. */
   const sprLit = (name: string, fallback: () => T.Lit): T.Lit => {
     const sp = A[name];
     return sp ? { pix: sp.pix, night: sp.night } : fallback();
   };
+  const flipCache = new Map<Sprite, Sprite>();
   const flipped = (sp: Sprite): Sprite => {
+    const hit = flipCache.get(sp);
+    if (hit) return hit;
+    const r = flip0(sp);
+    flipCache.set(sp, r);
+    return r;
+  };
+  const flip0 = (sp: Sprite): Sprite => {
     const f1 = (pm: Pixmap) => { const o = new Pixmap(pm.w, pm.h); o.blit(pm, 0, 0, true); return o; };
     const f = (pm: Pixmap) => { const o = f1(pm); if (pm.hd) o.hd = f1(pm.hd); return o; };
     return { pix: f(sp.pix), night: sp.night ? f(sp.night) : undefined };
@@ -240,8 +293,13 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
   };
   const treeAt = (kind: P.TreeKind, tx: number, ty: number, seed: number) => {
     const t = treePix(kind, seed);
-    put(`arvore-${tx}-${ty}`, t.pix, tx, ty, kind === 'arbusto' ? 1 : 2, kind === 'arbusto' ? 1 : 2);
-    objects[objects.length - 1].night = t.night;
+    // o vento passa pela cidade como uma onda (fase pela posição)
+    const frames = t.pix.hd ? swayFrames(t.pix, kind === 'arbusto' ? 1 : 2, kind === 'arbusto' ? 1 : 0.72) : undefined;
+    put(`arvore-${tx}-${ty}`, frames ?? t.pix, tx, ty, kind === 'arbusto' ? 1 : 2, kind === 'arbusto' ? 1 : 2, true, 240);
+    const o = objects[objects.length - 1];
+    o.night = t.night;
+    if (kind === 'florida') fx.blossoms.push([o.x + o.pix.w / 2, o.y + o.pix.h * 0.35]);
+    if (frames) o.phase = Math.floor(tx * 0.6 + ty * 0.25 + hash(tx, ty, 3) * 1.5);
   };
   const behind = (tx: number, ty: number, seed: number) => {
     const { pix } = treePix('pinheiro', seed);
@@ -340,6 +398,16 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
   }
   // cantinho do lago
   putLit('banco-lago', bench, 5, 41, 2, 1);
+  if (A['chao-agua']) {
+    // píer de madeira saindo da margem direita e taboas na beira do lago (arte em hd, por código)
+    const pier = pierArt();
+    objects.push({ id: 'pier', pix: pier, x: 11 * TILE - pier.w, y: 38 * TILE - 2, baseY: 35 * TILE });
+    for (const [tx, ty, seed] of [[2, 37, 1], [2, 38, 2], [11, 37, 3], [4, 35, 4], [9, 35, 5], [3, 40, 6], [10, 40, 7]] as [number, number, number][]) {
+      if (terrain[ty]?.[tx] !== 'grama' || solid[ty]?.[tx]) continue;
+      put(`taboa-${tx}-${ty}`, swayFrames(reedArt(seed), 2, 1, 8), tx, ty, 1, 1, false, 230);
+      objects[objects.length - 1].phase = seed * 3;
+    }
+  }
   // portal de boas-vindas na saída sul
   const arch = A.portal ? labeled(A.portal, 'CIDADE WIT') : T.welcomeArchLit('CIDADE WIT');
   objects.push({ id: 'portal', pix: arch.pix, night: arch.night, x: 30 * TILE + ((64 - arch.pix.w) >> 1), y: 45 * TILE - arch.pix.h + 16, baseY: 46 * TILE });
@@ -347,6 +415,16 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
   const rock = sprLit('pedra', () => ({ pix: P.rock() }));
   putLit('pedra-1', rock, 11, 36, 1, 1);
   putLit('pedra-2', rock, 60, 30, 1, 1);
+  /** Enfeite de chão; flor, mato e arbusto balançam com o vento. */
+  const SWAYS = new Set(['tulipas', 'mato', 'arbusto-florido']);
+  const decor = (id: string, name: string, tx: number, ty: number) => {
+    const sp = A[name];
+    if (name === 'tulipas' || name === 'arbusto-florido') fx.flowers.push([tx * TILE + 8, ty * TILE + 6]);
+    if (SWAYS.has(name) && sp.pix.hd) {
+      put(id, swayFrames(sp.pix, 1, 1, 8), tx, ty, 1, 1, false, 200);
+      objects[objects.length - 1].phase = Math.floor(tx * 0.6 + ty * 0.25 + hash(tx, ty, 5) * 2);
+    } else putLit(id, { pix: sp.pix, night: sp.night }, tx, ty, 1, 1, false);
+  };
   // enfeites da natureza (só com os sprites novos; dá para pisar)
   const deco: [string, number, number][] = [
     ['toco', 3, 25], ['cogumelos', 22, 13], ['pedrinhas', 2, 34], ['arbusto-florido', 26, 30], ['cogumelos', 44, 13],
@@ -355,7 +433,7 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
   ];
   for (const [name, tx, ty] of deco) {
     if (!A[name] || solid[ty]?.[tx] || terrain[ty]?.[tx] !== 'grama') continue;
-    putLit(`${name}-${tx}-${ty}`, { pix: A[name].pix, night: A[name].night }, tx, ty, 1, 1, false);
+    decor(`${name}-${tx}-${ty}`, name, tx, ty);
   }
 
   // flores e enfeites espalhados pelo gramado (longe de rua, porta e morador)
@@ -374,7 +452,7 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
       if (hash(tx, ty, 131) > 0.07) continue;
       const name = kinds[Math.floor(hash(ty, tx, 7) * kinds.length)];
       if (!A[name]) continue;
-      putLit(`enfeite-${tx}-${ty}`, { pix: A[name].pix, night: A[name].night }, tx, ty, 1, 1, false);
+      decor(`enfeite-${tx}-${ty}`, name, tx, ty);
     }
   }
 
@@ -394,20 +472,45 @@ export function buildTown(assets?: WorldAssets, opts: { casa?: string } = {}): T
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) if (terrain[y][x] === 'agua') solid[y][x] = true;
 
   // chão + anel da praça + circuitos
-  const ground = paintGround(terrain, groundTex);
+  // com texturas hd, pinta só o chão hd e a versão normal sai dele (reduzida):
+  // pintar os dois custava o dobro no carregamento
+  const ready = opts.groundHd && opts.groundKey === groundKey(terrain) && opts.groundHd.w === MAP_W * TILE * 2 ? opts.groundHd : undefined;
+  if (opts.groundHd && !ready) console.warn('chão pronto desatualizado: rode npx vite-node scripts/mapa/chao-pronto.ts');
+  const groundBig = ready ? copyOf(ready) : groundTex ? paintGroundHd(terrain, groundTex) : undefined;
+  const ground = groundBig ? halve(groundBig) : paintGround(terrain, groundTex);
+  if (groundBig) ground.hd = groundBig;
   const groundNight = new Pixmap(ground.w, ground.h);
   decoratePlaza(ground, groundNight, ring.cx, ring.cy);
   const circuits = plazaCircuits(ring.cx, ring.cy);
   paintCircuits(ground, groundNight, circuits);
-  ground.hd = groundHd(ground);
   if (ground.hd) {
     // anel e circuitos redesenhados em hd (traço fino, curva lisa), de dia e à noite
     groundNight.hd = new Pixmap(ground.hd.w, ground.hd.h);
     decoratePlaza(ground.hd, groundNight.hd, ring.cx * 2, ring.cy * 2, 2);
     paintCircuits(ground.hd, groundNight.hd, circuits.map(c => c.map(([x, y]) => [x * 2, y * 2] as [number, number])));
+    // água do lago em movimento (substitui o brilho simples)
+    const agua = A['chao-agua']?.pix.hd;
+    if (agua) {
+      const i = objects.findIndex(o => o.id === 'lago-brilho');
+      const box = { x0: 2 * TILE, y0: 34 * TILE, x1: 12 * TILE, y1: 42 * TILE };
+      const frames = lakeFrames(ground.hd, agua, box);
+      const o: Placed = { id: 'lago-agua', pix: frames[0], x: box.x0, y: box.y0, baseY: box.y0 - 64, frames, frameMs: 180 };
+      if (i >= 0) objects[i] = o; else objects.push(o);
+    }
+  }
+  // canteiros também chamam borboleta; vaga-lumes no lago, no mato alto e na beira da mata
+  for (let ty = 0; ty < MAP_H; ty++) for (let tx = 0; tx < MAP_W; tx++) {
+    if (terrain[ty][tx] === 'flores' && hash(tx, ty, 17) < 0.35) fx.flowers.push([tx * TILE + 8, ty * TILE + 6]);
+    if (terrain[ty][tx] === 'mato' && hash(tx, ty, 18) < 0.5) fx.fireflies.push({ x0: tx * TILE, y0: ty * TILE - 8, x1: tx * TILE + 16, y1: ty * TILE + 12 });
+  }
+  fx.fireflies.push({ x0: 3 * TILE, y0: 34 * TILE, x1: 11 * TILE, y1: 41 * TILE });
+  for (let tx = 4; tx < MAP_W - 4; tx += 5) {
+    fx.fireflies.push({ x0: tx * TILE, y0: 2 * TILE, x1: tx * TILE + 48, y1: 3 * TILE });
+    if (!(tx >= 26 && tx <= 36)) fx.fireflies.push({ x0: tx * TILE, y0: (MAP_H - 3) * TILE, x1: tx * TILE + 48, y1: (MAP_H - 2) * TILE });
   }
   objects.sort((a, b) => a.baseY - b.baseY);
   return {
+    fx,
     ground, objects, solid, doors, spawn: { tx: 31, ty: 23 }, terrain,
     lights: composeLights(groundNight, objects.filter(o => !o.frames)),
     groundNight,
@@ -575,4 +678,137 @@ export function addGlowSpots(halo: Pixmap, spots: GlowSpot[], down = 1): void {
       for (let c = 0; c < 3; c++) halo.data[i + c] = Math.min(255, halo.data[i + c] + s.color[c] * f);
     }
   }
+}
+
+/** Reduz uma imagem pela metade (média de cada 2 × 2). */
+function halve(pm: Pixmap): Pixmap {
+  const out = new Pixmap(pm.w >> 1, pm.h >> 1), s = pm.data, d = out.data, W = pm.w;
+  for (let y = 0; y < out.h; y++) for (let x = 0; x < out.w; x++) {
+    const i = (y * 2 * W + x * 2) * 4, j = i + W * 4, o = (y * out.w + x) * 4;
+    for (let c = 0; c < 4; c++) d[o + c] = (s[i + c] + s[i + 4 + c] + s[j + c] + s[j + 4 + c] + 2) >> 2;
+  }
+  return out;
+}
+
+/**
+ * Quadros da água do lago: cada pixel de água (azul) do chão hd pega a textura
+ * de água deslocada num vaivém lento, mantendo o claro/escuro que tinha
+ * (espuma da borda, sombra da margem), e ganha brilhinhos que correm.
+ * A arte normal (1×) fica vazia: a água só se mexe em hd.
+ */
+function lakeFrames(groundHd: Pixmap, tex: Pixmap, box: { x0: number; y0: number; x1: number; y1: number }, n = 12): Pixmap[] {
+  const W = (box.x1 - box.x0) * 2, H = (box.y1 - box.y0) * 2, X0 = box.x0 * 2, Y0 = box.y0 * 2;
+  const g = groundHd.data, t = tex.data;
+  const lum = (d: Uint8ClampedArray, i: number) => d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
+  const water: number[] = [], shade: number[] = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const gi = ((Y0 + y) * groundHd.w + X0 + x) * 4;
+    // água: azul de verdade (a grama menta também tem muito azul, mas menos que verde)
+    if (!(g[gi + 2] > 150 && g[gi + 2] > g[gi + 1] + 8 && g[gi + 2] > g[gi] + 60)) continue;
+    const ti = (((Y0 + y) % tex.h) * tex.w + ((X0 + x) % tex.w)) * 4;
+    water.push(y * W + x);
+    shade.push(Math.max(0.6, Math.min(1.7, lum(g, gi) / Math.max(1, lum(t, ti)))));
+  }
+  const frames: Pixmap[] = [];
+  for (let f = 0; f < n; f++) {
+    const a = (2 * Math.PI * f) / n;
+    const dx = Math.round(3 * Math.sin(a)), dy = Math.round(2 * Math.sin(a + Math.PI / 2));
+    const hd = new Pixmap(W, H), d = hd.data;
+    water.forEach((p, k) => {
+      const x = p % W, y = (p / W) | 0;
+      const tx = ((X0 + x + dx) % tex.w + tex.w) % tex.w, ty = ((Y0 + y + dy) % tex.h + tex.h) % tex.h;
+      const ti = (ty * tex.w + tx) * 4, o = p * 4, s = shade[k];
+      d[o] = t[ti] * s; d[o + 1] = t[ti + 1] * s; d[o + 2] = t[ti + 2] * s; d[o + 3] = 255;
+    });
+    // brilhinhos: traços claros que andam devagar para a direita
+    for (let s = 0; s < 22; s++) {
+      const bx = Math.floor(hash(s, 1, 71) * W), by = Math.floor(hash(s, 2, 71) * H);
+      const x = (bx + f * 2) % W, life = (f + s) % n;
+      if (life > n * 0.6) continue;
+      const len = life < 2 || life > n * 0.5 ? 2 : 4;
+      for (let q = 0; q < len; q++) {
+        const p = by * W + ((x + q) % W), o = p * 4;
+        if (d[o + 3] === 0) continue;
+        d[o] = 240; d[o + 1] = 251; d[o + 2] = 255;
+      }
+    }
+    const one = new Pixmap(W >> 1, H >> 1);
+    one.hd = hd;
+    frames.push(one);
+  }
+  return frames;
+}
+
+/** Sprites que têm chaminé (os outros têm antena, bandeira ou nada no telhado). */
+const CHIMNEY = new Set(['casa-azul', 'casa-chale', 'casa-laranja', 'casa-roxa', 'casa-verde', 'casa-vermelha-antena', 'casa-tijolo',
+  'casa-rosa', 'casa-padaria', 'casa-pescador', 'casa-musico', 'casa-bibliotecaria', 'casa-artista', 'casa-inventor',
+  'casa-montanha', 'casa-floricultura']);
+
+/** Topo da chaminé: o primeiro trecho cinza (pedra) no alto da arte, em px da arte normal. */
+function chimneyTop(pm: Pixmap): { x: number; y: number } | undefined {
+  const src = pm.hd ?? pm, k = pm.hd ? 2 : 1;
+  for (let y = 0; y < src.h * 0.45; y++) {
+    const xs: number[] = [];
+    for (let x = 0; x < src.w; x++) {
+      const i = (y * src.w + x) * 4, d = src.data;
+      if (d[i + 3] < 200) continue;
+      const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]), l = (d[i] + d[i + 1] + d[i + 2]) / 3;
+      if (mx - mn < 28 && l > 70 && l < 215) xs.push(x);
+    }
+    if (xs.length >= 4) return { x: xs[xs.length >> 1] / k, y: y / k };
+  }
+  return undefined;
+}
+
+/** Píer de tábuas (hd), para a margem do lago. */
+function pierArt(): Pixmap {
+  const W = 30 * 2, H = 18 * 2, hd = new Pixmap(W, H);
+  const plank = hex('#b88a52'), light = hex('#d8ac6e'), dark = hex('#7a5430'), gap = hex('#5a3c22'), post = hex('#6a4626');
+  // postes na água
+  for (const px of [4, 26, 48]) { hd.rect(px, 22, 5, 12, post); hd.rect(px, 32, 5, 2, hex('#2e6aa8')); }
+  // tábuas na vertical (o píer vai da margem para a esquerda)
+  for (let x = 0; x < W; x++) for (let y = 4; y < 24; y++) {
+    const col = x % 8;
+    const c = col === 7 ? gap : y === 4 || y === 5 ? light : y >= 21 ? dark : col === 0 ? light : plank;
+    hd.put(x, y, c);
+  }
+  // pregos e veios
+  for (let x = 3; x < W; x += 8) { hd.put(x, 7, dark); hd.put(x, 19, dark); hd.put(x + 2, 12, hex('#a07444')); hd.put(x + 1, 15, hex('#a07444')); }
+  // borda de cima e sombra na água
+  hd.rect(0, 3, W, 1, dark);
+  for (let x = 0; x < W; x++) { hd.put(x, 24, hex('#2e5e96')); hd.put(x, 25, hex('#3a74b0')); }
+  return withHd(hd);
+}
+
+/** Taboas (capim de beira d'água com a espiga marrom), hd. */
+function reedArt(seed: number): Pixmap {
+  const W = 16 * 2, H = 16 * 2, hd = new Pixmap(W, H);
+  const blade = [hex('#2f7a3a'), hex('#46a04a'), hex('#6cc460')];
+  for (let b = 0; b < 7; b++) {
+    const x0 = 6 + Math.floor(hash(seed, b, 1) * 20), h = 12 + Math.floor(hash(seed, b, 2) * 14), lean = (hash(seed, b, 3) - 0.5) * 0.5;
+    for (let y = 0; y < h; y++) {
+      const x = Math.round(x0 + lean * y);
+      hd.put(x, H - 1 - y, blade[(b + (y > h * 0.6 ? 1 : 0)) % 3]);
+      if (y < h * 0.5) hd.put(x + 1, H - 1 - y, blade[0]);
+    }
+    if (b % 2 === 0) {
+      const x = Math.round(x0 + lean * h), top = H - h - 6;
+      hd.rect(x - 1, top, 3, 6, hex('#7a4a26'));
+      hd.put(x, top, hex('#a86a38')); hd.put(x, top - 1, blade[1]); hd.put(x, top - 2, blade[1]);
+    }
+  }
+  return withHd(hd);
+}
+
+/** Arte feita direto em hd: a normal é ela reduzida, e leva a hd junto. */
+function withHd(hd: Pixmap): Pixmap {
+  const one = halve(hd);
+  one.hd = hd;
+  return one;
+}
+
+function copyOf(pm: Pixmap): Pixmap {
+  const o = new Pixmap(pm.w, pm.h);
+  o.data.set(pm.data);
+  return o;
 }

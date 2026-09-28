@@ -96,6 +96,16 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
             <Sprite frame={preview} scale={2} />
           </div>
           <div className="flex-1 min-w-0">
+            <label htmlFor="apelido" className="block text-[9px] text-[#2f6b1e] mb-1">APELIDO</label>
+            <input
+              id="apelido"
+              value={value.apelido ?? ''}
+              maxLength={14}
+              placeholder="Seu apelido"
+              onChange={e => set({ apelido: e.target.value })}
+              onKeyDown={e => e.stopPropagation()}
+              className="w-full mb-3 px-2 py-2 rounded-md border-2 border-[#2f6b1e]/40 bg-white text-[11px] text-[#1f2a1c] focus:outline-none focus:border-[#2f6b1e]"
+            />
             <div className="text-[9px] text-[#2f6b1e] mb-1">MODELO</div>
             <div className="grid grid-cols-5 gap-1.5 mb-3">
               {MODELOS.map((m, i) => (

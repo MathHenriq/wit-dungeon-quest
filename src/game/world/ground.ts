@@ -54,6 +54,9 @@ function morph(m: Mask, W: number, H: number, r: number, dil: boolean): Mask {
   const hw: number[] = [];
   for (let dy = -r; dy <= r; dy++) hw.push(Math.floor(Math.sqrt(r * r - dy * dy)));
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    // dilatar não apaga nada e erodir não acende nada: esses pixels já estão decididos
+    const own = m[y * W + x];
+    if (dil ? own : !own) { o[y * W + x] = own; continue; }
     let v = dil ? 0 : 1;
     for (let k = 0; k <= 2 * r; k++) {
       const yy = y + k - r;
@@ -230,44 +233,132 @@ type RGBt = readonly [number, number, number];
 const darken = (c: RGBt, k: number): RGBt => [c[0] * (1 - k), c[1] * (1 - k), c[2] * (1 - k)].map(Math.round) as unknown as RGBt;
 const lighten = (c: RGBt, k: number): RGBt => [c[0] + (255 - c[0]) * k, c[1] + (255 - c[1]) * k, c[2] + (255 - c[2]) * k].map(Math.round) as unknown as RGBt;
 
+/** Amplia uma máscara k× (cada pixel vira k × k). */
+function upMask(m: Mask, W: number, H: number, k: number): Mask {
+  if (k === 1) return m;
+  const o = new Uint8Array(W * k * H * k), WK = W * k;
+  for (let y = 0; y < H * k; y++) {
+    const src = ((y / k) | 0) * W;
+    for (let x = 0; x < WK; x++) o[y * WK + x] = m[src + ((x / k) | 0)];
+  }
+  return o;
+}
+
+/**
+ * Distância (em px, até `cap`) de cada pixel ao pixel da máscara mais perto
+ * olhando só na mesma linha ou coluna (as 4 direções). 0 = dentro.
+ */
+function crossDist(m: Mask, W: number, H: number, cap: number): Uint8Array {
+  const out = new Uint8Array(W * H).fill(cap);
+  for (let y = 0; y < H; y++) {
+    let run = cap;
+    for (let x = 0; x < W; x++) { const i = y * W + x; run = m[i] ? 0 : Math.min(cap, run + 1); if (run < out[i]) out[i] = run; }
+    run = cap;
+    for (let x = W - 1; x >= 0; x--) { const i = y * W + x; run = m[i] ? 0 : Math.min(cap, run + 1); if (run < out[i]) out[i] = run; }
+  }
+  // colunas percorridas linha a linha (acesso contínuo na memória)
+  const run = new Uint8Array(W).fill(cap);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x; const r = m[i] ? 0 : Math.min(cap, run[x] + 1); run[x] = r; if (r < out[i]) out[i] = r;
+  }
+  run.fill(cap);
+  for (let y = H - 1; y >= 0; y--) for (let x = 0; x < W; x++) {
+    const i = y * W + x; const r = m[i] ? 0 : Math.min(cap, run[x] + 1); run[x] = r; if (r < out[i]) out[i] = r;
+  }
+  return out;
+}
+
+/**
+ * Amplia a máscara k× e arredonda (abertura com disco de raio k) só perto da
+ * borda: é o que tira os degraus da ampliação, e o miolo não muda.
+ */
+function roundEdges(m1: Mask, W1: number, H1: number, k: number): Mask {
+  const up = upMask(m1, W1, H1, k), W = W1 * k, H = H1 * k;
+  // blocos perto da borda (na resolução normal, com 1 px de folga)
+  const edge = new Uint8Array(W1 * H1);
+  for (let y = 0; y < H1; y++) for (let x = 0; x < W1; x++) {
+    const i = y * W1 + x, v = m1[i];
+    if ((x > 0 && m1[i - 1] !== v) || (x < W1 - 1 && m1[i + 1] !== v) || (y > 0 && m1[i - W1] !== v) || (y < H1 - 1 && m1[i + W1] !== v)) {
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const X = x + dx, Y = y + dy;
+        if (X >= 0 && Y >= 0 && X < W1 && Y < H1) edge[Y * W1 + X] = 1;
+      }
+    }
+  }
+  const disk: [number, number][] = [];
+  for (let dy = -k; dy <= k; dy++) for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= k * k) disk.push([dx, dy]);
+  const at = (m: Mask, x: number, y: number) => (x < 0 || y < 0 || x >= W || y >= H ? 1 : m[y * W + x]);
+  const ero = new Uint8Array(up);
+  const pts: number[] = [];
+  for (let y = 0; y < H1; y++) for (let x = 0; x < W1; x++) {
+    if (!edge[y * W1 + x]) continue;
+    for (let yy = y * k; yy < y * k + k; yy++) for (let xx = x * k; xx < x * k + k; xx++) pts.push(yy * W + xx);
+  }
+  for (const i of pts) {
+    if (!up[i]) continue;
+    const x = i % W, y = (i / W) | 0;
+    for (const [dx, dy] of disk) if (!at(up, x + dx, y + dy)) { ero[i] = 0; break; }
+  }
+  const out = new Uint8Array(ero);
+  for (const i of pts) {
+    if (ero[i]) continue;
+    const x = i % W, y = (i / W) | 0;
+    for (const [dx, dy] of disk) {
+      const X = x + dx, Y = y + dy;
+      if (X >= 0 && Y >= 0 && X < W && Y < H && ero[Y * W + X]) { out[i] = 1; break; }
+    }
+  }
+  return out;
+}
+
+/** Ruído suave (valor interpolado numa grade de `cell` px), de 0 a 1. */
+function smoothNoise(x: number, y: number, cell: number, seed: number): number {
+  const gx = x / cell, gy = y / cell, x0 = Math.floor(gx), y0 = Math.floor(gy);
+  const fx = gx - x0, fy = gy - y0;
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  const a = hash(x0, y0, seed), b = hash(x0 + 1, y0, seed), c = hash(x0, y0 + 1, seed), d = hash(x0 + 1, y0 + 1, seed);
+  return (a + (b - a) * sx) + ((c + (d - c) * sx) - (a + (b - a) * sx)) * sy;
+}
+
 /**
  * Mesmo desenho do chão por código (formas arredondadas, borda irregular da
  * trilha, meio-fio, margem do lago), mas a cor de cada pixel vem da textura.
+ * `k` = 2 pinta em hd (2 pixels por pixel do mundo): as formas saem das
+ * mesmas máscaras, ampliadas e arredondadas de novo, e as bordas mantêm a
+ * espessura em pixels do mundo.
  */
-function paintGroundTextured(grid: Terrain[][], tex: GroundTextures): Pixmap {
+function paintGroundTextured(grid: Terrain[][], tex: GroundTextures, k = 1): Pixmap {
   const TH = grid.length, TW = grid[0].length;
-  const W = TW * TILE, H = TH * TILE;
+  const W1 = TW * TILE, H1 = TH * TILE;
+  const W = W1 * k, H = H1 * k;
   const pm = new Pixmap(W, H);
   const d = pm.data;
-  // de que textura veio cada pixel (e o quanto escureceu), para refazer em hd
-  const texList = [tex.grama, tex.mato, tex.areia, tex.calcada, tex.agua, tex.flores, tex.floresta];
-  const from = new Uint8Array(W * H), shade = new Float32Array(W * H);
   // escreve direto no buffer (o chão tem ~800 mil pixels: nada de criar array por pixel)
   const texel = (t: Pixmap, x: number, y: number) => ((y % t.h) * t.w + (x % t.w)) * 4;
-  /** Copia o texel de `t` para (x, y), escurecendo (k > 0) ou clareando (k < 0). */
-  const paint = (t: Pixmap, x: number, y: number, k = 0) => {
-    from[y * W + x] = texList.indexOf(t) + 1; shade[y * W + x] = k;
-    const s = texel(t, x, y), o = (y * W + x) * 4, td = t.data;
-    if (k === 0) { d[o] = td[s]; d[o + 1] = td[s + 1]; d[o + 2] = td[s + 2]; }
-    else if (k > 0) { d[o] = td[s] * (1 - k); d[o + 1] = td[s + 1] * (1 - k); d[o + 2] = td[s + 2] * (1 - k); }
-    else { const q = -k; d[o] = td[s] + (255 - td[s]) * q; d[o + 1] = td[s + 1] + (255 - td[s + 1]) * q; d[o + 2] = td[s + 2] + (255 - td[s + 2]) * q; }
+  /** Copia o texel de `t` para (x, y), escurecendo (s > 0) ou clareando (s < 0). */
+  const paint = (t: Pixmap, x: number, y: number, s = 0) => {
+    const i = texel(t, x, y), o = (y * W + x) * 4, td = t.data;
+    if (s === 0) { d[o] = td[i]; d[o + 1] = td[i + 1]; d[o + 2] = td[i + 2]; }
+    else if (s > 0) { d[o] = td[i] * (1 - s); d[o + 1] = td[i + 1] * (1 - s); d[o + 2] = td[i + 2] * (1 - s); }
+    else { const q = -s; d[o] = td[i] + (255 - td[i]) * q; d[o + 1] = td[i + 1] + (255 - td[i + 1]) * q; d[o + 2] = td[i + 2] + (255 - td[i + 2]) * q; }
     d[o + 3] = 255;
   };
-  const solid = (x: number, y: number, c: RGBt) => { from[y * W + x] = 0; const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255; };
+  const solid = (x: number, y: number, c: RGBt) => { const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255; };
   /** Mistura a cor atual do pixel com `c`. */
   const blend = (x: number, y: number, c: RGBt, t: number) => {
-    from[y * W + x] = 0;
     const o = (y * W + x) * 4;
     d[o] += (c[0] - d[o]) * t; d[o + 1] += (c[1] - d[o + 1]) * t; d[o + 2] += (c[2] - d[o + 2]) * t;
   };
-  const darkenAt = (x: number, y: number, k: number) => {
-    const i = y * W + x, o = i * 4;
-    if (shade[i] >= 0) shade[i] = 1 - (1 - shade[i]) * (1 - k); else from[i] = 0;
-    d[o] *= 1 - k; d[o + 1] *= 1 - k; d[o + 2] *= 1 - k;
+  const darkenAt = (x: number, y: number, s: number) => { const o = (y * W + x) * 4; d[o] *= 1 - s; d[o + 1] *= 1 - s; d[o + 2] *= 1 - s; };
+  /** Máscara de um terreno já na resolução final, com o contorno refeito em hd. */
+  const final = (m1: Mask) => (k === 1 ? m1 : roundEdges(m1, W1, H1, k));
+  /** Algum dos 4 vizinhos a distância 1..n está dentro? */
+  const band = (inside: (x: number, y: number) => boolean, x: number, y: number, n: number) => {
+    for (let t = 1; t <= n; t++) if (inside(x, y + t) || inside(x, y - t) || inside(x - t, y) || inside(x + t, y)) return true;
+    return false;
   };
 
-  // ── grama (fundo de tudo): cópia por linha ──
-  from.fill(1);
+  // ── grama (fundo de tudo): cópia por linha, com manchas mais claras e mais escuras ──
   const g = tex.grama;
   for (let y = 0; y < H; y++) {
     const row = (y % g.h) * g.w * 4;
@@ -276,13 +367,53 @@ function paintGroundTextured(grid: Terrain[][], tex: GroundTextures): Pixmap {
       d.set(g.data.subarray(row, row + n * 4), (y * W + x) * 4);
     }
   }
+  // manchas grandes e suaves (tira a cara de textura repetida)
+  const patch = 40 * k, bs = 2 * k, BW = Math.ceil(W / bs);
+  const shadeOf = new Float32Array(BW * Math.ceil(H / bs));
+  for (let by = 0; by * bs < H; by++) for (let bx = 0; bx < BW; bx++) {
+    const x = bx * bs, y = by * bs;
+    const v = smoothNoise(x, y, patch, 21) * 0.7 + smoothNoise(x, y, patch * 0.37, 22) * 0.3;
+    shadeOf[by * BW + bx] = (v - 0.5) * 0.16;
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const s = shadeOf[((y / bs) | 0) * BW + ((x / bs) | 0)];
+    if (Math.abs(s) < 0.015) continue;
+    const o = (y * W + x) * 4;
+    if (s > 0) { d[o] *= 1 - s; d[o + 1] *= 1 - s * 0.7; d[o + 2] *= 1 - s; }
+    else { const q = -s * 0.8; d[o] += (255 - d[o]) * q * 0.6; d[o + 1] += (255 - d[o + 1]) * q; d[o + 2] += (235 - d[o + 2]) * q * 0.5; }
+  }
 
   // ── chão de floresta (borda do mapa) ──
-  const forest = maskOf(grid, 'floresta', W, H);
-  for (let i = 0; i < W * H; i++) if (forest[i]) paint(tex.floresta, i % W, (i / W) | 0);
+  const forest1 = maskOf(grid, 'floresta', W1, H1);
+  const inForest = (x: number, y: number) => forest1[((y / k) | 0) * W1 + ((x / k) | 0)] === 1;
+  // a borda da mata não é reta: avança e recua na grama (ruído), com uma
+  // faixa mais escura de sombra das árvores
+  const wob = 5 * k;
+  for (let ty = 0; ty < TH; ty++) for (let tx = 0; tx < TW; tx++) {
+    const isF = grid[ty][tx] === 'floresta';
+    const nearF = !isF && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => grid[ty + dy]?.[tx + dx] === 'floresta');
+    if (!isF && !nearF) continue;
+    const inner = isF && [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]].every(([dx, dy]) => (grid[ty + dy]?.[tx + dx] ?? 'floresta') === 'floresta');
+    if (inner) {
+      for (let y = ty * TILE * k; y < (ty + 1) * TILE * k; y++) for (let x = tx * TILE * k; x < (tx + 1) * TILE * k; x++) paint(tex.floresta, x, y);
+      continue;
+    }
+    for (let y = ty * TILE * k; y < (ty + 1) * TILE * k; y++) for (let x = tx * TILE * k; x < (tx + 1) * TILE * k; x++) {
+      // distância (px) até a grama mais perto, com sinal: + dentro da mata
+      let dIn = wob + 1;
+      for (let t = 0; t <= wob; t++) {
+        const o = inForest(x, y);
+        if (o !== inForest(x + t, y) || o !== inForest(x - t, y) || o !== inForest(x, y + t) || o !== inForest(x, y - t)) { dIn = o ? t : -t; break; }
+      }
+      if (dIn > wob) { if (isF) paint(tex.floresta, x, y); continue; }
+      const n = (smoothNoise(x, y, 9 * k, 77) - 0.5) * 2 * wob + (hash(x >> 1, y >> 1, 78) - 0.5) * k;
+      if (dIn + n > 0) paint(tex.floresta, x, y, dIn + n < 2 * k ? -0.08 : 0);
+      else if (dIn + n > -2 * k) darkenAt(x, y, 0.22);
+    }
+  }
 
   // ── trilha de areia: borda irregular, grama "levantada" com contorno ──
-  let path = round(morph(morph(maskOf(grid, 'trilha', W, H), W, H, 3, true), W, H, 3, false), W, H, 3);
+  let path = final(round(morph(morph(maskOf(grid, 'trilha', W1, H1), W1, H1, 3, true), W1, H1, 3, false), W1, H1, 3));
   {
     const jag = new Uint8Array(path);
     for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
@@ -296,124 +427,149 @@ function paintGroundTextured(grid: Terrain[][], tex: GroundTextures): Pixmap {
     path = jag;
   }
   const inP = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && path[y * W + x] === 1;
+  const pd = crossDist(path, W, H, 2 * k + 1);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const i = y * W + x;
     if (!path[i]) {
-      if (forest[i]) continue;
-      const touch = inP(x, y + 1) || inP(x, y - 1) || inP(x - 1, y) || inP(x + 1, y);
-      if (touch) { darkenAt(x, y, 0.32); continue; }
-      const near = inP(x, y + 2) || inP(x, y - 2) || inP(x - 2, y) || inP(x + 2, y);
-      if (near) paint(tex.grama, x, y, -0.18);
+      if (pd[i] > 2 * k || inForest(x, y)) continue;
+      if (pd[i] <= k) darkenAt(x, y, 0.32);
+      else paint(tex.grama, x, y, -0.18);
       continue;
     }
-    if (!inP(x, y - 1) || !inP(x, y - 2)) paint(tex.areia, x, y, 0.16);        // sombra da grama na borda de cima
-    else if (!inP(x - 1, y) || !inP(x + 1, y)) paint(tex.areia, x, y, 0.08);
-    else if (!inP(x, y + 1)) paint(tex.areia, x, y, -0.15);
-    else paint(tex.areia, x, y);
+    // sombra da grama na borda de cima, luz embaixo; pedrinhas esparsas
+    if (!inP(x, y - k) || !inP(x, y - 2 * k)) paint(tex.areia, x, y, 0.16);
+    else if (!inP(x - k, y) || !inP(x + k, y)) paint(tex.areia, x, y, 0.08);
+    else if (!inP(x, y + k)) paint(tex.areia, x, y, -0.15);
+    else {
+      paint(tex.areia, x, y);
+      const v = smoothNoise(x, y, 18 * k, 31);
+      if (v > 0.62) darkenAt(x, y, (v - 0.62) * 0.12);
+    }
+  }
+  if (k > 1) {
+    // pedrinhas na areia (só em hd: 2 × 2 com brilho)
+    for (let ty = 0; ty < TH; ty++) for (let tx = 0; tx < TW; tx++) {
+      if (grid[ty][tx] !== 'trilha') continue;
+      for (let q = 0; q < 2; q++) {
+        if (hash(tx, ty, 40 + q) > 0.14) continue;
+        const x = tx * TILE * k + 4 + Math.floor(hash(ty, tx, 50 + q) * (TILE * k - 8));
+        const y = ty * TILE * k + 4 + Math.floor(hash(tx + 7, ty, 60 + q) * (TILE * k - 8));
+        if (!inP(x - 3, y) || !inP(x + 4, y) || !inP(x, y - 3) || !inP(x, y + 4)) continue;
+        solid(x, y, [184, 158, 118]); solid(x + 1, y, [184, 158, 118]); solid(x, y + 1, [160, 134, 98]); solid(x + 1, y + 1, [160, 134, 98]);
+        solid(x, y - 1 < 0 ? y : y - 1, [236, 214, 170]);
+      }
+    }
   }
 
   // ── calçada: textura + meio-fio de pedra e sombra na grama ──
-  const pave = maskOf(grid, 'calcada', W, H);
-  const inV = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && pave[y * W + x] === 1;
-  const curb: RGBt = [138, 142, 156], curbHi: RGBt = [214, 218, 226], curbLine: RGBt = [96, 98, 114];
-  const bv = boxOf(pave, W, H, 1);
+  const pave1 = maskOf(grid, 'calcada', W1, H1);
+  const inV = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && pave1[((y / k) | 0) * W1 + ((x / k) | 0)] === 1;
+  const curb: RGBt = [138, 142, 156], curbHi: RGBt = [214, 218, 226], curbLine: RGBt = [96, 98, 114], curbMid: RGBt = [176, 180, 192];
+  const bv1 = boxOf(pave1, W1, H1, 2), bv = { x0: bv1.x0 * k, y0: bv1.y0 * k, x1: bv1.x1 * k + k - 1, y1: bv1.y1 * k + k - 1 };
   for (let y = bv.y0; y <= bv.y1; y++) for (let x = bv.x0; x <= bv.x1; x++) {
-    const i = y * W + x;
-    if (!pave[i]) {
-      if (inV(x, y - 1) && !forest[i]) darkenAt(x, y, 0.3);   // sombra do meio-fio
+    if (!inV(x, y)) {
+      if (inForest(x, y)) continue;
+      for (let t = 1; t <= k; t++) if (inV(x, y - t)) { darkenAt(x, y, 0.3); break; }   // sombra do meio-fio
       continue;
     }
-    if (!inV(x, y + 1)) solid(x, y, curbLine);
-    else if (!inV(x, y + 2)) solid(x, y, curb);
-    else if (!inV(x, y - 1)) solid(x, y, curbHi);
-    else if (!inV(x - 1, y)) solid(x, y, curbHi);
-    else if (!inV(x + 1, y)) solid(x, y, curb);
+    if (!inV(x, y + k)) solid(x, y, curbLine);
+    else if (!inV(x, y + 2 * k)) solid(x, y, k > 1 && !inV(x, y + 2 * k - 1) ? curbMid : curb);
+    else if (!inV(x, y - k)) solid(x, y, curbHi);
+    else if (!inV(x - k, y)) solid(x, y, curbHi);
+    else if (!inV(x + k, y)) solid(x, y, curb);
     else paint(tex.calcada, x, y);
   }
 
   // ── canteiros de flores: textura com borda de madeira ──
-  const bed = maskOf(grid, 'flores', W, H);
-  const inB = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && bed[y * W + x] === 1;
+  const bed1 = maskOf(grid, 'flores', W1, H1);
+  const inB = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && bed1[((y / k) | 0) * W1 + ((x / k) | 0)] === 1;
   const wood: RGBt = [150, 98, 58], woodHi: RGBt = [196, 142, 88], woodLine: RGBt = [92, 58, 36];
-  const bb = boxOf(bed, W, H, 0);
+  const bb1 = boxOf(bed1, W1, H1, 0), bb = { x0: bb1.x0 * k, y0: bb1.y0 * k, x1: bb1.x1 * k + k - 1, y1: bb1.y1 * k + k - 1 };
   for (let y = bb.y0; y <= bb.y1; y++) for (let x = bb.x0; x <= bb.x1; x++) {
-    if (!bed[y * W + x]) continue;
-    if (!inB(x, y + 1)) solid(x, y, woodLine);
-    else if (!inB(x, y + 2)) solid(x, y, wood);
-    else if (!inB(x, y - 1)) solid(x, y, woodHi);
-    else if (!inB(x - 1, y) || !inB(x + 1, y)) solid(x, y, wood);
+    if (!inB(x, y)) continue;
+    if (!inB(x, y + k)) solid(x, y, woodLine);
+    else if (!inB(x, y + 2 * k)) solid(x, y, wood);
+    else if (!inB(x, y - k)) solid(x, y, woodHi);
+    else if (!inB(x - k, y) || !inB(x + k, y)) solid(x, y, (x & 7) === 0 && k > 1 ? woodLine : wood);
     else paint(tex.flores, x, y);
   }
 
   // ── mato alto: textura dentro de um contorno arredondado ──
-  const tall = smooth(maskOf(grid, 'mato', W, H), W, H, 6);
+  const tall = final(smooth(maskOf(grid, 'mato', W1, H1), W1, H1, 6));
   const inM = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && tall[y * W + x] === 1;
   const bm = boxOf(tall, W, H, 0);
   for (let y = bm.y0; y <= bm.y1; y++) for (let x = bm.x0; x <= bm.x1; x++) {
     if (!tall[y * W + x]) continue;
-    const edge = !inM(x - 1, y) || !inM(x + 1, y) || !inM(x, y - 1) || !inM(x, y + 1);
+    const edge = !inM(x - k, y) || !inM(x + k, y) || !inM(x, y - k) || !inM(x, y + k);
     paint(tex.mato, x, y, edge ? 0.45 : 0);
   }
 
   // ── água: margem de terra, espuma clara na borda, sombra embaixo da margem de cima ──
-  const water = smooth(maskOf(grid, 'agua', W, H), W, H, 10);
+  const water = final(smooth(maskOf(grid, 'agua', W1, H1), W1, H1, 10));
   const inW = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && water[y * W + x] === 1;
   const bank: RGBt = [176, 146, 98], bankDark: RGBt = [128, 100, 64];
-  const bw = boxOf(water, W, H, 5);
+  const bw = boxOf(water, W, H, 5 * k);
+  const near = (x: number, y: number, r: number) =>
+    inW(x - r, y) || inW(x + r, y) || inW(x, y - r) || inW(x, y + r);
+  const nearDiag = (x: number, y: number, r: number) =>
+    inW(x - r, y - r) || inW(x + r, y + r) || inW(x - r, y + r) || inW(x + r, y - r);
   for (let y = bw.y0; y <= bw.y1; y++) for (let x = bw.x0; x <= bw.x1; x++) {
     if (!inW(x, y)) {
-      if (!(inW(x - 4, y) || inW(x + 4, y) || inW(x, y - 4) || inW(x, y + 4) || inW(x - 3, y - 3) || inW(x + 3, y + 3) || inW(x - 3, y + 3) || inW(x + 3, y - 3))) continue;
-      const d1 = inW(x - 1, y) || inW(x + 1, y) || inW(x, y - 1) || inW(x, y + 1);
-      const d3 = inW(x - 3, y) || inW(x + 3, y) || inW(x, y - 3) || inW(x, y + 3) || inW(x - 2, y - 2) || inW(x + 2, y + 2) || inW(x - 2, y + 2) || inW(x + 2, y - 2);
-      if (d1) solid(x, y, bankDark);
-      else if (d3) { paint(tex.areia, x, y); blend(x, y, bank, 0.35); }
+      let r0 = 0;
+      for (let r = 1; r <= 4 * k && !r0; r++) if (near(x, y, r) || nearDiag(x, y, Math.ceil(r * 0.75))) r0 = r;
+      if (!r0) continue;
+      if (r0 <= k) solid(x, y, bankDark);
+      else if (r0 <= 3 * k) { paint(tex.areia, x, y); blend(x, y, bank, 0.35); }
       else darkenAt(x, y, 0.25);
       continue;
     }
-    const e = !inW(x + 1, y) || !inW(x - 1, y) || !inW(x, y + 1) || !inW(x, y - 1);
+    const e = band((xx, yy) => !inW(xx, yy), x, y, k);
     if (e) paint(tex.agua, x, y, -0.45);
-    else if (!inW(x, y - 2) || !inW(x, y - 3) || !inW(x, y - 4)) paint(tex.agua, x, y, 0.2);
+    else if (!inW(x, y - 2 * k) || !inW(x, y - 3 * k) || !inW(x, y - 4 * k)) paint(tex.agua, x, y, 0.2);
     else paint(tex.agua, x, y);
   }
-  if (texList.every(t => t.hd)) HD_SOURCE.set(pm, { from, shade, snap: new Uint8ClampedArray(d), tex: texList.map(t => t.hd!) });
+  // vitórias-régias (desenho de 1 px do mundo, ampliado em hd)
+  const pad = ['.oooo.', 'ollllo', 'olloll', '.oooo.'];
   for (let ty = 0; ty < TH; ty++) for (let tx = 0; tx < TW; tx++) {
     if (grid[ty][tx] !== 'agua' || hash(tx, ty, 9) < 0.72) continue;
-    const X = tx * TILE + 4, Y = ty * TILE + 5;
-    if (!inW(X, Y) || !inW(X + 8, Y + 6)) continue;
-    pm.stamp(['.oooo.', 'ollllo', 'olloll', '.oooo.'], X, Y, { o: TREE.dark, l: TREE.light });
-    if (hash(ty, tx, 2) > 0.5) pm.put(X + 2, Y + 1, mix(TREE.hi, [255, 180, 210], 0.6));
+    const X = (tx * TILE + 4) * k, Y = (ty * TILE + 5) * k;
+    if (!inW(X, Y) || !inW(X + 8 * k, Y + 6 * k)) continue;
+    pad.forEach((row, ry) => [...row].forEach((ch, rx) => {
+      if (ch === '.') return;
+      const c = ch === 'o' ? TREE.dark : TREE.light;
+      for (let yy = 0; yy < k; yy++) for (let xx = 0; xx < k; xx++) solid(X + rx * k + xx, Y + ry * k + yy, c as unknown as RGBt);
+    }));
+    if (hash(ty, tx, 2) > 0.5) {
+      const c = mix(TREE.hi, [255, 180, 210], 0.6) as unknown as RGBt;
+      for (let yy = 0; yy < k; yy++) for (let xx = 0; xx < k; xx++) solid(X + 2 * k + xx, Y + k + yy, c);
+    }
   }
   return pm;
 }
 
-const HD_SOURCE = new WeakMap<Pixmap, { from: Uint8Array; shade: Float32Array; snap: Uint8ClampedArray; tex: Pixmap[] }>();
-
 /**
- * Versão hd (2×) do chão pintado com textura: onde o pixel ainda é o que a
- * textura deu, usa a textura hd (mais detalhe); o resto (bordas, meio-fio,
- * enfeites e circuitos pintados depois) é ampliado da normal. Sem texturas
- * hd, devolve undefined.
+ * Versão do desenho do chão: suba quando mudar o jeito de pintar (este
+ * arquivo) ou as texturas, para o chão pronto (scripts/mapa/chao-pronto.ts)
+ * deixar de valer e ser gerado de novo.
  */
-export function groundHd(pm: Pixmap): Pixmap | undefined {
-  const src = HD_SOURCE.get(pm);
-  if (!src) return undefined;
-  const { from, shade, snap, tex } = src;
-  const W = pm.w, H = pm.h, out = new Pixmap(W * 2, H * 2), o = out.data, d = pm.data;
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = y * W + x, p = i * 4;
-    const t = from[i];
-    const same = t > 0 && d[p] === snap[p] && d[p + 1] === snap[p + 1] && d[p + 2] === snap[p + 2];
-    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
-      const X = x * 2 + dx, Y = y * 2 + dy, q = (Y * W * 2 + X) * 4;
-      if (same) {
-        const tx = tex[t - 1], s = ((Y % tx.h) * tx.w + (X % tx.w)) * 4, td = tx.data, k = shade[i];
-        if (k >= 0) { o[q] = td[s] * (1 - k); o[q + 1] = td[s + 1] * (1 - k); o[q + 2] = td[s + 2] * (1 - k); }
-        else { const c = -k; o[q] = td[s] + (255 - td[s]) * c; o[q + 1] = td[s + 1] + (255 - td[s + 1]) * c; o[q + 2] = td[s + 2] + (255 - td[s + 2]) * c; }
-      } else { o[q] = d[p]; o[q + 1] = d[p + 1]; o[q + 2] = d[p + 2]; }
-      o[q + 3] = 255;
-    }
-  }
-  return out;
+export const GROUND_VERSION = 3;
+
+/** Chave do chão: a planta dos terrenos + a versão do desenho. */
+export function groundKey(grid: Terrain[][]): string {
+  let h = 2166136261;
+  const str = `${GROUND_VERSION}|` + grid.map(r => r.map(t => t[0] + t[1]).join('')).join('/');
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
+/** O chão em hd (2×), pintado com as texturas hd; sem elas, undefined. */
+export function paintGroundHd(grid: Terrain[][], tex: GroundTextures): Pixmap | undefined {
+  const all = [tex.grama, tex.mato, tex.areia, tex.calcada, tex.agua, tex.flores, tex.floresta];
+  if (!all.every(t => t.hd)) return undefined;
+  return paintGroundTextured(grid, {
+    grama: tex.grama.hd!, mato: tex.mato.hd!, areia: tex.areia.hd!, calcada: tex.calcada.hd!,
+    agua: tex.agua.hd!, flores: tex.flores.hd!, floresta: tex.floresta.hd!,
+  }, 2);
 }
 
 // ─────────────────────── circuitos na calçada ───────────────────────

@@ -36,6 +36,7 @@ Decisões já tomadas (não reabrir sem o Matheus pedir):
 - Evolução de cartas: fica para depois do básico.
 
 **Plano completo do WIT 2 (fases, economia, cidade, professor): `docs/plano-wit2.md`.**
+Prompts do GPT: personagem `docs/prompts-personagem.md`; interiores e pets `docs/prompts-interiores.md`.
 Regras completas: `docs/regras-tcg.md`. Lista das cartas: `docs/cartas-tcg.md`.
 
 **Em aberto:** conteúdo do pacotinho (proposta em `docs/regras-tcg.md`:
@@ -62,6 +63,9 @@ construtor de deck.
 | Objetos tecnológicos no verde WIT (postes, totens, portal, fonte, mural) | `src/game/world/props-tech.ts` |
 | Fonte pixel 5×7 dos letreiros | `src/game/world/font.ts` |
 | **Resolução hd**: a lógica é em pixels do mundo (1 bloco = 16), mas o jogo desenha em 2× (`R` em `CityDemo.tsx`). Cada `Pixmap` pode levar `.hd` (a mesma arte em 2×); `padTo`, espelhar, placas e o chão (`groundHd`) repassam a hd; sem ela, a arte é ampliada. Testes e scripts de mapa continuam em 1× | `src/game/world/{pixmap,assets,ground,town}.ts` |
+| **Chão pronto**: o chão hd da cidade vem pintado em `public/game/world/cidade/chao.webp` (o jogo não calcula ao abrir). Mudou a planta, o desenho do chão (`GROUND_VERSION` em `ground.ts`) ou as texturas? Rode `npx vite-node scripts/mapa/chao-pronto.ts` (um teste avisa quando está velho) | `scripts/mapa/chao-pronto.ts` |
+| **Vida da cidade**: árvores, flores, mato e taboas balançando (`motion.ts`, quadros hd com fase pela posição); água do lago em movimento (`lakeFrames` em `town.ts`); fumaça nas chaminés, brilho nas janelas, borboletas, pétalas, pássaros, sombra de nuvem e vaga-lumes (`ambient.ts`, pontos em `town.fx`); capim alto cobre as pernas; poeira ao correr | `src/game/world/{motion,ambient}.ts` |
+| Plaquinha de nome e título sobre o jogador (e dos moradores quando chega perto); apelido na tela VISUAL | `src/game/world/nameplate.ts` |
 | Dia e noite (tinta por hora, halo das luzes) | `src/game/world/light.ts` (`/cidade-demo?hora=22&velocidade=20`; tecla T avança 2 h) |
 | Planta da cidade (terrenos, prédios, colisão, portas) | `src/game/world/town.ts` (+ testes em `__tests__/town.test.ts`): 64×48 blocos em faixas (prédios em cima, rua embaixo), praça da Torre no meio; `DOOR_X` guarda onde fica a porta de cada sprite para o caminho cair embaixo dela; `?casa=modelo-gamer` troca o modelo da Sua Casa |
 | Movimento em grade, caminho, troca de cor do boneco | `src/game/world/{movement,recolor}.ts` |
@@ -84,6 +88,8 @@ são do sistema anterior ao TCG: **não servem de referência**.
   alterada passa por aqui (faixa aceitável: ~40% a 60%).
 - `npx vite-node scripts/tcg-catalogo.ts <wr.json>` — regenera `docs/cartas-tcg.md`.
 - `npx vite-node scripts/mapa/render-cidade.ts -- <pasta> 2` — PNG da cidade inteira + recortes do tamanho da tela (dia, noite, tarde; `--codigo` usa a arte por código).
+- `npx vite-node scripts/mapa/render-hd.ts -- <pasta> [x,y ...]` — a cidade como o jogo desenha (2×) e recortes de tela em cada x,y (blocos).
+- `/cidade-demo?pos=12,41` começa o boneco no bloco (12,41) (prints e testes).
 - `npx vite-node scripts/mapa/folha-predios.ts -- saida.png 3` e `folha-objetos.ts` — folhas de revisão.
 - `node scripts/mapa/prints-cidade.mjs <pasta>` e `video-cidade.mjs <pasta> 20` — prints e vídeo da cidade
   jogável (precisa do `vite` rodando em 127.0.0.1:5199 e de um `.env` com as chaves públicas do Supabase).

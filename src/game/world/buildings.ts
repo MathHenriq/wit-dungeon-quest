@@ -27,4 +27,6 @@ export interface Building {
   glow?: { x: number; y: number; r: number; color: readonly [number, number, number]; k: number }[];
   /** Deslocamento horizontal da arte (px) para a porta cair no meio do bloco da porta. */
   offsetX?: number;
+  /** Topo da chaminé (px, relativo à arte), de onde sai fumaça. */
+  chimney?: { x: number; y: number };
 }
