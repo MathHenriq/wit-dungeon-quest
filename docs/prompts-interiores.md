@@ -113,7 +113,7 @@ A sprite sheet of 8 separate objects for a cozy gamer home, top-down 3/4 view pi
 
 **casa-parede-deco.png**
 ```
-A sprite sheet of 8 separate objects for decorating the wall of a cozy home, seen from the front, top-down 3/4 view pixel art, each object isolated with plenty of empty space between them, arranged in a clean grid of 4 columns and 2 rows: 1) a window with light curtains, 2) a round window, 3) a framed poster of a trading card, 4) a wall clock, 5) a wall shelf with trophies and card boxes, 6) a framed family picture with a sun, 7) a cork board with photos and drawings, 8) a small fireplace with a cozy fire. Style of Pokémon HeartGold/SoulSilver interiors, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No readable text, no shadow on the background.
+A sprite sheet of 8 separate objects for decorating the wall of a cozy home, seen from the front, top-down 3/4 view pixel art, each object isolated with plenty of empty space between them, arranged in a clean grid of 4 columns and 2 rows: 1) a window with light curtains, 2) a round window, 3) a framed poster of a trading card showing an original cute creature (not from any existing franchise), 4) a wall clock, 5) a wall shelf with trophies and plain colored card boxes (no logos), 6) a framed family picture with a sun, 7) a cork board with photos and drawings, 8) a small fireplace with a cozy fire. Style of Pokémon HeartGold/SoulSilver interiors, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No readable text, no shadow on the background.
 ```
 
 **casa-extras.png**
