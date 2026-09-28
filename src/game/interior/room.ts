@@ -62,8 +62,18 @@ export interface RoomNpc {
   seated?: boolean;
 }
 
-export type ExitKind = 'cidade' | 'subir';
+/**
+ * Para onde a saída leva: a cidade, o próximo andar da Torre ou outra sala
+ * ("sala:treino"). Em bloco livre, vale pisar; em bloco ocupado (escada,
+ * portal), vale esbarrar ou apertar o botão olhando para ele.
+ */
+export type ExitKind = 'cidade' | 'subir' | `sala:${string}`;
 export interface Exit { tx: number; ty: number; to: ExitKind }
+
+/** Ponto de conversa sem personagem (vitrine de loja, balcão, portal). */
+export interface Talk { tiles: [number, number][]; lines: string[] }
+/** Faixa de outro piso por cima do piso da sala (tapete vermelho do castelo). */
+export interface Patch { piso: string; tx: number; ty: number; w: number; h: number }
 
 export interface Room {
   id: string;
@@ -79,6 +89,10 @@ export interface Room {
   spawn: { tx: number; ty: number; dir: Dir };
   /** Saídas: pisar na porta (cidade) ou esbarrar na escada (subir). */
   exits: Exit[];
+  talks?: Talk[];
+  patches?: Patch[];
+  /** Onde aparece quem chega de outra sala (pelo id dela). */
+  entries?: Record<string, { tx: number; ty: number; dir: Dir }>;
 }
 
 export function layerOf(m: Manifest, id: string): Layer {
@@ -364,3 +378,211 @@ export function sanitizeHouse(m: Manifest, items: unknown): Placed[] | null {
   }
   return out;
 }
+
+// ── Salas dos prédios da cidade ──
+
+const npc = (id: string, sprite: string, tx: number, ty: number, name: string, title: string, lines: string[], extra: Partial<RoomNpc> = {}): RoomNpc =>
+  ({ id, sprite, tx, ty, dir: 'south', name, title, lines, talk: [[tx, ty]], ...extra });
+
+/** Blocos de uma pegada (para puxar conversa pela mesa ou pelo balcão). */
+const area = (tx: number, ty: number, w: number, h: number): [number, number][] => {
+  const out: [number, number][] = [];
+  for (let y = ty; y < ty + h; y++) for (let x = tx; x < tx + w; x++) out.push([x, y]);
+  return out;
+};
+/** Desafiante sentado atrás de uma mesa 3 × 2 cujo canto é (tx, ty). */
+const seatedAt = (id: string, sprite: string, tx: number, ty: number, name: string, title: string, lines: string[]): RoomNpc =>
+  npc(id, sprite, tx + 1, ty - 1, name, title, lines, { talk: [[tx + 1, ty - 1], ...area(tx, ty, 3, 2)], seated: true });
+
+/**
+ * Arena, saguão: como o saguão de um campeonato. Mesas de desafio em que os
+ * jogadores esperam alguém (lâmpada verde = livre, vermelha = em duelo),
+ * recepção, placar e telão; o portal leva ao Salão de Treino Rank S.
+ */
+export function arenaRoom(): Room {
+  const items: Placed[] = [
+    { id: 'placar-ranking', tx: 2, ty: 3 }, { id: 'trofeu-pedestal', tx: 6, ty: 3 },
+    { id: 'recepcao', tx: 9, ty: 4 }, { id: 'trofeu-pedestal', tx: 15, ty: 3 }, { id: 'telao', tx: 17, ty: 3 },
+    { id: 'refletor', tx: 0, ty: 3 }, { id: 'refletor', tx: 21, ty: 3 },
+    { id: 'mesa-desafio-livre', tx: 2, ty: 8 }, { id: 'mesa-desafio-ocupada', tx: 9, ty: 8 }, { id: 'mesa-desafio-prata', tx: 16, ty: 8 },
+    { id: 'mesa-desafio-prata-ocupada', tx: 2, ty: 12 }, { id: 'mesa-vip', tx: 9, ty: 12 },
+    { id: 'portal-azul', tx: 18, ty: 12 },
+    { id: 'sofa-saguao', tx: 0, ty: 6 }, { id: 'planta-saguao', tx: 0, ty: 15 }, { id: 'maquina-bebidas', tx: 21, ty: 6 },
+    { id: 'bebedouro', tx: 21, ty: 8 }, { id: 'banco-espera', tx: 6, ty: 15 }, { id: 'banco-espera', tx: 14, ty: 15 },
+    { id: 'planta-saguao', tx: 21, ty: 15 },
+  ];
+  const lines = ['Estou esperando um desafiante. Quer duelar?', 'Os duelos da Arena chegam em breve: aqui você vai enfrentar o deck dos colegas.'];
+  return {
+    id: 'arena', title: 'Arena · Saguão', w: 22, h: 17, wallRows: 3,
+    piso: 'piso-arena-piso-1', parede: 'parede-arena-parede-1', items,
+    npcs: [
+      npc('recepcao', 'npc-desafiante-10', 10, 3, 'Rafa', 'Recepção da Arena', [
+        'Bem-vinda à Arena! Mesa com luz verde: o jogador está livre. Luz vermelha: em duelo.',
+        'O portal azul leva ao Salão de Treino dos Rank S. Só entra quem tem coragem!',
+      ], { talk: [[10, 3], ...area(9, 4, 3, 1)], seated: true }),
+      seatedAt('mesa-1', 'npc-desafiante-04', 2, 8, 'Nina', 'Esperando desafio', lines),
+      seatedAt('mesa-2', 'npc-desafiante-05', 9, 8, 'Theo', 'Em duelo', ['Agora não, estou no meio de um duelo!']),
+      seatedAt('mesa-3', 'npc-desafiante-08', 16, 8, 'Maya', 'Esperando desafio', lines),
+      seatedAt('mesa-4', 'npc-desafiante-01', 2, 12, 'Kaio', 'Em duelo', ['Shh... é a vez dele jogar.']),
+      seatedAt('mesa-5', 'npc-desafiante-12', 9, 12, 'Campeão', 'Mesa VIP', ['A mesa VIP é de quem chega ao topo do ranking da semana.']),
+    ],
+    talks: [
+      { tiles: area(2, 3, 3, 1), lines: ['Placar do ranking: os melhores da semana aparecem aqui.'] },
+      { tiles: area(17, 3, 3, 1), lines: ['No telão passam os duelos ao vivo (em breve).'] },
+      { tiles: area(18, 12, 3, 1), lines: ['O portal brilha... chegue por baixo para entrar no Salão de Treino.'] },
+    ],
+    spawn: { tx: 10, ty: 15, dir: 'north' },
+    exits: [{ tx: 10, ty: 16, to: 'cidade' }, { tx: 11, ty: 16, to: 'cidade' }, ...[18, 19, 20].map(tx => ({ tx, ty: 13, to: 'sala:treino' as const }))],
+    entries: { treino: { tx: 19, ty: 14, dir: 'south' } },
+  };
+}
+
+/** Salão de Treino Rank S: escuro, portões de rank e uma mesa de runas no meio. */
+export function trainingRoom(): Room {
+  const items: Placed[] = [
+    { id: 'portao-e', tx: 0, ty: 3 }, { id: 'portao-d', tx: 3, ty: 3 }, { id: 'portao-c', tx: 6, ty: 3 },
+    { id: 'portao-b', tx: 9, ty: 3 }, { id: 'portao-a', tx: 12, ty: 3 }, { id: 'portao-s', tx: 15, ty: 3 },
+    { id: 'plataforma-runas', tx: 7, ty: 8 }, { id: 'mesa-runas', tx: 7, ty: 11 },
+    { id: 'pilar-cristal', tx: 1, ty: 7 }, { id: 'pilar-cristal', tx: 16, ty: 7 },
+    { id: 'braseiro-azul', tx: 1, ty: 11 }, { id: 'braseiro-azul', tx: 16, ty: 11 },
+    { id: 'boneco-cristal', tx: 3, ty: 8 }, { id: 'boneco-cristal', tx: 13, ty: 8 },
+    { id: 'orbe-luz', tx: 4, ty: 12 }, { id: 'orbe-luz', tx: 13, ty: 12 },
+    { id: 'quadro-rank', tx: 0, ty: 14 }, { id: 'rack-capas', tx: 15, ty: 14 },
+    { id: 'estandarte-escuro', tx: 5, ty: 6 }, { id: 'estandarte-escuro', tx: 12, ty: 6 },
+  ];
+  return {
+    id: 'treino', title: 'Arena · Salão de Treino Rank S', w: 18, h: 16, wallRows: 3,
+    piso: 'piso-arena-piso-2', parede: 'parede-arena-parede-2', items,
+    npcs: [
+      seatedAt('rank-s', 'npc-desafiante-06', 7, 11, 'Sombra', 'Rank S', [
+        'Aqui treinam os Rank S antes das expedições.',
+        'Cada portão é um rank, do E ao S. Ganhe no seu rank para abrir o próximo. (Em breve.)',
+      ]),
+    ],
+    talks: [
+      { tiles: area(0, 3, 18, 2), lines: ['Um portão de rank. Ainda está selado.'] },
+      { tiles: area(7, 8, 3, 2), lines: ['A plataforma de runas vibra quando alguém duela aqui.'] },
+    ],
+    spawn: { tx: 8, ty: 14, dir: 'north' },
+    exits: [{ tx: 8, ty: 15, to: 'sala:arena' }, { tx: 9, ty: 15, to: 'sala:arena' }],
+  };
+}
+
+/** Loja de Pacotinhos: um shopping com 8 lojas, cada uma com o que vende bem claro. */
+export function shopRoom(): Room {
+  const stores: [string, string, string][] = [
+    ['loja-pacotinhos', 'Pacotinhos de cartas', 'Pacotinhos: a única forma de ganhar cartas fora dos chefes. Comum, Rara, Épica... a raridade é sorte!'],
+    ['loja-pets', 'Pet Shop', 'Ovos de pet: choque e ganhe um companheiro que te segue pela cidade.'],
+    ['loja-roupas', 'Boutique', 'Roupas e acessórios para o seu visual.'],
+    ['loja-moveis', 'Loja de Móveis', 'Móveis, tapetes e papéis de parede para a Sua Casa.'],
+    ['loja-acessorios', 'Acessórios de Carta', 'Capinhas, fichários e tapetes de jogo para o seu deck.'],
+    ['loja-eventos', 'Eventos', 'Pacotinhos especiais de evento aparecem aqui na época certa.'],
+    ['loja-premios', 'Troca de Prêmios', 'Recompensas da Sala: troque pontos por tempo de tablet, VR ou música na Alexa.'],
+    ['loja-informacoes', 'Informações', 'Perdido? Cada loja tem um ícone grande em cima. As moedas vêm das aulas e dos duelos.'],
+  ];
+  const items: Placed[] = [];
+  const talks: Talk[] = [];
+  stores.forEach(([id, , text], i) => {
+    const tx = 1 + (i % 4) * 6, ty = i < 4 ? 3 : 11;
+    items.push({ id, tx, ty });
+    talks.push({ tiles: area(tx, ty, 6, 3), lines: [text, 'A loja abre em breve.'] });
+  });
+  items.push(
+    { id: 'fonte-loja', tx: 12, ty: 7 }, { id: 'baloes', tx: 1, ty: 7 }, { id: 'baloes', tx: 24, ty: 7 },
+    { id: 'palmeira-loja', tx: 4, ty: 7 }, { id: 'palmeira-loja', tx: 21, ty: 7 },
+    { id: 'banco-loja', tx: 7, ty: 8 }, { id: 'banco-loja', tx: 17, ty: 8 },
+    { id: 'torre-pacotinhos', tx: 10, ty: 7 }, { id: 'torre-pacotinhos', tx: 15, ty: 7 },
+    { id: 'pacotinho-gigante', tx: 0, ty: 15 }, { id: 'mapa-loja', tx: 10, ty: 15 }, { id: 'vitrine-rara', tx: 15, ty: 15 },
+    { id: 'pacotinho-gigante', tx: 23, ty: 15 },
+  );
+  talks.push({ tiles: [[10, 15]], lines: ['Mapa do shopping: em cima, pacotinhos, pets, roupas e móveis; embaixo, acessórios, eventos, prêmios e informações.'] });
+  talks.push({ tiles: [[15, 15]], lines: ['Uma carta rara girando na vitrine... quem sabe no próximo pacotinho?'] });
+  return {
+    id: 'loja', title: 'Loja de Pacotinhos', w: 26, h: 17, wallRows: 3,
+    piso: 'piso-loja-piso', parede: 'parede-loja-parede', items, npcs: [], talks,
+    spawn: { tx: 12, ty: 15, dir: 'north' },
+    exits: [{ tx: 12, ty: 16, to: 'cidade' }, { tx: 13, ty: 16, to: 'cidade' }],
+  };
+}
+
+/** Oficina de Cartas: café aconchegante de trocas, com a forja num canto. */
+export function workshopRoom(): Room {
+  const items: Placed[] = [
+    { id: 'estante-albuns', tx: 0, ty: 3 }, { id: 'balcao-cafe', tx: 3, ty: 4 }, { id: 'vitrine-doces', tx: 6, ty: 4 },
+    { id: 'lareira-oficina', tx: 9, ty: 3 }, { id: 'estante-albuns-alta', tx: 12, ty: 3 },
+    { id: 'forja', tx: 15, ty: 3 }, { id: 'bigorna', tx: 17, ty: 4 }, { id: 'bancada', tx: 15, ty: 6 }, { id: 'potes-po', tx: 18, ty: 7 },
+    { id: 'atril', tx: 15, ty: 9 },
+    { id: 'mesa-feltro-verde', tx: 1, ty: 8 }, { id: 'mesa-feltro-vermelho', tx: 6, ty: 8 },
+    { id: 'mesa-troca-longa', tx: 1, ty: 12 }, { id: 'mesa-troca-redonda', tx: 7, ty: 12 },
+    { id: 'sofa-oficina', tx: 11, ty: 11 }, { id: 'mesa-sofa-baixa', tx: 15, ty: 12 },
+    { id: 'poltrona-oficina', tx: 10, ty: 8 }, { id: 'gato-almofada', tx: 11, ty: 4 }, { id: 'arranhador', tx: 19, ty: 10 },
+    { id: 'vitrola', tx: 0, ty: 15 }, { id: 'luminaria-oficina', tx: 19, ty: 15 }, { id: 'mural-ofertas', tx: 13, ty: 15 },
+    { id: 'planta-pendurada-oficina', tx: 7, ty: 2 }, { id: 'moldura-rara', tx: 5, ty: 15 },
+  ];
+  return {
+    id: 'oficina', title: 'Oficina de Cartas', w: 20, h: 17, wallRows: 3,
+    piso: 'piso-oficina-piso', parede: 'parede-oficina-parede', items,
+    npcs: [
+      npc('barista', 'npc-desafiante-09', 4, 3, 'Dona Bia', 'Café das Trocas', [
+        'Chocolate quente? As mesas são para trocar duplicatas com os colegas.',
+        'Aqui não se compra nada: troca, álbum e forja.',
+      ], { talk: [[4, 3], ...area(3, 4, 3, 1)], seated: true }),
+      npc('ferreiro', 'npc-desafiante-03', 17, 3, 'Prof. Ian', 'Forja de Cartas', [
+        'Junte pó de carta desmanchando duplicatas e forje a carta que falta no seu álbum.',
+        'A forja acende em breve!',
+      ], { talk: [[17, 3], ...area(15, 3, 4, 2), ...area(15, 6, 2, 1)] }),
+      seatedAt('troca-1', 'npc-desafiante-02', 1, 8, 'Lia', 'Trocando cartas', ['Tenho duas repetidas de Fogo. Troca por uma de Água?']),
+      seatedAt('troca-2', 'npc-desafiante-10', 7, 12, 'Duda', 'Montando o deck', ['Deck de 20 cartas... escolher é a parte mais difícil!']),
+    ],
+    talks: [
+      { tiles: area(15, 9, 2, 1), lines: ['O álbum aberto mostra quais cartas você já tem e quais faltam. (Em breve.)'] },
+      { tiles: area(13, 15, 2, 1), lines: ['Mural de ofertas: "Troco Mítica por 3 Raras!" (ofertas dos colegas em breve).'] },
+    ],
+    spawn: { tx: 10, ty: 15, dir: 'north' },
+    exits: [{ tx: 9, ty: 16, to: 'cidade' }, { tx: 10, ty: 16, to: 'cidade' }],
+  };
+}
+
+/** Castelo das Guildas: salão medieval com o trono, as 4 mesas das guildas e o tapete vermelho. */
+export function castleRoom(): Room {
+  const items: Placed[] = [
+    { id: 'lareira-pedra', tx: 1, ty: 3 }, { id: 'estandarte-azul', tx: 5, ty: 3 }, { id: 'estandarte-vermelho', tx: 7, ty: 3 },
+    { id: 'trono-guilda', tx: 10, ty: 3 },
+    { id: 'estandarte-verde', tx: 14, ty: 3 }, { id: 'estandarte-roxo', tx: 16, ty: 3 }, { id: 'ranking-guildas', tx: 18, ty: 3 },
+    { id: 'mesa-guilda-azul', tx: 2, ty: 7 }, { id: 'mesa-guilda-vermelha', tx: 2, ty: 12 },
+    { id: 'mesa-guilda-verde', tx: 17, ty: 7 }, { id: 'mesa-guilda-roxa', tx: 17, ty: 12 },
+    { id: 'mesa-redonda-mapa', tx: 7, ty: 8 }, { id: 'mesa-banquete', tx: 14, ty: 9 },
+    { id: 'armadura', tx: 0, ty: 16 }, { id: 'armadura', tx: 21, ty: 16 },
+    { id: 'bau-pacotinhos', tx: 5, ty: 16 }, { id: 'barris', tx: 15, ty: 16 }, { id: 'vaso-flores', tx: 18, ty: 16 },
+    { id: 'lustre-ferro', tx: 4, ty: 2 }, { id: 'quadro-missoes', tx: 14, ty: 2 },
+  ];
+  return {
+    id: 'castelo', title: 'Castelo das Guildas', w: 22, h: 18, wallRows: 3,
+    piso: 'piso-castelo-piso', parede: 'parede-castelo-parede', items,
+    patches: [{ piso: 'piso-castelo-tapete', tx: 10, ty: 5, w: 2, h: 13 }],
+    npcs: [
+      npc('rei', 'npc-desafiante-07', 11, 5, 'Sir Téo', 'Mestre das Guildas', [
+        'Bem-vindo ao Castelo! Cada guilda é uma equipe da turma.',
+        'Juntos vocês cumprem a meta de presença da semana e enfrentam o chefe da guilda. (Em breve.)',
+      ]),
+      npc('guilda-azul', 'npc-desafiante-05', 5, 8, 'Caio', 'Guilda Azul', ['A Guilda Azul está a 2 presenças da meta da semana!']),
+      npc('guilda-verde', 'npc-desafiante-08', 16, 8, 'Iris', 'Guilda Verde', ['Estamos juntando pacotinhos no baú da guilda.']),
+    ],
+    talks: [
+      { tiles: area(18, 3, 3, 1), lines: ['Ranking das guildas da semana (em breve).'] },
+      { tiles: area(7, 8, 3, 2), lines: ['Um mapa com as missões da guilda marcadas.'] },
+      { tiles: area(5, 16, 3, 1), lines: ['O baú da guilda: as recompensas coletivas ficam guardadas aqui.'] },
+    ],
+    spawn: { tx: 10, ty: 16, dir: 'north' },
+    exits: [{ tx: 10, ty: 17, to: 'cidade' }, { tx: 11, ty: 17, to: 'cidade' }],
+  };
+}
+
+/** Salas por id (as dos prédios da cidade). */
+export const ROOMS: Record<string, () => Room> = {
+  arena: arenaRoom, treino: trainingRoom, loja: shopRoom, oficina: workshopRoom, castelo: castleRoom,
+};
+/** Qual porta da cidade leva a cada sala (ids de town.ts). */
+export const ROOM_BUILDING: Record<string, string> = {
+  arena: 'arena', treino: 'arena', loja: 'loja', oficina: 'centro', castelo: 'guildas',
+};

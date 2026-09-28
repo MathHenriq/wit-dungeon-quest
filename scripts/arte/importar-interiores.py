@@ -164,15 +164,15 @@ SHEETS = {
     'arena-saguao-2': dict(cat='arena', ref=(0, 38), items=[
         'sofa-saguao|Sofá do saguão||2x1', 'sofa-saguao.costas|Sofá do saguão (costas)||2x1', 'maquina-bebidas|Máquina de bebidas||1x1',
         'telao|Telão||3x1', 'planta-saguao|Planta||1x1', 'bebedouro|Bebedouro||1x1', 'banco-espera|Banco de espera||2x1',
-        'estante-trofeus|Estante de troféus||2x1']),
+        'estante-trofeus|Estante de troféus||3x1']),
     'arena-mesas-desafio': dict(cat='arena', ref=(0, 46), items=[
         'mesa-desafio-livre|Mesa de desafio (livre)||3x2', 'mesa-desafio-ocupada|Mesa de desafio (em duelo)||3x2',
         'mesa-desafio-prata|Mesa prata (livre)||3x2', 'mesa-desafio-prata-ocupada|Mesa prata (em duelo)||3x2',
         'mesa-vip|Mesa VIP||3x2', 'mesa-treino|Mesa de treino||3x2']),
     'arena-treino': dict(cat='arena', ref=(0, 52), items=[
         'portal-azul|Portal||3x2', 'plataforma-runas|Plataforma de runas||3x2', 'mesa-runas|Mesa de runas||3x2',
-        'pilar-cristal|Pilar de cristal||1x1', 'boneco-cristal|Boneco de cristal||1x1', 'braseiro-azul|Braseiro azul||1x1',
-        'quadro-rank|Quadro de rank||2x1', 'rack-capas|Rack de capas||2x1']),
+        'pilar-cristal|Pilar de cristal||1x1', 'boneco-cristal|Boneco de cristal||2x1', 'braseiro-azul|Braseiro azul||1x1',
+        'quadro-rank|Quadro de rank||3x1', 'rack-capas|Rack de capas||3x1']),
     'arena-treino-2': dict(cat='arena', ref=(0, 20), items=[
         'boneco-cristal-azul|Boneco de cristal azul||1x1', 'boneco-cristal-roxo|Boneco de cristal roxo||1x1',
         'tapete-runas|Tapete de runas||2x2', 'orbe-luz|Orbe de luz||1x1', 'parede-placas|Parede de placas||3x1',
@@ -220,7 +220,7 @@ SHEETS = {
     # ── Castelo ──
     'castelo-moveis-1': dict(cat='castelo', ref=(0, 40), items=[
         'mesa-banquete|Mesa de banquete||2x3', 'mesa-redonda-mapa|Mesa redonda||3x2', 'quadro-missoes|Quadro de missões|p',
-        'lareira-pedra|Lareira de pedra||3x1', 'trono-guilda|Trono||2x1', 'estante-medalhas|Estante de medalhas||2x1',
+        'lareira-pedra|Lareira de pedra||3x1', 'trono-guilda|Trono||2x1', 'estante-medalhas|Estante de medalhas||3x1',
         'armadura|Armadura||1x1', 'lustre-ferro|Lustre de ferro|p']),
     'castelo-moveis-2': dict(cat='castelo', ref=(0, 18), items=[
         'estandarte-azul|Estandarte azul||1x1', 'estandarte-vermelho|Estandarte vermelho||1x1',
@@ -229,8 +229,8 @@ SHEETS = {
     'castelo-guildas': dict(cat='castelo', ref=(0, 42), items=[
         'mesa-guilda-azul|Mesa da guilda azul||3x2', 'mesa-guilda-vermelha|Mesa da guilda vermelha||3x2',
         'mesa-guilda-verde|Mesa da guilda verde||3x2', 'mesa-guilda-roxa|Mesa da guilda roxa||3x2',
-        'ranking-guildas|Ranking das guildas||3x1', 'pulpito|Púlpito do líder||2x1', 'bau-pacotinhos|Baú de pacotinhos||2x1',
-        'mapa-suporte|Mapa||2x1']),
+        'ranking-guildas|Ranking das guildas||3x1', 'pulpito|Púlpito do líder||3x1', 'bau-pacotinhos|Baú de pacotinhos||3x1',
+        'mapa-suporte|Mapa||3x1']),
     'castelo-quartos': dict(cat='castelo', ref=(0, 26), items=[
         'beliche-madeira|Beliche de madeira||2x2', 'cama-medieval|Cama medieval||2x2', 'armario-madeira|Armário||2x1',
         'lavatorio|Lavatório||1x1', 'tapete-escudo|Tapete do escudo|t', 'tocha-parede|Tocha de parede|p',

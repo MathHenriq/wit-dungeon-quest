@@ -46,5 +46,11 @@ await run('fluxo', '?pos=31,16', [
   { key: 'ArrowDown', ms: 700 }, { wait: 800 }, { shot: 'saiu' },
 ]);
 await run('visual', '?visual', [{ shot: 'pets' }]);
+for (const sala of ['arena', 'treino', 'loja', 'oficina', 'castelo']) {
+  await run(sala, `?sala=${sala}`, [{ shot: 'entrada' }, { key: 'ArrowUp', ms: 1400 }, { shot: 'meio' }]);
+}
+await run('portal', '?sala=arena', [
+  { key: 'ArrowUp', ms: 250 }, { key: 'ArrowRight', ms: 2300 }, { key: 'ArrowUp', ms: 900 }, { wait: 1500 }, { shot: 'treino' }, { key: 'ArrowDown', ms: 1000 }, { wait: 1500 }, { shot: 'volta' },
+]);
 await browser.close();
 console.log(errors.length ? errors.join('\n') : 'sem erros no console');

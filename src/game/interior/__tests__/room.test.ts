@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { findPath } from '@/game/world/movement';
 import {
-  canPlace, catalogOf, footprint, HOUSE_CATS, HOUSE_START, houseRoom, nextFacing, sanitizeHouse, solidGrid,
+  canPlace, catalogOf, ROOMS, footprint, HOUSE_CATS, HOUSE_START, houseRoom, nextFacing, sanitizeHouse, solidGrid,
   spriteOf, towerRoom, type Manifest,
 } from '../room';
 
@@ -91,5 +91,34 @@ describe('interiores', () => {
   it('casa salva estragada não quebra', () => {
     expect(sanitizeHouse(m, 'x')).toBeNull();
     expect(sanitizeHouse(m, [{ id: 'nao-existe', tx: 1, ty: 4 }, { id: 'cacto', tx: 'a', ty: 5 }, null])).toEqual([]);
+  });
+
+  describe.each(Object.keys(ROOMS))('sala %s', id => {
+    const r = ROOMS[id]();
+    const solid = solidGrid(m, r);
+    const blocked = (x: number, y: number) => y < 0 || x < 0 || y >= r.h || x >= r.w || solid[y][x];
+    const reach = (x: number, y: number) => !blocked(x, y) && ((x === r.spawn.tx && y === r.spawn.ty) || findPath(r.spawn.tx, r.spawn.ty, x, y, blocked).length > 0);
+    const nextTo = (tiles: [number, number][]) => tiles.some(([tx, ty]) => [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dx, dy]) => reach(tx + dx, ty + dy)));
+
+    it('usa só sprites que existem', () => {
+      for (const k of [r.piso, r.parede, ...r.items.map(p => p.id), ...(r.patches ?? []).map(p => p.piso)]) expect(m[k], k).toBeTruthy();
+    });
+    it('móveis não se sobrepõem e ficam dentro da sala', () => {
+      const floor = r.items.filter(p => (m[p.id].camada ?? 'm') !== 't');
+      floor.forEach((p, i) => {
+        const others = { ...r, items: floor.filter((_, j) => j !== i), npcs: [], exits: [] };
+        expect(canPlace(m, others, p), `${p.id} em ${p.tx},${p.ty}`).toBe(true);
+      });
+    });
+    it('dá para chegar em todo mundo, em todo ponto de conversa e em toda saída', () => {
+      expect(solid[r.spawn.ty][r.spawn.tx]).toBe(false);
+      for (const n of r.npcs) expect(nextTo(n.talk), `npc ${n.id}`).toBe(true);
+      for (const t of r.talks ?? []) expect(nextTo(t.tiles), `conversa ${t.lines[0]}`).toBe(true);
+      for (const e of r.exits) {
+        const ok = solid[e.ty][e.tx] ? nextTo([[e.tx, e.ty]]) : reach(e.tx, e.ty);
+        expect(ok, `saída ${e.to} ${e.tx},${e.ty}`).toBe(true);
+      }
+      for (const [from, pos] of Object.entries(r.entries ?? {})) expect(reach(pos.tx, pos.ty), `entrada de ${from}`).toBe(true);
+    });
   });
 });

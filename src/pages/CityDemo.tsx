@@ -10,6 +10,7 @@ import {
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
 import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
+import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
 import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
@@ -124,6 +125,8 @@ function CityView({ town }: { town: Town }) {
   const [inside, setInside] = useState<Sala | null>(() => {
     const q = new URLSearchParams(window.location.search);
     if (q.get('sala') === 'casa') return { kind: 'casa' };
+    const sid = q.get('sala');
+    if (sid && ROOMS[sid]) return { kind: 'sala', id: sid };
     if (q.get('sala') === 'torre') return { kind: 'torre', andar: Math.max(1, Math.min(100, Number(q.get('andar')) || 1)) };
     return null;
   });
@@ -331,6 +334,11 @@ function CityView({ town }: { town: Town }) {
         s.path = []; s.held = [];
         if (door.building === 'torre') setInside({ kind: 'torre', andar: 1 });
         else if (door.building === 'sua-casa') setInside({ kind: 'casa' });
+        else if (Object.values(ROOM_BUILDING).includes(door.building)) {
+          // a primeira sala de cada prédio (a Arena abre no saguão)
+          const id = Object.keys(ROOM_BUILDING).find(k => ROOM_BUILDING[k] === door.building)!;
+          setInside({ kind: 'sala', id });
+        }
         else setPanel(BUILDING_INFO[door.building] ?? houseInfo(door.building, door.name));
       }
     };
@@ -632,9 +640,9 @@ function CityView({ town }: { town: Town }) {
   };
 
   // saiu do interior: aparece na frente da porta, olhando para a rua
-  const exitInterior = useCallback(() => {
+  const exitInterior = useCallback((from: Sala) => {
     const s = g.current;
-    const id = inside?.kind === 'torre' ? 'torre' : 'sua-casa';
+    const id = from.kind === 'torre' ? 'torre' : from.kind === 'casa' ? 'sua-casa' : ROOM_BUILDING[from.id];
     const d = town.doors.find(dd => dd.building === id);
     if (d) {
       s.player = newWalker(d.tx, d.ty + 1, 'south');
@@ -642,7 +650,7 @@ function CityView({ town }: { town: Town }) {
     }
     s.held = []; s.path = [];
     setInside(null);
-  }, [inside, town]);
+  }, [town]);
 
   const hold = (d: Dir | null) => { g.current.held = d ? [d] : []; g.current.path = []; };
 

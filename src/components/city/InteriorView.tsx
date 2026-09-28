@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   canPlace, catalogOf, footprint, HOUSE_CATS, HOUSE_FLOORS, HOUSE_START, HOUSE_WALLS, houseRoom, layerOf, nextFacing,
-  sanitizeHouse, solidGrid, spriteOf, spriteRect, TILE, towerRoom, type Manifest, type Placed, type Room, type RoomNpc,
+  ROOMS, sanitizeHouse, solidGrid, spriteOf, spriteRect, TILE, towerRoom, type Exit, type Manifest, type Placed, type Room, type RoomNpc,
 } from '@/game/interior/room';
 import { ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker } from '@/game/world/movement';
 import { CLOTH, MOLDE, type Look } from '@/game/world/outfit';
@@ -16,7 +16,7 @@ import {
  * cidade; `onExit` volta para ela.
  */
 
-export type Sala = { kind: 'torre'; andar: number } | { kind: 'casa' };
+export type Sala = { kind: 'torre'; andar: number } | { kind: 'casa' } | { kind: 'sala'; id: string };
 
 const WALK_MS = 230, RUN_MS = 125;
 const KEY_DIR: Record<string, Dir> = {
@@ -121,11 +121,12 @@ function savedHouse(m: Manifest): { items: Placed[]; piso: string; parede: strin
 
 function buildRoom(m: Manifest, sala: Sala): Room {
   if (sala.kind === 'torre') return towerRoom(sala.andar);
+  if (sala.kind === 'sala') return (ROOMS[sala.id] ?? ROOMS.arena)();
   const h = savedHouse(m);
   return { ...houseRoom(h.items), piso: h.piso, parede: h.parede };
 }
 
-export function InteriorView({ sala, look, pet, onExit }: { sala: Sala; look: Look; pet: string; onExit: () => void }) {
+export function InteriorView({ sala, look, pet, onExit }: { sala: Sala; look: Look; pet: string; onExit: (from: Sala) => void }) {
   const [m, setM] = useState<Manifest | null>(null);
   useEffect(() => {
     let alive = true;
@@ -139,7 +140,7 @@ export function InteriorView({ sala, look, pet, onExit }: { sala: Sala; look: Lo
 interface Npc { def: RoomNpc; w: Walker; frames: Frames | null }
 type Holding = { p: Placed; from: Placed | null };
 
-function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala; look: Look; pet: string; onExit: () => void }) {
+function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala; look: Look; pet: string; onExit: (from: Sala) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [sala, setSala] = useState(sala0);
   const [room, setRoom] = useState<Room>(() => buildRoom(m, sala0));
@@ -183,7 +184,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   useEffect(() => {
     let alive = true;
     S.npcs = room.npcs.map(def => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null }));
-    const sprites = new Set<string>([room.piso, room.parede, ...room.items.map(p => spriteOf(m, p).id)]);
+    const sprites = new Set<string>([room.piso, room.parede, ...(room.patches ?? []).map(p => p.piso), ...room.items.map(p => spriteOf(m, p).id)]);
     Promise.all([...sprites].map(id => sprite(m, id).then(img => [id, img] as const).catch(() => null))).then(list => {
       if (!alive) return;
       for (const x of list) if (x) S.imgs.set(x[0], x[1]);
@@ -223,18 +224,33 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     return solid[ty][tx];
   }, [room, solid]);
 
-  const goUp = useCallback(() => {
-    if (sala.kind !== 'torre') return;
-    const andar = Math.min(100, sala.andar + 1);
-    if (andar === sala.andar) { setDialog({ lines: ['Este é o topo da Torre: o andar 100!'], i: 0 }); return; }
-    const next = { kind: 'torre' as const, andar };
-    const r = towerRoom(andar);
-    S.player = newWalker(r.spawn.tx, r.spawn.ty, 'north');
-    S.pet = newWalker(r.spawn.tx, r.spawn.ty, 'north');
+  /** Troca de sala (sobe um andar, entra pelo portal...), aparecendo na entrada certa. */
+  const enter = useCallback((next: Sala, r: Room, fromId: string) => {
+    const at = r.entries?.[fromId] ?? r.spawn;
+    S.player = newWalker(at.tx, at.ty, at.dir);
+    S.pet = newWalker(at.tx, at.ty, at.dir);
     S.held = []; S.path = [];
     setSala(next);
     setRoom(r);
-  }, [sala, S]);
+  }, [S]);
+
+  const takeExit = useCallback((e: Exit) => {
+    if (e.to === 'cidade') {
+      if (S.leaving) return;
+      S.leaving = true; S.held = []; S.path = [];
+      onExit(sala);
+      return;
+    }
+    if (e.to === 'subir') {
+      if (sala.kind !== 'torre') return;
+      const andar = Math.min(100, sala.andar + 1);
+      if (andar === sala.andar) { S.held = []; setDialog({ lines: ['Este é o topo da Torre: o andar 100!'], i: 0 }); return; }
+      enter({ kind: 'torre', andar }, towerRoom(andar), room.id);
+      return;
+    }
+    const id = e.to.slice(5);
+    if (ROOMS[id]) enter({ kind: 'sala', id }, ROOMS[id](), room.id);
+  }, [sala, room, S, enter, onExit]);
 
   const interact = useCallback(() => {
     if (dialog) {
@@ -251,8 +267,12 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
       setDialog({ lines: [`${npc.def.name}: ${npc.def.lines[0]}`, ...npc.def.lines.slice(1)], i: 0 });
       return;
     }
-    if (room.exits.some(e => e.to === 'subir' && e.tx === f.tx && e.ty === f.ty)) goUp();
-  }, [dialog, room, S, goUp]);
+    const talk = room.talks?.find(t => t.tiles.some(([x, y]) => x === f.tx && y === f.ty));
+    const exit = room.exits.find(e => e.tx === f.tx && e.ty === f.ty && solid[e.ty]?.[e.tx]);
+    // olhando para a escada ou o portal: usa (a conversa do portal fica para quem olha de lado)
+    if (exit) { takeExit(exit); return; }
+    if (talk) setDialog({ lines: talk.lines, i: 0 });
+  }, [dialog, room, S, solid, takeExit]);
 
   // teclado
   useEffect(() => {
@@ -299,16 +319,16 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         want: () => (S.modal || S.leaving ? null : S.held[0] ?? S.path[0] ?? null),
         onStep: from => { petQueue.push(from); if (!S.held.length) S.path.shift(); },
         onArrive: () => {
-          if (room.exits.some(e => e.to === 'cidade' && e.tx === p.tx && e.ty === p.ty) && !S.leaving) {
-            S.leaving = true; S.held = []; S.path = [];
-            onExit();
-          }
+          // pisou numa saída livre (porta)
+          const e = room.exits.find(x => x.tx === p.tx && x.ty === p.ty && !solid[x.ty]?.[x.tx]);
+          if (e) takeExit(e);
         },
       });
-      // esbarrou na escada: sobe
-      if (!p.from && S.held[0] === 'north' && !S.modal) {
+      // esbarrou numa saída ocupada (escada, portal)
+      if (!p.from && S.held.length && !S.modal) {
         const f = ahead(p);
-        if (room.exits.some(e => e.to === 'subir' && e.tx === f.tx && e.ty === f.ty)) { S.held = []; goUp(); }
+        const e = room.exits.find(x => x.tx === f.tx && x.ty === f.ty && solid[x.ty]?.[x.tx]);
+        if (e && S.held[0] === p.dir) { S.held = []; takeExit(e); }
       }
       tick(pt, dt, {
         msPerTile: ms, blocked: () => false, fromPath: true,
@@ -397,7 +417,9 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
             const [fw, fd] = footprint(m, q);
             return n.def.tx >= q.tx && n.def.tx < q.tx + fw && n.def.ty + 1 >= q.ty && n.def.ty + 1 < q.ty + fd;
           });
-          if (mesa) clip = mesa.ty * TILE - 8;
+          // mesa com cadeira alta atrás (Torre): na frente dela, cortado no tampo;
+          // mesa baixa: atrás dela, como qualquer um (o tampo já cobre as pernas)
+          if (mesa && spriteRect(m, room, mesa).y < mesa.ty * TILE - 12) clip = mesa.ty * TILE - 8;
         }
         person(n.w, n.frames, clip);
       }
@@ -431,7 +453,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [m, room, blocked, view, decor, holding, look, S, onExit, goUp]);
+  }, [m, room, solid, blocked, view, decor, holding, look, S, takeExit]);
 
   // ── toque / clique ──
   const toTile = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -513,7 +535,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   };
 
   const hold = (d: Dir | null) => { S.held = d ? [d] : []; S.path = []; };
-  const title = sala.kind === 'torre' ? `TORRE · ANDAR ${sala.andar}` : 'SUA CASA';
+  const title = sala.kind === 'torre' ? `TORRE · ANDAR ${sala.andar}` : room.title.toUpperCase();
   const items = decor ? catalogOf(m, cat) : [];
 
   return (
@@ -530,7 +552,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
         {title}
-        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir' : ''}</div>}
+        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir' : ''}{room.id === 'arena' ? ' · portal: treino' : ''}</div>}
         {decor && <div className="text-lime-300 mt-1">{holding ? 'toque para pôr · R gira · ESC devolve' : 'escolha um móvel ou toque num para mover'}</div>}
       </div>
 
@@ -637,6 +659,16 @@ function buildScene(m: Manifest, room: Room, imgs: Map<string, HTMLCanvasElement
     for (let yy = wallH; yy < H; yy += th) for (let xx = 0; xx < W; xx += tw) x.drawImage(piso, xx, yy, tw, th);
     x.restore();
   } else { x.fillStyle = '#8a6a44'; x.fillRect(0, wallH, W, H - wallH); }
+  // faixas de outro piso (tapete vermelho do castelo)
+  for (const pa of room.patches ?? []) {
+    const img = imgs.get(pa.piso);
+    if (!img) continue;
+    const tw = m[pa.piso]?.w ?? 64, th = m[pa.piso]?.h ?? 64;
+    x.save();
+    x.beginPath(); x.rect(pa.tx * TILE, pa.ty * TILE, pa.w * TILE, pa.h * TILE); x.clip();
+    for (let yy = pa.ty * TILE; yy < (pa.ty + pa.h) * TILE; yy += th) for (let xx = pa.tx * TILE; xx < (pa.tx + pa.w) * TILE; xx += tw) x.drawImage(img, xx, yy, tw, th);
+    x.restore();
+  }
   // parede repetida
   const par = imgs.get(room.parede);
   if (par) {
