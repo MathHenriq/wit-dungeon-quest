@@ -340,12 +340,29 @@ def parse(item):
     return parts[0], parts[1], parts[2] or 'm', parts[3]
 
 
+def pack(sprites, width=2048, pad=2):
+    """Empacota em prateleiras (mais altos primeiro). Devolve o atlas e [x, y, w, h] de cada um."""
+    order = sorted(sprites, key=lambda k: (-sprites[k].shape[0], -sprites[k].shape[1]))
+    where, x, y, shelf = {}, 0, 0, 0
+    for k in order:
+        h, w = sprites[k].shape[:2]
+        if x + w > width:
+            x, y, shelf = 0, y + shelf + pad, 0
+        where[k] = [x, y, w, h]
+        x += w + pad
+        shelf = max(shelf, h)
+    atlas = np.zeros((y + shelf, width, 4), np.uint8)
+    for k, (x, y, w, h) in where.items():
+        atlas[y:y + h, x:x + w] = sprites[k]
+    return atlas, where
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     for f in os.listdir(OUT):
         if f.endswith('.png'):
             os.remove(os.path.join(OUT, f))
-    manifest, review = {}, []
+    manifest, review, sprites = {}, [], {}
     for sheet, spec_ in SHEETS.items():
         path = find(sheet)
         if not path:
@@ -366,7 +383,7 @@ def main():
             px = imp.shrink(rgb_, alpha, box, {'w': w * K}, 48)
             if spec_.get('tecido'):
                 px = fabric(px)
-            Image.fromarray(px, 'RGBA').save(os.path.join(OUT, iid + '.png'))
+            sprites[iid] = px
             e = {'w': px.shape[1] / K, 'h': px.shape[0] / K, 'cat': spec_['cat']}
             if '.' in iid:
                 e['de'] = base
@@ -388,7 +405,7 @@ def main():
         px = imp.tile(path, 48, px_ * K)
         iid = 'piso-' + name.split('-', 1)[1] if not name.startswith('castelo-tapete') else 'piso-castelo-tapete'
         iid = 'piso-' + name
-        Image.fromarray(px, 'RGBA').save(os.path.join(OUT, iid + '.png'))
+        sprites[iid] = px
         manifest[iid] = {'w': px_, 'h': px_, 'cat': 'piso'}
     for name in WALLS:
         path = find(name)
@@ -396,8 +413,13 @@ def main():
             print('faltando:', name); continue
         px = wall(path)
         iid = 'parede-' + name
-        Image.fromarray(px, 'RGBA').save(os.path.join(OUT, iid + '.png'))
+        sprites[iid] = px
         manifest[iid] = {'w': px.shape[1] / K, 'h': WALL_H, 'cat': 'parede-fundo'}
+    # tudo numa folha só (atlas): um download em vez de centenas
+    atlas, where = pack(sprites)
+    Image.fromarray(atlas, 'RGBA').save(os.path.join(OUT, 'atlas.png'), optimize=True)
+    for iid, box in where.items():
+        manifest[iid]['a'] = box
     with open(os.path.join(OUT, 'manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=1, sort_keys=True, ensure_ascii=False)
     print(len(manifest), 'sprites em', os.path.relpath(OUT, ROOT))

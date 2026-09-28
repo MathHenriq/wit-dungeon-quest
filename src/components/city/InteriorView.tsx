@@ -36,16 +36,50 @@ export function loadInteriorManifest(): Promise<Manifest> {
   return manifestP;
 }
 
-const images = new Map<string, Promise<HTMLImageElement>>();
-function sprite(id: string): Promise<HTMLImageElement> {
-  let p = images.get(id);
-  if (!p) { p = loadImage(`${BASE()}/${id}.png`); p.catch(() => images.delete(id)); images.set(id, p); }
-  return p;
+/** Todos os sprites dos interiores numa folha só (public/game/interior/atlas.png). */
+let atlasP: Promise<HTMLImageElement> | null = null;
+function loadAtlas(): Promise<HTMLImageElement> {
+  if (!atlasP) { atlasP = loadImage(`${BASE()}/atlas.png`); atlasP.catch(() => { atlasP = null; }); }
+  return atlasP;
+}
+const cuts = new Map<string, HTMLCanvasElement>();
+/** Recorte do atlas (um canvas por sprite, guardado). */
+function cut(m: Manifest, atlas: HTMLImageElement, id: string): HTMLCanvasElement | null {
+  let c = cuts.get(id);
+  if (c) return c;
+  const a = m[id]?.a;
+  if (!a) return null;
+  c = document.createElement('canvas');
+  c.width = a[2]; c.height = a[3];
+  c.getContext('2d')!.drawImage(atlas, a[0], a[1], a[2], a[3], 0, 0, a[2], a[3]);
+  cuts.set(id, c);
+  return c;
+}
+async function sprite(m: Manifest, id: string): Promise<HTMLCanvasElement> {
+  const c = cut(m, await loadAtlas(), id);
+  if (!c) throw new Error(`sprite ${id}`);
+  return c;
+}
+
+/** Miniatura de um sprite (catálogo do modo DECORAR). */
+function Thumb({ m, id, fill }: { m: Manifest; id: string; fill?: boolean }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let alive = true;
+    sprite(m, id).then(src => {
+      const c = ref.current;
+      if (!alive || !c) return;
+      c.width = src.width; c.height = src.height;
+      c.getContext('2d')!.drawImage(src, 0, 0);
+    }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [m, id]);
+  return <canvas ref={ref} className={fill ? 'w-full h-full object-cover' : 'max-w-full max-h-[52px] object-contain'} style={{ imageRendering: 'pixelated' }} />;
 }
 
 /** Móvel de tecido na cor escolhida (tons-molde → rampa), guardado por combinação. */
 const painted = new Map<string, HTMLCanvasElement>();
-function paint(img: HTMLImageElement, key: string, cor?: string, cor2?: string): HTMLCanvasElement | HTMLImageElement {
+function paint(img: HTMLCanvasElement, key: string, cor?: string, cor2?: string): HTMLCanvasElement {
   if (!cor && !cor2) return img;
   const k = `${key}|${cor}|${cor2}`;
   let c = painted.get(k);
@@ -126,7 +160,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     run: false,
     playerFrames: null as Frames | null,
     petFrames: null as Frames | null,
-    imgs: new Map<string, HTMLImageElement>(),
+    imgs: new Map<string, HTMLCanvasElement>(),
     scene: null as HTMLCanvasElement | null,
     hover: null as { tx: number; ty: number } | null,
     modal: false,
@@ -150,7 +184,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     let alive = true;
     S.npcs = room.npcs.map(def => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null }));
     const sprites = new Set<string>([room.piso, room.parede, ...room.items.map(p => spriteOf(m, p).id)]);
-    Promise.all([...sprites].map(id => sprite(id).then(img => [id, img] as const).catch(() => null))).then(list => {
+    Promise.all([...sprites].map(id => sprite(m, id).then(img => [id, img] as const).catch(() => null))).then(list => {
       if (!alive) return;
       for (const x of list) if (x) S.imgs.set(x[0], x[1]);
       S.scene = buildScene(m, room, S.imgs);
@@ -309,7 +343,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
       const list: D[] = [];
       const drawItem = (q: Placed, alpha = 1) => {
         const s = spriteOf(m, q), img = S.imgs.get(s.id);
-        if (!img) { sprite(s.id).then(i => S.imgs.set(s.id, i)).catch(() => undefined); return; }
+        if (!img) { sprite(m, s.id).then(i => S.imgs.set(s.id, i)).catch(() => undefined); return; }
         const r = spriteRect(m, room, q);
         const src = m[q.id]?.tecido ? paint(img, s.id, q.cor, q.cor2) : img;
         ctx.globalAlpha = alpha;
@@ -545,13 +579,13 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
               ? (cat === 'piso' ? HOUSE_FLOORS : HOUSE_WALLS).map(id => (
                 <button key={id} onClick={() => setRoom({ ...room, [cat === 'piso' ? 'piso' : 'parede']: id })}
                   className={`h-[76px] rounded border-2 bg-white overflow-hidden ${room.piso === id || room.parede === id ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}>
-                  <img src={`${BASE()}/${id}.png`} alt="" className="w-full h-full object-cover" style={{ imageRendering: 'pixelated' }} />
+                  <Thumb m={m} id={id} fill />
                 </button>
               ))
               : items.map(id => (
                 <button key={id} onClick={() => pick(id)} title={m[id].nome}
                   className={`h-[76px] rounded border-2 bg-white flex flex-col items-center justify-end p-1 ${holding?.p.id === id ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}>
-                  <img src={`${BASE()}/${id}.png`} alt="" className="max-w-full max-h-[52px] object-contain" style={{ imageRendering: 'pixelated' }} />
+                  <Thumb m={m} id={id} />
                   <span className="text-[7px] leading-3 text-[#5a4630] truncate w-full text-center">{m[id].nome}</span>
                 </button>
               ))}
@@ -580,7 +614,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
  * Fundo pronto da sala (em hd, com 8 px de moldura escura em volta): piso,
  * parede, rodapé, tapetes, coisas da parede e a porta de saída.
  */
-function buildScene(m: Manifest, room: Room, imgs: Map<string, HTMLImageElement>): HTMLCanvasElement {
+function buildScene(m: Manifest, room: Room, imgs: Map<string, HTMLCanvasElement>): HTMLCanvasElement {
   const P = 8;
   const W = room.w * TILE, H = room.h * TILE;
   const c = document.createElement('canvas');

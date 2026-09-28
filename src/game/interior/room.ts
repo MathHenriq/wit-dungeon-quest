@@ -24,6 +24,8 @@ export interface ItemDef {
   /** Vista extra de outro item (ex.: "sofa-classico.lado"). */
   de?: string;
   vista?: string;
+  /** Onde está no atlas (px hd): [x, y, w, h]. */
+  a?: [number, number, number, number];
 }
 export type Manifest = Record<string, ItemDef>;
 
