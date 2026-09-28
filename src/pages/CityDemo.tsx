@@ -643,15 +643,25 @@ function CityView({ town }: { town: Town }) {
       // vida da cidade (fumaça, brilhos, borboletas, pássaros, nuvens, vaga-lumes)
       drawAmbient(ctx, town.fx, { now, camX, camY, vw, vh, tint: tod.tint, light: tod.light }, mapW, mapH);
       // plaquinhas: a do jogador sempre; a dos moradores quando o jogador chega perto
+      // (a do jogador primeiro; a de quem estiver colado sobe até não cobrir)
+      const placed: { x: number; y: number; w: number; h: number }[] = [];
       const plateAt = (w: Walker, c: HTMLCanvasElement) => {
         const pos = pixelPos(w, TILE);
-        const x = Math.round(pos.x + 8 - c.width / R / 2 - camX), y = Math.round(pos.y - 13 - c.height / R - camY);
-        ctx.drawImage(c, x, y, c.width / R, c.height / R);
+        const pw = c.width / R, ph = c.height / R;
+        const x = Math.round(pos.x + 8 - pw / 2 - camX);
+        let y = Math.round(pos.y - 13 - ph - camY);
+        for (let guard = 0; guard < 6; guard++) {
+          const hit = placed.find(r => x < r.x + r.w && x + pw > r.x && y < r.y + r.h && y + ph > r.y);
+          if (!hit) break;
+          y = hit.y - ph - 1;
+        }
+        placed.push({ x, y, w: pw, h: ph });
+        ctx.drawImage(c, x, y, pw, ph);
       };
+      plateAt(p, plateCanvas(s.nick, s.playerTitle, PLATE_PLAYER));
       for (const n of s.npcs) {
         if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) plateAt(n.w, plateCanvas(n.def.name, n.def.title, PLATE_NPC));
       }
-      plateAt(p, plateCanvas(s.nick, s.playerTitle, PLATE_PLAYER));
       s.dirty = true;   // os efeitos se mexem todo quadro
       raf = requestAnimationFrame(loop);
     };

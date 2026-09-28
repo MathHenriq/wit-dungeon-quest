@@ -73,6 +73,10 @@ export interface Ambient {
   flowers: [number, number][];
   /** Copa das cerejeiras (pétalas caindo). */
   blossoms: [number, number][];
+  /** Copa das árvores redondas (uma folha cai de vez em quando). */
+  leaves: [number, number][];
+  /** Luz de sinalização que pisca (ponta da antena da Torre). */
+  beacons: [number, number][];
   /** Áreas com vaga-lumes à noite. */
   fireflies: { x0: number; y0: number; x1: number; y1: number }[];
 }
@@ -137,7 +141,7 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
     else o.night = list[0].night;
   };
   const buildingGlow: GlowSpot[] = [];
-  const fx: Ambient = { chimneys: [], glints: [], flowers: [], blossoms: [], fireflies: [] };
+  const fx: Ambient = { chimneys: [], glints: [], flowers: [], blossoms: [], leaves: [], beacons: [], fireflies: [] };
   const building = (b: Building, tx: number, ty: number) => {
     for (const gl of b.glow ?? []) buildingGlow.push({ ...gl, x: tx * TILE + gl.x, y: ty * TILE - b.extraTop + gl.y });
     const ox = tx * TILE + (b.offsetX ?? 0), oy = ty * TILE - b.extraTop;
@@ -243,6 +247,13 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
 
   // ── prédios ──
   building(sprB('torre', 'torre', 'Torre dos 100 Andares', 6, 7, [2, 3], towerHG), 29, 8);
+  {
+    // ponta da antena: o pixel mais alto da arte da Torre
+    const tw = objects[objects.length - 1], src = tw.pix;
+    let top: [number, number] | undefined;
+    for (let y = 0; y < src.h && !top; y++) for (let x = 0; x < src.w; x++) if (src.data[(y * src.w + x) * 4 + 3] > 200) { top = [tw.x + x + 0.5, tw.y + y + 1]; break; }
+    if (top) fx.beacons.push(top);
+  }
   block(29, 4, 6, 4); // a arte da Torre sobe até aqui: ninguém anda por trás dela
   building(sprB('oficina', 'centro', 'Oficina de Cartas', 7, 5, [3], cardWorkshop), 13, 14);
   building(sprB('palacio-cartas', 'loja', 'Loja de Pacotinhos', 5, 5, [2], packShop), 44, 14);
@@ -299,6 +310,7 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
     const o = objects[objects.length - 1];
     o.night = t.night;
     if (kind === 'florida') fx.blossoms.push([o.x + o.pix.w / 2, o.y + o.pix.h * 0.35]);
+    if (kind === 'redonda') fx.leaves.push([o.x + o.pix.w / 2, o.y + o.pix.h * 0.35]);
     if (frames) o.phase = Math.floor(tx * 0.6 + ty * 0.25 + hash(tx, ty, 3) * 1.5);
   };
   const behind = (tx: number, ty: number, seed: number) => {
@@ -382,7 +394,8 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   const flower = (s: number) => sprLit('tulipas', () => ({ pix: P.flowerTile(flores, s) }));
   const fence = sprLit('cerca', () => ({ pix: P.fence() }));
   for (let tx = 3; tx <= 11; tx++) if (tx !== 7 && tx !== 8) putLit(`cerca-${tx}`, fence, tx, 9, 1, 1);
-  for (let ty = 36; ty <= 40; ty++) putLit(`cerca-horta-${ty}`, fence, 61, ty, 1, 1);
+  // horta do fazendeiro: cerca em cima e embaixo (a cerca é uma peça deitada; em pé ela fica picotada)
+  for (let tx = 58; tx <= 60; tx++) { putLit(`cerca-horta-${tx}-36`, fence, tx, 36, 1, 1); putLit(`cerca-horta-${tx}-40`, fence, tx, 40, 1, 1); }
   doorsAt.forEach(([dx, sy], i) => {
     if (!solid[sy][dx + 1] && terrain[sy][dx + 1] === 'grama') putLit(`correio-${dx}`, mail(mailColors[i % mailColors.length]), dx + 1, sy, 1, 1);
     for (const fx of [dx - 2, dx + 2]) {
@@ -592,8 +605,20 @@ function composeLights(groundNight: Pixmap, objs: Placed[]): Pixmap {
 
 /** Escreve `text` na placa lisa (verde-escura) de um sprite; à noite o texto acende. */
 function labeled(sp: Sprite, text: string): T.Lit {
-  const pix = new Pixmap(sp.pix.w, sp.pix.h); pix.data.set(sp.pix.data);
-  const night = new Pixmap(sp.pix.w, sp.pix.h); if (sp.night) night.data.set(sp.night.data);
+  const one = labelOne(sp.pix, sp.night, text);
+  // hd: o texto é escrito de novo na placa da arte grande, com letra fina (1 px da fonte = 1 px hd)
+  if (sp.pix.hd) {
+    const big = labelOne(sp.pix.hd, sp.night?.hd, text);
+    one.pix.hd = big.pix;
+    one.night!.hd = big.night;
+  }
+  return one;
+}
+
+/** Escreve na placa verde-escura de uma arte (e acende a placa na camada da noite). */
+function labelOne(src: Pixmap, srcNight: Pixmap | undefined, text: string): { pix: Pixmap; night: Pixmap } {
+  const pix = new Pixmap(src.w, src.h); pix.data.set(src.data);
+  const night = new Pixmap(src.w, src.h); if (srcNight) night.data.set(srcNight.data);
   const box = findPlaque(pix, c => c[1] > c[0] + 20 && c[1] > c[2] + 10 && c[1] < 150);
   if (!box) return { pix, night };
   let t = text;
@@ -605,29 +630,9 @@ function labeled(sp: Sprite, text: string): T.Lit {
   }
   drawText(pix, t, x, y, { fill: [255, 255, 255], fillBottom: WIT.limeLight, shadow: WIT.deep });
   drawText(night, t, x, y, { fill: [255, 255, 255], fillBottom: LEDC.greenSoft, shadow: WIT.deep });
-  // hd: a arte grande com as letras (e a placa acesa) ampliadas por cima
-  if (sp.pix.hd) {
-    pix.hd = withChanges(sp.pix.hd, sp.pix, pix, box);
-    night.hd = withChanges(sp.night?.hd ?? new Pixmap(sp.pix.hd.w, sp.pix.hd.h), sp.night ?? new Pixmap(pix.w, pix.h), night, box);
-  }
   return { pix, night };
 }
 
-/** Cópia de `big` (2×) com os pixels em que `after` difere de `before` ampliados por cima. */
-function withChanges(big: Pixmap, before: Pixmap, after: Pixmap, box: { x0: number; y0: number; x1: number; y1: number }): Pixmap {
-  const out = new Pixmap(big.w, big.h);
-  out.data.set(big.data);
-  for (let y = box.y0; y <= box.y1; y++) for (let x = box.x0; x <= box.x1; x++) {
-    const i = (y * after.w + x) * 4;
-    const a = after.data, b = before.data;
-    if (a[i] === b[i] && a[i + 1] === b[i + 1] && a[i + 2] === b[i + 2] && a[i + 3] === b[i + 3]) continue;
-    for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
-      const o = ((y * 2 + dy) * out.w + x * 2 + dx) * 4;
-      out.data[o] = a[i]; out.data[o + 1] = a[i + 1]; out.data[o + 2] = a[i + 2]; out.data[o + 3] = a[i + 3];
-    }
-  }
-  return out;
-}
 
 /** Anel de pedra em volta da fonte, com um circuito no meio que acende à noite. */
 function decoratePlaza(pm: Pixmap, nt: Pixmap, cx: number, cy: number, k = 1): void {

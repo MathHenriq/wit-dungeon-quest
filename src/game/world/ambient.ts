@@ -117,6 +117,17 @@ export function drawAmbient(ctx: CanvasRenderingContext2D, fx: Ambient, v: Ambie
       }
     }
 
+    // ── folhas das árvores redondas: uma de vez em quando, balançando até o chão ──
+    for (let i = 0; i < fx.leaves.length; i++) {
+      const [lx, ly] = fx.leaves[i];
+      if (!inView(v, lx, ly, 60)) continue;
+      const period = 7 + hash(i, 1, 81) * 6, life = ((t + hash(i, 2, 81) * period) % period) / 3.5;
+      if (life > 1) continue;
+      const x = lx + (hash(i, 3, 81) - 0.5) * 24 + Math.sin(life * 10) * 4, y = ly + life * 34;
+      ctx.fillStyle = shade(hash(i, 4, 81) < 0.3 ? [214, 196, 72] : [96, 176, 56], v.tint, life > 0.85 ? (1 - life) / 0.15 : 1);
+      if (Math.sin(life * 10) > 0) px(x, y, 1.5, 1); else px(x, y, 1, 1);
+    }
+
     // ── passarinhos: um bando cruza a tela a cada ~24 s, com a sombra no chão ──
     const cycle = 24, k = Math.floor(t / cycle), lt = (t % cycle) / 7;
     if (lt < 1) {
@@ -151,6 +162,19 @@ export function drawAmbient(ctx: CanvasRenderingContext2D, fx: Ambient, v: Ambie
       ctx.drawImage(cs, x - v.camX, y - v.camY, 220, 110);
     }
     ctx.globalAlpha = 1;
+  }
+
+  // ── luz da antena da Torre: pisca vermelho (mais forte à noite) ──
+  for (const [bx, by] of fx.beacons) {
+    if (!inView(v, bx, by, 20)) continue;
+    const on = (v.now % 1600) < 520;
+    if (!on) continue;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(255,70,70,${0.18 + 0.3 * v.light})`;
+    px(bx - 2, by - 2, 4.5, 4.5);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(255,110,100,1)';
+    px(bx - H, by - H, 1, 1);
   }
 
   // ── vaga-lumes (noite): pontinhos que acendem e apagam devagar ──
