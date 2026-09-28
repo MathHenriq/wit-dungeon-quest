@@ -11,7 +11,7 @@ export function loadModelSheet(modelo: string): Promise<HTMLImageElement> {
       const img = new Image();
       img.onload = () => res(img);
       img.onerror = rej;
-      img.src = `/game/sprites/modelos/${modelo}.png`;
+      img.src = `${import.meta.env.BASE_URL}game/sprites/modelos/${modelo}.png`;
     });
     p.catch(() => sheets.delete(modelo));
     sheets.set(modelo, p);

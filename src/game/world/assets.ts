@@ -16,7 +16,7 @@ export function pixmapFromRGBA(w: number, h: number, data: Uint8ClampedArray | U
 }
 
 /** Carrega no navegador (manifest + PNGs), com a versão hd (2×) de cada sprite. */
-export async function loadWorldAssets(base = '/game/world', hd = true): Promise<WorldAssets> {
+export async function loadWorldAssets(base = `${import.meta.env.BASE_URL}game/world`, hd = true): Promise<WorldAssets> {
   const [normal, big] = await Promise.all([loadDir(base), hd ? loadDir(`${base}/hd`).catch(() => null) : Promise.resolve(null)]);
   if (big) attachHd(normal, big);
   return normal;

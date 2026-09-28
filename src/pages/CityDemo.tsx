@@ -100,7 +100,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 async function loadFrames(folder: string): Promise<Frames> {
   const prep = async (file: string) => {
-    const img = await loadImage(`/game/sprites/${folder}/${file}.png`);
+    const img = await loadImage(`${import.meta.env.BASE_URL}game/sprites/${folder}/${file}.png`);
     const c = document.createElement('canvas');
     c.width = img.width; c.height = img.height;
     const ctx = c.getContext('2d')!;
