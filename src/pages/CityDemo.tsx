@@ -7,13 +7,14 @@ import { Pixmap } from '@/game/world/pixmap';
 import {
   ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker,
 } from '@/game/world/movement';
-import { DEFAULT_LOOK, MODEL_CELL, normalizeLook, type Look } from '@/game/world/outfit';
-import { MODEL_ROWS, modelFrames } from '@/game/world/model-sprite';
+import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
+import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
+import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 import { drawAmbient } from '@/game/world/ambient';
-import { nameplate, PLATE_NPC, PLATE_PLAYER, type PlateStyle } from '@/game/world/nameplate';
+import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
 
 /**
  * Protótipo jogável da Cidade WIT: andar pela cidade (setas/WASD ou toque),
@@ -21,7 +22,6 @@ import { nameplate, PLATE_NPC, PLATE_PLAYER, type PlateStyle } from '@/game/worl
  * Rota: /cidade-demo
  */
 
-const DIRS: Dir[] = ['south', 'west', 'east', 'north'];
 /** ?passeio=1: o boneco passeia sozinho (para medir desempenho e gravar vídeo). */
 const TOUR: [number, number][] = [[31, 23], [16, 21], [16, 19], [10, 27], [16, 32], [16, 31], [46, 33], [46, 31], [57, 21], [51, 14], [48, 10], [7, 11], [7, 9], [26, 13], [31, 23], [31, 40], [14, 42], [14, 41], [31, 33]];
 const WALK_MS = 230, RUN_MS = 125;
@@ -32,37 +32,15 @@ const KEY_DIR: Record<string, Dir> = {
   w: 'north', s: 'south', a: 'west', d: 'east', W: 'north', S: 'south', A: 'west', D: 'east',
 };
 
-/**
- * Resolução da arte: cada pixel do mundo (1 bloco = 16) vira R × R pixels da
- * tela interna, onde a arte hd (2×) aparece com todo o detalhe. A lógica
- * (posições, colisão, câmera) continua em pixels do mundo.
- */
-const R = 2;
-
-type Frames = { walk: Record<Dir, HTMLCanvasElement[]>; foot: Record<Dir, number> };
+// R (sprites.ts): cada pixel do mundo (1 bloco = 16) vira R × R pixels da
+// tela interna, onde a arte hd (2×) aparece com todo o detalhe. A lógica
+// (posições, colisão, câmera) continua em pixels do mundo.
 
 /** Canvas da arte em hd (a hd do sprite, ou a normal ampliada); um por arte (árvores iguais dividem). */
 const hdCanvases = new WeakMap<Pixmap, HTMLCanvasElement>();
 function toCanvasHd(pm: Pixmap): HTMLCanvasElement {
   let c = hdCanvases.get(pm);
   if (!c) { c = toCanvas(hdOf(pm)); hdCanvases.set(pm, c); }
-  return c;
-}
-
-/** Amplia um canvas R× sem suavizar (arte que só existe na resolução normal). */
-function upCanvas(c: HTMLCanvasElement): HTMLCanvasElement {
-  const o = document.createElement('canvas');
-  o.width = c.width * R; o.height = c.height * R;
-  const x = o.getContext('2d')!;
-  x.imageSmoothingEnabled = false;
-  x.drawImage(c, 0, 0, o.width, o.height);
-  return o;
-}
-
-function toCanvas(pm: Pixmap): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width = pm.w; c.height = pm.h;
-  c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(pm.data), pm.w, pm.h), 0, 0);
   return c;
 }
 
@@ -94,58 +72,6 @@ function tinted(src: HTMLCanvasElement, key: string, css: string): HTMLCanvasEle
   return c;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((res, rej) => {
-    const img = new Image();
-    img.onload = () => res(img);
-    img.onerror = rej;
-    img.src = src;
-  });
-}
-
-async function loadFrames(folder: string): Promise<Frames> {
-  const prep = async (file: string) => {
-    const img = await loadImage(`${import.meta.env.BASE_URL}game/sprites/${folder}/${file}.png`);
-    const c = document.createElement('canvas');
-    c.width = img.width; c.height = img.height;
-    const ctx = c.getContext('2d')!;
-    ctx.drawImage(img, 0, 0);
-    return upCanvas(c);
-  };
-  // Só os quadros de caminhada: os "parados" da PixelLab têm outro tamanho e
-  // faziam o boneco encolher e pular ao começar a andar.
-  const walk = {} as Record<Dir, HTMLCanvasElement[]>;
-  const foot = {} as Record<Dir, number>;
-  await Promise.all(DIRS.map(async d => {
-    walk[d] = await Promise.all([0, 1, 2, 3, 4, 5].map(k => prep(`andar-${d}-${k}`)));
-    // linha dos pés = última linha opaca, pela mediana dos quadros
-    const rows = walk[d].map(c => {
-      const data = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
-      for (let y = c.height - 1; y >= 0; y--) for (let x = 0; x < c.width; x++) if (data[(y * c.width + x) * 4 + 3] > 128) return y / R;
-      return c.height / R - 1;
-    }).sort((a, b) => a - b);
-    foot[d] = rows[rows.length >> 1];
-  }));
-  return { walk, foot };
-}
-
-/** Personagem a partir de um modelo-base pintado com o visual. */
-async function loadLookFrames(look: Look): Promise<Frames> {
-  const rows = await modelFrames(look);
-  const walk = {} as Record<Dir, HTMLCanvasElement[]>;
-  const foot = {} as Record<Dir, number>;
-  MODEL_ROWS.forEach((d, i) => { walk[d] = rows[i]; foot[d] = MODEL_CELL.foot; });
-  return { walk, foot };
-}
-
-/** Plaquinhas prontas (canvas hd), por texto. */
-const plates = new Map<string, HTMLCanvasElement>();
-function plateCanvas(name: string, title: string | undefined, st: PlateStyle): HTMLCanvasElement {
-  const key = `${name}|${title ?? ''}|${st.border.join(',')}`;
-  let c = plates.get(key);
-  if (!c) { c = toCanvas(nameplate(name, title, st)); plates.set(key, c); }
-  return c;
-}
 
 const LOOK_KEY = 'wit.visual';
 function savedLook(): Look {
@@ -194,6 +120,13 @@ function CityView({ town }: { town: Town }) {
   const [near, setNear] = useState<string | null>(null);
   const [look, setLook] = useState<Look>(savedLook);
   const [editing, setEditing] = useState(() => new URLSearchParams(window.location.search).has('visual'));
+  // ?sala=torre&andar=5 ou ?sala=casa começa dentro (prints e testes)
+  const [inside, setInside] = useState<Sala | null>(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('sala') === 'casa') return { kind: 'casa' };
+    if (q.get('sala') === 'torre') return { kind: 'torre', andar: Math.max(1, Math.min(100, Number(q.get('andar')) || 1)) };
+    return null;
+  });
 
   // estado do jogo fora do React (o laço de desenho lê direto)
   const g = useRef({
@@ -229,10 +162,11 @@ function CityView({ town }: { town: Town }) {
     hour: 8,
     clockSpeed: 1,
     modal: false,
+    inside: false,
     dirty: true,
   });
 
-  useEffect(() => { g.current.modal = !!panel || !!dialog || editing; g.current.dirty = true; }, [panel, dialog, editing]);
+  useEffect(() => { g.current.modal = !!panel || !!dialog || editing || !!inside; g.current.inside = !!inside; g.current.dirty = true; }, [panel, dialog, editing, inside]);
 
   // visual novo → repinta o boneco e guarda (só neste navegador por enquanto)
   const firstLook = useRef(true);
@@ -243,6 +177,7 @@ function CityView({ town }: { town: Town }) {
     if (firstLook.current) { firstLook.current = false; return; }
     let alive = true;
     loadLookFrames(look).then(f => { if (alive) { g.current.playerFrames = f; g.current.dirty = true; } }).catch(err => console.error('visual', err));
+    loadPetFrames(look.pet ?? DEFAULT_PET).then(f => { if (alive) { g.current.petFrames = f; g.current.dirty = true; } }).catch(err => console.error('pet', err));
     return () => { alive = false; };
   }, [look]);
 
@@ -297,7 +232,7 @@ function CityView({ town }: { town: Town }) {
     (async () => {
       const [pf, pet, ...npcFrames] = await Promise.all([
         loadLookFrames(look),
-        loadFrames('pets/raposa-chama'),
+        loadPetFrames(look.pet ?? DEFAULT_PET),
         ...NPCS.map(n => loadLookFrames(n.look)),
       ]);
       if (!alive) return;
@@ -380,7 +315,8 @@ function CityView({ town }: { town: Town }) {
     const cv = canvasRef.current;
     if (!cv) return;
     const ctx = cv.getContext('2d')!;
-    let last = performance.now(), raf = 0, petQueue: { tx: number; ty: number }[] = [];
+    let last = performance.now(), raf = 0;
+    const petQueue: { tx: number; ty: number }[] = [];
     let npcTimer = 0;
     let lastAnimKey = '';
     let lastTodKey = -1, lastPulse = -1, lastHourShown = -1;
@@ -393,7 +329,9 @@ function CityView({ town }: { town: Town }) {
       const door = town.doors.find(d => d.tx === s.player.tx && d.ty === s.player.ty);
       if (door && s.player.dir === 'north') {
         s.path = []; s.held = [];
-        setPanel(BUILDING_INFO[door.building] ?? houseInfo(door.building, door.name));
+        if (door.building === 'torre') setInside({ kind: 'torre', andar: 1 });
+        else if (door.building === 'sua-casa') setInside({ kind: 'casa' });
+        else setPanel(BUILDING_INFO[door.building] ?? houseInfo(door.building, door.name));
       }
     };
 
@@ -477,8 +415,8 @@ function CityView({ town }: { town: Town }) {
         if (title !== lastNear) { lastNear = title; setNear(title); }
       }
 
-      // ── desenho: só quando algo mudou ──
-      if (!s.dirty || !s.scene) { raf = requestAnimationFrame(loop); return; }
+      // ── desenho: só quando algo mudou (e não enquanto se está num interior) ──
+      if (!s.dirty || !s.scene || s.inside) { raf = requestAnimationFrame(loop); return; }
       s.dirty = false;
       const vw = cv.width / R, vh = cv.height / R;
       const pp = pixelPos(p, TILE);
@@ -587,10 +525,10 @@ function CityView({ town }: { town: Town }) {
         const n = fr.walk[w.dir].length;
         const frameMs = (w === s.player && s.run ? RUN_MS : WALK_MS) / (n / 2);
         const img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % n : 0];
-        const wx = Math.round(pos.x - 8), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
+        const wx = Math.round(pos.x + 8 - fr.w / 2), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
         const x = wx - camX, y = wy - camY;
         if (x > vw || y > vh || x < -32 || y < -48) return;
-        people.push({ x: wx, y: wy, w: 32, h: 40, baseY: pos.y + 16 });
+        people.push({ x: wx, y: wy, w: fr.w, h: 40, baseY: pos.y + 16 });
         list.push({
           baseY: pos.y + 16,
           draw: () => {
@@ -598,7 +536,7 @@ function CityView({ town }: { town: Town }) {
             const inGrass = town.terrain[ty]?.[tx] === 'mato';
             if (!inGrass) {
               ctx.fillStyle = 'rgba(30,50,60,0.3)';
-              ctx.beginPath(); ctx.ellipse(x + 16, y + fr.foot[w.dir], 7, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.ellipse(x + fr.w / 2, y + fr.foot[w.dir], Math.min(7, fr.w / 3), 2.5, 0, 0, Math.PI * 2); ctx.fill();
             }
             // poeirinha nos pés de quem corre
             if (w === s.player && s.run && w.from) {
@@ -608,7 +546,7 @@ function CityView({ town }: { town: Town }) {
                 const dx = -back[0] * (4 + life * 8) + (k - 1) * 2, dy = -back[1] * (4 + life * 8);
                 ctx.fillStyle = `rgba(214,196,160,${0.55 * (1 - life)})`;
                 const sz = Math.round((1 + life * 2) * 2) / 2;
-                ctx.fillRect(Math.round((x + 16 + dx - sz / 2) * 2) / 2, Math.round((y + fr.foot[w.dir] - 1 + dy - life * 3) * 2) / 2, sz, sz);
+                ctx.fillRect(Math.round((x + fr.w / 2 + dx - sz / 2) * 2) / 2, Math.round((y + fr.foot[w.dir] - 1 + dy - life * 3) * 2) / 2, sz, sz);
               }
             }
             put(img, x, y);
@@ -693,6 +631,19 @@ function CityView({ town }: { town: Town }) {
     s.path = findPath(s.player.tx, s.player.ty, target.tx, target.ty, blocked);
   };
 
+  // saiu do interior: aparece na frente da porta, olhando para a rua
+  const exitInterior = useCallback(() => {
+    const s = g.current;
+    const id = inside?.kind === 'torre' ? 'torre' : 'sua-casa';
+    const d = town.doors.find(dd => dd.building === id);
+    if (d) {
+      s.player = newWalker(d.tx, d.ty + 1, 'south');
+      s.pet = newWalker(d.tx, d.ty, 'south');
+    }
+    s.held = []; s.path = [];
+    setInside(null);
+  }, [inside, town]);
+
   const hold = (d: Dir | null) => { g.current.held = d ? [d] : []; g.current.path = []; };
 
   const pixelFont = "font-['Press_Start_2P',monospace]";
@@ -744,7 +695,7 @@ function CityView({ town }: { town: Town }) {
         </div>
       )}
 
-      {touch && !editing && (
+      {touch && !editing && !inside && (
         <>
           <div className="absolute left-4 bottom-6 grid grid-cols-3 gap-1 opacity-80">
             {([[null, 'north', null], ['west', null, 'east'], [null, 'south', null]] as (Dir | null)[][]).flat().map((d, i) => d ? (
@@ -765,6 +716,7 @@ function CityView({ town }: { town: Town }) {
           >A</button>
         </>
       )}
+      {inside && <InteriorView sala={inside} look={look} pet={look.pet ?? DEFAULT_PET} onExit={exitInterior} />}
     </div>
   );
 }

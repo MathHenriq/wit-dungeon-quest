@@ -60,7 +60,11 @@ export interface Look {
   cabelo: string;
   cima: string;
   baixo: string;
+  /** Pet que segue o jogador (folha em public/game/sprites/bichos). */
+  pet?: string;
 }
+
+export const DEFAULT_PET = 'pet-raposa-chama';
 
 export const DEFAULT_LOOK: Look = { modelo: 'modelo-01', pele: 'pele-3', cabelo: 'castanho', cima: 'verde', baixo: 'jeans' };
 
@@ -69,8 +73,10 @@ export function normalizeLook(l: Partial<Look> | null | undefined): Look {
   const ok = <T extends string>(v: string | undefined, table: Record<string, unknown> | readonly string[], d: T) =>
     v && (Array.isArray(table) ? table.includes(v) : v in table) ? v : d;
   const apelido = (l?.apelido ?? '').replace(/[^\p{L}\p{N} .!-]/gu, '').trim().slice(0, 14);
+  const pet = typeof l?.pet === 'string' && /^pet-[a-z-]{2,40}$/.test(l.pet) ? l.pet : undefined;
   return {
     ...(apelido ? { apelido } : {}),
+    ...(pet ? { pet } : {}),
     modelo: ok(l?.modelo, MODELOS, DEFAULT_LOOK.modelo),
     pele: ok(l?.pele, SKIN, DEFAULT_LOOK.pele),
     cabelo: ok(l?.cabelo, HAIR, DEFAULT_LOOK.cabelo),

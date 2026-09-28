@@ -1,0 +1,39 @@
+{
+ "cell": [
+  48,
+  48
+ ],
+ "foot": 46,
+ "sprites": [
+  "pet-aranha-fofa",
+  "pet-broto-tartaruga",
+  "pet-cabrinha-montanha",
+  "pet-canguru-boxe",
+  "pet-cervo-folha",
+  "pet-coelho-lava",
+  "pet-cogumelinho",
+  "pet-corujinha-vento",
+  "pet-esquilo-raio",
+  "pet-fantasminha",
+  "pet-filhote-lutador",
+  "pet-foca-gelo",
+  "pet-foquinha",
+  "pet-furao-faisca",
+  "pet-gato-sombra",
+  "pet-lagartinha-neon",
+  "pet-lontra-bolha",
+  "pet-morcego-noite",
+  "pet-ovelha-estatica",
+  "pet-peixe-voador",
+  "pet-pinguim-neve",
+  "pet-polvo-bebe",
+  "pet-porquinho-trevo",
+  "pet-raposa-chama",
+  "pet-robo-besouro",
+  "pet-salamandra-sol",
+  "pet-sapinho-roxo",
+  "pet-tatu-rocha",
+  "pet-toupeira-pedra",
+  "pet-urso-polar-bebe"
+ ]
+}

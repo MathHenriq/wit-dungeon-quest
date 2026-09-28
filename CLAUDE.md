@@ -71,6 +71,10 @@ construtor de deck.
 | Movimento em grade, caminho, troca de cor do boneco | `src/game/world/{movement,recolor}.ts` |
 | Cidade jogável (`/cidade-demo`, `?passeio=1` anda sozinho) | `src/pages/CityDemo.tsx` + textos em `src/game/world/content.ts` |
 | **Personagem do jogador e moradores**: 10 modelos-base do GPT em cores-molde (`public/Novos assets/personagem/modelos/`) convertidos para `public/game/sprites/modelos/` (4×4 quadros de 32×40) | `python3 scripts/arte/importar-personagem.py --folha saida.png`; paleta e rampas de cor em `src/game/world/outfit.ts` (a paleta tem de bater com a do script); tela de visual em `src/components/city/LookEditor.tsx` (botão VISUAL, `/cidade-demo?visual`) |
+| **Interiores** (Torre com 8 mesas + chefe por andar, `?sala=torre&andar=N`; Sua Casa com modo DECORAR: pôr, mover, girar, pintar tecido, piso e papel de parede, salvo no navegador, `?sala=casa`). Entrar pela porta na cidade abre o interior por cima dela | regras puras e salas em `src/game/interior/room.ts` (+ testes); desenho e editor em `src/components/city/InteriorView.tsx` |
+| **Móveis, pisos e paredes dos interiores** (395 sprites em hd): folhas do GPT em `public/Novos assets/interiores/` → `public/game/interior/*.png` + `manifest.json` (nome, categoria, camada m/t/p, pegada, tecido) | `python3 scripts/arte/importar-interiores.py --folha revisao.png`; a lista de cada folha (ordem, nomes, escala, pegada) fica no topo do script |
+| **NPCs desafiantes e pets do GPT** (folhas 4 × 4 em cores reais) → `public/game/sprites/npcs/` (64 × 80) e `public/game/sprites/bichos/` (48 × 48); o pet se escolhe no VISUAL | `python3 scripts/arte/importar-sprites.py --folha revisao.png` (o `pet-dragaozinho-brasa` fica de fora: parecido demais com o Spyro, refazer) |
+| Quadros de personagem, NPC e pet, plaquinhas e utilitários de canvas (cidade e interiores) | `src/game/world/sprites.ts` |
 | Pets (PixelLab, 32 px) e o boneco antigo | `public/game/sprites/` (ver README lá) |
 
 O texto de uma carta **nunca** é escrito à mão: sai de `describeCard`. Para
@@ -91,6 +95,7 @@ são do sistema anterior ao TCG: **não servem de referência**.
 - `npx vite-node scripts/mapa/render-hd.ts -- <pasta> [x,y ...]` — a cidade como o jogo desenha (2×) e recortes de tela em cada x,y (blocos).
 - `/cidade-demo?pos=12,41` começa o boneco no bloco (12,41) (prints e testes).
 - `npx vite-node scripts/mapa/folha-predios.ts -- saida.png 3` e `folha-objetos.ts` — folhas de revisão.
+- `node scripts/mapa/prints-interiores.mjs <pasta>` — prints da Torre (3 faixas de andar), da casa decorando, do celular e de entrar/sair.
 - `node scripts/mapa/prints-cidade.mjs <pasta>` e `video-cidade.mjs <pasta> 20` — prints e vídeo da cidade
   jogável (precisa do `vite` rodando em 127.0.0.1:5199 e de um `.env` com as chaves públicas do Supabase).
 - Arte: `npx vite-node scripts/arte/gerar.ts -- --ids a,b --paralelo 4`

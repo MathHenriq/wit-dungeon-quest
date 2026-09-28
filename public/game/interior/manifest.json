@@ -1,0 +1,3965 @@
+{
+ "abajur-cogumelo": {
+  "camada": "m",
+  "cat": "luz",
+  "h": 23.5,
+  "nome": "Abajur cogumelo",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "almofadas": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 27.0,
+  "nome": "Almofadas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 42.0
+ },
+ "aquario": {
+  "camada": "m",
+  "cat": "eletronico",
+  "h": 36.0,
+  "nome": "Aquário",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 31.0
+ },
+ "arara-camisas": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 34.0,
+  "nome": "Arara de camisas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 34.0
+ },
+ "arara-jaquetas": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 33.5,
+  "nome": "Arara de jaquetas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 35.0
+ },
+ "arco-flores": {
+  "camada": "m",
+  "cat": "jardim",
+  "h": 37.5,
+  "nome": "Arco de flores",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 36.0
+ },
+ "arco-pedra": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 41.5,
+  "nome": "Arco de pedra",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 37.0
+ },
+ "armadura": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 52.0,
+  "nome": "Armadura",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 22.0
+ },
+ "armario-madeira": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 33.5,
+  "nome": "Armário",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "arranhador": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 35.5,
+  "nome": "Arranhador",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 29.0
+ },
+ "atril": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 35.0,
+  "nome": "Atril do álbum",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 31.0
+ },
+ "balcao-cafe": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 35.0,
+  "nome": "Balcão do café",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 39.0
+ },
+ "balcao-janela": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 44.5,
+  "nome": "Balcão da janela",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 43.0
+ },
+ "balcao-troca": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 29.0,
+  "nome": "Balcão de trocas",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 48.0
+ },
+ "baloes": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 50.5,
+  "nome": "Balões",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 28.0
+ },
+ "bancada": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 32.0,
+  "nome": "Bancada",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 31.0
+ },
+ "banco-duelo": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 31.5,
+  "nome": "Banquinho",
+  "w": 26.0
+ },
+ "banco-duelo.costas": {
+  "cat": "torre",
+  "de": "banco-duelo",
+  "h": 33.5,
+  "vista": "costas",
+  "w": 26.0
+ },
+ "banco-escuro": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 12.5,
+  "nome": "Banco escuro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "banco-espera": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 23.5,
+  "nome": "Banco de espera",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 41.0
+ },
+ "banco-jardim": {
+  "camada": "m",
+  "cat": "jardim",
+  "h": 24.0,
+  "nome": "Banco de jardim",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 34.0
+ },
+ "banco-loja": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 23.0,
+  "nome": "Banco",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 36.0
+ },
+ "banco-pedra": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 23.5,
+  "nome": "Banco de pedra",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 34.0
+ },
+ "banco-plateia": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 23.0,
+  "nome": "Banco da plateia",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 38.0
+ },
+ "banco-veludo": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 21.0,
+  "nome": "Banco de veludo",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 38.0
+ },
+ "banheira": {
+  "camada": "m",
+  "cat": "banheiro",
+  "h": 50.5,
+  "nome": "Banheira",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 38.0
+ },
+ "barril-agua": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 28.5,
+  "nome": "Barril de água",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 26.0
+ },
+ "barris": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 26.5,
+  "nome": "Barris",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 25.0
+ },
+ "bau-brinquedos": {
+  "camada": "m",
+  "cat": "armario",
+  "h": 29.0,
+  "nome": "Baú de brinquedos",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 32.0
+ },
+ "bau-pacotinhos": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 45.5,
+  "nome": "Baú de pacotinhos",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 42.0
+ },
+ "bau-tesouro": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 20.5,
+  "nome": "Baú do tesouro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "bebedouro": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 34.5,
+  "nome": "Bebedouro",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 27.0
+ },
+ "beliche": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 37.5,
+  "nome": "Beliche",
+  "pe": [
+   1,
+   2
+  ],
+  "tecido": true,
+  "w": 31.0
+ },
+ "beliche-madeira": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 30.0,
+  "nome": "Beliche de madeira",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 26.0
+ },
+ "beliche.lado": {
+  "cat": "cama",
+  "de": "beliche",
+  "h": 38.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 35.0
+ },
+ "bigorna": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 26.0,
+  "nome": "Bigorna",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "boneco-cristal": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 54.5,
+  "nome": "Boneco de cristal",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 35.0
+ },
+ "boneco-cristal-azul": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 27.5,
+  "nome": "Boneco de cristal azul",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "boneco-cristal-roxo": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 27.5,
+  "nome": "Boneco de cristal roxo",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "boneco-treino": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 35.0,
+  "nome": "Boneco de treino",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 31.0
+ },
+ "bonsai": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 35.5,
+  "nome": "Bonsai",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 33.0
+ },
+ "bonsai-mesa": {
+  "camada": "m",
+  "cat": "planta",
+  "h": 23.0,
+  "nome": "Bonsai na mesinha",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "braseiro": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 41.5,
+  "nome": "Braseiro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 27.0
+ },
+ "braseiro-azul": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 61.5,
+  "nome": "Braseiro azul",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 25.0
+ },
+ "cabide-capa": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 29.5,
+  "nome": "Cabide da capa",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 18.0
+ },
+ "cacto": {
+  "camada": "m",
+  "cat": "planta",
+  "h": 20.5,
+  "nome": "Cacto",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 10.0
+ },
+ "cadeira": {
+  "camada": "m",
+  "cat": "poltrona",
+  "h": 24.5,
+  "nome": "Cadeira",
+  "pe": [
+   1,
+   1
+  ],
+  "tecido": true,
+  "w": 13.0
+ },
+ "cadeira-balanco": {
+  "camada": "m",
+  "cat": "poltrona",
+  "h": 25.0,
+  "nome": "Cadeira de balanço",
+  "pe": [
+   1,
+   1
+  ],
+  "tecido": true,
+  "w": 17.0
+ },
+ "cadeira-balanco.lado": {
+  "cat": "poltrona",
+  "de": "cadeira-balanco",
+  "h": 27.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 20.0
+ },
+ "cadeira-gamer": {
+  "camada": "m",
+  "cat": "poltrona",
+  "h": 27.5,
+  "nome": "Cadeira gamer",
+  "pe": [
+   1,
+   1
+  ],
+  "tecido": true,
+  "w": 18.0
+ },
+ "cadeira-gamer-2": {
+  "camada": "m",
+  "cat": "gamer",
+  "h": 36.5,
+  "nome": "Cadeira gamer vermelha",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 26.0
+ },
+ "cadeira-gamer.lado": {
+  "cat": "poltrona",
+  "de": "cadeira-gamer",
+  "h": 27.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 18.0
+ },
+ "cadeira-ovo": {
+  "camada": "m",
+  "cat": "poltrona",
+  "h": 30.0,
+  "nome": "Cadeira ovo",
+  "pe": [
+   1,
+   1
+  ],
+  "tecido": true,
+  "w": 19.0
+ },
+ "cadeira-ovo.lado": {
+  "cat": "poltrona",
+  "de": "cadeira-ovo",
+  "h": 29.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 20.0
+ },
+ "cadeira-saguao": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 32.5,
+  "nome": "Cadeira do saguão",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 29.0
+ },
+ "cadeira-saguao.costas": {
+  "cat": "arena",
+  "de": "cadeira-saguao",
+  "h": 27.5,
+  "vista": "costas",
+  "w": 27.0
+ },
+ "cadeira.lado": {
+  "cat": "poltrona",
+  "de": "cadeira",
+  "h": 24.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 14.0
+ },
+ "caixa-som": {
+  "camada": "m",
+  "cat": "eletronico",
+  "h": 39.0,
+  "nome": "Caixa de som",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "cama-alta": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 33.0,
+  "nome": "Cama alta com mesa",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 26.0
+ },
+ "cama-alta.lado": {
+  "cat": "cama",
+  "de": "cama-alta",
+  "h": 34.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 29.0
+ },
+ "cama-carro": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 32.0,
+  "nome": "Cama carrinho",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 33.0
+ },
+ "cama-carro.lado": {
+  "cat": "cama",
+  "de": "cama-carro",
+  "h": 27.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 42.0
+ },
+ "cama-casal": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 40.0,
+  "nome": "Cama de casal",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 36.0
+ },
+ "cama-casal.lado": {
+  "cat": "cama",
+  "de": "cama-casal",
+  "h": 37.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 40.0
+ },
+ "cama-dossel": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 46.0,
+  "nome": "Cama com dossel",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 37.0
+ },
+ "cama-dossel.lado": {
+  "cat": "cama",
+  "de": "cama-dossel",
+  "h": 43.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 40.0
+ },
+ "cama-estante": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 37.5,
+  "nome": "Cama com estante",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 24.0
+ },
+ "cama-estante.lado": {
+  "cat": "cama",
+  "de": "cama-estante",
+  "h": 38.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 29.0
+ },
+ "cama-foguete": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 40.5,
+  "nome": "Cama foguete",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 27.0
+ },
+ "cama-foguete.lado": {
+  "cat": "cama",
+  "de": "cama-foguete",
+  "h": 38.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 33.0
+ },
+ "cama-gamer": {
+  "camada": "m",
+  "cat": "gamer",
+  "h": 45.5,
+  "nome": "Cama gamer",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 30.0
+ },
+ "cama-medieval": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 40.0,
+  "nome": "Cama medieval",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 30.0
+ },
+ "cama-princesa": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 39.0,
+  "nome": "Cama de princesa",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 28.0
+ },
+ "cama-princesa.lado": {
+  "cat": "cama",
+  "de": "cama-princesa",
+  "h": 38.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 31.0
+ },
+ "cama-rede": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 30.5,
+  "nome": "Cama de rede",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 33.0
+ },
+ "cama-rede.lado": {
+  "cat": "cama",
+  "de": "cama-rede",
+  "h": 33.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 34.0
+ },
+ "cama-redonda": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 32.0,
+  "nome": "Cama redonda",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 30.0
+ },
+ "cama-redonda.lado": {
+  "cat": "cama",
+  "de": "cama-redonda",
+  "h": 31.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 31.0
+ },
+ "cama-solteiro": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 38.5,
+  "nome": "Cama de solteiro",
+  "pe": [
+   1,
+   2
+  ],
+  "tecido": true,
+  "w": 22.0
+ },
+ "cama-solteiro.lado": {
+  "cat": "cama",
+  "de": "cama-solteiro",
+  "h": 29.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 35.0
+ },
+ "caminha-pet": {
+  "camada": "m",
+  "cat": "extra",
+  "h": 18.0,
+  "nome": "Caminha do pet",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 22.0
+ },
+ "candelabro": {
+  "camada": "m",
+  "cat": "luz",
+  "h": 32.0,
+  "nome": "Candelabro",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 24.0
+ },
+ "capacho": {
+  "camada": "t",
+  "cat": "extra",
+  "h": 14.0,
+  "nome": "Capacho",
+  "w": 24.0
+ },
+ "casinha-cachorro": {
+  "camada": "m",
+  "cat": "jardim",
+  "h": 33.0,
+  "nome": "Casinha do cachorro",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 33.0
+ },
+ "casinha-passaro": {
+  "camada": "m",
+  "cat": "jardim",
+  "h": 39.5,
+  "nome": "Casinha de passarinho",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 17.0
+ },
+ "catalogo-moveis": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 44.0,
+  "nome": "Catálogo de móveis",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "cavalete": {
+  "camada": "m",
+  "cat": "extra",
+  "h": 31.5,
+  "nome": "Cavalete",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 16.0
+ },
+ "cesto-pacotinhos": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 31.0,
+  "nome": "Cesto de pacotinhos",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 32.0
+ },
+ "cesto-roupa": {
+  "camada": "m",
+  "cat": "extra",
+  "h": 18.5,
+  "nome": "Cesto de roupa",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "chocadeira": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 34.5,
+  "nome": "Chocadeira",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 24.0
+ },
+ "churrasqueira": {
+  "camada": "m",
+  "cat": "jardim",
+  "h": 32.0,
+  "nome": "Churrasqueira",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 21.0
+ },
+ "chuveiro": {
+  "camada": "m",
+  "cat": "banheiro",
+  "h": 54.0,
+  "nome": "Chuveiro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 35.0
+ },
+ "coluna-quebrada": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 35.0,
+  "nome": "Coluna quebrada",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 27.0
+ },
+ "comoda": {
+  "camada": "m",
+  "cat": "armario",
+  "h": 25.0,
+  "nome": "Cômoda",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "cordao-veludo": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 21.5,
+  "nome": "Cordão de veludo",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 33.0
+ },
+ "costela-adao": {
+  "camada": "m",
+  "cat": "planta",
+  "h": 30.0,
+  "nome": "Costela-de-adão",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 24.0
+ },
+ "cristal-rank": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 52.0,
+  "nome": "Cristal de rank",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 38.0
+ },
+ "cristaleira": {
+  "camada": "m",
+  "cat": "armario",
+  "h": 40.5,
+  "nome": "Cristaleira de cartas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 35.0
+ },
+ "escada": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 55.0,
+  "nome": "Escada",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 50.0
+ },
+ "escadinha-livros": {
+  "camada": "m",
+  "cat": "extra",
+  "h": 33.0,
+  "nome": "Escadinha de livros",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "escrivaninha": {
+  "camada": "m",
+  "cat": "mesa",
+  "h": 34.5,
+  "nome": "Escrivaninha",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 36.0
+ },
+ "escudo-treino": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 30.0,
+  "nome": "Escudo de treino",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "estandarte-azul": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 38.0,
+  "nome": "Estandarte azul",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 18.0
+ },
+ "estandarte-copas": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 44.0,
+  "nome": "Estandarte de copas",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "estandarte-escuro": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 35.0,
+  "nome": "Estandarte escuro",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "estandarte-espadas": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 44.0,
+  "nome": "Estandarte de espadas",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "estandarte-ouros": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 44.0,
+  "nome": "Estandarte de ouros",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "estandarte-paus": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.5,
+  "nome": "Estandarte de paus",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "estandarte-real": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 40.0,
+  "nome": "Estandarte real",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 30.0
+ },
+ "estandarte-roxo": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 37.5,
+  "nome": "Estandarte roxo",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 18.0
+ },
+ "estandarte-verde": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 37.5,
+  "nome": "Estandarte verde",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 18.0
+ },
+ "estandarte-vermelho": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 37.5,
+  "nome": "Estandarte vermelho",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 18.0
+ },
+ "estante": {
+  "camada": "m",
+  "cat": "armario",
+  "h": 40.0,
+  "nome": "Estante de livros",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 28.0
+ },
+ "estante-albuns": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 37.0,
+  "nome": "Estante de álbuns",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 26.0
+ },
+ "estante-albuns-alta": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 37.5,
+  "nome": "Estante de álbuns",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "estante-jogos": {
+  "camada": "m",
+  "cat": "gamer",
+  "h": 46.0,
+  "nome": "Estante de jogos",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "estante-medalhas": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 44.5,
+  "nome": "Estante de medalhas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 48.0
+ },
+ "estante-pergaminhos": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 34.0,
+  "nome": "Estante",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 27.0
+ },
+ "estante-rolos": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 32.5,
+  "nome": "Estante de pergaminhos",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "estante-trofeus": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 45.0,
+  "nome": "Estante de troféus",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 39.0
+ },
+ "estatua-campeao": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 48.5,
+  "nome": "Estátua do campeão",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 23.0
+ },
+ "estatua-carta-alada": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 40.0,
+  "nome": "Carta alada",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "estatua-mao-carta": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 45.5,
+  "nome": "Estátua da carta",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 22.0
+ },
+ "expositor-bones": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 36.0,
+  "nome": "Expositor de bonés",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 25.0
+ },
+ "fliperama": {
+  "camada": "m",
+  "cat": "eletronico",
+  "h": 41.0,
+  "nome": "Fliperama",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 21.0
+ },
+ "fogao": {
+  "camada": "m",
+  "cat": "armario",
+  "h": 32.0,
+  "nome": "Fogão",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 22.0
+ },
+ "fogao-panela": {
+  "camada": "m",
+  "cat": "cozinha",
+  "h": 24.5,
+  "nome": "Fogão",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "fonte-jardim": {
+  "camada": "m",
+  "cat": "jardim",
+  "h": 32.5,
+  "nome": "Fonte",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 37.0
+ },
+ "fonte-loja": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 42.0,
+  "nome": "Fonte",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 34.0
+ },
+ "forja": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 39.0,
+  "nome": "Forja",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "frigobar": {
+  "camada": "m",
+  "cat": "gamer",
+  "h": 33.0,
+  "nome": "Frigobar",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 21.0
+ },
+ "fruteira": {
+  "camada": "m",
+  "cat": "cozinha",
+  "h": 24.5,
+  "nome": "Fruteira",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "futon": {
+  "camada": "m",
+  "cat": "cama",
+  "h": 29.0,
+  "nome": "Futon",
+  "pe": [
+   2,
+   2
+  ],
+  "tecido": true,
+  "w": 34.0
+ },
+ "futon.lado": {
+  "cat": "cama",
+  "de": "futon",
+  "h": 21.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 40.0
+ },
+ "gato-almofada": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 19.0,
+  "nome": "Gato dormindo",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 27.0
+ },
+ "geladeira": {
+  "camada": "m",
+  "cat": "cozinha",
+  "h": 31.5,
+  "nome": "Geladeira",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "geladeira-mini": {
+  "camada": "m",
+  "cat": "armario",
+  "h": 39.5,
+  "nome": "Geladeirinha",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "gongo": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 54.5,
+  "nome": "Gongo",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 57.0
+ },
+ "gongo-ouro": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 35.0,
+  "nome": "Gongo de ouro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "guarda-roupa": {
+  "camada": "m",
+  "cat": "armario",
+  "h": 39.5,
+  "nome": "Guarda-roupa",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "horta": {
+  "camada": "m",
+  "cat": "jardim",
+  "h": 31.0,
+  "nome": "Horta",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 32.0
+ },
+ "ilha-cozinha": {
+  "camada": "m",
+  "cat": "mesa",
+  "h": 29.5,
+  "nome": "Ilha da cozinha",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 40.0
+ },
+ "janela-cortina": {
+  "camada": "p",
+  "cat": "parede",
+  "h": 26.5,
+  "nome": "Janela com cortina",
+  "w": 32.0
+ },
+ "janela-redonda": {
+  "camada": "p",
+  "cat": "parede",
+  "h": 23.5,
+  "nome": "Janela redonda",
+  "w": 23.0
+ },
+ "lampada-lava": {
+  "camada": "m",
+  "cat": "luz",
+  "h": 30.0,
+  "nome": "Lâmpada de lava",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 12.0
+ },
+ "lanterna-papel": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 32.0,
+  "nome": "Lanterna de papel",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 11.0
+ },
+ "lanterna-redonda": {
+  "camada": "p",
+  "cat": "luz",
+  "h": 29.0,
+  "nome": "Lanterna redonda",
+  "w": 21.0
+ },
+ "lareira": {
+  "camada": "m",
+  "cat": "parede",
+  "h": 29.0,
+  "nome": "Lareira",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 27.0
+ },
+ "lareira-oficina": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 36.5,
+  "nome": "Lareira",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 32.0
+ },
+ "lareira-pedra": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 60.5,
+  "nome": "Lareira de pedra",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 42.0
+ },
+ "lavatorio": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 34.5,
+  "nome": "Lavatório",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 24.0
+ },
+ "limoeiro": {
+  "camada": "m",
+  "cat": "planta",
+  "h": 26.0,
+  "nome": "Limoeiro",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "lixeira": {
+  "camada": "m",
+  "cat": "cozinha",
+  "h": 20.0,
+  "nome": "Lixeira",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 14.0
+ },
+ "loja-acessorios": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 70.5,
+  "nome": "Loja de acessórios",
+  "pe": [
+   6,
+   3
+  ],
+  "w": 100.0
+ },
+ "loja-eventos": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 70.0,
+  "nome": "Loja de eventos",
+  "pe": [
+   6,
+   3
+  ],
+  "w": 101.0
+ },
+ "loja-informacoes": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 73.0,
+  "nome": "Informações",
+  "pe": [
+   6,
+   3
+  ],
+  "w": 103.0
+ },
+ "loja-moveis": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 83.0,
+  "nome": "Loja de móveis",
+  "pe": [
+   6,
+   3
+  ],
+  "w": 106.0
+ },
+ "loja-pacotinhos": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 81.5,
+  "nome": "Loja de pacotinhos",
+  "pe": [
+   6,
+   3
+  ],
+  "w": 100.0
+ },
+ "loja-pets": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 81.0,
+  "nome": "Pet shop",
+  "pe": [
+   6,
+   3
+  ],
+  "w": 105.0
+ },
+ "loja-premios": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 73.0,
+  "nome": "Troca de prêmios",
+  "pe": [
+   6,
+   3
+  ],
+  "w": 103.0
+ },
+ "loja-roupas": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 87.0,
+  "nome": "Boutique",
+  "pe": [
+   6,
+   3
+  ],
+  "w": 108.0
+ },
+ "luminaria-chao": {
+  "camada": "m",
+  "cat": "luz",
+  "h": 34.5,
+  "nome": "Luminária de chão",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 16.0
+ },
+ "luminaria-mesa": {
+  "camada": "m",
+  "cat": "luz",
+  "h": 29.5,
+  "nome": "Luminária de mesa",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 22.0
+ },
+ "luminaria-mostruario": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 34.0,
+  "nome": "Luminária",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 14.0
+ },
+ "luminaria-oficina": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 31.0,
+  "nome": "Luminária",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 15.0
+ },
+ "lustre-cristal": {
+  "camada": "p",
+  "cat": "torre",
+  "h": 42.0,
+  "nome": "Lustre de cristal",
+  "w": 27.0
+ },
+ "lustre-ferro": {
+  "camada": "p",
+  "cat": "castelo",
+  "h": 48.0,
+  "nome": "Lustre de ferro",
+  "w": 44.0
+ },
+ "luz-estrela": {
+  "camada": "m",
+  "cat": "luz",
+  "h": 22.5,
+  "nome": "Luz de estrela",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "manequim": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 35.5,
+  "nome": "Manequim",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 20.0
+ },
+ "mapa-loja": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 38.0,
+  "nome": "Mapa",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 33.0
+ },
+ "mapa-suporte": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 51.0,
+  "nome": "Mapa",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 47.0
+ },
+ "maquina-bebidas": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 34.0,
+  "nome": "Máquina de bebidas",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 22.0
+ },
+ "maquina-lavar": {
+  "camada": "m",
+  "cat": "banheiro",
+  "h": 45.0,
+  "nome": "Máquina de lavar",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 28.0
+ },
+ "marca-chao": {
+  "camada": "t",
+  "cat": "torre",
+  "h": 40.0,
+  "nome": "Marca no chão",
+  "w": 48.0
+ },
+ "mesa-agua": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 48.0,
+  "nome": "Mesa da Água",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 48.0
+ },
+ "mesa-banquete": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 59.0,
+  "nome": "Mesa de banquete",
+  "pe": [
+   2,
+   3
+  ],
+  "w": 40.0
+ },
+ "mesa-cabine": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 32.5,
+  "nome": "Cabine",
+  "pe": [
+   4,
+   2
+  ],
+  "w": 45.0
+ },
+ "mesa-centro": {
+  "camada": "m",
+  "cat": "mesa",
+  "h": 22.5,
+  "nome": "Mesa de centro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "mesa-cha": {
+  "camada": "m",
+  "cat": "mesa",
+  "h": 34.0,
+  "nome": "Mesa de chá",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 40.0
+ },
+ "mesa-chefe": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 60.5,
+  "nome": "Mesa do chefe",
+  "pe": [
+   4,
+   2
+  ],
+  "w": 56.0
+ },
+ "mesa-desafio-livre": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 37.0,
+  "nome": "Mesa de desafio (livre)",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "mesa-desafio-ocupada": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 37.0,
+  "nome": "Mesa de desafio (em duelo)",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 47.0
+ },
+ "mesa-desafio-prata": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 39.0,
+  "nome": "Mesa prata (livre)",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 47.0
+ },
+ "mesa-desafio-prata-ocupada": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 39.0,
+  "nome": "Mesa prata (em duelo)",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 47.0
+ },
+ "mesa-dois": {
+  "camada": "m",
+  "cat": "cozinha",
+  "h": 21.5,
+  "nome": "Mesa para dois",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 32.0
+ },
+ "mesa-duelo-azul": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 62.5,
+  "nome": "Mesa de duelo azul",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "mesa-duelo-roxa": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 62.0,
+  "nome": "Mesa de duelo roxa",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "mesa-duelo-verde": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 62.0,
+  "nome": "Mesa de duelo verde",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "mesa-duelo-vermelha": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 62.0,
+  "nome": "Mesa de duelo vermelha",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "mesa-eletrico": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 48.5,
+  "nome": "Mesa Elétrica",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 48.0
+ },
+ "mesa-espera-acesa": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 34.5,
+  "nome": "Mesa de espera (livre)",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "mesa-espera-apagada": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 34.5,
+  "nome": "Mesa de espera",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "mesa-fantasma": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.0,
+  "nome": "Mesa Fantasma",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 49.0
+ },
+ "mesa-feltro-verde": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 32.5,
+  "nome": "Mesa de feltro verde",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 42.0
+ },
+ "mesa-feltro-vermelho": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 28.0,
+  "nome": "Mesa de feltro vermelho",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 44.0
+ },
+ "mesa-fogo": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 48.5,
+  "nome": "Mesa do Fogo",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 48.0
+ },
+ "mesa-gelo": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 48.5,
+  "nome": "Mesa do Gelo",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 48.0
+ },
+ "mesa-guilda-azul": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 58.0,
+  "nome": "Mesa da guilda azul",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 42.0
+ },
+ "mesa-guilda-roxa": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 58.0,
+  "nome": "Mesa da guilda roxa",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 42.0
+ },
+ "mesa-guilda-verde": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 57.0,
+  "nome": "Mesa da guilda verde",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 41.0
+ },
+ "mesa-guilda-vermelha": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 58.5,
+  "nome": "Mesa da guilda vermelha",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 42.0
+ },
+ "mesa-jantar": {
+  "camada": "m",
+  "cat": "mesa",
+  "h": 38.5,
+  "nome": "Mesa de jantar",
+  "pe": [
+   2,
+   3
+  ],
+  "w": 30.0
+ },
+ "mesa-luta": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 42.5,
+  "nome": "Mesa da Luta",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 48.0
+ },
+ "mesa-metal": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.0,
+  "nome": "Mesa do Metal",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 49.0
+ },
+ "mesa-planta": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 48.5,
+  "nome": "Mesa da Planta",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 48.0
+ },
+ "mesa-quadrada": {
+  "camada": "m",
+  "cat": "mesa",
+  "h": 35.5,
+  "nome": "Mesa quadrada",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 31.0
+ },
+ "mesa-redonda-mapa": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 49.5,
+  "nome": "Mesa redonda",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 45.0
+ },
+ "mesa-runas": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 44.0,
+  "nome": "Mesa de runas",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 45.0
+ },
+ "mesa-sofa-baixa": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 29.5,
+  "nome": "Mesa baixa com sofás",
+  "pe": [
+   4,
+   2
+  ],
+  "w": 48.0
+ },
+ "mesa-sombrio": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.0,
+  "nome": "Mesa Sombria",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 49.0
+ },
+ "mesa-streamer": {
+  "camada": "m",
+  "cat": "gamer",
+  "h": 46.5,
+  "nome": "Mesa de streamer",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 43.0
+ },
+ "mesa-terra": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 48.5,
+  "nome": "Mesa da Terra",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 48.0
+ },
+ "mesa-treino": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 32.0,
+  "nome": "Mesa de treino",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "mesa-troca-longa": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 33.5,
+  "nome": "Mesa longa de troca",
+  "pe": [
+   4,
+   2
+  ],
+  "w": 47.0
+ },
+ "mesa-troca-quadrada": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 30.0,
+  "nome": "Mesa de troca quadrada",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 41.0
+ },
+ "mesa-troca-redonda": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 29.5,
+  "nome": "Mesa de troca redonda",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 40.0
+ },
+ "mesa-veneno": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 42.5,
+  "nome": "Mesa do Veneno",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 49.0
+ },
+ "mesa-vidro": {
+  "camada": "m",
+  "cat": "mesa",
+  "h": 21.5,
+  "nome": "Mesa de vidro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 32.0
+ },
+ "mesa-vip": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 38.5,
+  "nome": "Mesa VIP",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 53.0
+ },
+ "mesa-voador": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.0,
+  "nome": "Mesa do Voo",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 50.0
+ },
+ "mesinha-abajur": {
+  "camada": "m",
+  "cat": "mesa",
+  "h": 24.0,
+  "nome": "Mesinha com abajur",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 14.0
+ },
+ "micro-ondas": {
+  "camada": "m",
+  "cat": "cozinha",
+  "h": 24.0,
+  "nome": "Micro-ondas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "moldura-brilhante": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 33.5,
+  "nome": "Moldura brilhante",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 23.0
+ },
+ "moldura-rara": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 32.5,
+  "nome": "Moldura da carta rara",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 23.0
+ },
+ "mural-cortica": {
+  "camada": "p",
+  "cat": "parede",
+  "h": 23.0,
+  "nome": "Mural de cortiça",
+  "w": 31.0
+ },
+ "mural-ofertas": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 30.5,
+  "nome": "Mural de ofertas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 31.0
+ },
+ "namoradeira": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 21.0,
+  "nome": "Namoradeira",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 29.0
+ },
+ "namoradeira.lado": {
+  "cat": "sofa",
+  "de": "namoradeira",
+  "h": 23.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 17.0
+ },
+ "orbe-luz": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 29.0,
+  "nome": "Orbe de luz",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "pacotinho-gigante": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 50.0,
+  "nome": "Pacotinho gigante",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 32.0
+ },
+ "painel-led": {
+  "camada": "p",
+  "cat": "gamer",
+  "h": 43.0,
+  "nome": "Painel de LED",
+  "w": 30.0
+ },
+ "palco-duelo": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 65.5,
+  "nome": "Palco de duelo",
+  "pe": [
+   5,
+   4
+  ],
+  "w": 69.0
+ },
+ "palmeira": {
+  "camada": "m",
+  "cat": "planta",
+  "h": 32.5,
+  "nome": "Palmeira",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 25.0
+ },
+ "palmeira-loja": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 50.0,
+  "nome": "Palmeira",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 34.0
+ },
+ "parede-arena-parede-1": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 144.0
+ },
+ "parede-arena-parede-2": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 144.0
+ },
+ "parede-casa-parede": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 144.0
+ },
+ "parede-casa-parede-2": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 144.0
+ },
+ "parede-casa-parede-3": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 120.0
+ },
+ "parede-casa-parede-4": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 144.0
+ },
+ "parede-castelo-parede": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 144.0
+ },
+ "parede-loja-parede": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 144.0
+ },
+ "parede-oficina-parede": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 144.0
+ },
+ "parede-placas": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 29.5,
+  "nome": "Parede de placas",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 36.0
+ },
+ "parede-torre-parede": {
+  "cat": "parede-fundo",
+  "h": 48,
+  "w": 120.0
+ },
+ "passadeira": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 69.5,
+  "nome": "Passadeira",
+  "tecido": true,
+  "w": 21.0
+ },
+ "pc-gamer": {
+  "camada": "m",
+  "cat": "eletronico",
+  "h": 40.0,
+  "nome": "PC gamer",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 43.0
+ },
+ "pelucias": {
+  "camada": "m",
+  "cat": "extra",
+  "h": 22.5,
+  "nome": "Pelúcias",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "pergaminho": {
+  "camada": "p",
+  "cat": "torre",
+  "h": 44.5,
+  "nome": "Pergaminho",
+  "w": 22.0
+ },
+ "pia": {
+  "camada": "m",
+  "cat": "cozinha",
+  "h": 23.0,
+  "nome": "Pia",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 27.0
+ },
+ "pia-bancada": {
+  "camada": "m",
+  "cat": "armario",
+  "h": 27.0,
+  "nome": "Pia com bancada",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 37.0
+ },
+ "pia-espelho": {
+  "camada": "m",
+  "cat": "banheiro",
+  "h": 51.0,
+  "nome": "Pia com espelho",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 33.0
+ },
+ "pilar-carta": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.0,
+  "nome": "Pilar da carta",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 22.0
+ },
+ "pilar-cristal": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 58.5,
+  "nome": "Pilar de cristal",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 27.0
+ },
+ "pilar-ouro": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 41.0,
+  "nome": "Pilar de ouro",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 16.0
+ },
+ "pisca-pisca": {
+  "camada": "p",
+  "cat": "luz",
+  "h": 14.5,
+  "nome": "Pisca-pisca",
+  "w": 35.0
+ },
+ "piso-arena-piso-1": {
+  "cat": "piso",
+  "h": 96,
+  "w": 96
+ },
+ "piso-arena-piso-2": {
+  "cat": "piso",
+  "h": 96,
+  "w": 96
+ },
+ "piso-casa-piso": {
+  "cat": "piso",
+  "h": 64,
+  "w": 64
+ },
+ "piso-casa-piso-2": {
+  "cat": "piso",
+  "h": 128,
+  "w": 128
+ },
+ "piso-casa-piso-3": {
+  "cat": "piso",
+  "h": 64,
+  "w": 64
+ },
+ "piso-casa-piso-4": {
+  "cat": "piso",
+  "h": 128,
+  "w": 128
+ },
+ "piso-castelo-piso": {
+  "cat": "piso",
+  "h": 128,
+  "w": 128
+ },
+ "piso-castelo-tapete": {
+  "cat": "piso",
+  "h": 96,
+  "w": 96
+ },
+ "piso-loja-piso": {
+  "cat": "piso",
+  "h": 128,
+  "w": 128
+ },
+ "piso-oficina-piso": {
+  "cat": "piso",
+  "h": 96,
+  "w": 96
+ },
+ "piso-torre-piso-1": {
+  "cat": "piso",
+  "h": 96,
+  "w": 96
+ },
+ "piso-torre-piso-2": {
+  "cat": "piso",
+  "h": 96,
+  "w": 96
+ },
+ "piso-torre-piso-3": {
+  "cat": "piso",
+  "h": 96,
+  "w": 96
+ },
+ "placa-andar": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 54.0,
+  "nome": "Placa do andar",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 39.0
+ },
+ "placar-ranking": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 52.0,
+  "nome": "Placar do ranking",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 54.0
+ },
+ "planta-banquinho": {
+  "camada": "m",
+  "cat": "banheiro",
+  "h": 40.0,
+  "nome": "Planta no banquinho",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 28.0
+ },
+ "planta-pendurada": {
+  "camada": "p",
+  "cat": "planta",
+  "h": 35.5,
+  "nome": "Planta pendurada",
+  "w": 18.0
+ },
+ "planta-pendurada-oficina": {
+  "camada": "p",
+  "cat": "oficina",
+  "h": 37.5,
+  "nome": "Planta pendurada",
+  "w": 19.0
+ },
+ "planta-saguao": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 43.5,
+  "nome": "Planta",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 28.0
+ },
+ "plataforma-runas": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 46.0,
+  "nome": "Plataforma de runas",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 50.0
+ },
+ "poltrona": {
+  "camada": "m",
+  "cat": "poltrona",
+  "h": 22.0,
+  "nome": "Poltrona fofa",
+  "pe": [
+   1,
+   1
+  ],
+  "tecido": true,
+  "w": 22.0
+ },
+ "poltrona-oficina": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 33.0,
+  "nome": "Poltrona",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 26.0
+ },
+ "poltrona-oficina.costas": {
+  "cat": "oficina",
+  "de": "poltrona-oficina",
+  "h": 29.5,
+  "vista": "costas",
+  "w": 27.0
+ },
+ "poltrona.lado": {
+  "cat": "poltrona",
+  "de": "poltrona",
+  "h": 21.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 18.0
+ },
+ "porta-papel": {
+  "camada": "p",
+  "cat": "torre",
+  "h": 34.5,
+  "nome": "Porta de papel",
+  "w": 32.0
+ },
+ "portal-azul": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 61.0,
+  "nome": "Portal",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 52.0
+ },
+ "portao-a": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 52.5,
+  "nome": "Portão rank A",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 44.0
+ },
+ "portao-b": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 52.5,
+  "nome": "Portão rank B",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 44.0
+ },
+ "portao-c": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 53.0,
+  "nome": "Portão rank C",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 44.0
+ },
+ "portao-d": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 52.5,
+  "nome": "Portão rank D",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 44.0
+ },
+ "portao-e": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 52.5,
+  "nome": "Portão rank E",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 44.0
+ },
+ "portao-s": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 55.0,
+  "nome": "Portão rank S",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 44.0
+ },
+ "portao-selado": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 52.5,
+  "nome": "Portão selado",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "potes-pet": {
+  "camada": "m",
+  "cat": "extra",
+  "h": 12.0,
+  "nome": "Potes do pet",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 22.0
+ },
+ "potes-po": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 32.5,
+  "nome": "Potes de pó de carta",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "prateleira-comum": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 44.0,
+  "nome": "Prateleira comum",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "prateleira-epica": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 44.0,
+  "nome": "Prateleira épica",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "prateleira-ovos": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 43.5,
+  "nome": "Prateleira de ovos",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "prateleira-potes": {
+  "camada": "m",
+  "cat": "cozinha",
+  "h": 30.0,
+  "nome": "Prateleira de potes",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "prateleira-rara": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 44.5,
+  "nome": "Prateleira rara",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "prateleira-roupas": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 44.5,
+  "nome": "Prateleira de roupas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "prateleira-trofeus": {
+  "camada": "p",
+  "cat": "parede",
+  "h": 26.0,
+  "nome": "Prateleira de troféus",
+  "w": 33.0
+ },
+ "pufe": {
+  "camada": "m",
+  "cat": "poltrona",
+  "h": 21.5,
+  "nome": "Pufe",
+  "pe": [
+   1,
+   1
+  ],
+  "tecido": true,
+  "w": 24.0
+ },
+ "pufe-azul": {
+  "camada": "m",
+  "cat": "gamer",
+  "h": 29.5,
+  "nome": "Pufe azul",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 32.0
+ },
+ "pufe.lado": {
+  "cat": "poltrona",
+  "de": "pufe",
+  "h": 20.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 22.0
+ },
+ "pulpito": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 55.0,
+  "nome": "Púlpito do líder",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 50.0
+ },
+ "quadro-chaves": {
+  "camada": "p",
+  "cat": "torre",
+  "h": 55.0,
+  "nome": "Quadro das chaves",
+  "w": 71.0
+ },
+ "quadro-criatura": {
+  "camada": "p",
+  "cat": "parede",
+  "h": 27.5,
+  "nome": "Quadro da criatura",
+  "w": 22.0
+ },
+ "quadro-familia": {
+  "camada": "p",
+  "cat": "parede",
+  "h": 25.5,
+  "nome": "Quadro da família",
+  "w": 23.0
+ },
+ "quadro-heroi": {
+  "camada": "p",
+  "cat": "gamer",
+  "h": 31.0,
+  "nome": "Quadro do herói",
+  "w": 25.0
+ },
+ "quadro-missoes": {
+  "camada": "p",
+  "cat": "castelo",
+  "h": 42.5,
+  "nome": "Quadro de missões",
+  "w": 43.0
+ },
+ "quadro-rank": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 58.5,
+  "nome": "Quadro de rank",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 47.0
+ },
+ "rack-capas": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 56.0,
+  "nome": "Rack de capas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 47.0
+ },
+ "rack-cartas": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 31.5,
+  "nome": "Rack de cartas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 33.0
+ },
+ "ranking-guildas": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 51.5,
+  "nome": "Ranking das guildas",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 51.0
+ },
+ "recepcao": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 34.0,
+  "nome": "Recepção",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 52.0
+ },
+ "rede": {
+  "camada": "m",
+  "cat": "jardim",
+  "h": 27.5,
+  "nome": "Rede",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 45.0
+ },
+ "refletor": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 48.0,
+  "nome": "Refletor",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 27.0
+ },
+ "relogio-parede": {
+  "camada": "p",
+  "cat": "parede",
+  "h": 27.0,
+  "nome": "Relógio de parede",
+  "w": 20.0
+ },
+ "robo-aspirador": {
+  "camada": "m",
+  "cat": "eletronico",
+  "h": 14.5,
+  "nome": "Robô aspirador",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "santuario": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 39.5,
+  "nome": "Santuário",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 38.0
+ },
+ "sofa-banco": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 19.5,
+  "nome": "Sofá banco",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 34.0
+ },
+ "sofa-banco.lado": {
+  "cat": "sofa",
+  "de": "sofa-banco",
+  "h": 22.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 14.0
+ },
+ "sofa-cama": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 22.0,
+  "nome": "Sofá-cama",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 35.0
+ },
+ "sofa-cama.lado": {
+  "cat": "sofa",
+  "de": "sofa-cama",
+  "h": 24.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 20.0
+ },
+ "sofa-canto": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 23.5,
+  "nome": "Sofá de canto",
+  "pe": [
+   3,
+   2
+  ],
+  "tecido": true,
+  "w": 43.0
+ },
+ "sofa-canto.lado": {
+  "cat": "sofa",
+  "de": "sofa-canto",
+  "h": 24.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 15.0
+ },
+ "sofa-carro": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 19.0,
+  "nome": "Sofá carrinho",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 31.0
+ },
+ "sofa-carro.lado": {
+  "cat": "sofa",
+  "de": "sofa-carro",
+  "h": 21.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 27.0
+ },
+ "sofa-chesterfield": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 19.5,
+  "nome": "Sofá chesterfield",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 36.0
+ },
+ "sofa-chesterfield.lado": {
+  "cat": "sofa",
+  "de": "sofa-chesterfield",
+  "h": 25.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 14.0
+ },
+ "sofa-classico": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 20.0,
+  "nome": "Sofá clássico",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 34.0
+ },
+ "sofa-classico.lado": {
+  "cat": "sofa",
+  "de": "sofa-classico",
+  "h": 21.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 13.0
+ },
+ "sofa-moderno": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 19.5,
+  "nome": "Sofá moderno",
+  "pe": [
+   3,
+   1
+  ],
+  "tecido": true,
+  "w": 39.0
+ },
+ "sofa-moderno.lado": {
+  "cat": "sofa",
+  "de": "sofa-moderno",
+  "h": 23.0,
+  "tecido": true,
+  "vista": "lado",
+  "w": 14.0
+ },
+ "sofa-modular": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 20.5,
+  "nome": "Sofá modular",
+  "pe": [
+   3,
+   1
+  ],
+  "tecido": true,
+  "w": 35.0
+ },
+ "sofa-modular.lado": {
+  "cat": "sofa",
+  "de": "sofa-modular",
+  "h": 23.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 17.0
+ },
+ "sofa-mostruario": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 28.5,
+  "nome": "Sofá do mostruário",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 45.0
+ },
+ "sofa-nuvem": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 20.5,
+  "nome": "Sofá nuvem",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 38.0
+ },
+ "sofa-nuvem.lado": {
+  "cat": "sofa",
+  "de": "sofa-nuvem",
+  "h": 23.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 17.0
+ },
+ "sofa-oficina": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 30.5,
+  "nome": "Sofá de canto",
+  "pe": [
+   3,
+   2
+  ],
+  "w": 46.0
+ },
+ "sofa-redondo": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 25.5,
+  "nome": "Sofá redondo",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 31.0
+ },
+ "sofa-redondo.lado": {
+  "cat": "sofa",
+  "de": "sofa-redondo",
+  "h": 24.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 20.0
+ },
+ "sofa-retro": {
+  "camada": "m",
+  "cat": "sofa",
+  "h": 21.5,
+  "nome": "Sofá retrô",
+  "pe": [
+   2,
+   1
+  ],
+  "tecido": true,
+  "w": 36.0
+ },
+ "sofa-retro.lado": {
+  "cat": "sofa",
+  "de": "sofa-retro",
+  "h": 23.5,
+  "tecido": true,
+  "vista": "lado",
+  "w": 17.0
+ },
+ "sofa-saguao": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 24.0,
+  "nome": "Sofá do saguão",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 38.0
+ },
+ "sofa-saguao.costas": {
+  "cat": "arena",
+  "de": "sofa-saguao",
+  "h": 21.0,
+  "vista": "costas",
+  "w": 34.0
+ },
+ "suculentas": {
+  "camada": "m",
+  "cat": "planta",
+  "h": 15.5,
+  "nome": "Suculentas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "suporte-deck": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 44.5,
+  "nome": "Suporte do deck",
+  "w": 30.0
+ },
+ "tabua-pedra": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.0,
+  "nome": "Tábua de pedra",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 46.0
+ },
+ "tapete-arco-iris": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 30.0,
+  "nome": "Tapete arco-íris",
+  "tecido": true,
+  "w": 45.0
+ },
+ "tapete-banheiro": {
+  "camada": "t",
+  "cat": "banheiro",
+  "h": 23.0,
+  "nome": "Tapete do banheiro",
+  "w": 39.0
+ },
+ "tapete-carta": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 48.5,
+  "nome": "Tapete carta",
+  "tecido": true,
+  "w": 34.0
+ },
+ "tapete-controle": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 27.0,
+  "nome": "Tapete controle",
+  "tecido": true,
+  "w": 44.0
+ },
+ "tapete-coracao": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 39.0,
+  "nome": "Tapete coração",
+  "tecido": true,
+  "w": 47.0
+ },
+ "tapete-escudo": {
+  "camada": "t",
+  "cat": "castelo",
+  "h": 26.5,
+  "nome": "Tapete do escudo",
+  "w": 34.0
+ },
+ "tapete-espiral": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 42.0,
+  "nome": "Tapete espiral",
+  "tecido": true,
+  "w": 42.0
+ },
+ "tapete-estrela": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 42.0,
+  "nome": "Tapete estrela",
+  "tecido": true,
+  "w": 44.0
+ },
+ "tapete-felpudo": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 44.0,
+  "nome": "Tapete felpudo",
+  "tecido": true,
+  "w": 47.0
+ },
+ "tapete-folha": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 50.0,
+  "nome": "Tapete folha",
+  "tecido": true,
+  "w": 39.0
+ },
+ "tapete-geometrico": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 51.5,
+  "nome": "Tapete geométrico",
+  "tecido": true,
+  "w": 33.0
+ },
+ "tapete-hexagono": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 31.5,
+  "nome": "Tapete hexágono",
+  "tecido": true,
+  "w": 37.0
+ },
+ "tapete-listras": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 26.5,
+  "nome": "Tapete listrado",
+  "tecido": true,
+  "w": 43.0
+ },
+ "tapete-lua": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 34.0,
+  "nome": "Tapete lua",
+  "tecido": true,
+  "w": 36.0
+ },
+ "tapete-nuvem": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 36.0,
+  "nome": "Tapete nuvem",
+  "tecido": true,
+  "w": 48.0
+ },
+ "tapete-oval": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 52.5,
+  "nome": "Tapete oval",
+  "tecido": true,
+  "w": 35.0
+ },
+ "tapete-pacotinho": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 49.5,
+  "nome": "Tapete pacotinho",
+  "tecido": true,
+  "w": 36.0
+ },
+ "tapete-patinha": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 49.5,
+  "nome": "Tapete patinha",
+  "tecido": true,
+  "w": 48.0
+ },
+ "tapete-runas": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 27.5,
+  "nome": "Tapete de runas",
+  "pe": [
+   2,
+   2
+  ],
+  "w": 30.0
+ },
+ "tapete-sol": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 46.0,
+  "nome": "Tapete sol",
+  "tecido": true,
+  "w": 47.0
+ },
+ "tapete-tranca": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 43.0,
+  "nome": "Tapete trançado",
+  "tecido": true,
+  "w": 44.0
+ },
+ "tapete-xadrez": {
+  "camada": "t",
+  "cat": "tapete",
+  "h": 42.5,
+  "nome": "Tapete xadrez",
+  "tecido": true,
+  "w": 44.0
+ },
+ "tatame": {
+  "camada": "t",
+  "cat": "torre",
+  "h": 26.5,
+  "nome": "Tatame",
+  "w": 34.0
+ },
+ "telao": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 34.0,
+  "nome": "Telão",
+  "pe": [
+   3,
+   1
+  ],
+  "w": 46.0
+ },
+ "telescopio": {
+  "camada": "m",
+  "cat": "eletronico",
+  "h": 37.0,
+  "nome": "Telescópio",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 25.0
+ },
+ "toalheiro": {
+  "camada": "m",
+  "cat": "banheiro",
+  "h": 32.5,
+  "nome": "Toalheiro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 37.0
+ },
+ "toca-discos": {
+  "camada": "m",
+  "cat": "eletronico",
+  "h": 34.0,
+  "nome": "Toca-discos",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 28.0
+ },
+ "tocha": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 39.0,
+  "nome": "Tocha",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 14.0
+ },
+ "tocha-parede": {
+  "camada": "p",
+  "cat": "castelo",
+  "h": 30.0,
+  "nome": "Tocha de parede",
+  "w": 11.0
+ },
+ "torre-pacotinhos": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 49.5,
+  "nome": "Torre de pacotinhos",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 19.0
+ },
+ "trofeu-pedestal": {
+  "camada": "m",
+  "cat": "arena",
+  "h": 49.0,
+  "nome": "Troféu",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 26.0
+ },
+ "trono-cristal": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 46.5,
+  "nome": "Trono de cristal",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 32.0
+ },
+ "trono-dragao": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.5,
+  "nome": "Trono do dragão",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 37.0
+ },
+ "trono-guilda": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 49.5,
+  "nome": "Trono",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 35.0
+ },
+ "trono-madeira": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 35.5,
+  "nome": "Trono de madeira",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 24.0
+ },
+ "trono-nuvem": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 44.0,
+  "nome": "Trono das nuvens",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 41.0
+ },
+ "trono-ouro": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 43.0,
+  "nome": "Trono de ouro",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "trono-pedra": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 41.5,
+  "nome": "Trono de pedra",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 29.0
+ },
+ "tv-rack": {
+  "camada": "m",
+  "cat": "eletronico",
+  "h": 35.0,
+  "nome": "TV com rack",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 38.0
+ },
+ "vaso-flores": {
+  "camada": "m",
+  "cat": "castelo",
+  "h": 28.5,
+  "nome": "Vaso de flores",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 24.0
+ },
+ "vaso-sanitario": {
+  "camada": "m",
+  "cat": "banheiro",
+  "h": 37.5,
+  "nome": "Vaso sanitário",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 31.0
+ },
+ "vaso-tulipas": {
+  "camada": "m",
+  "cat": "planta",
+  "h": 22.5,
+  "nome": "Vaso de tulipas",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 17.0
+ },
+ "violao": {
+  "camada": "m",
+  "cat": "extra",
+  "h": 31.0,
+  "nome": "Violão",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 13.0
+ },
+ "vitrine-cartas": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 32.5,
+  "nome": "Vitrine de cartas",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 37.0
+ },
+ "vitrine-doces": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 38.0,
+  "nome": "Vitrine de doces",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 30.0
+ },
+ "vitrine-lendaria": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 45.0,
+  "nome": "Vitrine lendária",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 32.0
+ },
+ "vitrine-rara": {
+  "camada": "m",
+  "cat": "loja",
+  "h": 47.0,
+  "nome": "Vitrine da carta rara",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 24.0
+ },
+ "vitrine-trofeus": {
+  "camada": "m",
+  "cat": "torre",
+  "h": 42.5,
+  "nome": "Vitrine de troféus",
+  "pe": [
+   2,
+   1
+  ],
+  "w": 31.0
+ },
+ "vitrola": {
+  "camada": "m",
+  "cat": "oficina",
+  "h": 31.5,
+  "nome": "Vitrola",
+  "pe": [
+   1,
+   1
+  ],
+  "w": 23.0
+ }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CLOTH, HAIR, MODEL_CELL, MODELOS, SKIN, type Look, type Ramp } from '@/game/world/outfit';
+import { CLOTH, DEFAULT_PET, HAIR, MODEL_CELL, MODELOS, SKIN, type Look, type Ramp } from '@/game/world/outfit';
 import { loadModelSheet, paintModel } from '@/game/world/model-sprite';
 
 /**
@@ -55,9 +55,27 @@ function Swatches({ label, table, value, onPick }: {
   );
 }
 
+/** Pets do GPT (public/game/sprites/bichos/manifest.json). */
+function usePets(): string[] {
+  const [pets, setPets] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetch(`${import.meta.env.BASE_URL}game/sprites/bichos/manifest.json`)
+      .then(r => r.json())
+      .then((j: { sprites?: string[] }) => { if (alive) setPets(j.sprites ?? []); })
+      .catch(err => console.error('pets', err));
+    return () => { alive = false; };
+  }, []);
+  return pets;
+}
+
+const petName = (id: string) => id.replace(/^pet-/, '').replace(/-/g, ' ');
+
 export function LookEditor({ value, onChange, onClose }: { value: Look; onChange: (l: Look) => void; onClose: () => void }) {
   const [sheets, setSheets] = useState<Record<string, HTMLImageElement>>({});
   const [tick, setTick] = useState(0);
+  const pets = usePets();
+  const pet = value.pet ?? DEFAULT_PET;
 
   useEffect(() => {
     let alive = true;
@@ -123,6 +141,30 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
             <Swatches label="CABELO" table={HAIR} value={value.cabelo} onPick={v => set({ cabelo: v })} />
             <Swatches label="PARTE DE CIMA" table={CLOTH} value={value.cima} onPick={v => set({ cima: v })} />
             <Swatches label="PARTE DE BAIXO" table={CLOTH} value={value.baixo} onPick={v => set({ baixo: v })} />
+            {pets.length > 0 && (
+              <>
+                <div className="text-[9px] text-[#2f6b1e] mb-1">PET</div>
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+                  {pets.map(id => (
+                    <button
+                      key={id}
+                      title={petName(id)}
+                      aria-label={`pet ${petName(id)}`}
+                      onClick={() => set({ pet: id })}
+                      className={`flex items-center justify-center rounded-md border-2 bg-white h-12 ${pet === id ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}
+                    >
+                      <div
+                        style={{
+                          width: 48, height: 48, imageRendering: 'pixelated',
+                          backgroundImage: `url(${import.meta.env.BASE_URL}game/sprites/bichos/${id}.png)`,
+                          backgroundPosition: '0 0',
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
