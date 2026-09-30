@@ -91,6 +91,26 @@
 .dv-hand .c.ok::before { content: ''; position: absolute; inset: -.3cqw; border-radius: 10%; box-shadow: 0 0 0 .25cqw #8cc63f, 0 0 1.2cqw rgba(140,198,63,.6); pointer-events: none; }
 .dv-hand .c.pick::before { content: ''; position: absolute; inset: -.3cqw; border-radius: 10%; box-shadow: 0 0 0 .25cqw #ffd45c; pointer-events: none; }
 .dv-hand .c.dim { filter: brightness(.55) saturate(.7); }
+.dv-hand .c { touch-action: none; }
+.dv-hand .c.away { opacity: 0; pointer-events: none; }
+
+/* arrastar: a carta segue o ponteiro; a mesa acende (verde = pode jogar, vermelho = não) */
+.dv-ghost { position: absolute; z-index: 15; width: 10.5%; transform: translate(-50%, -55%) rotate(var(--tilt)) scale(1.06); pointer-events: none;
+  transition: transform .08s linear; filter: drop-shadow(0 1.4cqw 1.2cqw rgba(0,0,0,.6)); }
+.dv-ghost.ok { transform: translate(-50%, -55%) rotate(var(--tilt)) scale(.92); }
+.dv-ghost .tag { position: absolute; left: 50%; top: -1.8cqw; transform: translateX(-50%); white-space: nowrap; font-size: max(.55cqw, 6px); padding: .4cqw .6cqw; border-radius: .3cqw; background: #2f6b1e; border: .12cqw solid #8cc63f; }
+.dv-ghost.no .tag { background: #6b1e28; border-color: #e8485a; }
+.dv-table.dragging .dv-mat { box-shadow: 0 2.5cqw 5cqw rgba(0,0,0,.6), inset 0 0 3.5cqw rgba(0,0,0,.65), 0 0 0 .2cqw rgba(255,255,255,.25); }
+.dv-table.drop-ok .dv-mat { box-shadow: 0 2.5cqw 5cqw rgba(0,0,0,.6), inset 0 0 4cqw rgba(140,198,63,.45), 0 0 2cqw rgba(140,198,63,.8); }
+.dv-table.drop-no .dv-mat { box-shadow: 0 2.5cqw 5cqw rgba(0,0,0,.6), inset 0 0 4cqw rgba(232,72,90,.4), 0 0 2cqw rgba(232,72,90,.7); }
+
+/* cartas voando */
+.dv-flight { position: absolute; z-index: 14; pointer-events: none; transform-origin: 0 0; perspective: 60cqw; }
+.dv-flight .dv-flip { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+.dv-flight .face { position: absolute; inset: 0; backface-visibility: hidden; filter: drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.55)); }
+.dv-flight .face.backside { transform: rotateY(180deg); }
+.dv-flight.dissolve { transform-origin: 50% 50%; }
+.dv-flight.dissolve::after { content: ''; position: absolute; inset: -20%; background: radial-gradient(circle, rgba(190,140,255,.55), transparent 65%); pointer-events: none; }
 .dv-banner { position: absolute; left: 50%; bottom: 27%; transform: translateX(-50%); z-index: 6; background: rgba(12,8,16,.9); border: .15cqw solid #ffd45c; color: #ffe9a8; border-radius: .5cqw; padding: .6cqw 1cqw; font-size: max(.7cqw, 7px); white-space: nowrap; display: flex; gap: 1cqw; align-items: center; }
 .dv-banner.err { border-color: #e8485a; color: #ffc4c4; font: 600 1cqw 'Exo 2', system-ui, sans-serif; }
 .dv-banner button { all: unset; cursor: pointer; font-size: .6cqw; padding: .35cqw .6cqw; border-radius: .3cqw; background: rgba(255,255,255,.15); }

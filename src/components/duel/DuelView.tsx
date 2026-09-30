@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TcgCard, TcgCardBack, ELEMENT_STYLE } from '@/components/tcg/TcgCard';
 import { AI_NAMES, planTurn } from '@/lib/tcg/ai';
 import { canPlay, createGame, endTurn, IllegalPlay, playCard } from '@/lib/tcg/engine';
@@ -8,6 +8,7 @@ import type { CardDef, CardInstance, Element, GameState, PlayerState } from '@/l
 import type { Look } from '@/game/world/outfit';
 import { loadLookFrames, loadNpcFrames } from '@/game/world/sprites';
 import { matOf, matStyle } from '@/game/playmats';
+import { diffMoves, type Move } from './moves';
 import './DuelView.css';
 
 /**
@@ -130,10 +131,10 @@ function Plate({ side, p, face, nick, title, tone, turn }: {
 }
 
 /** Uma vaga da mesa (vazia com o nome, ou com a carta). */
-function Slot({ card, back, label, count, onOpen }: { card?: CardDef; back?: boolean; label: string; count?: string; onOpen?: () => void }) {
+function Slot({ card, back, label, count, onOpen, zone }: { card?: CardDef; back?: boolean; label: string; count?: string; onOpen?: () => void; zone?: string }) {
   const filled = !!card || back;
   return (
-    <div className={`dv-slot dv-px ${filled ? 'filled' : ''}`} title={card?.name ?? label}>
+    <div className={`dv-slot dv-px ${filled ? 'filled' : ''}`} title={card?.name ?? label} data-zone={zone}>
       {!filled && label}
       {filled && <div className="dv-card">{back || !card ? <TcgCardBack /> : <TcgCard card={card} />}</div>}
       {onOpen && <button aria-label={card?.name ?? label} onClick={onOpen} />}
@@ -142,21 +143,71 @@ function Slot({ card, back, label, count, onOpen }: { card?: CardDef; back?: boo
   );
 }
 
-/** Uma fileira da mesa: arma, armadura, 3 armadilhas; deck e cemitério na ponta. */
-function Row({ side, p, hidden, open }: { side: 'op' | 'me'; p: PlayerState; hidden: boolean; open: (c: CardDef) => void }) {
-  const top = p.graveyard[p.graveyard.length - 1];
+/** Uma fileira da mesa: arma, armadura, 3 armadilhas; deck e cemitério na ponta. `hold` = cartas ainda voando para o cemitério. */
+function Row({ side, p, hidden, open, hold }: { side: 'op' | 'me'; p: PlayerState; hidden: boolean; open: (c: CardDef) => void; hold: number }) {
+  const n = side === 'me' ? 0 : 1;
+  const grave = p.graveyard.slice(0, Math.max(0, p.graveyard.length - hold));
+  const top = grave[grave.length - 1];
   return (
     <div className={`dv-row ${side}`}>
-      <Slot label="ARMA" card={p.weapon?.def} onOpen={p.weapon ? () => open(p.weapon!.def) : undefined} />
-      <Slot label="ARMAD." card={p.armor?.def} onOpen={p.armor ? () => open(p.armor!.def) : undefined} />
+      <Slot zone={`${n}-weapon`} label="ARMA" card={p.weapon?.def} onOpen={p.weapon ? () => open(p.weapon!.def) : undefined} />
+      <Slot zone={`${n}-armor`} label="ARMAD." card={p.armor?.def} onOpen={p.armor ? () => open(p.armor!.def) : undefined} />
       {[0, 1, 2].map(i => {
         const t = p.traps[i];
-        return <Slot key={i} label="ARMADI­LHA" back={!!t && hidden} card={t && !hidden ? t.def : undefined}
+        return <Slot key={i} zone={`${n}-trap${i}`} label="ARMADI­LHA" back={!!t && hidden} card={t && !hidden ? t.def : undefined}
           onOpen={t && !hidden ? () => open(t.def) : undefined} />;
       })}
       <div className="dv-gap" />
-      <Slot label="DECK" back={p.deck.length > 0} count={`${p.deck.length}`} />
-      <Slot label="CEMIT." card={top?.def} count={p.graveyard.length ? `${p.graveyard.length}` : undefined} onOpen={top ? () => open(top.def) : undefined} />
+      <Slot zone={`${n}-deck`} label="DECK" back={p.deck.length > 0} count={`${p.deck.length}`} />
+      <Slot zone={`${n}-grave`} label="CEMIT." card={top?.def} count={grave.length ? `${grave.length}` : undefined} onOpen={top ? () => open(top.def) : undefined} />
+    </div>
+  );
+}
+
+interface Rect { x: number; y: number; w: number; h: number }
+interface FlightSpec {
+  id: string; side: 0 | 1; uid: string; card: CardDef; from: Rect; to: Rect;
+  delay: number; kind: 'fly' | 'dissolve'; flip: boolean; back: boolean; toGrave: boolean; toHand: boolean;
+}
+
+/** Uma carta voando de um lugar para outro (ou se desfazendo), por cima de tudo. */
+function Flight({ f, onDone }: { f: FlightSpec; onDone: (f: FlightSpec) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current!;
+    const { from, to } = f;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let a: Animation;
+    if (f.kind === 'dissolve') {
+      a = el.animate([
+        { opacity: 1, transform: 'scale(1)', filter: 'brightness(1)' },
+        { opacity: 0.9, transform: 'scale(1.12) rotate(-4deg)', filter: 'brightness(1.8) saturate(.4)', offset: 0.4 },
+        { opacity: 0, transform: 'scale(1.35) rotate(6deg)', filter: 'brightness(2.6) saturate(0)' },
+      ], { duration: reduce ? 1 : 700, delay: f.delay, easing: 'ease-in', fill: 'both' });
+    } else {
+      const dx = from.x - to.x, dy = from.y - to.y, sx = from.w / to.w, sy = from.h / to.h;
+      const dur = reduce ? 1 : 480;
+      a = el.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
+        { transform: `translate(${dx * 0.4}px, ${dy * 0.4 - to.h * 0.35}px) scale(${(sx + 1) / 2 * 1.08}) rotate(${dx > 0 ? -8 : 8}deg)`, offset: 0.55 },
+        { transform: 'none' },
+      ], { duration: dur, delay: f.delay, easing: 'cubic-bezier(.3,.7,.35,1)', fill: 'both' });
+      if (f.flip && inner.current) inner.current.animate([{ transform: 'rotateY(180deg)' }, { transform: 'rotateY(180deg)', offset: 0.15 }, { transform: 'rotateY(0deg)' }], { duration: dur, delay: f.delay, fill: 'both' });
+    }
+    a.onfinish = () => onDone(f);
+    return () => a.cancel();
+    // cada voo anima uma vez
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div ref={ref} className={`dv-flight ${f.kind}`} style={{ left: f.to.x, top: f.to.y, width: f.to.w, height: f.to.h }}>
+      <div ref={inner} className="dv-flip">
+        {f.back ? <div className="face"><TcgCardBack /></div> : <>
+          <div className="face"><TcgCard card={f.card} /></div>
+          {f.flip && <div className="face backside"><TcgCardBack /></div>}
+        </>}
+      </div>
     </div>
   );
 }
@@ -169,13 +220,82 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   const [preview, setPreview] = useState<{ card: CardDef; uid?: string } | null>(null);
   const [focus, setFocus] = useState<CardDef | null>(null);
   const [picking, setPicking] = useState<{ uid: string; need: number; picked: string[]; filter: (c: CardInstance) => boolean } | null>(null);
-  const [shown, setShown] = useState<{ card: CardDef; by: 0 | 1; key: number } | null>(null);
+  const [shown, setShown] = useState<{ card: CardDef; by: 0 | 1; key: number; uid: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hits, setHits] = useState<{ side: 0 | 1; v: number; key: number }[]>([]);
   const [frames, setFrames] = useState<[HTMLCanvasElement | null, HTMLCanvasElement | null]>([null, null]);
   const [showLog, setShowLog] = useState(false);
+  const [flights, setFlights] = useState<FlightSpec[]>([]);
+  const [hold, setHold] = useState<[number, number]>([0, 0]);
+  const [hiddenUids, setHiddenUids] = useState<Set<string>>(() => new Set());
+  const [drag, setDrag] = useState<{ uid: string; x: number; y: number; over: boolean; tilt: number } | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const handRects = useRef(new Map<string, Rect>());
+  const prevState = useRef(state);
+  const playedUid = useRef<string | undefined>(undefined);
+  const dragRef = useRef<{ uid: string; x0: number; y0: number; moved: boolean; lastX: number } | null>(null);
+  const suppressClick = useRef(false);
   const ended = useRef(false);
   const prevLife = useRef<[number, number]>([state.players[0].life, state.players[1].life]);
+
+  // ── cartas voando: compara o estado novo com o anterior e anima cada carta que mudou de lugar ──
+  const stageBox = () => stageRef.current!.getBoundingClientRect();
+  const rel = (r: DOMRect): Rect => { const sr = stageBox(); return { x: r.left - sr.left, y: r.top - sr.top, w: r.width, h: r.height }; };
+  const zoneRect = (side: 0 | 1, zone: string): Rect | null => {
+    const el = stageRef.current?.querySelector(`[data-zone="${side}-${zone}"]`);
+    return el ? rel(el.getBoundingClientRect()) : null;
+  };
+  useLayoutEffect(() => {
+    const prev = prevState.current;
+    prevState.current = state;
+    const stage = stageRef.current;
+    if (!stage || prev === state) return;
+    const sr = stageBox();
+    const W = sr.width, H = sr.height;
+    const center: Rect = { x: W * 0.44, y: H * 0.27 + W * 0.012, w: W * 0.12, h: W * 0.12 * 1.4 };
+    const opHand = (() => { const el = stage.querySelector('.dv-ophand'); const r = el ? rel(el.getBoundingClientRect()) : { x: W * 0.02, y: H * 0.19, w: W * 0.06, h: W * 0.03 }; return { x: r.x, y: r.y, w: W * 0.04, h: W * 0.056 }; })();
+    const nowHand = new Map<string, Rect>();
+    stage.querySelectorAll<HTMLElement>('.dv-hand .c[data-uid]').forEach(el => nowHand.set(el.dataset.uid!, rel(el.getBoundingClientRect())));
+    const moves: Move[] = diffMoves(prev, state, playedUid.current);
+    playedUid.current = undefined;
+    const add: FlightSpec[] = [];
+    const count = { cost: 0, mill: 0, draw: 0, ban: 0 };
+    for (const m of moves) {
+      const where = (z: string, arriving: boolean): Rect | null => {
+        if (z === 'center') return center;
+        if (z === 'hand') return m.side === 1 ? opHand : (arriving ? nowHand.get(m.uid) : handRects.current.get(m.uid)) ?? null;
+        if (z === 'banish') return zoneRect(m.side, 'grave');
+        return zoneRect(m.side, z);
+      };
+      // a carta jogada que vai para a vaga dela (arma, armadilha, campo) já aparece lá
+      if (m.from === 'center' && m.to !== 'grave') continue;
+      const from = where(m.from, false), to = where(m.to, true);
+      if (!from || !to) continue;
+      let delay = 0, kind: FlightSpec['kind'] = 'fly', flip = false, back = false;
+      if (m.to === 'banish') { kind = 'dissolve'; delay = 120 + count.ban++ * 110; }
+      else if (m.from === 'center') delay = 900;
+      else if (m.from === 'deck' && m.to === 'hand') { delay = 200 + count.draw++ * 170; flip = m.side === 0; back = m.side === 1; }
+      else if (m.from === 'deck') { delay = 180 + count.mill++ * 120; flip = true; }
+      else delay = count.cost++ * 100;
+      add.push({ id: `${m.uid}-${Date.now()}`, side: m.side, uid: m.uid, card: m.card, from, to, delay, kind, flip, back, toGrave: m.to === 'grave', toHand: m.to === 'hand' && m.side === 0 });
+      if (m.from === 'center') window.setTimeout(() => setShown(s0 => (s0?.uid === m.uid ? null : s0)), 900);
+    }
+    handRects.current = nowHand;
+    if (!add.length) return;
+    setFlights(f => [...f, ...add]);
+    const g: [number, number] = [0, 0];
+    for (const f of add) if (f.toGrave) g[f.side]++;
+    if (g[0] || g[1]) setHold(h => [h[0] + g[0], h[1] + g[1]]);
+    const arriving = add.filter(f => f.toHand).map(f => f.uid);
+    if (arriving.length) setHiddenUids(h => new Set([...h, ...arriving]));
+    // só quando o estado do jogo muda (rel e zoneRect leem o DOM na hora)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+  const flightDone = useCallback((f: FlightSpec) => {
+    setFlights(list => list.filter(x => x.id !== f.id));
+    if (f.toGrave) setHold(h => (f.side === 0 ? [Math.max(0, h[0] - 1), h[1]] : [h[0], Math.max(0, h[1] - 1)]));
+    if (f.toHand) setHiddenUids(h => { const n = new Set(h); n.delete(f.uid); return n; });
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -219,7 +339,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         const card = s.players[1].hand.find(c => c.uid === uid);
         try {
           const next = playCard(s, uid);
-          if (card) { setShown({ card: card.def, by: 1, key: Date.now() }); setFocus(card.def); }
+          if (card) { setShown({ card: card.def, by: 1, key: Date.now(), uid }); setFocus(card.def); playedUid.current = uid; }
           s = next;
           setState(s);
         } catch (e) { if (!(e instanceof IllegalPlay)) throw e; }
@@ -242,8 +362,9 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     try {
       const card = state.players[0].hand.find(c => c.uid === uid);
       const next = playCard(state, uid, discard ? { discard } : {});
-      if (card) setShown({ card: card.def, by: 0, key: Date.now() });
-      window.setTimeout(() => setShown(s => (s?.by === 0 ? null : s)), 1100);
+      if (card) setShown({ card: card.def, by: 0, key: Date.now(), uid });
+      playedUid.current = uid;
+      window.setTimeout(() => setShown(s => (s?.uid === uid ? null : s)), 1400);
       setState(next);
       setError(null);
     } catch (e) {
@@ -296,7 +417,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   const n = me.hand.length;
   return (
     <div className="dv-root">
-      <div className="dv-stage" style={{ ['--el' as string]: el.el, ['--el2' as string]: el.el2 }}>
+      <div ref={stageRef} className="dv-stage" style={{ ['--el' as string]: el.el, ['--el2' as string]: el.el2 }}>
         <div className="dv-bg" style={{ background: `radial-gradient(ellipse at 50% 40%, ${el.el2}66, transparent 70%), repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 .12cqw, transparent .12cqw 2.4cqw), repeating-linear-gradient(90deg, #6b4a2e 0 7cqw, #5e3f26 7cqw 7.12cqw, #684629 7.12cqw 14cqw)` }} />
 
         {/* desafiante atrás da mesa */}
@@ -306,13 +427,13 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         </div>
 
         {/* mesa */}
-        <div className="dv-table">
+        <div className={`dv-table ${drag ? (drag.over ? (playable.has(drag.uid) ? 'drop-ok' : 'drop-no') : 'dragging') : ''}`}>
           <div className="dv-mat" style={matStyle(matOf(mat), import.meta.env.BASE_URL)}>
-            <Row side="op" p={op} hidden open={c => setPreview({ card: c })} />
+            <Row side="op" p={op} hidden open={c => setPreview({ card: c })} hold={hold[1]} />
             <div className="dv-field">
               <Slot label="CAMPO" card={state.field?.card.def} onOpen={state.field ? () => setPreview({ card: state.field!.card.def }) : undefined} />
             </div>
-            <Row side="me" p={me} hidden={false} open={c => setPreview({ card: c })} />
+            <Row side="me" p={me} hidden={false} open={c => setPreview({ card: c })} hold={hold[0]} />
           </div>
         </div>
 
@@ -368,12 +489,41 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
             const rot = off * (n > 5 ? 5 : 6), drop = Math.abs(off) * Math.abs(off) * 1.4;
             const lift = sel ? -22 : 0;
             return (
-              <button key={c.uid}
-                className={`c ${picking ? (pickable ? (sel ? 'pick' : '') : 'dim') : ok ? 'ok' : myTurn ? 'dim' : ''}`}
+              <button key={c.uid} data-uid={c.uid}
+                className={`c ${picking ? (pickable ? (sel ? 'pick' : '') : 'dim') : ok ? 'ok' : myTurn ? 'dim' : ''} ${drag?.uid === c.uid || hiddenUids.has(c.uid) ? 'away' : ''}`}
                 style={{ left: `${left}%`, ['--y' as string]: `${drop + lift}%`, ['--r' as string]: `${rot}deg`, zIndex: i }}
                 onMouseEnter={() => setFocus(c.def)}
+                onPointerDown={e => {
+                  if (!myTurn || picking || e.button > 0) return;
+                  dragRef.current = { uid: c.uid, x0: e.clientX, y0: e.clientY, moved: false, lastX: e.clientX };
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                }}
+                onPointerMove={e => {
+                  const d = dragRef.current;
+                  if (!d || d.uid !== c.uid) return;
+                  if (!d.moved && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 10) return;
+                  d.moved = true;
+                  const sr = stageBox();
+                  const x = e.clientX - sr.left, y = e.clientY - sr.top;
+                  const over = y < sr.height * 0.74 && x > sr.width * 0.1 && x < sr.width * 0.88;
+                  const tilt = Math.max(-14, Math.min(14, (e.clientX - d.lastX) * 1.2));
+                  d.lastX = e.clientX;
+                  setDrag({ uid: c.uid, x, y, over, tilt });
+                  setFocus(c.def);
+                }}
+                onPointerUp={() => {
+                  const d = dragRef.current;
+                  dragRef.current = null;
+                  if (!d?.moved) return;
+                  suppressClick.current = true;
+                  const wasOver = drag?.over;
+                  setDrag(null);
+                  if (wasOver) tryPlay(c.uid);
+                }}
+                onPointerCancel={() => { dragRef.current = null; setDrag(null); }}
                 onContextMenu={e => { e.preventDefault(); setFocus(c.def); }}
                 onClick={() => {
+                  if (suppressClick.current) { suppressClick.current = false; return; }
                   if (picking) {
                     if (!pickable) return;
                     const picked = sel ? picking.picked.filter(x => x !== c.uid) : [...picking.picked, c.uid];
@@ -388,6 +538,20 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
             );
           })}
         </div>
+
+        {/* carta sendo arrastada */}
+        {drag && (() => {
+          const c = me.hand.find(x => x.uid === drag.uid);
+          return c && (
+            <div className={`dv-ghost ${drag.over ? (playable.has(c.uid) ? 'ok' : 'no') : ''}`} style={{ left: drag.x, top: drag.y, ['--tilt' as string]: `${drag.tilt}deg` }}>
+              <TcgCard card={c.def} />
+              {drag.over && <div className="tag dv-px">{playable.has(c.uid) ? 'SOLTE PARA JOGAR' : 'NÃO DÁ AGORA'}</div>}
+            </div>
+          );
+        })()}
+
+        {/* cartas voando (descarte, cemitério, compra, banimento) */}
+        {flights.map(f => <Flight key={f.id} f={f} onDone={flightDone} />)}
 
         {/* encerrar turno */}
         <div className={`dv-end ${myTurn && playable.size === 0 ? 'idle' : ''}`}>
