@@ -367,7 +367,7 @@ nomes de carta:
 
 Nada de +dano ou +vida que decida uma partida.
 
-### 5.5 Tela do duelo (aprovada em 30/09)
+### 5.5 Tela do duelo (esboço aprovado em 30/09; tela pronta aprovada em 30/09)
 Esboço aprovado: https://claude.ai/artifact/UETfaivdHLuKTuheZd849g
 (referências: Master Duel, TCG Pocket, Marvel Snap, Hearthstone, Balatro,
 Shadowverse WB, Slay the Spire, Pokémon TCG do GBC).
