@@ -47,22 +47,15 @@ Não existe energia. Como no Yu-Gi-Oh, **as cartas fortes cobram um preço**:
 
 ## Elementos
 
-12 elementos, com a tabela de fraqueza que já existe no código. Ataque contra fraqueza causa ×2, contra resistência ×½.
+**Sem fraqueza nem resistência (decidido em 30/09).** Os 12 elementos ficam
+**só nas cartas**: dão a cor da moldura e a "família" dos combos (ex.:
+"Seus Ataques de Fogo causam +4", "se jogou uma carta de Luta neste turno").
+O personagem (aluno ou desafiante) **não tem elemento**: o tema dele é o
+elemento que mais aparece no deck (é o que define, por exemplo, a cor da mesa
+do desafiante e o "Deck de Gelo" no convite).
 
-| Elemento | Forte contra (×2) | Fraco contra (×½) | Não afeta |
-|---|---|---|---|
-| Fogo | Planta, Gelo, Aço | Fogo, Água | — |
-| Água | Fogo, Terra | Água, Planta | — |
-| Elétrico | Água, Vento | Elétrico, Planta | Terra |
-| Planta | Água, Terra | Fogo, Planta, Aço, Veneno, Vento | — |
-| Gelo | Planta, Terra, Vento | Fogo, Água, Gelo, Aço | — |
-| Terra | Fogo, Elétrico, Aço, Veneno | Planta | Vento |
-| Luta | Gelo, Aço, Sombra | Veneno, Vento | Fantasma |
-| Aço | Gelo | Fogo, Água, Aço | — |
-| Veneno | Planta | Terra, Veneno, Fantasma | Aço |
-| Sombra | Fantasma | Luta, Sombra | — |
-| Fantasma | Sombra, Fantasma | — | Luta |
-| Vento | Planta, Luta | Elétrico, Aço | — |
+A tabela antiga de fraquezas (`src/lib/battle/typeEffectiveness.ts`) é do
+sistema anterior e não entra mais no duelo.
 
 ## Combos
 

@@ -82,8 +82,8 @@ for (let g = 0; g < N; g++) {
   const decks = [randomDeck(), randomDeck()];
   const first = (g % 2) as 0 | 1;
   let s = createGame([
-    { name: 'A', element: ELEMENTS[Math.floor(rnd() * 12)], deck: decks[0] },
-    { name: 'B', element: ELEMENTS[Math.floor(rnd() * 12)], deck: decks[1] },
+    { name: 'A', deck: decks[0] },
+    { name: 'B', deck: decks[1] },
   ], { seed: g + 1, firstPlayer: first });
 
   while (s.winner === null && s.turn < 80) {

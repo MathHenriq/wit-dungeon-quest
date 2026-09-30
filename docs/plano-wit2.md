@@ -478,7 +478,7 @@ testes, demo. **Etapas 3 a 8 feitas em 30/09**: mão se reorganiza e as cartas
 chegam distribuídas, contadores pulam, tocar no cemitério abre as cartas; o
 motor registra a conta de cada golpe (`LogEntry.calc`) e a tela mostra em
 fichas (azul × vermelho = dourado), com tremida, clarão na cor do elemento e
-carimbo SUPER EFETIVO / POUCO EFETIVO / IMUNE / ESCUDO; armadilha revelada vira
+carimbo COMBO ×N / ESCUDO (sem fraqueza de elemento desde 30/09); armadilha revelada vira
 no centro; o desafiante pensa, joga mexendo os braços, apanha, comemora e cai
 (uma animação só para qualquer visual); abertura com VS e moeda; fim com
 carimbo e raios, moedas contando e a carta do chefe virando; sons sintetizados

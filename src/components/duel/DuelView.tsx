@@ -39,12 +39,6 @@ interface Props {
   mat?: string;
 }
 
-/** Elemento do herói do aluno: o mais comum no deck (define fraquezas). */
-function heroElement(deck: CardDef[]): Element {
-  const n = new Map<Element, number>();
-  for (const c of deck) n.set(c.element, (n.get(c.element) ?? 0) + 1);
-  return [...n.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Fighting';
-}
 
 // ─── ícones (desenhados, no lugar dos emojis) ───────────────────────────────
 const ICON = {
@@ -122,12 +116,10 @@ function Plate({ side, p, face, nick, title, tone, turn, hurt }: {
   side: 'op' | 'me'; p: PlayerState; face: HTMLCanvasElement | null; nick: string; title: string; tone: string; turn: boolean; hurt?: number;
 }) {
   const pct = Math.max(0, Math.min(100, (p.life / p.maxLife) * 100));
-  const el = ELEMENT_STYLE[p.element];
   return (
     <div key={hurt ? `h${hurt}` : 'p'} className={`dv-plate ${side} ${turn ? 'turn' : ''} ${hurt ? 'hurt' : ''}`} style={{ ['--tone' as string]: tone }}>
       <div className="dv-por">
         <Face frame={face} />
-        <span className="el" title={`Herói de ${ELEMENT_PT[p.element]}`} style={{ background: el.el }}>{el.icon}</span>
       </div>
       <div className="dv-info">
         <div className="dv-who dv-px">
@@ -239,17 +231,17 @@ const num = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2).repla
 
 /**
  * A conta do golpe em fichas, estilo Balatro: azul = dano (base + bônus), vermelho =
- * multiplicador (bônus × fraqueza), dourado = total. Embaixo, de onde veio cada
+ * multiplicador (bônus que multiplicam), dourado = total. Embaixo, de onde veio cada
  * parte, entrando uma de cada vez.
  */
 function CalcPanel({ c }: { c: DamageCalc }) {
   const dano = c.base + c.adds.reduce((a, b) => a + b.value, 0);
-  const mult = c.mults.reduce((a, b) => a * b.value, 1) * c.eff;
+  const mult = c.mults.reduce((a, b) => a * b.value, 1);
+  const def = c.reductions.reduce((a, b) => a + b.value, 0);
   const src: { t: string; label: string; kind: 'a' | 'm' | 'r' }[] = [
     { t: `${c.base}`, label: 'base', kind: 'a' },
     ...c.adds.map(x => ({ t: `${x.value >= 0 ? '+' : ''}${x.value}`, label: x.label, kind: 'a' as const })),
     ...c.mults.map(x => ({ t: `×${num(x.value)}`, label: x.label, kind: 'm' as const })),
-    ...(c.eff !== 1 ? [{ t: `×${num(c.eff)}`, label: c.effLabel ?? 'elemento', kind: 'm' as const }] : []),
     ...c.reductions.map(x => ({ t: `−${x.value}`, label: x.label, kind: 'r' as const })),
   ];
   return (
@@ -257,7 +249,8 @@ function CalcPanel({ c }: { c: DamageCalc }) {
       <div className="card dv-px">{c.card.toUpperCase()}</div>
       <div className="eqn dv-px">
         <div className="box dano"><b>{dano}</b><small>DANO</small></div>
-        {mult !== 1 && <><span className="op">×</span><div className="box mult"><b>{num(mult)}</b><small>{c.eff > 1 ? 'FRAQUEZA' : c.eff < 1 ? 'RESIST.' : 'MULT.'}</small></div></>}
+        {mult !== 1 && <><span className="op">×</span><div className="box mult"><b>{num(mult)}</b><small>COMBO</small></div></>}
+        {def > 0 && <><span className="op">−</span><div className="box def"><b>{def}</b><small>DEFESA</small></div></>}
         <span className="op">=</span>
         <div className={`box tot ${c.shield ? 'shield' : ''}`}><b>{c.total}</b><small>{c.shield ? 'ESCUDO' : 'TOTAL'}</small></div>
       </div>
@@ -270,8 +263,8 @@ function CalcPanel({ c }: { c: DamageCalc }) {
 
 export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result, mat }: Props) {
   const [state, setState] = useState<GameState>(() => createGame([
-    { name: nick, element: heroElement(deck), deck },
-    { name: foe.name, element: foe.element, deck: foe.deck, life: foe.life },
+    { name: nick, deck },
+    { name: foe.name, deck: foe.deck, life: foe.life },
   ], { seed: (Date.now() & 0x7fffffff) || 1, firstPlayer: Math.random() < 0.5 ? 0 : 1 }));
   const [preview, setPreview] = useState<{ card: CardDef; uid?: string } | null>(null);
   const [focus, setFocus] = useState<CardDef | null>(null);
@@ -283,7 +276,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   const [showLog, setShowLog] = useState(false);
   const [flights, setFlights] = useState<FlightSpec[]>([]);
   const [calcShow, setCalcShow] = useState<{ calc: DamageCalc; key: number } | null>(null);
-  const [stamp, setStamp] = useState<{ text: string; kind: 'super' | 'weak' | 'shield'; key: number } | null>(null);
+  const [stamp, setStamp] = useState<{ text: string; kind: 'super' | 'shield'; key: number } | null>(null);
   const [trapShow, setTrapShow] = useState<{ card: CardDef; owner: 0 | 1; key: number } | null>(null);
   const [flash, setFlash] = useState<{ color: string; key: number } | null>(null);
   const [foeMood, setFoeMood] = useState<FoeMood>('idle');
@@ -373,7 +366,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     return () => { alive = false; };
   }, [look, foeSprite]);
 
-  // ── o que o registro conta: golpe (conta em fichas, tremida, clarão, SUPER EFETIVO) e armadilha virando ──
+  // ── o que o registro conta: golpe (conta em fichas, tremida, clarão, COMBO) e armadilha virando ──
   useEffect(() => {
     const fresh = state.log.slice(logSeen.current);
     logSeen.current = state.log.length;
@@ -403,9 +396,11 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
           if (c.target === 1) { setFoeMood(m => (m === 'lose' || m === 'win' ? m : 'hurt')); later(650, () => setFoeMood(m => (m === 'hurt' ? 'idle' : m))); } else setMeHurt(key);
         }
         if (c.shield) setStamp({ text: 'ESCUDO!', kind: 'shield', key });
-        else if (c.eff > 1) { setStamp({ text: 'SUPER EFETIVO!', kind: 'super', key }); play('super'); }
-        else if (c.eff === 0) setStamp({ text: 'IMUNE!', kind: 'weak', key });
-        else if (c.eff < 1) setStamp({ text: 'POUCO EFETIVO', kind: 'weak', key });
+        else {
+          // multiplicadores dos bônus se multiplicam: ×2 ou mais vira carimbo de COMBO
+          const m = c.mults.reduce((a, b) => a * b.value, 1);
+          if (m >= 2) { setStamp({ text: `COMBO ×${num(m)}!`, kind: 'super', key }); play('super'); }
+        }
         later(1300, () => setStamp(x => (x?.key === key ? null : x)));
       });
     }
@@ -754,7 +749,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
             <div className="side me"><div className="por"><Face frame={frames[0]?.[0] ?? null} /></div><div className="nm dv-px">{nick.toUpperCase()}</div><div className="tt dv-px">DESAFIANTE</div></div>
             <div className="vs dv-px">VS</div>
             <div className="side op" style={{ ['--tone' as string]: el.el }}><div className="por"><Face frame={frames[1]?.[0] ?? null} /></div><div className="nm dv-px">{foe.name.toUpperCase()}</div>
-              <div className="tt dv-px">{foe.kind === 'chefe' ? 'CHEFE' : 'MESA'} · {ELEMENT_PT[foe.element].toUpperCase()} · {AI_NAMES[foe.ai].toUpperCase()}</div></div>
+              <div className="tt dv-px">{foe.kind === 'chefe' ? 'CHEFE' : 'MESA'} · DECK DE {ELEMENT_PT[foe.element].toUpperCase()} · {AI_NAMES[foe.ai].toUpperCase()}</div></div>
             {intro === 'coin' && (
               <div className="coin-wrap">
                 <div className="coin"><span>{state.firstPlayer === 0 ? 'VOCÊ' : foe.name.split(' ')[0].toUpperCase()}</span></div>

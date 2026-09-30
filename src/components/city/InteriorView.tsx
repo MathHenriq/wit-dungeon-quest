@@ -630,7 +630,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
               <div className="text-[9px] text-[#7a7090] mt-1">{ask.npc.title}</div>
               <div className="text-[11px] leading-5 mt-3">{ask.npc.lines[0]}</div>
               <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 text-[9px] leading-4 text-[#4a4660]">
-                <span>ELEMENTO: {ELEMENT_PT[ask.foe.element].toUpperCase()}</span>
+                <span>DECK DE {ELEMENT_PT[ask.foe.element].toUpperCase()}</span>
                 <span>VIDA: {ask.foe.life}</span>
                 <span>DECK: {ask.foe.deck.length} CARTAS</span>
                 <span>IA: {AI_NAMES[ask.foe.ai].toUpperCase()}</span>

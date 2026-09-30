@@ -16,11 +16,11 @@ const P: CardDef = { id: 'filler', name: 'Pedrinha', type: 'challenger', element
 
 // Decks na ordem (sem embaralhar): as 5 primeiras são a mão inicial.
 let s: GameState = createGame([
-  { name: 'Matheus', element: 'Fire', deck: [
+  { name: 'Matheus', deck: [
     C.vulcao, C.katana, C.pira, P, C.furia,                // mão inicial
     C.brasa, C.guardiao, P, P, C.brasa, P, P,              // compras (o Guardião mói as 2 Pedrinhas)
   ] },
-  { name: 'Itachi', element: 'Grass', deck: [
+  { name: 'Itachi', deck: [
     C.espelho, C.tsukuyomi, C.sombra, C.armadura, C.jato,  // mão inicial
     C.brasa, P, P, P, P, P, P,
   ] },

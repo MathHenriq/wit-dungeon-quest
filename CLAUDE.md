@@ -19,7 +19,7 @@ Decisões já tomadas (não reabrir sem o Matheus pedir):
 - 1 Ataque por turno. Tipos: Ataque, Desafiante (o jogador é o "Desafiante"),
   Equipamento (1 arma + 1 armadura), Armadilha (até 3, viradas), Campo (1).
 - **Sem teto de dano.** Multiplicadores se multiplicam.
-- 12 elementos com tabela de fraqueza (`src/lib/battle/typeEffectiveness.ts`).
+- 12 elementos **só nas cartas** (cor da moldura e combos). **Sem fraqueza/resistência** e o personagem não tem elemento: o tema dele é o elemento que mais aparece no deck (decidido em 30/09).
 - **Inimigos são Desafiantes** com deck próprio: personagens de anime segurando
   ou jogando cartas. Chefe derrotado dá uma carta do deck dele (repetível).
 - **Carta só se ganha de 2 jeitos: conquistando (chefes) ou abrindo pacotinho.**

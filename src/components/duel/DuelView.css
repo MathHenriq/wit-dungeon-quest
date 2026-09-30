@@ -57,7 +57,6 @@
 .dv-por { position: relative; width: 5.8cqw; height: 5.8cqw; flex: none; z-index: 1; border-radius: .8cqw; padding: .25cqw; background: linear-gradient(135deg, #f5dfa0, #9a6b1f 55%, #f0c95a); }
 .dv-por canvas { display: block; width: 100%; height: 100%; border-radius: .55cqw; background: #1a1220; image-rendering: pixelated;
   box-shadow: inset 0 0 0 .15cqw rgba(0,0,0,.5); }
-.dv-por .el { position: absolute; right: -.55cqw; bottom: -.55cqw; width: 1.9cqw; height: 1.9cqw; border-radius: 50%; background: var(--tone); border: .15cqw solid #f5dfa0; display: grid; place-items: center; font-size: .9cqw; box-shadow: 0 .15cqw 0 rgba(0,0,0,.5); }
 .dv-info { margin-left: -.6cqw; padding: .55cqw 1.3cqw .6cqw 1.4cqw; min-width: 15.5cqw; background: linear-gradient(90deg, #221a2c, #17111e); border: .15cqw solid #4a3a5c; border-left: 0;
   clip-path: polygon(0 0, 100% 0, calc(100% - 1cqw) 100%, 0 100%); border-radius: 0 .5cqw .5cqw 0; }
 .dv-who { display: flex; align-items: baseline; gap: .6cqw; }
@@ -180,6 +179,7 @@
 .dv-calc .box small { display: block; font-size: max(.45cqw, 5px); letter-spacing: .08em; margin-top: .4cqw; opacity: .85; }
 .dv-calc .dano { background: linear-gradient(#3b82f6, #1d4ed8); }
 .dv-calc .mult { background: linear-gradient(#f05252, #b91c1c); animation-delay: .15s; }
+.dv-calc .def { background: linear-gradient(#94a3b8, #475569); animation-delay: .25s; }
 .dv-calc .tot { background: linear-gradient(#ffd45c, #e6a817); color: #3a2200; min-width: 5cqw; animation-delay: .38s; animation-duration: .45s; }
 .dv-calc .tot.shield { background: linear-gradient(#cbd5e1, #64748b); color: #0f172a; }
 .dv-calc .tot b { text-shadow: 0 .15cqw 0 rgba(255,255,255,.35); }
@@ -196,7 +196,6 @@
 .dv-stamp { position: absolute; left: 50%; top: 40%; z-index: 12; pointer-events: none; font-size: 2.6cqw; color: #ffe066; white-space: nowrap;
   text-shadow: .25cqw 0 0 #b91c1c, -.25cqw 0 0 #b91c1c, 0 .25cqw 0 #b91c1c, 0 -.25cqw 0 #b91c1c, 0 .55cqw 0 #5a0d0d;
   animation: dvstamp 1.3s cubic-bezier(.2,1.5,.4,1) forwards; }
-.dv-stamp.weak { color: #cbd5e1; font-size: 1.8cqw; text-shadow: .2cqw 0 0 #334155, -.2cqw 0 0 #334155, 0 .2cqw 0 #334155, 0 -.2cqw 0 #334155; }
 .dv-stamp.shield { color: #e2e8f0; text-shadow: .25cqw 0 0 #1e40af, -.25cqw 0 0 #1e40af, 0 .25cqw 0 #1e40af, 0 -.25cqw 0 #1e40af; }
 @keyframes dvstamp { 0% { opacity: 0; transform: translate(-50%, -50%) scale(3) rotate(-14deg); } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-8deg); }
   80% { opacity: 1; transform: translate(-50%, -50%) scale(1.04) rotate(-8deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1) rotate(-8deg); } }

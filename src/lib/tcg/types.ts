@@ -228,8 +228,6 @@ export interface Lock {
 
 export interface PlayerState {
   name: string;
-  /** Elemento do herói: define fraquezas e resistências contra ataques. */
-  element: Element;
   life: number;
   maxLife: number;
   deck: CardInstance[];
@@ -263,9 +261,6 @@ export interface DamageCalc {
   base: number;
   adds: { value: number; label: string }[];
   mults: { value: number; label: string }[];
-  /** Fraqueza/resistência do elemento (1 = neutro). */
-  eff: number;
-  effLabel?: string;
   reductions: { value: number; label: string }[];
   shield: boolean;
   pierce: boolean;

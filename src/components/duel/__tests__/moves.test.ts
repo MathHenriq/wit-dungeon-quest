@@ -11,7 +11,7 @@ const withCost = (kind: string) => CATALOG.find(c => c.cost?.some(k => k.kind ==
 function gameWith(card: CardDef): { s: GameState; uid: string } {
   const deck = [card, ...simple.slice(0, 19)];
   // o outro começa e passa: no turno do jogador 0 ele já pode atacar
-  const s = endTurn(createGame([{ name: 'A', element: 'Fire', deck }, { name: 'B', element: 'Water', deck: simple }], { seed: 7, firstPlayer: 1 }));
+  const s = endTurn(createGame([{ name: 'A', deck }, { name: 'B', deck: simple }], { seed: 7, firstPlayer: 1 }));
   const p = s.players[0];
   const i = p.deck.findIndex(c => c.def.id === card.id);
   if (i >= 0) p.hand.push(...p.deck.splice(i, 1));

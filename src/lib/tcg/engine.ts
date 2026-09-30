@@ -19,7 +19,6 @@
  * e cada parcela aparece no log, para o aluno (e a gente) entender o combo.
  */
 
-import { getTypeEffectiveness } from '@/lib/battle/typeEffectiveness';
 import { ELEMENT_PT, STATUS_PT, TYPE_PT, TYPE_PT_PLURAL } from './labels';
 import type {
   ActiveModifier, Amount, CardDef, CardFilter, CardInstance, CardType,
@@ -45,7 +44,6 @@ export class IllegalPlay extends Error {
 
 export interface PlayerSetup {
   name: string;
-  element: Element;
   /** Deck na ordem; com `shuffle: false`, a primeira carta é o topo. */
   deck: CardDef[];
   life?: number;
@@ -168,7 +166,6 @@ function newPlayer(state: GameState, setup: PlayerSetup): PlayerState {
   const life = setup.life ?? RULES.startingLife;
   return {
     name: setup.name,
-    element: setup.element,
     life,
     maxLife: life,
     deck: setup.deck.map(def => ({ uid: `c${state.nextUid++}`, def })),
@@ -468,7 +465,7 @@ function dealDamage(state: GameState, a: DamageArgs): number {
   const parts: string[] = [`${a.base} base`];
   let add = 0;
   let mult = 1;
-  const calc: DamageCalc = { card: a.card.name, element: a.card.element, target: a.target, base: a.base, adds: [], mults: [], eff: 1, reductions: [], shield: false, pierce: !!a.pierce, total: 0 };
+  const calc: DamageCalc = { card: a.card.name, element: a.card.element, target: a.target, base: a.base, adds: [], mults: [], reductions: [], shield: false, pierce: !!a.pierce, total: 0 };
 
   const pushAdd = (v: number, label: string) => { add += v; calc.adds.push({ value: v, label }); parts.push(`${v >= 0 ? '+' : ''}${v} (${label})`); };
   const pushMult = (v: number, label: string) => { mult *= v; calc.mults.push({ value: v, label }); parts.push(`×${fmt(v)} (${label})`); };
@@ -501,14 +498,6 @@ function dealDamage(state: GameState, a: DamageArgs): number {
 
   let total = (a.base + add) * mult;
 
-  const eff = getTypeEffectiveness(a.card.element, def.element);
-  if (eff !== 1) {
-    const nome = eff === 0 ? 'imune' : eff > 1 ? 'fraqueza' : 'resistência';
-    total *= eff;
-    calc.eff = eff;
-    calc.effLabel = `${ELEMENT_PT[a.card.element]} → ${ELEMENT_PT[def.element]}`;
-    parts.push(`×${fmt(eff)} (${nome}: ${ELEMENT_PT[a.card.element]} → ${ELEMENT_PT[def.element]})`);
-  }
   total = Math.max(0, Math.floor(total));
 
   // Redução de dano: equipamentos de quem recebe e o Campo.

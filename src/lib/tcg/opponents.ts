@@ -66,7 +66,8 @@ export function floorProfile(andar: number, kind: FoeKind): FloorProfile {
   const rar = Math.min(6, tier + (boss ? 1 : 0));
   const ai: AiLevel = a <= 10 ? 1 : a <= 30 ? 2 : a <= 70 ? 3 : 4;
   return {
-    life: big ? 150 : boss ? Math.min(150, 90 + a) : Math.min(150, 55 + Math.round(a * 0.95)),
+    // (sem fraqueza de elemento desde 30/09: vidas menores que antes, curva refeita na simulação)
+    life: big ? Math.min(150, 75 + Math.round(a * 1.5)) : boss ? Math.min(150, 55 + Math.round(a * 1.25)) : Math.min(150, 50 + Math.round(a * 0.8)),
     deckSize: big ? 20 : boss ? Math.min(20, 16 + Math.floor(a / 20)) : Math.min(20, 12 + Math.floor(a / 8)),
     ai: (boss ? Math.min(4, ai + 1) : ai) as AiLevel,
     maxRarity: RARITY_ORDER[rar],
@@ -145,6 +146,7 @@ export interface Foe {
   name: string;
   kind: FoeKind;
   andar: number;
+  /** Tema do deck (o elemento que mais aparece nele). Não é elemento do personagem: não há fraqueza. */
   element: Element;
   life: number;
   ai: AiLevel;

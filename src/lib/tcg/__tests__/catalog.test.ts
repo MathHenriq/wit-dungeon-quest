@@ -37,8 +37,8 @@ describe('catálogo', () => {
   it('toda carta pode ser jogada sem quebrar o motor', () => {
     for (const c of CATALOG) {
       let s = createGame([
-        { name: 'A', element: 'Fire', deck: [c, ...CATALOG.slice(0, 19)] },
-        { name: 'B', element: 'Water', deck: CATALOG.slice(20, 40) },
+        { name: 'A', deck: [c, ...CATALOG.slice(0, 19)] },
+        { name: 'B', deck: CATALOG.slice(20, 40) },
       ], { shuffle: false, firstPlayer: 1, seed: 1 });
       s = endTurn(s);
       s.players[0].graveyard = s.players[0].deck.splice(0, 6); // combustível para custos de banir

@@ -13,8 +13,8 @@ describe('IA', () => {
     for (let k = 0; k < 4; k++) {
       const foe = tableFoe(20 + k * 20, 1 + k, 'mesa-fogo', 'X');
       let s = createGame([
-        { name: 'A', element: 'Water', deck: starterDeck() },
-        { name: 'B', element: foe.element, deck: foe.deck, life: foe.life },
+        { name: 'A', deck: starterDeck() },
+        { name: 'B', deck: foe.deck, life: foe.life },
       ], { seed: k + 3, firstPlayer: (k % 2) as 0 | 1 });
       while (s.winner === null && s.turn < 80) {
         for (const uid of planTurn(s, level, k)) {
@@ -30,8 +30,8 @@ describe('IA', () => {
 
   it('é reproduzível: mesma semente, mesmo plano', () => {
     const s = createGame([
-      { name: 'A', element: 'Fire', deck: starterDeck() },
-      { name: 'B', element: 'Fire', deck: starterDeck() },
+      { name: 'A', deck: starterDeck() },
+      { name: 'B', deck: starterDeck() },
     ], { seed: 9, firstPlayer: 1 });
     for (const level of levels) expect(planTurn(s, level, 5)).toEqual(planTurn(s, level, 5));
   });

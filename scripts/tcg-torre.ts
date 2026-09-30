@@ -20,8 +20,8 @@ const tables = Object.keys(TABLE_ELEMENT);
 
 function duel(deck: CardDef[], foe: ReturnType<typeof tableFoe>, seed: number) {
   let s = createGame([
-    { name: 'Aluno', element: 'Fighting', deck },
-    { name: foe.name, element: foe.element, deck: foe.deck, life: foe.life },
+    { name: 'Aluno', deck },
+    { name: foe.name, deck: foe.deck, life: foe.life },
   ], { seed, firstPlayer: (seed % 2) as 0 | 1 });
   let secs = 0;
   while (s.winner === null && s.turn < 60) {
