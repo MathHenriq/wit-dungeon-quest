@@ -79,7 +79,35 @@ async function open(name, query, viewport = { width: 1280, height: 720 }, touch 
   await shot('mapa');
   await ctx.close();
 }
-// 4) noite no lago e celular
+// 4) Fazenda: arar, plantar, regar; bichos; barraca de sementes
+{
+  const ctx0 = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await ctx0.addInitScript(() => {
+    if (!localStorage.getItem('wit.progresso')) localStorage.setItem('wit.progresso', JSON.stringify({ coins: 80, itens: { 'semente:cenoura': 5, 'semente:milho': 3 } }));
+  });
+  const page = await ctx0.newPage();
+  page.on('pageerror', e => errors.push(`fazenda: ${e.message}`));
+  const shot = n => page.screenshot({ path: `${S}/fazenda-${n}.png` });
+  const tap = async key => { await page.keyboard.down(key); await page.waitForTimeout(key.startsWith('Arrow') ? 90 : 30); await page.keyboard.up(key); await page.waitForTimeout(450); };
+  await page.goto(`${base}/cidade-demo?zona=fazenda&pos=33,17`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1800);
+  await shot('campo');
+  await tap('ArrowDown'); await tap(' '); await tap(' '); await tap(' ');
+  await page.waitForTimeout(300);
+  await shot('plantou');
+  await page.goto(`${base}/cidade-demo?zona=fazenda&pos=12,11`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(2500);
+  await shot('bichos');
+  await page.goto(`${base}/cidade-demo?zona=fazenda&pos=55,18`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1800);
+  await tap('ArrowUp'); await tap(' ');
+  await shot('sementes');
+  await page.goto(`${base}/cidade-demo?zona=fazenda&pos=40,28&hora=19.5`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(2000);
+  await shot('tarde');
+  await ctx0.close();
+}
+// 5) noite no lago e celular
 {
   const { ctx, shot } = await open('lago-noite', '?zona=lago&pos=24,20&hora=21.5');
   await shot('praca');

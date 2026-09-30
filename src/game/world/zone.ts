@@ -365,7 +365,7 @@ export class ZoneBuilder {
    * Espalha flores, cogumelos, pedrinhas e mato pelo gramado livre (longe de
    * caminho, porta e objeto). `chance` por bloco.
    */
-  scatter(chance = 0.07, kinds = ['tulipas', 'tulipas', 'arbusto-florido', 'tulipas', 'cogumelos', 'pedrinhas', 'mato'], salt = 131): void {
+  scatter(chance = 0.07, kinds = ['tulipas', 'tulipas', 'arbusto-florido', 'tulipas', 'cogumelos', 'pedrinhas', 'mato'], salt = 131, skip?: (tx: number, ty: number) => boolean): void {
     if (!this.A.tulipas) return;
     const taken = new Set(this.objects.map(o => `${Math.floor((o.x + o.pix.w / 2) / TILE)},${Math.floor(o.baseY / TILE) - 1}`));
     const nearRoad = (tx: number, ty: number) => {
@@ -376,7 +376,7 @@ export class ZoneBuilder {
       return false;
     };
     for (let ty = 3; ty < this.h - 3; ty++) for (let tx = 3; tx < this.w - 3; tx++) {
-      if (this.terrain[ty][tx] !== 'grama' || this.solid[ty][tx] || this.solid[ty + 1]?.[tx] || nearRoad(tx, ty) || taken.has(`${tx},${ty}`)) continue;
+      if (this.terrain[ty][tx] !== 'grama' || this.solid[ty][tx] || this.solid[ty + 1]?.[tx] || nearRoad(tx, ty) || taken.has(`${tx},${ty}`) || skip?.(tx, ty)) continue;
       if (hash(tx, ty, salt) > chance) continue;
       const name = kinds[Math.floor(hash(ty, tx, 7) * kinds.length)];
       if (!this.A[name]) continue;

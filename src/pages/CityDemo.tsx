@@ -5,7 +5,11 @@ import { buildZone, ZONES } from '@/game/world/world';
 import { ZONE_NAMES, type Exit, type ZoneId } from '@/game/world/zone';
 import { biteDelay, meterFor, meterHit, RARITY_COLOR, RARITY_LABEL, rollFish, type Fish, type Meter } from '@/game/fishing';
 import { boatArt, duckFrames } from '@/game/world/buildings-lago';
-import { spawnCritters, stepCritters, type Critter } from '@/game/world/critters';
+import { chickenFrames, cowFrames, cropArt, sheepFrames, soilArt } from '@/game/world/buildings-fazenda';
+import { HENYARD, PASTURE } from '@/game/world/zone-fazenda';
+import { actionAt, applyAction, CAN_SIZE, catchUp, CROP_BY_ID, CROPS, itemName, loadFarm, nextDay, saveFarm, type CropId, type FarmState } from '@/game/farm';
+import { FarmPanel, iconOf } from '@/components/city/FarmPanel';
+import { spawnCritters, stepCritters, type Critter, type CritterKind } from '@/game/world/critters';
 import { drawWaterAnim, makeWaterAnim, type WaterAnim } from '@/game/world/water-anim';
 import { drawAlert, drawOars, drawRod } from '@/game/world/player-acts';
 import { fishIconUrl } from '@/game/world/fish-art';
@@ -22,7 +26,7 @@ import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/worl
 import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
-import { addCatch, loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
 import { DeckBuilder } from '@/components/duel/DeckBuilder';
 import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS, type NpcDef } from '@/game/world/content';
@@ -188,6 +192,10 @@ function CityView({ town, start, startHour, onTravel }: {
   const [mapOpen, setMapOpen] = useState(false);
   const [fishHouse, setFishHouse] = useState<'quadro' | 'vender' | null>(null);
   const [fishUi, setFishUi] = useState<FishUi | null>(null);
+  const [farmPanel, setFarmPanel] = useState<'sementes' | 'envio' | null>(null);
+  /** Só para redesenhar a barra da fazenda (semente escolhida, água). */
+  const [, setFarmHud] = useState(0);
+  const fields = town.spots.filter(sp => sp.kind === 'campo').map(sp => ({ x0: sp.tx, y0: sp.ty, x1: sp.data!.x1 as number, y1: sp.data!.y1 as number }));
   useEffect(() => { const t = window.setTimeout(() => setBanner(null), 2600); return () => window.clearTimeout(t); }, []);
   const [near, setNear] = useState<string | null>(null);
   const [look, setLook] = useState<Look>(savedLook);
@@ -224,7 +232,14 @@ function CityView({ town, start, startHour, onTravel }: {
     boatCanvases: null as Record<Dir, HTMLCanvasElement> | null,
     fish: null as Fishing | null,
     critters: [] as Critter[],
-    duckCanvases: null as { west: HTMLCanvasElement[]; east: HTMLCanvasElement[] } | null,
+    critterCanvases: {} as Partial<Record<CritterKind, { west: HTMLCanvasElement[]; east: HTMLCanvasElement[] }>>,
+    /** Fazenda (guardada no navegador): campos, caixa de envio, regador. */
+    farm: loadFarm(Date.now(), town.id === 'fazenda' ? (() => { const sp = town.spots.find(p => p.kind === 'campo'); return sp ? { x0: sp.tx, y0: sp.ty } : undefined; })() : undefined) as FarmState,
+    seed: null as CropId | null,
+    soil: null as { dry: HTMLCanvasElement; wet: HTMLCanvasElement } | null,
+    cropCanvas: new Map<string, HTMLCanvasElement>(),
+    /** Ferramenta em uso (animação curta): enxada, regador, semente, colheita. */
+    act: null as { kind: 'arar' | 'regar' | 'plantar' | 'colher' | 'encher'; t: number; tx: number; ty: number; icon?: string } | null,
     water: null as WaterAnim | null,
     /** Já saiu pela borda (espera a outra área montar). */
     leaving: false,
@@ -258,6 +273,7 @@ function CityView({ town, start, startHour, onTravel }: {
     lit: { front: null as HTMLCanvasElement | null, frontKey: '', back: null as HTMLCanvasElement | null, backKey: '', row: 0 },
     /** Hora do jogo (0–24); continua a mesma ao trocar de área. */
     hour: startHour,
+    hourSeen: startHour,
     clockSpeed: 1,
     modal: false,
     inside: false,
@@ -265,9 +281,19 @@ function CityView({ town, start, startHour, onTravel }: {
   });
 
   useEffect(() => {
-    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch';
+    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel;
     g.current.inside = !!inside; g.current.dirty = true;
-  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi]);
+  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel]);
+
+  // fazenda: se ficou fora um dia (12 min) ou mais, vira um dia ao chegar
+  useEffect(() => {
+    const cu = catchUp(g.current.farm, Date.now());
+    if (!cu) return;
+    g.current.farm = cu.farm; saveFarm(cu.farm);
+    if (cu.paid) { const pr = loadProgress(); saveProgress({ ...pr, coins: pr.coins + cu.paid }); }
+    if (cu.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `☀ Dia ${cu.farm.day} na fazenda!${cu.paid ? ` A caixa de envio pagou ${cu.paid} moedas.` : ''}` });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // visual novo → repinta o boneco e guarda (só neste navegador por enquanto)
   const firstLook = useRef(true);
@@ -297,9 +323,23 @@ function CityView({ town, start, startHour, onTravel }: {
     if (g.current.boat || town.spots.some(p => p.kind === 'barco')) {
       g.current.boatCanvases = { north: toCanvasHd(boatArt('north')), south: toCanvasHd(boatArt('south')), east: toCanvasHd(boatArt('east')), west: toCanvasHd(boatArt('west')) };
     }
+    const cc = g.current.critterCanvases;
     if (town.id === 'lago') {
       g.current.critters = spawnCritters(town, 'pato', 6, { x0: 0, y0: 0, x1: town.solid[0].length, y1: town.solid.length }, 7);
-      g.current.duckCanvases = { west: duckFrames('west').map(toCanvasHd), east: duckFrames('east').map(toCanvasHd) };
+      cc.pato = { west: duckFrames('west').map(toCanvasHd), east: duckFrames('east').map(toCanvasHd) };
+    }
+    if (town.id === 'fazenda') {
+      const pen = (r: typeof PASTURE) => ({ x0: r.x0, y0: r.y0, x1: r.x1 + 1, y1: r.y1 + 1 });
+      g.current.critters = [
+        ...spawnCritters(town, 'vaca', 3, pen(PASTURE), 3), ...spawnCritters(town, 'ovelha', 3, pen(PASTURE), 5),
+        ...spawnCritters(town, 'galinha', 6, pen(HENYARD), 9),
+        ...spawnCritters(town, 'pato', 3, { x0: 0, y0: 28, x1: 22, y1: 44 }, 11),
+      ];
+      cc.vaca = { west: cowFrames(-1).map(toCanvasHd), east: cowFrames(1).map(toCanvasHd) };
+      cc.ovelha = { west: sheepFrames(-1).map(toCanvasHd), east: sheepFrames(1).map(toCanvasHd) };
+      cc.galinha = { west: chickenFrames(-1).map(toCanvasHd), east: chickenFrames(1).map(toCanvasHd) };
+      cc.pato = { west: duckFrames('west').map(toCanvasHd), east: duckFrames('east').map(toCanvasHd) };
+      g.current.soil = { dry: toCanvasHd(soilArt(false)), wet: toCanvasHd(soilArt(true)) };
     }
     g.current.water = makeWaterAnim(town);
     const qs = new URLSearchParams(window.location.search);
@@ -420,6 +460,25 @@ function CityView({ town, start, startHour, onTravel }: {
     }
   }, []);
 
+  /** Troca a semente escolhida entre as que o aluno tem. */
+  const cycleSeed = (d: number) => {
+    const s = g.current, pr = loadProgress();
+    const owned = CROPS.filter(c => (pr.itens[`semente:${c.id}`] ?? 0) > 0).map(c => c.id);
+    if (!owned.length) { s.seed = null; setFarmHud(n => n + 1); return; }
+    const i = s.seed ? owned.indexOf(s.seed) : -1;
+    s.seed = owned[(i + d + owned.length) % owned.length];
+    play('click'); setFarmHud(n => n + 1);
+  };
+
+  const fillCan = () => {
+    const s = g.current;
+    s.farm = applyAction(s.farm, 0, 0, { kind: 'encher' }).farm; saveFarm(s.farm);
+    const f = ahead(s.player);
+    s.act = { kind: 'encher', t: performance.now(), tx: f.tx, ty: f.ty };
+    play('draw'); toast(`Regador cheio! 💧 ${CAN_SIZE}/${CAN_SIZE}`);
+    setFarmHud(n => n + 1);
+  };
+
   const interact = useCallback(() => {
     const s = g.current;
     if (fishUi?.kind === 'catch') { setFishUi(null); return; }
@@ -488,7 +547,59 @@ function CityView({ town, start, startHour, onTravel }: {
         case 'banca': setFishHouse('vender'); return;
         case 'castelo-areia': setDialog({ lines: ['Um castelo de areia caprichado, com bandeirinha e tudo.', 'Melhor não pisar!'], i: 0 }); return;
         case 'fogueira': setDialog({ lines: ['A fogueira do acampamento estala e esquenta.', 'À noite, os vaga-lumes aparecem por aqui.'], i: 0 }); return;
+        case 'sementes': setFarmPanel('sementes'); return;
+        case 'caixa-envio': setFarmPanel('envio'); return;
+        case 'poco': fillCan(); return;
+        case 'ninho': {
+          const fm = s.farm;
+          if (fm.eggsDay >= fm.day) { toast('Você já pegou os ovos de hoje. Volte amanhã!'); return; }
+          const n = s.critters.filter(c => c.kind === 'galinha').length || 4;
+          s.farm = { ...fm, eggsDay: fm.day }; saveFarm(s.farm);
+          saveProgress(addItem(loadProgress(), 'ovo', n));
+          s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: '🥚' };
+          play('coin'); toast(`+${n} ovos! Venda na caixa de envio.`);
+          return;
+        }
+        case 'fruta': {
+          const tree = `arvore-${spot.data!.tree as string}`, fm = s.farm;
+          if ((fm.milked[tree] ?? 0) >= fm.day) { toast('Esta árvore já deu fruta hoje.'); return; }
+          const fruit = `fruta:${spot.data!.fruit as string}`;
+          s.farm = { ...fm, milked: { ...fm.milked, [tree]: fm.day } }; saveFarm(s.farm);
+          saveProgress(addItem(loadProgress(), fruit, 3));
+          s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: iconOf(fruit) };
+          play('coin'); toast(`+3 ${itemName(fruit)}!`);
+          return;
+        }
       }
+    }
+    // bicho na frente: tirar leite, tosar, fazer carinho
+    const critter = s.critters.find(c => Math.floor(c.x / TILE) === f.tx && Math.floor((c.y - 4) / TILE) === f.ty && c.kind !== 'pato');
+    if (critter) {
+      const id = `${critter.kind}-${s.critters.indexOf(critter)}`, fm = s.farm;
+      if (critter.kind === 'galinha') { play('click'); toast('Có-có-có! 🐔'); return; }
+      if ((fm.milked[id] ?? 0) >= fm.day) { toast(critter.kind === 'vaca' ? 'Esta vaca já deu leite hoje. 🐄' : 'Esta ovelha já foi tosada hoje. 🐑'); return; }
+      const item = critter.kind === 'vaca' ? 'leite' : 'la';
+      s.farm = { ...fm, milked: { ...fm.milked, [id]: fm.day } }; saveFarm(s.farm);
+      saveProgress(addItem(loadProgress(), item, 1));
+      critter.wait = 3000; critter.gx = critter.x; critter.gy = critter.y;
+      s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: iconOf(item) };
+      play('coin'); toast(critter.kind === 'vaca' ? '+1 Leite! 🥛' : '+1 Lã! 🧶');
+      return;
+    }
+    // campo: a ação certa para o bloco (arar, plantar, regar, colher)
+    if (fields.some(fd => f.tx >= fd.x0 && f.tx <= fd.x1 && f.ty >= fd.y0 && f.ty <= fd.y1) && !town.solid[f.ty][f.tx] && !npcAt(f.tx, f.ty)) {
+      const pr = loadProgress();
+      const seeds = s.seed ? pr.itens[`semente:${s.seed}`] ?? 0 : 0;
+      const a = actionAt(s.farm, f.tx, f.ty, s.seed, seeds);
+      if (a.kind === 'nada') { toast(a.why); return; }
+      const r = applyAction(s.farm, f.tx, f.ty, a);
+      s.farm = r.farm; saveFarm(r.farm);
+      if (a.kind === 'plantar') saveProgress(addItem(pr, `semente:${a.crop}`, -1));
+      if (r.harvested) saveProgress(addItem(pr, `colheita:${r.harvested}`, 1));
+      s.act = { kind: a.kind === 'colher' ? 'colher' : a.kind === 'plantar' ? 'plantar' : a.kind === 'regar' ? 'regar' : 'arar', t: performance.now(), tx: f.tx, ty: f.ty, icon: r.harvested ? iconOf(r.harvested) : undefined };
+      play(a.kind === 'colher' ? 'coin' : a.kind === 'regar' ? 'draw' : 'drop');
+      s.dirty = true; setFarmHud(n => n + 1);
+      return;
     }
     // banco: senta (qualquer seta levanta)
     if (!s.seat) {
@@ -501,8 +612,11 @@ function CityView({ town, start, startHour, onTravel }: {
         return;
       }
     }
-    // de frente para a água: pesca
-    if (openWater(f.tx, f.ty)) startFishing();
+    // de frente para a água: na fazenda, enche o regador (se não estiver cheio); senão, pesca
+    if (openWater(f.tx, f.ty)) {
+      if (town.id === 'fazenda' && s.farm.water < CAN_SIZE) { fillCan(); return; }
+      startFishing();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialog, panel, town, fishUi, fishPress, openWater]);
 
@@ -531,6 +645,8 @@ function CityView({ town, start, startHour, onTravel }: {
       if ((e.key === 'm' || e.key === 'M') && !g.current.inside) setMapOpen(o => !o);
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
+      // Q / E: troca a semente escolhida (fazenda)
+      if (e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') cycleSeed(e.key.toLowerCase() === 'e' ? 1 : -1);
     };
     const up = (e: KeyboardEvent) => {
       const d = KEY_DIR[e.key];
@@ -594,6 +710,16 @@ function CityView({ town, start, startHour, onTravel }: {
       onTravel(ex.to, { ...at, dir: ex.dir }, s.hour);
     };
 
+    // 6h: vira o dia da fazenda (planta regada cresce, caixa de envio paga)
+    const newDay = () => {
+      const s = g.current;
+      const r = nextDay(s.farm, Date.now());
+      s.farm = r.farm; saveFarm(r.farm);
+      if (r.paid) { const pr = loadProgress(); saveProgress({ ...pr, coins: pr.coins + r.paid }); play('coin'); }
+      if (r.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `☀ Dia ${r.farm.day}!${r.paid ? ` A caixa de envio pagou ${r.paid} moedas.` : ''}${r.grown ? ` ${r.grown} planta${r.grown > 1 ? 's' : ''} cresce${r.grown > 1 ? 'ram' : 'u'}.` : ''}` });
+      setFarmHud(n => n + 1);
+    };
+
     const loop = (now: number) => {
       const dt = Math.min(50, now - last); last = now;
       const s = g.current;
@@ -610,7 +736,7 @@ function CityView({ town, start, startHour, onTravel }: {
         msPerTile: s.sailing ? BOAT_MS : ms,
         blocked,
         fromPath: !s.held.length,
-        want: () => (s.modal || s.fish ? null : s.held[0] ?? s.path[0] ?? null),
+        want: () => (s.modal || s.fish || (s.act && now - s.act.t < 350) ? null : s.held[0] ?? s.path[0] ?? null),
         onStep: from => { if (!s.sailing) petQueue.push(from); if (!s.held.length) s.path.shift(); s.dirty = true; },
         onArrive: onStepDone,
       });
@@ -695,6 +821,8 @@ function CityView({ town, start, startHour, onTravel }: {
       if (animKey !== lastAnimKey) { lastAnimKey = animKey; s.dirty = true; }
       // relógio do jogo: a luz muda aos poucos; à noite os pulsos correm nos circuitos
       s.hour = (s.hour + (dt * s.clockSpeed) / MS_PER_HOUR) % 24;
+      if (s.hourSeen < 6 && s.hour >= 6) newDay();
+      s.hourSeen = s.hour;
       const tod = timeOfDay(s.hour);
       const todKey = Math.round(s.hour * 30);
       if (todKey !== lastTodKey) { lastTodKey = todKey; s.dirty = true; }
@@ -796,6 +924,17 @@ function CityView({ town, start, startHour, onTravel }: {
       }
       // ondas do lago grande (desenhadas na hora, por cima da água da cena)
       if (s.water) drawWaterAnim(ctx, s.water, now, camX, camY, vw, vh, R, 0.85 * ((q[0] + q[1] + q[2]) / 765) ** 1.5);
+      // terra arada da fazenda (seca ou molhada), no chão
+      if (s.soil) {
+        const shade = white ? null : `rgb(${q[0]},${q[1]},${q[2]})`;
+        for (const [k, pl] of Object.entries(s.farm.plots)) {
+          const [tx, ty] = k.split(',').map(Number);
+          const x = tx * TILE - camX, y = ty * TILE - camY;
+          if (x < -TILE || x > vw || y < -TILE || y > vh) continue;
+          const c = pl.wet ? s.soil.wet : s.soil.dry;
+          ctx.drawImage(shade ? tinted(c, q.join(','), shade) : c, x, y, TILE, TILE);
+        }
+      }
       // postes: cada um acende na sua hora (pisca antes de firmar); poça de luz no chão
       const lampsOn = lit ? town.lamps.map((l, i) => ({ l, i, on: lampPower(s.hour, l.seed) }))
         .filter(({ l, on }) => on > 0 && l.bulb[0] > camX - 40 && l.bulb[0] < camX + vw + 40 && l.bulb[1] > camY - 60 && l.bulb[1] < camY + vh + 60) : [];
@@ -906,14 +1045,71 @@ function CityView({ town, start, startHour, onTravel }: {
           people.push({ x: b.tx * TILE - 8, y: b.ty * TILE - 6, w: 32, h: 28, baseY: b.ty * TILE + 12 });
         }
       }
-      // patos nadando
-      if (s.duckCanvases) for (const c of s.critters) {
+      // bichos soltos: patos, galinhas, vacas, ovelhas
+      for (const c of s.critters) {
+        const set = s.critterCanvases[c.kind];
         const cx = c.x - camX, cy = c.y - camY;
-        if (cx < -20 || cx > vw + 20 || cy < -20 || cy > vh + 20) continue;
-        const frames = c.face > 0 ? s.duckCanvases.east : s.duckCanvases.west;
-        const fc = frames[Math.floor(now / 450 + c.seed * 4) % frames.length];
-        const bobY = Math.round(Math.sin(now / 500 + c.seed * 9) * 2) / 2;
-        list.push({ baseY: c.y, draw: () => put(fc, Math.round(cx - fc.width / R / 2), Math.round(cy - fc.height / R + 3 + bobY)) });
+        if (!set || cx < -30 || cx > vw + 30 || cy < -30 || cy > vh + 30) continue;
+        const frames = c.face > 0 ? set.east : set.west;
+        const moving = Math.hypot(c.gx - c.x, c.gy - c.y) > 0.5;
+        const fc = frames[c.kind === 'pato' ? Math.floor(now / 450 + c.seed * 4) % frames.length : moving ? Math.floor(now / 220) % frames.length : c.kind === 'galinha' && Math.sin(now / 700 + c.seed * 20) > 0.6 ? 1 : 0];
+        const bobY = c.kind === 'pato' ? Math.round(Math.sin(now / 500 + c.seed * 9) * 2) / 2 : 0;
+        list.push({
+          baseY: c.y,
+          draw: () => {
+            if (c.kind !== 'pato') { ctx.fillStyle = 'rgba(30,50,60,0.25)'; ctx.beginPath(); ctx.ellipse(cx, cy + 1, fc.width / R / 3, 2, 0, 0, Math.PI * 2); ctx.fill(); }
+            put(fc, Math.round(cx - fc.width / R / 2), Math.round(cy - fc.height / R + (c.kind === 'pato' ? 3 : 2) + bobY));
+          },
+        });
+      }
+      // plantações da fazenda (as mais embaixo passam na frente)
+      if (s.soil) for (const [k, pl] of Object.entries(s.farm.plots)) {
+        if (!pl.crop) continue;
+        const [tx, ty] = k.split(',').map(Number);
+        const x = tx * TILE - camX, y = ty * TILE - camY;
+        if (x < -20 || x > vw + 4 || y < -20 || y > vh + 40) continue;
+        const crop = CROP_BY_ID.get(pl.crop)!;
+        const ck = `${pl.crop}|${pl.stage}`;
+        let cc = s.cropCanvas.get(ck);
+        if (!cc) { cc = toCanvasHd(cropArt(pl.crop, pl.stage, crop.days)); s.cropCanvas.set(ck, cc); }
+        const img = cc;
+        list.push({ baseY: ty * TILE + 14, draw: () => put(img, x, y + TILE - img.height / R) });
+        if (img.height / R > TILE + 8) people.push({ x: tx * TILE, y: ty * TILE + TILE - img.height / R, w: TILE, h: img.height / R, baseY: ty * TILE + 14 });
+      }
+      // ferramenta em uso: regador pingando, poeira da enxada, semente, o que colheu subindo
+      if (s.act && s.playerFrames) {
+        const a = s.act, age = now - a.t, pos = pixelPos(p, TILE);
+        const cx = pos.x + 8 - camX, fy = pos.y + 15 - camY;
+        const tx = a.tx * TILE + 8 - camX, ty = a.ty * TILE + 8 - camY;
+        list.push({
+          baseY: pos.y + 16 + (p.dir === 'north' ? -0.02 : 0.02),
+          draw: () => {
+            if (a.kind === 'regar' || a.kind === 'encher') drawJob(ctx, 'regar', cx, fy, p.dir, { now, moving: false, stop: 0, seed: 0 });
+            if (a.kind === 'arar') {
+              const k = Math.min(1, age / 250);
+              ctx.strokeStyle = '#7a4a26'; ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(cx + 3, fy - 12); ctx.lineTo(cx + 3 + (tx - cx) * k * 0.8, fy - 12 + (ty - fy + 12) * k * 0.8); ctx.stroke();
+              for (let q = 0; q < 5; q++) {
+                const life = Math.min(1, age / 500);
+                ctx.fillStyle = `rgba(150,110,70,${0.8 * (1 - life)})`;
+                ctx.fillRect(tx - 4 + q * 2, ty + 2 - life * (4 + q), 1.5, 1.5);
+              }
+            }
+            if (a.kind === 'plantar') for (let q = 0; q < 4; q++) {
+              const life = Math.min(1, age / 450);
+              ctx.fillStyle = '#f0e0b0';
+              ctx.fillRect(tx - 3 + q * 2, ty - 8 + life * 10, 1, 1);
+            }
+            if (a.kind === 'colher' && a.icon) {
+              const life = Math.min(1, age / 700);
+              ctx.globalAlpha = 1 - Math.max(0, life - 0.6) / 0.4;
+              ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+              ctx.fillText(a.icon, cx, fy - 28 - life * 10);
+              ctx.globalAlpha = 1;
+            }
+          },
+        });
+        if (age > 700) s.act = null;
       }
       // vara de pesca, linha e boia
       if (s.fish && s.playerFrames) {
@@ -1058,7 +1254,7 @@ function CityView({ town, start, startHour, onTravel }: {
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
         {town.name.toUpperCase()} <span className="text-lime-300 hidden sm:inline">· protótipo</span>
         <span className="ml-2 text-white/90">{String(Math.floor(clock)).padStart(2, '0')}:00 · {clock >= 6 && clock < 18.5 ? 'dia' : 'noite'}</span>
-        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar · M mapa · T hora</div>}
+        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar{town.id === 'fazenda' ? '/plantar · Q E semente' : ''} · M mapa · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
 
@@ -1110,6 +1306,23 @@ function CityView({ town, start, startHour, onTravel }: {
         <div className={`absolute left-1/2 -translate-x-1/2 bottom-[22%] px-4 py-2 rounded-lg bg-black/70 text-white text-[10px] pointer-events-none ${pixelFont}`}>{fishUi.text}</div>
       )}
       {fishHouse && <FishHouse progress={progress} start={fishHouse} onClose={() => setFishHouse(null)} />}
+      {farmPanel && <FarmPanel mode={farmPanel} progress={progress} onClose={() => { setFarmPanel(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
+      {town.id === 'fazenda' && !inside && (() => {
+        const s = g.current;
+        const owned = CROPS.filter(c => (progress.itens[`semente:${c.id}`] ?? 0) > 0);
+        if (s.seed && !owned.some(c => c.id === s.seed)) s.seed = null;
+        if (!s.seed && owned.length) s.seed = owned[0].id;
+        const crop = s.seed ? CROP_BY_ID.get(s.seed)! : null;
+        return (
+          <div className={`absolute left-1/2 -translate-x-1/2 bottom-2 flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#2e2a40]/85 border-2 border-[#e8c690] text-white text-[9px] ${pixelFont}`}>
+            <button onClick={() => cycleSeed(-1)} className="px-1.5 py-1 rounded bg-white/15" aria-label="semente anterior">◀</button>
+            <span className="min-w-[132px] text-center">{crop ? <>{iconOf(crop.id)} {crop.name} ×{progress.itens[`semente:${crop.id}`] ?? 0}</> : 'sem sementes'}</span>
+            <button onClick={() => cycleSeed(1)} className="px-1.5 py-1 rounded bg-white/15" aria-label="próxima semente">▶</button>
+            <span className="ml-2 text-[#8ad0ff]">💧 {s.farm.water}/{CAN_SIZE}</span>
+            <span className="ml-2 text-[#e8c690]">DIA {s.farm.day}</span>
+          </div>
+        );
+      })()}
       {mapOpen && (
         <WorldMap zone={town.id} pos={{ tx: g.current.player.tx, ty: g.current.player.ty }} size={{ w: town.solid[0].length, h: town.solid.length }}
           ready={ZONES} onClose={() => setMapOpen(false)}

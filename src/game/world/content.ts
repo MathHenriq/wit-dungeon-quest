@@ -132,6 +132,19 @@ NPCS.push(
   { id: 'pipo', zona: 'lago', name: 'Pipo', title: 'Estudante', tx: 22, ty: 30, dir: 'south', job: { kind: 'passear', route: [[22, 30, 'south'], [34, 39, 'east'], [50, 40, 'north'], [23, 25, 'west']], pause: [2500, 6000] },
     look: { modelo: 'modelo-07', pele: 'pele-4', cabelo: 'loiro', cima: 'laranja', baixo: 'jeans' },
     lines: ['Fiz um castelo de areia! Não pisa, hein!', 'O farol fica numa ilha. Só dá para ir de barco.'] },
+  // Fazenda do Vale
+  { id: 'joca', zona: 'fazenda', name: 'Seu Joca', title: 'Fazendeiro', tx: 25, ty: 33, dir: 'north', job: { kind: 'regar', route: [[25, 33, 'north'], [33, 33, 'north'], [38, 35, 'south'], [28, 37, 'north']], pause: [2500, 4500] },
+    look: { modelo: 'modelo-04', pele: 'pele-4', cabelo: 'castanho', cima: 'vermelho', baixo: 'jeans', acc: { cabeca: { id: 'chapeu', cor: 'caqui' } } },
+    lines: ['Planta regada todo dia cresce um pouquinho por dia.', 'Quer lucro? Abóbora demora, mas vale muito!', 'O campo cercado ali em cima é de vocês, alunos.'] },
+  { id: 'tina', zona: 'fazenda', name: 'Tina', title: 'Vendedora de Sementes', tx: 55, ty: 16, dir: 'south',
+    look: { modelo: 'modelo-03', pele: 'pele-2', cabelo: 'ruivo', cima: 'verde', baixo: 'caqui', acc: { cabeca: { id: 'bandana', cor: 'amarelo' } } },
+    lines: ['Sementes fresquinhas! Fale com a barraca para comprar.', 'Morango e tomate dão de novo depois de colher.'] },
+  { id: 'beto', zona: 'fazenda', name: 'Beto', title: 'Cuidador dos Bichos', tx: 6, ty: 15, dir: 'east', job: { kind: 'passear', route: [[6, 15, 'east'], [16, 17, 'west'], [10, 22, 'north']], pause: [3000, 6000] },
+    look: { modelo: 'modelo-09', pele: 'pele-5', cabelo: 'preto', cima: 'amarelo', baixo: 'jeans' },
+    lines: ['De frente para a vaca, aperte ESPAÇO: leite fresquinho!', 'A ovelha dá lã uma vez por dia.', 'Os ovos ficam no galinheiro, é só pegar.'] },
+  { id: 'lala', zona: 'fazenda', name: 'Lalá', title: 'Estudante', tx: 20, ty: 36, dir: 'west',
+    look: { modelo: 'modelo-05', pele: 'pele-3', cabelo: 'castanho', cima: 'rosa', baixo: 'jeans', acc: { cabeca: { id: 'laco', cor: 'amarelo' } } },
+    lines: ['Os patinhos da lagoa são meus amigos!', 'Dá para pescar na lagoa também. E encher o regador!'] },
 );
 
 export const MURAL_TEXT = ['MURAL DA CIDADE', 'Avisos do professor e missões da semana aparecem aqui.'];
