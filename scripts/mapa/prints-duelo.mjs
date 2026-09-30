@@ -4,7 +4,7 @@ import { chromium } from 'playwright-core';
 const S = process.argv[2], base = process.argv[3] ?? 'http://127.0.0.1:5199';
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const errors = [];
-async function run(name, viewport, touch = false) {
+async function run(name, viewport, touch = false, onlyLook = false) {
   const ctx = await browser.newContext({ viewport, hasTouch: touch, isMobile: touch, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
   page.on('pageerror', e => errors.push(`${name}: ${e.message}`));
@@ -15,12 +15,13 @@ async function run(name, viewport, touch = false) {
   await page.screenshot({ path: `${S}/${name}-1-convite.png` });
   await page.getByText('DUELAR!').click(); await page.waitForTimeout(2500);
   await page.screenshot({ path: `${S}/${name}-2-duelo.png` });
+  if (onlyLook) { await ctx.close(); return; }
   // joga: abre a 1ª carta jogável; se não der, encerra o turno
   for (let t = 0; t < 40; t++) {
     if (await page.getByText('VOLTAR', { exact: true }).isVisible().catch(() => false)) break;
     const myTurn = await page.getByText(/SEU TURNO/).isVisible().catch(() => false);
     if (!myTurn) { await page.waitForTimeout(800); continue; }
-    const cards = page.locator('button.relative.shrink-0');
+    const cards = page.locator('.dv-hand .c');
     const n = await cards.count();
     let played = false;
     for (let i = 0; i < n; i++) {
@@ -31,17 +32,18 @@ async function run(name, viewport, touch = false) {
       await page.getByText('FECHAR', { exact: true }).click(); await page.waitForTimeout(150);
     }
     if (await page.getByText(/ESCOLHA \d CARTA/).isVisible().catch(() => false)) {
-      const c = page.locator('button.relative.shrink-0');
+      const c = page.locator('.dv-hand .c');
       for (let i = 0; i < await c.count(); i++) { await c.nth(i).click(); await page.waitForTimeout(150); if (!await page.getByText(/ESCOLHA \d CARTA/).isVisible().catch(() => false)) break; }
     }
     if (t === 2) await page.screenshot({ path: `${S}/${name}-4-meio.png` });
-    if (!played) { await page.getByText('ENCERRAR TURNO').click(); await page.waitForTimeout(900); }
+    if (!played) { await page.locator('.dv-end button').click(); await page.waitForTimeout(900); }
   }
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `${S}/${name}-5-fim.png` });
   await ctx.close();
 }
 await run('pc', { width: 1280, height: 720 });
-await run('cel', { width: 390, height: 844 }, true);
+await run('cel', { width: 844, height: 390 }, true);   // celular deitado
+await run('cel-empe', { width: 390, height: 844 }, true, true);   // em pé: pede para girar
 await browser.close();
 console.log(errors.length ? errors.join('\n') : 'sem erros');

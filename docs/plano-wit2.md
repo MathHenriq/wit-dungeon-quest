@@ -401,7 +401,7 @@ turno e o atalho.
   cima de qualquer visual.
 
 Etapas (cada uma fecha com prints aprovados): (1) estrutura da tela ligada
-ao motor e à IA; (2) jogar carta e custos animados; (3) compra e cemitério;
+ao motor e à IA (**feita em 30/09**: palco 16:9 em `DuelView.tsx` + `.css`, celular em pé pede para girar); (2) jogar carta e custos animados; (3) compra e cemitério;
 (4) conta do dano, golpe, armadilha e SUPER EFETIVO; (5) turno do inimigo e
 animações do boneco; (6) abertura (VS, quem começa) e fim (vitória/derrota,
 moedas, carta do chefe); (7) som; (8) desempenho no celular, testes, demo.
