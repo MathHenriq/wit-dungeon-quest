@@ -4,6 +4,19 @@ Jogo educacional do Matheus (professor do Núcleo WIT) para os alunos dele.
 React 18 + TypeScript + Vite + Supabase (projeto `pvnzfiyxwvfmmhvpvrrk`).
 Responda em português, de forma **curta e direta**, sem bajulação.
 
+## ⚠️ PENDENTE: o visual do mundo novo é provisório (lembrar o Matheus!)
+
+A arte do **Lago Azul, da Fazenda do Vale e da Cidade WIT** (prédios, objetos,
+plantas, bichos, peixes, barco, drone, WIT-Bot) ainda é **feita por código** e o
+Matheus achou feia: **vai ser trocada pela arte do GPT**. Ele pediu para não
+deixar esquecer. Em toda entrega grande, lembre em uma linha quantas peças
+ainda faltam (`npx vite-node scripts/arte/falta-arte.ts`; hoje: 134 de 134).
+
+- Prompts prontos, com os nomes e a ordem que o importador espera: `docs/prompts-mundo.md`.
+- Salvar em `public/Novos assets/mundo/<área>/` e rodar `python3 scripts/arte/importar-gpt.py --folha revisao.png`.
+- A troca é automática pelo nome do sprite (`src/game/world/art-list.ts`); cada imagem é revisada antes de subir (público infantil).
+- Depois de importar: prints de cada área (`node scripts/mapa/prints-mundo.mjs <pasta>`) para aprovação.
+
 ## Para onde o jogo está indo: WIT Dungeon 2 (TCG)
 
 O jogo virou um **card game (TCG)**: toda a jogabilidade acontece com cartas.

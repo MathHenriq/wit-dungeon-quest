@@ -5,7 +5,10 @@
 import { TILE } from './buildings';
 import type { WorldAssets } from './assets';
 import * as P from './props';
-import { hash, hex, type Pixmap } from './pixmap';
+import { hash, hex, Pixmap } from './pixmap';
+import { padTo } from './assets';
+import type { Building } from './buildings';
+import { rotated } from './art-override';
 import {
   barn, coop, cropArt, fenceV, fruitTree, greenhouse, hayBale, picnicTable, scarecrow, seedStall, shippingBin, silo, soilArt, well, wheelbarrow, windmill,
   type CropArtId,
@@ -28,6 +31,25 @@ export const JOCA = { x0: 25, y0: 32, x1: 40, y1: 39 };
 export const PASTURE = { x0: 3, y0: 13, x1: 20, y1: 24 };
 export const HENYARD = { x0: 53, y0: 7, x1: 59, y1: 10 };
 export const POND = { cx: 10, cy: 36, rx: 6, ry: 4 };
+
+/** Moinho do GPT: a torre e as pás (girando em 4 quadros, 22,5° por quadro). */
+function gptWindmill(A: WorldAssets): Building | undefined {
+  const tower = A.moinho, blades = A['moinho-pas'];
+  if (!tower || !blades) return undefined;
+  const tw = 3, th = 3, W = tw * TILE;
+  const H = Math.max(tower.pix.h + 20, (th + 4) * TILE);
+  const frames = [0, 1, 2, 3].map(f => {
+    const base = padTo(tower.pix, W + 48, H);
+    const out = new Pixmap(base.w, base.h); out.blit(base, 0, 0);
+    const r = rotated(blades.pix, (f * Math.PI) / 8);
+    const hx = Math.round(base.w / 2 - r.w / 2), hy = Math.round(base.h - tower.pix.h + tower.pix.h * 0.12 - r.h / 2);
+    out.blit(r, hx, hy);
+    if (base.hd && r.hd) { out.hd = new Pixmap(base.hd.w, base.hd.h); out.hd.blit(base.hd, 0, 0); out.hd.blit(r.hd, hx * 2, hy * 2); }
+    return out;
+  });
+  const night = tower.night ? padTo(tower.night, W + 48, H) : undefined;
+  return { id: 'moinho', name: 'Moinho', pix: frames[0], frames, night, nightFrames: night ? frames.map(() => night) : undefined, tilesW: tw, tilesH: th, extraTop: frames[0].h - th * TILE, doorCols: [1], offsetX: -24 };
+}
 
 export function buildFazenda(assets?: WorldAssets, opts: ZoneOptions = {}): Town {
   const A: WorldAssets = assets ?? {};
@@ -54,27 +76,27 @@ export function buildFazenda(assets?: WorldAssets, opts: ZoneOptions = {}): Town
   z.forestEdge([{ side: 'e', from: FAZENDA_EAST.y0, to: FAZENDA_EAST.y1 }]);
 
   // ── casa da fazenda (no meio, olhando para a rua) ──
-  z.building(cottage('casa-fazenda', 'Casa da Fazenda', {
+  z.building(z.sprB('casa-fazenda', 'casa-fazenda', 'Casa da Fazenda', 6, 3, [3], () => cottage('casa-fazenda', 'Casa da Fazenda', {
     wall: hex('#f0e2c4'), wallKind: 'planks', roof: hex('#b8483a'), shutters: hex('#3a8a4a'), trim: hex('#f8f4ec'), tw: 6, seed: 9,
     extras: (a, g) => {
       // varanda: tábuas no chão e dois postes
       a.rect(10, g.base - 4, g.W - 20, 4, hex('#c89a62'));
       for (const x of [14, g.W - 18]) { a.rect(x, g.wallTop + 6, 4, g.base - g.wallTop - 6, hex('#f8f4ec')); a.vline(x + 3, g.wallTop + 6, g.base - g.wallTop - 6, hex('#c8c0b4')); }
     },
-  }), 30, 10);
-  z.putLit('caixa-envio', shippingBin(), 37, 12, 2, 1);
+  })), 30, 10);
+  z.putLit('caixa-envio', z.sprLit('caixa-envio', shippingBin), 37, 12, 2, 1);
   z.spot('caixa-envio', 37, 12); z.spot('caixa-envio', 38, 12);
   const mail = sprite('correio', () => ({ pix: P.mailbox(hex('#e84848')) }));
   z.putLit('correio-fazenda', mail, 29, 12, 1, 1);
   z.spot('correio', 29, 12, { own: false });
 
   // ── moinho, galinheiro com o terreiro, estufa ──
-  const mill = windmill();
+  const mill = gptWindmill(A) ?? windmill();
   z.building(mill, 44, 7);
   z.objects[z.objects.length - 1].frameMs = 260;
-  z.building(coop(), 48, 9);
-  z.building(greenhouse(), 62, 9);
-  const fence = sprite('cerca', () => ({ pix: P.fence() })), fv = fenceV();
+  z.building(z.sprB('galinheiro', 'galinheiro', 'Galinheiro', 4, 3, [1], coop), 48, 9);
+  z.building(z.sprB('estufa', 'estufa', 'Estufa', 6, 3, [3], greenhouse), 62, 9);
+  const fence = sprite('cerca', () => ({ pix: P.fence() })), fv = z.sprLit('cerca-em-pe', fenceV);
   // terreiro das galinhas, do lado do galinheiro (a cerca de baixo fica encostada na rua)
   for (let x = HENYARD.x0 - 1; x <= HENYARD.x1 + 1; x++) { z.putLit(`cerca-terreiro-s-${x}`, fence, x, HENYARD.y1 + 1, 1, 1); z.putLit(`cerca-terreiro-n-${x}`, fence, x, HENYARD.y0 - 1, 1, 1); }
   for (let y = HENYARD.y0; y <= HENYARD.y1; y++) { z.putLit(`cerca-terreiro-w-${y}`, fv, HENYARD.x0 - 1, y, 1, 1); z.putLit(`cerca-terreiro-e-${y}`, fv, HENYARD.x1 + 1, y, 1, 1); }
@@ -82,15 +104,16 @@ export function buildFazenda(assets?: WorldAssets, opts: ZoneOptions = {}): Town
   for (let k = 0; k < 4; k++) z.spot('ninho', 48 + k, 11);
 
   // ── celeiro, silo e o pasto ──
-  z.building(barn(), 6, 7);
-  z.building(silo(), 13, 9);
-  for (const [x, y] of [[15, 10], [16, 10], [2, 11]] as [number, number][]) z.putLit(`feno-${x}-${y}`, hayBale(), x, y, 1, 1);
+  z.building(z.sprB('celeiro', 'celeiro', 'Celeiro', 6, 4, [2, 3], barn), 6, 7);
+  z.building(z.sprB('silo', 'silo', 'Silo', 2, 2, [], silo), 13, 9);
+  const hay = z.sprLit('feno', hayBale);
+  for (const [x, y] of [[15, 10], [16, 10], [2, 11]] as [number, number][]) z.putLit(`feno-${x}-${y}`, hay, x, y, 1, 1);
   for (let x = PASTURE.x0 - 1; x <= PASTURE.x1 + 1; x++) {
     if (x !== 8 && x !== 9) z.putLit(`cerca-pasto-n-${x}`, fence, x, PASTURE.y0 - 1, 1, 1);
     z.putLit(`cerca-pasto-s-${x}`, fence, x, PASTURE.y1 + 1, 1, 1);
   }
   for (let y = PASTURE.y0; y <= PASTURE.y1; y++) if (y < 18 || y > 19) z.putLit(`cerca-pasto-e-${y}`, fv, PASTURE.x1 + 1, y, 1, 1);
-  z.putLit('cocho', hayBale(), 17, 15, 1, 1);
+  z.putLit('cocho', z.sprLit('cocho', hayBale), 17, 15, 1, 1);
 
   // ── campo comunitário: cercado, com entradas no meio de cada lado ──
   for (const f of FIELDS) {
@@ -105,10 +128,10 @@ export function buildFazenda(assets?: WorldAssets, opts: ZoneOptions = {}): Town
     }
     z.spot('campo', f.x0, f.y0, { x1: f.x1, y1: f.y1 });
   }
-  z.putLit('espantalho-1', scarecrow(), FIELDS[0].x1 + 2, FIELDS[0].y0, 1, 1);
-  z.putLit('poco', well(), 42, 18, 2, 1);
+  z.putLit('espantalho-1', z.sprLit('espantalho', scarecrow), FIELDS[0].x1 + 2, FIELDS[0].y0, 1, 1);
+  z.putLit('poco', z.sprLit('poco', well), 42, 18, 2, 1);
   z.spot('poco', 42, 18); z.spot('poco', 43, 18);
-  z.putLit('carrinho', wheelbarrow(), 42, 24, 1, 1);
+  z.putLit('carrinho', z.sprLit('carrinho', wheelbarrow), 42, 24, 1, 1);
 
   // ── horta do Seu Joca: fileiras já plantadas (dá para andar entre elas) ──
   const soilWet = soilArt(true), kinds: [CropArtId, number][] = [['milho', 5], ['tomate', 4], ['girassol', 4], ['cenoura', 3], ['abobora', 6], ['alface', 3], ['morango', 4]];
@@ -120,12 +143,12 @@ export function buildFazenda(assets?: WorldAssets, opts: ZoneOptions = {}): Town
       z.put(`horta-${crop}-${x}-${y}`, cropArt(crop, stage, last), x, y, 1, 1, true);
     }
   }
-  z.putLit('espantalho-2', scarecrow(), JOCA.x1 + 2, JOCA.y1, 1, 1);
+  z.putLit('espantalho-2', z.sprLit('espantalho', scarecrow), JOCA.x1 + 2, JOCA.y1, 1, 1);
   z.putLit('placa-joca', sprite('placa', () => ({ pix: P.signPost() })), JOCA.x0 - 1, JOCA.y0 - 1, 1, 1);
   z.spot('placa', JOCA.x0 - 1, JOCA.y0 - 1, { lines: ['HORTA DO SEU JOCA', 'Milho, tomate, girassol, cenoura, abóbora, alface e morango.', '"Pode olhar, mas não pode pisar!"'] });
 
   // ── barraca de sementes na chegada ──
-  z.putLit('barraca-sementes', seedStall(), 54, 17, 3, 1);
+  z.putLit('barraca-sementes', z.sprLit('barraca-sementes', seedStall), 54, 17, 3, 1);
   for (let k = 0; k < 3; k++) z.spot('sementes', 54 + k, 17);
   const sign = sprite('placa', () => ({ pix: P.signPost() }));
   z.putLit('placa-entrada', sign, 66, 19, 1, 1);
@@ -134,7 +157,7 @@ export function buildFazenda(assets?: WorldAssets, opts: ZoneOptions = {}): Town
   z.spot('placa', 24, 16, { lines: ['CAMPO COMUNITÁRIO', 'De frente para a terra, ESPAÇO faz a ação certa: arar, plantar a semente escolhida, regar ou colher.', 'O regador enche no poço ou na lagoa.'] });
 
   // ── lagoa com piquenique ──
-  z.putLit('mesa-piquenique', picnicTable(), 17, 33, 2, 1);
+  z.putLit('mesa-piquenique', z.sprLit('mesa-piquenique', picnicTable), 17, 33, 2, 1);
   z.putLit('banco-lagoa', sprite('banco', () => ({ pix: P.bench() })), 17, 38, 2, 1);
 
   // ── pomar ──

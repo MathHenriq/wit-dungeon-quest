@@ -6,6 +6,7 @@ import { Art, darken, hdBuilding, hdProp, INK, lighten, T2 } from './hd-kit';
 import { hash, hex, mix, type Pixmap, type RGB } from './pixmap';
 import { LED } from './palette';
 import { withHd } from './zone';
+import { mirrored, worldArt } from './art-override';
 import type { Dir } from './movement';
 
 const WOOD = hex('#9a6a3e');
@@ -189,6 +190,8 @@ export function lighthouse(): Building {
 
 /** Barquinho a remo visto de cima (hd), virado para cada lado; com o boneco sentado, o jogo desenha por cima. */
 export function boatArt(dir: Dir): Pixmap {
+  const gpt = dir === 'west' ? worldArt('barco-leste') : worldArt(`barco-${({ north: 'norte', south: 'sul', east: 'leste', west: 'leste' } as const)[dir]}`);
+  if (gpt) return dir === 'west' ? mirrored(gpt.pix) : gpt.pix;
   const vertical = dir === 'north' || dir === 'south';
   const W = vertical ? 30 : 44, H = vertical ? 44 : 30;
   const a = new Art(W, H);
@@ -306,6 +309,8 @@ export function dockArt(tw: number, th: number, vertical: boolean): Pixmap {
 
 /** Pato (hd, 12 × 10 px do mundo) nadando: dois quadros (a água mexe em volta). */
 export function duckFrames(dir: 'east' | 'west'): Pixmap[] {
+  const gpt = worldArt('pato');
+  if (gpt) { const p = dir === 'east' ? mirrored(gpt.pix) : gpt.pix; return [p, p]; }
   return [0, 1].map(f => {
     const a = new Art(24, 20);
     const body = hex('#f8f4ea'), shade = hex('#d8d0c0');

@@ -8,6 +8,7 @@ import { Art, darken, hdBuilding, hdProp, INK, lighten } from './hd-kit';
 import { hash, hex, mix, type Pixmap, type RGB } from './pixmap';
 import { LED, WIT } from './palette';
 import { withHd } from './zone';
+import { mirrored, worldArt } from './art-override';
 import { drawText, textWidth } from './font';
 
 const CONCRETE = hex('#e4e8ee');
@@ -410,6 +411,8 @@ export function arcade(c: RGB): { pix: Pixmap; night?: Pixmap } {
 
 /** Drone de entregas visto de cima (dois quadros: hélices girando), com a caixinha. */
 export function droneFrames(): Pixmap[] {
+  const gpt = worldArt('drone');
+  if (gpt) return [gpt.pix, gpt.pix];
   return [0, 1].map(f => {
     const a = new Art(28, 22);
     a.rect(10, 8, 8, 6, hex('#3a4050')); a.hline(10, 8, 8, hex('#8a92a0'));
@@ -427,6 +430,8 @@ export function droneFrames(): Pixmap[] {
 
 /** WIT-Bot: robozinho de rodinha com tela no rosto (dois quadros: pisca e anda). */
 export function witBotFrames(face: 1 | -1): Pixmap[] {
+  const gpt = worldArt('robo-frente');
+  if (gpt) { const p = face > 0 ? gpt.pix : mirrored(gpt.pix); return [p, p]; }
   return [0, 1].map(f => {
     const a = new Art(24, 32);
     const body = hex('#f4f8fc'), accent = LIME;

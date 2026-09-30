@@ -4,11 +4,15 @@
 // e no aviso de "você pescou".
 import type { Fish } from '../fishing';
 import { hash, hex, mix, Pixmap, type RGB } from './pixmap';
+import { worldArt } from './art-override';
 
 const INK = hex('#2a2238');
 const W = 48, H = 32;
 
 export function fishIcon(f: Fish): Pixmap {
+  // ícone do GPT (folha peixes.png), na resolução hd, se houver
+  const gpt = worldArt(`peixe-${f.id}`);
+  if (gpt) return gpt.pix.hd ?? gpt.pix;
   const pm = new Pixmap(W, H);
   const [back, belly, detail] = f.colors.map(hex) as [RGB, RGB, RGB];
   if (f.shape === 'bota') return boot(pm, back, belly);

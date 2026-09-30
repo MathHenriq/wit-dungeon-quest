@@ -12,6 +12,14 @@ método da cidade:
 - Texto: só onde o prompt pede (placas curtas). Se o GPT errar a letra, eu escrevo a placa por código.
 - Público infantil. Reviso uma por uma antes de entrar no jogo.
 
+**Como entra no jogo:** salve a imagem com o nome indicado, rode
+`python3 scripts/arte/importar-gpt.py --folha revisao.png` e confira a folha.
+Cada sprite gerado substitui sozinho a arte por código de mesmo nome (a lista
+completa, com o que é cada um, está em `src/game/world/art-list.ts`).
+`npx vite-node scripts/arte/falta-arte.ts` mostra o que ainda falta.
+**Nas folhas, a ordem importa** (o importador lê linha a linha, da esquerda
+para a direita) e o número de objetos tem de bater.
+
 Frase de estilo usada em todos (já está nos prompts): *Style of Pokémon HeartGold/SoulSilver towns, top-down 3/4 view, crisp pixel art, clean dark outlines, limited palette, no anti-aliasing.*
 
 ---
@@ -28,14 +36,24 @@ A single building: a cozy wooden fishing house on a lakeside, raised on short wo
 A single tall lighthouse on a rocky base: white and red striped tower, a glass lamp room on top with a yellow lamp, a small balcony with a railing, a little wooden door at the bottom. Style of Pokémon HeartGold/SoulSilver towns, top-down 3/4 view, crisp pixel art, clean dark outlines, limited palette, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
 ```
 
-**lago-objetos.png** — folha (4 colunas × 2 linhas)
+**lago-objetos.png** — folha (4 colunas × 2 linhas, **8 objetos**)
 ```
-A sprite sheet of 8 separate objects for a lakeside fishing village, top-down 3/4 view pixel art, each object isolated with plenty of empty space between them, arranged in a clean grid of 4 columns and 2 rows: 1) a small wooden rowboat seen from above pointing up, 2) the same rowboat pointing right, 3) the same rowboat pointing down, 4) a fish market stall with a striped awning and ice with fish, 5) a stack of wooden fish crates, 6) a fishing rod leaning on a wooden barrel, 7) a round life ring on a wooden post, 8) a floating group of green lily pads with a pink flower. Style of Pokémon HeartGold/SoulSilver towns, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+A sprite sheet of 8 separate objects for a lakeside fishing village, top-down 3/4 view pixel art, each object isolated with plenty of empty space between them, arranged in a clean grid of 4 columns and 2 rows: 1) a small empty wooden rowboat seen from above pointing up, 2) the same rowboat pointing right, 3) the same rowboat pointing down, 4) a fish market stall with a striped awning and ice with fish, 5) a stack of wooden fish crates, 6) a fishing rod leaning on a wooden barrel, 7) a round red and white life ring on a wooden post, 8) a floating group of green lily pads with a pink flower. Style of Pokémon HeartGold/SoulSilver towns, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
 ```
 
-**peixes.png** — folha dos peixes (6 colunas × 3 linhas, ícones)
+**lago-objetos-2.png** — folha (4 colunas × 3 linhas, **11 objetos**)
 ```
-A sprite sheet of 18 separate fish icons for a fishing game, side view, each fish isolated with empty space between them, grid of 6 columns and 3 rows, from common to rare: small silver lambari, brown tilapia, spotted catfish, green piranha-like fish (friendly, no teeth showing), orange goldfish, striped bass, golden dourado, big pirarucu, blue discus, rainbow trout, pink salmon, crab, shrimp, old boot, tin can, seaweed, glowing crystal fish, legendary golden koi with sparkles. Crisp pixel art icons, clean dark outlines, limited palette, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+A sprite sheet of 11 separate objects for a lakeside village, top-down 3/4 view pixel art, each object isolated with plenty of empty space between them, grid of 4 columns and 3 rows (last row has 3): 1) one square section of a wooden pier with planks running vertically, 2) one section of a wooden pier with planks running horizontally, 3) a small wooden footbridge with railings crossing left to right, 4) a campfire with stones and logs, 5) a striped beach umbrella with a beach towel under it, 6) a small sandcastle with a flag, 7) a small camping tent, 8) a wooden barrel, 9) two posts with a rope and drying fish hanging, 10) a few grey shore rocks, 11) a small white duck swimming, facing left. Style of Pokémon HeartGold/SoulSilver towns, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+```
+
+**peixes.png** — folha dos peixes (4 colunas × 4 linhas, **16 ícones, nesta ordem**)
+```
+A sprite sheet of 16 separate fish and item icons for a fishing game, side view facing left, each isolated with empty space between them, grid of 4 columns and 4 rows, in this exact order: 1) small silver lambari fish with a yellow tail, 2) grey-green tilapia with dark stripes, 3) big golden-brown carp with scales, 4) small pink freshwater shrimp, 5) grey catfish with long whiskers and dark spots, 6) green trahira fish with dark spots, 7) yellow piau fish with three black spots, 8) round blue-grey pacu fish with an orange belly, 9) green peacock bass with dark stripes and an eye spot on the tail, 10) shiny golden dourado fish, 11) white koi carp with red patches, 12) huge pirarucu fish with red scales near the tail, 13) glowing pale-blue crystal fish with sparkles, 14) legendary golden koi with sparkles, 15) an old brown boot, 16) an empty tin can. Crisp pixel art icons, clean dark outlines, limited palette, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+```
+
+**casinhas-lago.png** — folha (4 casas, **nesta ordem**, cada uma 5 × 3 blocos)
+```
+A sprite sheet of 4 separate small houses for a lakeside fishing village, each isolated with plenty of empty space between them, in one row, each with the front door centered at the bottom: 1) a small bait and tackle shop with a blue striped awning and a fish-shaped sign (no letters), 2) a blue-grey wooden fisherman cottage with nets on the wall, 3) a cream plaster cottage with a green roof and red shutters, 4) a log cabin with a purple roof and a small boat oar by the door. Style of Pokémon HeartGold/SoulSilver towns, top-down 3/4 view, crisp pixel art, clean dark outlines, limited palette, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
 ```
 
 ---
@@ -71,19 +89,24 @@ A single tall wooden windmill tower with a stone base and a small door at the bo
 Only the four wooden windmill blades with cloth sails, seen from the front, arranged like a big X, centered, nothing else. Crisp pixel art, clean dark outlines, limited palette, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
 ```
 
-**fazenda-objetos.png** — folha (4 × 3)
+**fazenda-objetos.png** — folha (4 × 3, **12 objetos, nesta ordem**)
 ```
-A sprite sheet of 12 separate farm objects, top-down 3/4 view pixel art, each object isolated with plenty of empty space between them, grid of 4 columns and 3 rows: 1) a tall grey metal grain silo with a cone roof, 2) a stone water well with a small wooden roof and a bucket, 3) a wooden shipping bin with a lid, 4) a friendly scarecrow with a straw hat, 5) a round hay bale, 6) a wooden seed stand with little seed packets and a striped awning, 7) a wooden wheelbarrow with vegetables, 8) a water trough, 9) a stack of firewood, 10) a wooden farm gate, 11) a beehive box, 12) a small wooden sign with a carrot icon. Style of Pokémon HeartGold/SoulSilver towns, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
-```
-
-**plantacoes.png** — folha das plantações (5 colunas = estágios × 8 linhas = plantas)
-```
-A sprite sheet of crop growth stages for a farming game, each small plant on its own tile of dark tilled soil, 5 columns (seed in soil, sprout, young plant, grown plant, ready to harvest with the crop visible) and 8 rows, one row per crop: carrot, corn, tomato, strawberry, pumpkin, lettuce, sunflower, watermelon. All tiles the same size, isolated with empty space between them. Style of Pokémon HeartGold/SoulSilver, top-down 3/4 view, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+A sprite sheet of 12 separate farm objects, top-down 3/4 view pixel art, each object isolated with plenty of empty space between them, grid of 4 columns and 3 rows: 1) a tall grey metal grain silo with a red dome roof, 2) a stone water well with a small wooden roof and a bucket, 3) a wooden shipping bin with a lid, 4) a friendly scarecrow with a straw hat, 5) a round hay bale, 6) a wooden seed stand with little seed packets and a green striped awning, 7) a wooden wheelbarrow, 8) a wooden water trough, 9) a stack of firewood, 10) a wooden farm gate, 11) a beehive box, 12) a picnic table with a red checkered cloth. Style of Pokémon HeartGold/SoulSilver towns, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
 ```
 
-**animais.png** — folha (4 direções × 3 animais)
+**terra.png** — folha (**3 peças**)
 ```
-A sprite sheet of farm animals for a top-down pixel art game, each animal isolated with empty space between them, 4 columns (facing down, left, right, up) and 3 rows: a white chicken, a brown and white cow, a pink pig. Cute and friendly, same scale proportions (chicken small, cow big). Style of Pokémon HeartGold/SoulSilver overworld sprites, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+A sprite sheet of 3 separate square tiles for a farming game, each isolated with empty space between them, in one row: 1) a square tile of dry light-brown tilled soil with furrows, 2) the same tile of tilled soil but wet and dark brown, 3) a short piece of wooden fence seen from the side standing vertically (a post with two rails going up and down). Top-down 3/4 view, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+```
+
+**plantacoes.png** — folha das plantações (5 colunas = estágios × **7 linhas = plantas, nesta ordem**)
+```
+A sprite sheet of crop growth stages for a farming game, each plant alone WITHOUT soil (just the plant, standing on its base), 5 columns (seeds just planted, small sprout, young plant, grown plant, ready to harvest with the crop visible) and 7 rows, one row per crop in this order: carrot, corn (tall), tomato on a wooden stake, strawberry, pumpkin, lettuce, sunflower (tall). Same scale for all, isolated with empty space between them. Style of Pokémon HeartGold/SoulSilver, top-down 3/4 view, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+```
+
+**animais.png** — folha (2 colunas × 3 linhas: **olhando para a esquerda, para a direita**)
+```
+A sprite sheet of farm animals for a top-down pixel art game, each animal isolated with empty space between them, 2 columns (facing left, facing right) and 3 rows: a white hen, a black and white cow, a fluffy white sheep with a dark face. Cute and friendly, correct proportions (hen small, cow big). Style of Pokémon HeartGold/SoulSilver overworld sprites, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
 ```
 
 ---
@@ -135,4 +158,14 @@ A single building: a small delivery hub with a flat roof that is a drone landing
 **wit-objetos.png** — folha (4 × 3)
 ```
 A sprite sheet of 12 separate objects for a futuristic technology town square, top-down 3/4 view pixel art, each object isolated with plenty of empty space between them, grid of 4 columns and 3 rows: 1) a giant outdoor LED screen on two metal legs (blank dark screen), 2) a small quadcopter delivery drone carrying a box, 3) a friendly round white helper robot with a screen face (front view), 4) the same robot seen from the back, 5) a solar tree (metal tree with solar panel leaves), 6) a smart street light with a small camera and a green LED ring, 7) a traffic light with a pedestrian signal, 8) an electric scooter charging station, 9) an arcade cabinet, 10) a holographic information totem, 11) a bench with a small solar panel, 12) a recycling station with three colored bins. Style of Pokémon HeartGold/SoulSilver towns, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+```
+
+**wit-objetos-2.png** — folha (**4 objetos, nesta ordem**)
+```
+A sprite sheet of 4 separate objects for a technology town park, each isolated with plenty of empty space between them, in one row: 1) a small outdoor sports court seen from above (blue floor, white lines, no hoops), 2) a basketball hoop on a pole facing right, 3) a raised planter with flowers and a small moisture sensor with a cyan light, 4) a small weather station on a pole with a wind cup anemometer and a little screen. Style of Pokémon HeartGold/SoulSilver towns, same scale for all objects, crisp pixel art, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
+```
+
+**casinhas-wit.png** — folha (**7 casas, nesta ordem**, cada uma 5 × 3 blocos, porta no meio embaixo)
+```
+A sprite sheet of 7 separate small modern buildings for a technology student town, each isolated with plenty of empty space between them, grid of 4 columns and 2 rows (last row has 3), each with the front door centered at the bottom: 1) a coworking office with glass windows and a lime green trim, 2) a purple music studio with a big music note sign (no letters), 3) a cream art studio with a paint palette sign (no letters), 4) a teal student house, 5) a peach student house, 6) a light blue student house, 7) a yellow student house. Style of Pokémon HeartGold/SoulSilver towns, top-down 3/4 view, crisp pixel art, clean dark outlines, limited palette, no anti-aliasing. Flat solid magenta background (#FF00FF). No text.
 ```

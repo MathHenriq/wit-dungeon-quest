@@ -175,7 +175,7 @@ export class ZoneBuilder {
   readonly fx: Ambient = { chimneys: [], glints: [], flowers: [], blossoms: [], leaves: [], beacons: [], fireflies: [] };
   readonly groundTex?: GroundTextures;
   private flipCache = new Map<Sprite, Sprite>();
-  private lampArt?: { pix: Pixmap; night?: Pixmap };
+  private lampArt?: { pix: Pixmap; night?: Pixmap; src?: Sprite };
 
   constructor(readonly A: WorldAssets, readonly w: number, readonly h: number, base: Terrain = 'grama') {
     this.terrain = Array.from({ length: h }, () => Array<Terrain>(w).fill(base));
@@ -277,7 +277,8 @@ export class ZoneBuilder {
     const pix = padTo(sp.pix, W, H);
     // a porta desenhada fica no meio do(s) bloco(s) de porta
     const left = (pix.w - sp.pix.w) >> 1;
-    const want = ((doorCols[0] + doorCols[doorCols.length - 1] + 1) / 2) * TILE;
+    // sem porta (silo, telão): a arte fica centrada
+    const want = doorCols.length ? ((doorCols[0] + doorCols[doorCols.length - 1] + 1) / 2) * TILE : W / 2;
     const offsetX = Math.round(want - (left + (DOOR_X[name] ?? sp.pix.w / 2)));
     const ch = CHIMNEY.has(name) ? chimneyTop(sp.pix) : undefined;
     const chimney = ch ? { x: left + ch.x, y: pix.h - sp.pix.h + ch.y } : undefined;
@@ -348,7 +349,9 @@ export class ZoneBuilder {
 
   /** Poste (acende sozinho na sua hora, desenhado à parte pelo jogo). */
   lamp(tx: number, ty: number, smart = false): void {
-    if (!this.lampArt) this.lampArt = this.A.poste ? { pix: this.A.poste.pix, night: lampNight(this.A.poste, 9) } : T.lampLit();
+    // poste inteligente da Cidade WIT: a arte própria do GPT quando houver
+    const sp = (smart && this.A['poste-inteligente']) || this.A.poste;
+    if (!this.lampArt || this.lampArt.src !== sp) this.lampArt = sp ? { pix: sp.pix, night: lampNight(sp, 9), src: sp } : { ...T.lampLit(), src: undefined };
     const o = this.putLit(`poste-${tx}-${ty}`, { pix: this.lampArt.pix }, tx, ty, 1, 1);
     const i = this.lamps.length;
     this.lamps.push({ bulb: [tx * TILE + 8, ty * TILE - 9], ground: [tx * TILE + 8, ty * TILE + 10], night: this.lampArt.night, x: o.x, y: o.y, seed: (i * 0.618034) % 1, smart });
@@ -444,6 +447,13 @@ export class ZoneBuilder {
       ...extra,
     };
   }
+}
+
+/** O pixel mais alto da arte (ponta de antena), em pixels do mundo, para um objeto já posto. */
+export function topPixel(o: Placed): [number, number] | undefined {
+  const src = o.pix;
+  for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) if (src.data[(y * src.w + x) * 4 + 3] > 200) return [o.x + x + 0.5, o.y + y + 1];
+  return undefined;
 }
 
 /** Topo da chaminé: o primeiro trecho cinza (pedra) no alto da arte, em px da arte normal. */

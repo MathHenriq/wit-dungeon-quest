@@ -7,6 +7,8 @@ import { Art, darken, hdBuilding, hdProp, INK, lighten, T2 } from './hd-kit';
 import { hash, hex, mix, Pixmap, type RGB } from './pixmap';
 import { LED } from './palette';
 import { withHd } from './zone';
+import { mirrored, worldArt } from './art-override';
+import { CROP_STAGES } from './art-list';
 
 const WOOD = hex('#9a6a3e');
 const WOOD_DARK = hex('#6a4426');
@@ -275,6 +277,8 @@ export type CropArtId = 'cenoura' | 'tomate' | 'milho' | 'morango' | 'abobora' |
 
 /** Terra arada (seca ou molhada), um bloco em hd, com os sulcos. */
 export function soilArt(wet: boolean): Pixmap {
+  const gpt = worldArt(wet ? 'terra-molhada' : 'terra-seca');
+  if (gpt) return gpt.pix;
   const a = new Art(T2, T2);
   const base = wet ? hex('#6a4428') : hex('#a8784a');
   for (let y = 1; y < T2 - 1; y++) for (let x = 1; x < T2 - 1; x++) {
@@ -295,6 +299,9 @@ export function soilArt(wet: boolean): Pixmap {
  * base no pé do bloco; pode passar da altura do bloco (milho, girassol).
  */
 export function cropArt(id: CropArtId, stage: number, last: number): Pixmap {
+  // arte do GPT: 5 estágios desenhados, esticados sobre os dias da planta
+  const gpt = worldArt(`planta-${id}-${Math.round((stage / Math.max(1, last)) * (CROP_STAGES - 1))}`);
+  if (gpt) return gpt.pix;
   const tall = id === 'milho' || id === 'girassol';
   const H = tall ? T2 * 2 : T2 + 16;
   const a = new Art(T2, H);
@@ -424,7 +431,15 @@ function done(a: Art): Pixmap {
 // ─────────────────────────── bichos ───────────────────────────
 
 /** Galinha (dois quadros: andando e bicando). */
+/** Bicho do GPT (um desenho para cada lado): dois quadros iguais, o jogo faz o balanço. */
+function gptAnimal(name: string, face: 1 | -1): Pixmap[] | undefined {
+  const sp = worldArt(`${name}-${face > 0 ? 'dir' : 'esq'}`) ?? (worldArt(`${name}-esq`) && { pix: mirrored(worldArt(`${name}-esq`)!.pix) });
+  return sp ? [sp.pix, sp.pix] : undefined;
+}
+
 export function chickenFrames(face: 1 | -1): Pixmap[] {
+  const gpt = gptAnimal('galinha', face);
+  if (gpt) return gpt;
   return [0, 1].map(f => {
     const a = new Art(24, 24);
     const body = hex('#fbf6ec'), shade = hex('#e0d6c4');
@@ -444,6 +459,8 @@ export function chickenFrames(face: 1 | -1): Pixmap[] {
 
 /** Vaca malhada (dois quadros de andar). */
 export function cowFrames(face: 1 | -1): Pixmap[] {
+  const gpt = gptAnimal('vaca', face);
+  if (gpt) return gpt;
   return [0, 1].map(f => {
     const a = new Art(40, 30);
     const white = hex('#fbf8f2'), black = hex('#2e2a36');
@@ -467,6 +484,8 @@ export function cowFrames(face: 1 | -1): Pixmap[] {
 
 /** Ovelha fofinha (dois quadros). */
 export function sheepFrames(face: 1 | -1): Pixmap[] {
+  const gpt = gptAnimal('ovelha', face);
+  if (gpt) return gpt;
   return [0, 1].map(f => {
     const a = new Art(32, 26);
     for (let k = 0; k < 14; k++) {

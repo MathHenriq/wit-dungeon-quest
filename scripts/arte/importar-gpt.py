@@ -59,6 +59,21 @@ SINGLE = {
     'casa-bibliotecaria': ('casa-bibliotecaria', {'w': 80}),
     'casa-artista': ('casa-artista', {'w': 80}),
 }
+# mundo grande (Lago, Fazenda, Cidade WIT): a lista completa, com o que cada
+# sprite é, fica em src/game/world/art-list.ts (um teste confere que os nomes
+# batem). Salve as imagens em public/Novos assets/mundo/<área>/.
+SINGLE.update({
+    'casa-pesca': ('casa-pesca', {'w': 112}), 'farol': ('farol', {'h': 110}),
+    'casa-fazenda': ('casa-fazenda', {'w': 96}), 'celeiro': ('celeiro', {'w': 96}), 'galinheiro': ('galinheiro', {'w': 64}),
+    'estufa': ('estufa', {'w': 96}), 'moinho': ('moinho', {'h': 100}), 'moinho-pas': ('moinho-pas', {'w': 90}),
+    'nucleo-wit': ('nucleo-wit', {'w': 192}), 'lab-ia': ('lab-ia', {'w': 112}), 'casa-iot': ('casa-iot', {'w': 96}),
+    'metaverso': ('metaverso', {'w': 112}), 'estudio-comunicacao': ('estudio-comunicacao', {'w': 96}),
+    'oficina-games': ('oficina-games', {'w': 112}), 'mercado-central': ('mercado-central', {'w': 160}),
+    'central-entregas': ('central-entregas', {'w': 112}),
+})
+FISH_IDS = ['lambari', 'tilapia', 'carpa', 'camarao', 'bagre', 'traira', 'piau', 'pacu', 'tucunare', 'dourado',
+            'koi', 'pirarucu', 'peixe-cristal', 'koi-dourada', 'bota', 'lata']
+CROP_ROWS = ['cenoura', 'milho', 'tomate', 'morango', 'abobora', 'alface', 'girassol']
 # texturas de chão: viram quadrados de TILE_PX que se repetem sem emenda
 TILE_PX = 128
 TILES = {
@@ -74,6 +89,26 @@ SHEETS = {
     'folha-c': [('fonte', {'w': 64}), ('mural', {'w': 48}), ('portal', {'w': 64})],
     'folha-d': [('tulipas', {'w': 16}), ('mato', {'w': 16}), ('arbusto-florido', {'w': 16}),
                 ('toco', {'w': 14}), ('cogumelos', {'w': 12}), ('pedrinhas', {'w': 16})],
+    # ── mundo grande ──
+    'lago-objetos': [('barco-norte', {'h': 22}), ('barco-leste', {'w': 22}), ('barco-sul', {'h': 22}), ('banca-peixe', {'w': 48}),
+                     ('caixotes', {'w': 24}), ('vara-barril', {'w': 16}), ('boia', {'h': 26}), ('vitoria-regia', {'w': 16})],
+    'lago-objetos-2': [('pier-vertical', {'w': 16}), ('pier-horizontal', {'w': 32}), ('ponte', {'w': 64}), ('fogueira', {'w': 16}),
+                       ('guarda-sol', {'w': 32}), ('castelo-areia', {'w': 16}), ('barraca-camping', {'w': 32}), ('barril', {'w': 14}),
+                       ('varal-peixe', {'w': 32}), ('pedras-margem', {'w': 16}), ('pato', {'w': 12})],
+    'peixes': [('peixe-' + f, {'w': 24}) for f in FISH_IDS],
+    'casinhas-lago': [(n, {'w': 80}) for n in ['loja-iscas', 'casa-nando', 'casa-lucia', 'casa-marinho']],
+    'fazenda-objetos': [('silo', {'h': 92}), ('poco', {'w': 32}), ('caixa-envio', {'w': 32}), ('espantalho', {'h': 28}),
+                        ('feno', {'w': 16}), ('barraca-sementes', {'w': 48}), ('carrinho', {'w': 16}), ('cocho', {'w': 24}),
+                        ('lenha', {'w': 16}), ('porteira', {'w': 32}), ('colmeia', {'w': 16}), ('mesa-piquenique', {'w': 32})],
+    'terra': [('terra-seca', {'w': 16}), ('terra-molhada', {'w': 16}), ('cerca-em-pe', {'h': 16})],
+    'plantacoes': [(f'planta-{c}-{k}', {'w': 16}) for c in CROP_ROWS for k in range(5)],
+    'animais': [('galinha-esq', {'w': 12}), ('galinha-dir', {'w': 12}), ('vaca-esq', {'w': 20}), ('vaca-dir', {'w': 20}),
+                ('ovelha-esq', {'w': 16}), ('ovelha-dir', {'w': 16})],
+    'wit-objetos': [('telao', {'w': 96}), ('drone', {'w': 14}), ('robo-frente', {'h': 16}), ('robo-costas', {'h': 16}),
+                    ('arvore-solar', {'h': 48}), ('poste-inteligente', {'h': 32}), ('semaforo', {'h': 32}), ('patinetes', {'w': 32}),
+                    ('fliperama', {'h': 26}), ('totem-holo', {'h': 30}), ('banco-solar', {'w': 32}), ('reciclagem', {'w': 32})],
+    'wit-objetos-2': [('quadra', {'w': 144}), ('cesta', {'h': 32}), ('canteiro-iot', {'w': 32}), ('estacao-tempo', {'h': 32})],
+    'casinhas-wit': [(n, {'w': 80}) for n in ['casa-coworking', 'estudio-musica', 'atelie', 'moradia-1', 'moradia-2', 'moradia-3', 'moradia-4']],
 }
 
 
@@ -167,7 +202,11 @@ def bbox(alpha):
 
 # natureza e objetos sem luz: o detector confundiria folha lima e madeira clara com LED e janela
 NO_NIGHT = {'pinheiro', 'arvore-redonda', 'cerejeira', 'arbusto', 'arbusto-florido', 'tulipas', 'mato', 'toco',
-            'cogumelos', 'pedrinhas', 'pedra', 'banco', 'cerca', 'placa', 'correio', 'lixeira', 'vaso'}
+            'cogumelos', 'pedrinhas', 'pedra', 'banco', 'cerca', 'placa', 'correio', 'lixeira', 'vaso',
+            'vitoria-regia', 'terra-seca', 'terra-molhada', 'cerca-em-pe', 'feno', 'carrinho', 'lenha', 'pato',
+            'galinha-esq', 'galinha-dir', 'vaca-esq', 'vaca-dir', 'ovelha-esq', 'ovelha-dir', 'quadra',
+            'caixotes', 'barril', 'pedras-margem', 'castelo-areia', 'mesa-piquenique'} | {'peixe-' + f for f in FISH_IDS} \
+    | {f'planta-{c}-{k}' for c in CROP_ROWS for k in range(5)}
 
 
 def save(name, px, manifest, out=OUT, k=1):
@@ -224,10 +263,11 @@ def build(out, k):
     """Converte tudo na escala k (1 = normal, 2 = hd) para a pasta out."""
     os.makedirs(out, exist_ok=True)
     manifest = {}
+    missing = []
     for src, (name, size) in SINGLE.items():
         path = find(src)
         if not os.path.exists(path):
-            print('faltando:', src); continue
+            missing.append(src); continue
         rgb, alpha = load(path)
         # só o maior pedaço (ignora sujeira solta no fundo)
         boxes, _ = components(alpha, 1)
@@ -235,7 +275,7 @@ def build(out, k):
     for src, items in SHEETS.items():
         path = find(src)
         if not os.path.exists(path):
-            print('faltando:', src); continue
+            missing.append(src); continue
         rgb, alpha = load(path)
         boxes, _ = components(alpha, len(items))
         if len(boxes) != len(items):
@@ -252,6 +292,8 @@ def build(out, k):
     with open(os.path.join(out, 'manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=1, sort_keys=True)
     print(len(manifest), 'sprites em', os.path.relpath(out, ROOT))
+    if missing and k == 1:
+        print(f'ainda sem imagem do GPT ({len(missing)}):', ', '.join(missing))
     return manifest
 
 
