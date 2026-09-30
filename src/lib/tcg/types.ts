@@ -255,10 +255,31 @@ export interface PlayerState {
   playedThisTurn: CardDef[];
 }
 
+/** A conta de um golpe, peça por peça (a tela mostra em fichas). */
+export interface DamageCalc {
+  card: string;
+  element: Element;
+  target: 0 | 1;
+  base: number;
+  adds: { value: number; label: string }[];
+  mults: { value: number; label: string }[];
+  /** Fraqueza/resistência do elemento (1 = neutro). */
+  eff: number;
+  effLabel?: string;
+  reductions: { value: number; label: string }[];
+  shield: boolean;
+  pierce: boolean;
+  total: number;
+}
+
 export interface LogEntry {
   turn: number;
   player: 0 | 1 | null;
   text: string;
+  /** Golpe: a conta completa. */
+  calc?: DamageCalc;
+  /** Armadilha revelada: o id da carta e o dono. */
+  trap?: { id: string; owner: 0 | 1 };
 }
 
 export interface GameState {

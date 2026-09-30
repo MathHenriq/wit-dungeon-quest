@@ -48,3 +48,15 @@ describe('movimentos das cartas (o que a tela anima)', () => {
     expect(diffMoves(s, s)).toEqual([]);
   });
 });
+
+describe('conta do golpe no registro (fichas da tela)', () => {
+  it('o total da conta é o dano que a vida perdeu', () => {
+    const { s, uid } = gameWith(simple[0]);
+    const before = s.players[1].life;
+    const next = playCard(s, uid);
+    const calc = next.log.map(l => l.calc).filter(Boolean).pop()!;
+    expect(calc).toBeTruthy();
+    expect(calc.base).toBe(simple[0].damage);
+    expect(before - next.players[1].life).toBe(calc.total);
+  });
+});

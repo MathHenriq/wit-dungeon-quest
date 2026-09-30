@@ -401,10 +401,19 @@ turno e o atalho.
   cima de qualquer visual.
 
 Etapas (cada uma fecha com prints aprovados): (1) estrutura da tela ligada
-ao motor e à IA (**feita em 30/09**: palco 16:9 em `DuelView.tsx` + `.css`, celular em pé pede para girar); (2) jogar carta e custos animados (**feita em 30/09**: arrastar para a mesa, que acende verde/vermelho; cada carta que muda de lugar voa, pelo `diffMoves` em `src/components/duel/moves.ts`: descarte mão → cemitério, deck → cemitério virando, banida se desfaz, compra deck → mão; o cemitério só conta quando a carta chega); (3) compra e cemitério;
-(4) conta do dano, golpe, armadilha e SUPER EFETIVO; (5) turno do inimigo e
-animações do boneco; (6) abertura (VS, quem começa) e fim (vitória/derrota,
-moedas, carta do chefe); (7) som; (8) desempenho no celular, testes, demo.
+ao motor e à IA (**feita em 30/09**: palco 16:9 em `DuelView.tsx` + `.css`, celular em pé pede para girar); (2) jogar carta e custos animados (**feita em 30/09**: arrastar para a mesa, que acende verde/vermelho; cada carta que muda de lugar voa, pelo `diffMoves` em `src/components/duel/moves.ts`: descarte mão → cemitério, deck → cemitério virando, banida se desfaz, compra deck → mão; o cemitério só conta quando a carta chega); (3) compra e cemitério; (4) conta do dano, golpe, armadilha e SUPER EFETIVO;
+(5) turno do inimigo e animações do boneco; (6) abertura (VS, quem começa) e fim
+(vitória/derrota, moedas, carta do chefe); (7) som; (8) desempenho no celular,
+testes, demo. **Etapas 3 a 8 feitas em 30/09**: mão se reorganiza e as cartas
+chegam distribuídas, contadores pulam, tocar no cemitério abre as cartas; o
+motor registra a conta de cada golpe (`LogEntry.calc`) e a tela mostra em
+fichas (azul × vermelho = dourado), com tremida, clarão na cor do elemento e
+carimbo SUPER EFETIVO / POUCO EFETIVO / IMUNE / ESCUDO; armadilha revelada vira
+no centro; o desafiante pensa, joga mexendo os braços, apanha, comemora e cai
+(uma animação só para qualquer visual); abertura com VS e moeda; fim com
+carimbo e raios, moedas contando e a carta do chefe virando; sons sintetizados
+(`src/game/sfx.ts`, sem arquivo) com botão SOM/MUDO; ~58–60 fps com a CPU 4×
+mais lenta no celular deitado.
 
 ### 5.6 Tapetes do duelo (cosmético, 30/09)
 O tapete é a mesa do duelo. **Não muda regra nenhuma**: é estilo, comprado

@@ -4,7 +4,9 @@ import { AI_NAMES, planTurn } from '@/lib/tcg/ai';
 import { canPlay, createGame, endTurn, IllegalPlay, playCard } from '@/lib/tcg/engine';
 import { ELEMENT_PT, STATUS_PT, TYPE_PT_PLURAL } from '@/lib/tcg/labels';
 import type { Foe } from '@/lib/tcg/opponents';
-import type { CardDef, CardInstance, Element, GameState, PlayerState } from '@/lib/tcg/types';
+import type { CardDef, CardInstance, DamageCalc, Element, GameState, PlayerState } from '@/lib/tcg/types';
+import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
+import { isMuted, play, setMuted } from '@/game/sfx';
 import type { Look } from '@/game/world/outfit';
 import { loadLookFrames, loadNpcFrames } from '@/game/world/sprites';
 import { matOf, matStyle } from '@/game/playmats';
@@ -75,15 +77,28 @@ function Face({ frame }: { frame: HTMLCanvasElement | null }) {
   return <canvas ref={ref} />;
 }
 
-/** O boneco inteiro (o desafiante atrás da mesa). */
-function Body({ frame }: { frame: HTMLCanvasElement | null }) {
+/**
+ * O desafiante inteiro atrás da mesa. As animações são as mesmas para todo
+ * boneco (só roupa e acessório mudam, o formato do corpo é igual): pensar
+ * (balança), jogar (os braços mexem com os quadros de andar e ele se inclina),
+ * apanhar (tremida e clarão), vencer (pulinhos) e perder (cai de lado).
+ */
+export type FoeMood = 'idle' | 'think' | 'throw' | 'hurt' | 'win' | 'lose';
+function Body({ frames, mood }: { frames: HTMLCanvasElement[] | null; mood: FoeMood }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current;
-    if (!c || !frame) return;
-    c.width = frame.width; c.height = frame.height;
-    c.getContext('2d')!.drawImage(frame, 0, 0);
-  }, [frame]);
+    if (!c || !frames?.length) return;
+    c.width = frames[0].width; c.height = frames[0].height;
+    const x = c.getContext('2d')!;
+    const draw = (i: number) => { x.clearRect(0, 0, c.width, c.height); x.drawImage(frames[i % frames.length], 0, 0); };
+    draw(0);
+    if (mood !== 'throw' && mood !== 'win') return;
+    // braços mexendo: os quadros da caminhada de frente, rápido
+    let i = 0;
+    const t = window.setInterval(() => draw(++i), mood === 'throw' ? 95 : 160);
+    return () => { window.clearInterval(t); draw(0); };
+  }, [frames, mood]);
   return <canvas ref={ref} />;
 }
 
@@ -103,13 +118,13 @@ function Effects({ p }: { p: PlayerState }) {
 }
 
 /** Placa do jogador: retrato com moldura, apelido, título, vida em gomos e efeitos. */
-function Plate({ side, p, face, nick, title, tone, turn }: {
-  side: 'op' | 'me'; p: PlayerState; face: HTMLCanvasElement | null; nick: string; title: string; tone: string; turn: boolean;
+function Plate({ side, p, face, nick, title, tone, turn, hurt }: {
+  side: 'op' | 'me'; p: PlayerState; face: HTMLCanvasElement | null; nick: string; title: string; tone: string; turn: boolean; hurt?: number;
 }) {
   const pct = Math.max(0, Math.min(100, (p.life / p.maxLife) * 100));
   const el = ELEMENT_STYLE[p.element];
   return (
-    <div className={`dv-plate ${side} ${turn ? 'turn' : ''}`} style={{ ['--tone' as string]: tone }}>
+    <div key={hurt ? `h${hurt}` : 'p'} className={`dv-plate ${side} ${turn ? 'turn' : ''} ${hurt ? 'hurt' : ''}`} style={{ ['--tone' as string]: tone }}>
       <div className="dv-por">
         <Face frame={face} />
         <span className="el" title={`Herói de ${ELEMENT_PT[p.element]}`} style={{ background: el.el }}>{el.icon}</span>
@@ -138,13 +153,13 @@ function Slot({ card, back, label, count, onOpen, zone }: { card?: CardDef; back
       {!filled && label}
       {filled && <div className="dv-card">{back || !card ? <TcgCardBack /> : <TcgCard card={card} />}</div>}
       {onOpen && <button aria-label={card?.name ?? label} onClick={onOpen} />}
-      {count && <span className="dv-count">{count}</span>}
+      {count && <span key={count} className="dv-count">{count}</span>}
     </div>
   );
 }
 
 /** Uma fileira da mesa: arma, armadura, 3 armadilhas; deck e cemitério na ponta. `hold` = cartas ainda voando para o cemitério. */
-function Row({ side, p, hidden, open, hold }: { side: 'op' | 'me'; p: PlayerState; hidden: boolean; open: (c: CardDef) => void; hold: number }) {
+function Row({ side, p, hidden, open, hold, openGrave }: { side: 'op' | 'me'; p: PlayerState; hidden: boolean; open: (c: CardDef) => void; hold: number; openGrave: () => void }) {
   const n = side === 'me' ? 0 : 1;
   const grave = p.graveyard.slice(0, Math.max(0, p.graveyard.length - hold));
   const top = grave[grave.length - 1];
@@ -159,7 +174,7 @@ function Row({ side, p, hidden, open, hold }: { side: 'op' | 'me'; p: PlayerStat
       })}
       <div className="dv-gap" />
       <Slot zone={`${n}-deck`} label="DECK" back={p.deck.length > 0} count={`${p.deck.length}`} />
-      <Slot zone={`${n}-grave`} label="CEMIT." card={top?.def} count={grave.length ? `${grave.length}` : undefined} onOpen={top ? () => open(top.def) : undefined} />
+      <Slot zone={`${n}-grave`} label="CEMIT." card={top?.def} count={grave.length ? `${grave.length}` : undefined} onOpen={grave.length ? openGrave : undefined} />
     </div>
   );
 }
@@ -174,6 +189,8 @@ interface FlightSpec {
 function Flight({ f, onDone }: { f: FlightSpec; onDone: (f: FlightSpec) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
+  const backFace = useRef<HTMLDivElement>(null);
+  const frontFace = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = ref.current!;
     const { from, to } = f;
@@ -193,7 +210,13 @@ function Flight({ f, onDone }: { f: FlightSpec; onDone: (f: FlightSpec) => void 
         { transform: `translate(${dx * 0.4}px, ${dy * 0.4 - to.h * 0.35}px) scale(${(sx + 1) / 2 * 1.08}) rotate(${dx > 0 ? -8 : 8}deg)`, offset: 0.55 },
         { transform: 'none' },
       ], { duration: dur, delay: f.delay, easing: 'cubic-bezier(.3,.7,.35,1)', fill: 'both' });
-      if (f.flip && inner.current) inner.current.animate([{ transform: 'rotateY(180deg)' }, { transform: 'rotateY(180deg)', offset: 0.15 }, { transform: 'rotateY(0deg)' }], { duration: dur, delay: f.delay, fill: 'both' });
+      if (f.flip && inner.current) {
+        // vira no meio do caminho: estreita com o verso, alarga já de frente
+        const t = { duration: dur, delay: f.delay, fill: 'both' as const };
+        inner.current.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)', offset: 0.5 }, { transform: 'scaleX(1)' }], t);
+        backFace.current?.animate([{ opacity: 1 }, { opacity: 1, offset: 0.5 }, { opacity: 0, offset: 0.501 }, { opacity: 0 }], t);
+        frontFace.current?.animate([{ opacity: 0 }, { opacity: 0, offset: 0.5 }, { opacity: 1, offset: 0.501 }, { opacity: 1 }], t);
+      }
     }
     a.onfinish = () => onDone(f);
     return () => a.cancel();
@@ -204,9 +227,42 @@ function Flight({ f, onDone }: { f: FlightSpec; onDone: (f: FlightSpec) => void 
     <div ref={ref} className={`dv-flight ${f.kind}`} style={{ left: f.to.x, top: f.to.y, width: f.to.w, height: f.to.h }}>
       <div ref={inner} className="dv-flip">
         {f.back ? <div className="face"><TcgCardBack /></div> : <>
-          <div className="face"><TcgCard card={f.card} /></div>
-          {f.flip && <div className="face backside"><TcgCardBack /></div>}
+          <div ref={frontFace} className="face"><TcgCard card={f.card} /></div>
+          {f.flip && <div ref={backFace} className="face"><TcgCardBack /></div>}
         </>}
+      </div>
+    </div>
+  );
+}
+
+const num = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/\.?0+$/, '').replace('.', ','));
+
+/**
+ * A conta do golpe em fichas, estilo Balatro: azul = dano (base + bônus), vermelho =
+ * multiplicador (bônus × fraqueza), dourado = total. Embaixo, de onde veio cada
+ * parte, entrando uma de cada vez.
+ */
+function CalcPanel({ c }: { c: DamageCalc }) {
+  const dano = c.base + c.adds.reduce((a, b) => a + b.value, 0);
+  const mult = c.mults.reduce((a, b) => a * b.value, 1) * c.eff;
+  const src: { t: string; label: string; kind: 'a' | 'm' | 'r' }[] = [
+    { t: `${c.base}`, label: 'base', kind: 'a' },
+    ...c.adds.map(x => ({ t: `${x.value >= 0 ? '+' : ''}${x.value}`, label: x.label, kind: 'a' as const })),
+    ...c.mults.map(x => ({ t: `×${num(x.value)}`, label: x.label, kind: 'm' as const })),
+    ...(c.eff !== 1 ? [{ t: `×${num(c.eff)}`, label: c.effLabel ?? 'elemento', kind: 'm' as const }] : []),
+    ...c.reductions.map(x => ({ t: `−${x.value}`, label: x.label, kind: 'r' as const })),
+  ];
+  return (
+    <div className="dv-calc">
+      <div className="card dv-px">{c.card.toUpperCase()}</div>
+      <div className="eqn dv-px">
+        <div className="box dano"><b>{dano}</b><small>DANO</small></div>
+        {mult !== 1 && <><span className="op">×</span><div className="box mult"><b>{num(mult)}</b><small>{c.eff > 1 ? 'FRAQUEZA' : c.eff < 1 ? 'RESIST.' : 'MULT.'}</small></div></>}
+        <span className="op">=</span>
+        <div className={`box tot ${c.shield ? 'shield' : ''}`}><b>{c.total}</b><small>{c.shield ? 'ESCUDO' : 'TOTAL'}</small></div>
+      </div>
+      <div className="src">
+        {src.map((x, i) => <span key={i} style={{ animationDelay: `${120 + i * 90}ms` }}><i className={x.kind}>{x.t}</i> {x.label}</span>)}
       </div>
     </div>
   );
@@ -223,9 +279,20 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   const [shown, setShown] = useState<{ card: CardDef; by: 0 | 1; key: number; uid: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hits, setHits] = useState<{ side: 0 | 1; v: number; key: number }[]>([]);
-  const [frames, setFrames] = useState<[HTMLCanvasElement | null, HTMLCanvasElement | null]>([null, null]);
+  const [frames, setFrames] = useState<[HTMLCanvasElement[] | null, HTMLCanvasElement[] | null]>([null, null]);
   const [showLog, setShowLog] = useState(false);
   const [flights, setFlights] = useState<FlightSpec[]>([]);
+  const [calcShow, setCalcShow] = useState<{ calc: DamageCalc; key: number } | null>(null);
+  const [stamp, setStamp] = useState<{ text: string; kind: 'super' | 'weak' | 'shield'; key: number } | null>(null);
+  const [trapShow, setTrapShow] = useState<{ card: CardDef; owner: 0 | 1; key: number } | null>(null);
+  const [flash, setFlash] = useState<{ color: string; key: number } | null>(null);
+  const [foeMood, setFoeMood] = useState<FoeMood>('idle');
+  const [meHurt, setMeHurt] = useState(0);
+  const [graveView, setGraveView] = useState<0 | 1 | null>(null);
+  const [intro, setIntro] = useState<'vs' | 'coin' | null>('vs');
+  const [dealing, setDealing] = useState(false);
+  const [muted, setMutedState] = useState(isMuted);
+  const logSeen = useRef(state.log.length);
   const [hold, setHold] = useState<[number, number]>([0, 0]);
   const [hiddenUids, setHiddenUids] = useState<Set<string>>(() => new Set());
   const [drag, setDrag] = useState<{ uid: string; x: number; y: number; over: boolean; tilt: number } | null>(null);
@@ -288,6 +355,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     if (g[0] || g[1]) setHold(h => [h[0] + g[0], h[1] + g[1]]);
     const arriving = add.filter(f => f.toHand).map(f => f.uid);
     if (arriving.length) setHiddenUids(h => new Set([...h, ...arriving]));
+    add.filter(f => f.toHand).slice(0, 3).forEach(f => window.setTimeout(() => play('draw'), f.delay + 200));
     // só quando o estado do jogo muda (rel e zoneRect leem o DOM na hora)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
@@ -300,10 +368,49 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   useEffect(() => {
     let alive = true;
     Promise.all([loadLookFrames(look).catch(() => null), loadNpcFrames(foeSprite).catch(() => null)]).then(([a, b]) => {
-      if (alive) setFrames([a?.walk.south[0] ?? null, b?.walk.south[0] ?? null]);
+      if (alive) setFrames([a?.walk.south ?? null, b?.walk.south ?? null]);
     });
     return () => { alive = false; };
   }, [look, foeSprite]);
+
+  // ── o que o registro conta: golpe (conta em fichas, tremida, clarão, SUPER EFETIVO) e armadilha virando ──
+  useEffect(() => {
+    const fresh = state.log.slice(logSeen.current);
+    logSeen.current = state.log.length;
+    const timers: number[] = [];
+    const later = (ms: number, f: () => void) => timers.push(window.setTimeout(f, ms));
+    for (const l of fresh) {
+      if (l.trap) {
+        const card = CARD_BY_ID.get(l.trap.id);
+        if (card) { setTrapShow({ card, owner: l.trap.owner, key: Date.now() }); play('trap'); later(1500, () => setTrapShow(t => (t?.card === card ? null : t))); }
+      }
+      if (l.text.startsWith('— Turno') && l.player === 0) play('turn');
+      const c = l.calc;
+      if (!c) continue;
+      const key = Date.now() + Math.random();
+      setCalcShow({ calc: c, key });
+      later(3200, () => setCalcShow(x => (x?.key === key ? null : x)));
+      // o golpe bate depois que as fichas somam
+      later(520, () => {
+        if (c.total > 0) {
+          play(c.total >= 40 ? 'bigHit' : 'hit');
+          const k = Math.min(1, c.total / 60);
+          stageRef.current?.animate([
+            { transform: 'translate(0,0)' }, { transform: `translate(${-6 * k - 2}px, ${3 * k + 1}px)` }, { transform: `translate(${5 * k + 2}px, ${-4 * k - 1}px)` },
+            { transform: `translate(${-3 * k - 1}px, ${2 * k}px)` }, { transform: 'translate(0,0)' },
+          ], { duration: 320 + 200 * k, easing: 'ease-out' });
+          setFlash({ color: ELEMENT_STYLE[c.element].el, key });
+          if (c.target === 1) { setFoeMood(m => (m === 'lose' || m === 'win' ? m : 'hurt')); later(650, () => setFoeMood(m => (m === 'hurt' ? 'idle' : m))); } else setMeHurt(key);
+        }
+        if (c.shield) setStamp({ text: 'ESCUDO!', kind: 'shield', key });
+        else if (c.eff > 1) { setStamp({ text: 'SUPER EFETIVO!', kind: 'super', key }); play('super'); }
+        else if (c.eff === 0) setStamp({ text: 'IMUNE!', kind: 'weak', key });
+        else if (c.eff < 1) setStamp({ text: 'POUCO EFETIVO', kind: 'weak', key });
+        later(1300, () => setStamp(x => (x?.key === key ? null : x)));
+      });
+    }
+    return () => timers.forEach(t => window.clearTimeout(t));
+  }, [state.log]);
 
   // número do golpe (ou da cura) em cima de quem mudou de vida
   useEffect(() => {
@@ -317,19 +424,34 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     return () => window.clearTimeout(t);
   }, [state]);
 
-  // fim da partida
+  // fim da partida: carimbo de VITÓRIA/DERROTA e, depois, o resultado de quem chamou.
+  // (onEnd numa ref: ele muda a cada desenho de quem chamou e não pode cancelar o aviso)
+  const onEndRef = useRef(onEnd);
+  onEndRef.current = onEnd;
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
   useEffect(() => {
-    if (state.winner !== null && !ended.current) {
-      ended.current = true;
-      const t = window.setTimeout(() => onEnd(state.winner === 0), 900);
-      return () => window.clearTimeout(t);
-    }
-  }, [state.winner, onEnd]);
+    if (state.winner === null || ended.current) return;
+    ended.current = true;
+    const won = state.winner === 0;
+    setFoeMood(won ? 'lose' : 'win');
+    window.setTimeout(() => play(won ? 'win' : 'lose'), 500);
+    window.setTimeout(() => { if (mounted.current) onEndRef.current(won); }, 2300);
+  }, [state.winner]);
+
+  // abertura: VS, depois a moeda de quem começa, depois as cartas chegam na mão
+  useEffect(() => {
+    const t1 = window.setTimeout(() => { setIntro('coin'); play('flip'); }, 1500);
+    const t2 = window.setTimeout(() => { setIntro(null); setDealing(true); play('draw'); }, 3100);
+    const t3 = window.setTimeout(() => setDealing(false), 4200);
+    return () => { [t1, t2, t3].forEach(t => window.clearTimeout(t)); };
+  }, []);
 
   // turno do inimigo: uma carta por vez
   useEffect(() => {
-    if (state.active !== 1 || state.winner !== null) return;
+    if (state.active !== 1 || state.winner !== null || intro) return;
     let alive = true;
+    setFoeMood('think');
     const plan = planTurn(state, foe.ai, foe.andar * 131 + state.turn);
     let s = state, k = 0;
     const step = () => {
@@ -337,23 +459,30 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
       if (k < plan.length && s.winner === null) {
         const uid = plan[k++];
         const card = s.players[1].hand.find(c => c.uid === uid);
-        try {
-          const next = playCard(s, uid);
-          if (card) { setShown({ card: card.def, by: 1, key: Date.now(), uid }); setFocus(card.def); playedUid.current = uid; }
-          s = next;
-          setState(s);
-        } catch (e) { if (!(e instanceof IllegalPlay)) throw e; }
-        window.setTimeout(step, AI_STEP_MS);
+        // levanta a carta (braços mexendo) e joga
+        setFoeMood('throw');
+        window.setTimeout(() => {
+          if (!alive) return;
+          try {
+            const next = playCard(s, uid);
+            if (card) { setShown({ card: card.def, by: 1, key: Date.now(), uid }); setFocus(card.def); playedUid.current = uid; play('card'); }
+            s = next;
+            setState(s);
+          } catch (e) { if (!(e instanceof IllegalPlay)) throw e; }
+          setFoeMood(m => (m === 'throw' ? 'think' : m));
+          window.setTimeout(step, AI_STEP_MS);
+        }, 420);
         return;
       }
       setShown(null);
+      setFoeMood(m => (m === 'think' ? 'idle' : m));
       if (s.winner === null) setState(endTurn(s));
     };
     const t = window.setTimeout(step, 700);
     return () => { alive = false; window.clearTimeout(t); };
-    // só quando o turno passa para o inimigo
+    // só quando o turno passa para o inimigo (ou a abertura acaba)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.active, state.turn]);
+  }, [state.active, state.turn, intro]);
 
   const myTurn = state.active === 0 && state.winner === null;
   const me = state.players[0], op = state.players[1];
@@ -362,7 +491,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     try {
       const card = state.players[0].hand.find(c => c.uid === uid);
       const next = playCard(state, uid, discard ? { discard } : {});
-      if (card) setShown({ card: card.def, by: 0, key: Date.now(), uid });
+      if (card) { setShown({ card: card.def, by: 0, key: Date.now(), uid }); play('card'); }
       playedUid.current = uid;
       window.setTimeout(() => setShown(s => (s?.uid === uid ? null : s)), 1400);
       setState(next);
@@ -394,19 +523,20 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   const endTurnNow = useCallback(() => {
     if (!myTurn || picking) return;
     setError(null);
+    play('click');
     setState(endTurn(state));
   }, [myTurn, picking, state]);
 
   // espaço encerra o turno
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if (e.key !== ' ' || preview || result) return;
+      if (e.key !== ' ' || preview || result || intro || graveView !== null) return;
       e.preventDefault();
       endTurnNow();
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [endTurnNow, preview, result]);
+  }, [endTurnNow, preview, result, intro, graveView]);
 
   const lastLog = useMemo(() => state.log.slice(-40), [state.log]);
   const news = useMemo(() => state.log.filter(l => !l.text.startsWith('—')).slice(-2), [state.log]);
@@ -421,34 +551,44 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         <div className="dv-bg" style={{ background: `radial-gradient(ellipse at 50% 40%, ${el.el2}66, transparent 70%), repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 .12cqw, transparent .12cqw 2.4cqw), repeating-linear-gradient(90deg, #6b4a2e 0 7cqw, #5e3f26 7cqw 7.12cqw, #684629 7.12cqw 14cqw)` }} />
 
         {/* desafiante atrás da mesa */}
-        <div className="dv-foe">
-          <Body frame={frames[1]} />
+        <div className={`dv-foe ${foeMood}`}>
+          <Body frames={frames[1]} mood={foeMood} />
           {state.active === 1 && state.winner === null && <div className="dv-think"><i /><i /><i /></div>}
         </div>
 
         {/* mesa */}
         <div className={`dv-table ${drag ? (drag.over ? (playable.has(drag.uid) ? 'drop-ok' : 'drop-no') : 'dragging') : ''}`}>
           <div className="dv-mat" style={matStyle(matOf(mat), import.meta.env.BASE_URL)}>
-            <Row side="op" p={op} hidden open={c => setPreview({ card: c })} hold={hold[1]} />
+            <Row side="op" p={op} hidden open={c => setPreview({ card: c })} hold={hold[1]} openGrave={() => setGraveView(1)} />
             <div className="dv-field">
               <Slot label="CAMPO" card={state.field?.card.def} onOpen={state.field ? () => setPreview({ card: state.field!.card.def }) : undefined} />
             </div>
-            <Row side="me" p={me} hidden={false} open={c => setPreview({ card: c })} hold={hold[0]} />
+            <Row side="me" p={me} hidden={false} open={c => setPreview({ card: c })} hold={hold[0]} openGrave={() => setGraveView(0)} />
           </div>
         </div>
 
         {/* carta jogada */}
         {shown && (
-          <div key={shown.key} className="dv-played" onClick={() => setPreview({ card: shown.card })}>
+          <div key={shown.key} className={`dv-played ${shown.by === 1 ? 'from-foe' : ''}`} onClick={() => setPreview({ card: shown.card })}>
             <div className="who dv-px" style={{ color: shown.by === 0 ? '#bef264' : '#fca5a5' }}>{shown.by === 0 ? 'VOCÊ JOGOU' : `${foe.name.toUpperCase()} JOGOU`}</div>
             <TcgCard card={shown.card} />
           </div>
         )}
 
         {/* o que acabou de acontecer (a conta do dano entra aqui) */}
-        <div className="dv-news" aria-live="polite">
-          {news.map((l, i) => <div key={state.log.length - news.length + i}>{l.text}</div>)}
-        </div>
+        {calcShow ? <CalcPanel key={`calc-${calcShow.key}`} c={calcShow.calc} /> : (
+          <div className="dv-news" aria-live="polite">
+            {news.map((l, i) => <div key={state.log.length - news.length + i}>{l.text}</div>)}
+          </div>
+        )}
+        {flash && <div key={`flash-${flash.key}`} className="dv-flash" style={{ ['--c' as string]: flash.color }} />}
+        {stamp && <div key={`stamp-${stamp.key}`} className={`dv-stamp dv-px ${stamp.kind}`}>{stamp.text}</div>}
+        {trapShow && (
+          <div key={trapShow.key} className="dv-trap">
+            <div className="tag dv-px">ARMADILHA{trapShow.owner === 1 ? ` DE ${foe.name.toUpperCase()}` : ''}!</div>
+            <div className="flip"><div className="face front"><TcgCard card={trapShow.card} /></div><div className="face back"><TcgCardBack /></div></div>
+          </div>
+        )}
 
         {/* números de golpe e cura */}
         {hits.map(h => (
@@ -459,12 +599,12 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
           </div>
         ))}
 
-        <Plate side="op" p={op} face={frames[1]} nick={foe.name} title={`${foe.kind === 'chefe' ? 'CHEFE' : 'MESA'} · ${AI_NAMES[foe.ai].toUpperCase()}`}
+        <Plate side="op" p={op} face={frames[1]?.[0] ?? null} nick={foe.name} title={`${foe.kind === 'chefe' ? 'CHEFE' : 'MESA'} · ${AI_NAMES[foe.ai].toUpperCase()}`}
           tone={el.el} turn={state.active === 1 && state.winner === null} />
         <div className="dv-ophand" title={`${op.hand.length} carta(s) na mão`}>
           {op.hand.map((c, i) => <div key={c.uid} style={{ ['--r' as string]: `${(i - (op.hand.length - 1) / 2) * 5}deg` }}><TcgCardBack /></div>)}
         </div>
-        <Plate side="me" p={me} face={frames[0]} nick={nick} title="DESAFIANTE" tone="#8cc63f" turn={myTurn} />
+        <Plate side="me" p={me} face={frames[0]?.[0] ?? null} hurt={meHurt} nick={nick} title="DESAFIANTE" tone="#8cc63f" turn={myTurn} />
 
         {/* carta em foco */}
         <div className="dv-focus">
@@ -490,8 +630,8 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
             const lift = sel ? -22 : 0;
             return (
               <button key={c.uid} data-uid={c.uid}
-                className={`c ${picking ? (pickable ? (sel ? 'pick' : '') : 'dim') : ok ? 'ok' : myTurn ? 'dim' : ''} ${drag?.uid === c.uid || hiddenUids.has(c.uid) ? 'away' : ''}`}
-                style={{ left: `${left}%`, ['--y' as string]: `${drop + lift}%`, ['--r' as string]: `${rot}deg`, zIndex: i }}
+                className={`c ${picking ? (pickable ? (sel ? 'pick' : '') : 'dim') : ok ? 'ok' : myTurn ? 'dim' : ''} ${drag?.uid === c.uid || hiddenUids.has(c.uid) ? 'away' : ''} ${dealing ? 'deal' : ''}`}
+                style={{ left: `${left}%`, ['--y' as string]: `${drop + lift}%`, ['--r' as string]: `${rot}deg`, zIndex: i, animationDelay: dealing ? `${i * 110}ms` : undefined }}
                 onMouseEnter={() => setFocus(c.def)}
                 onPointerDown={e => {
                   if (!myTurn || picking || e.button > 0) return;
@@ -566,6 +706,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
 
         <div className="dv-tools dv-px">
           <button onClick={() => setShowLog(v => !v)}>LOG</button>
+          <button onClick={() => { setMuted(!muted); setMutedState(!muted); if (muted) play('click'); }} aria-label={muted ? 'Ligar o som' : 'Desligar o som'}>{muted ? 'MUDO' : 'SOM'}</button>
           <button onClick={onQuit}>SAIR</button>
         </div>
         {showLog && (
@@ -591,6 +732,42 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
                 <button className="dv-btn" onClick={() => setPreview(null)}>FECHAR</button>
               </div>
             </div>
+          </div>
+        )}
+
+        {graveView !== null && (
+          <div className="dv-modal" onClick={() => setGraveView(null)}>
+            <div className="dv-grave" onClick={e => e.stopPropagation()}>
+              <div className="head dv-px">CEMITÉRIO {graveView === 0 ? 'SEU' : `DE ${foe.name.toUpperCase()}`} · {state.players[graveView].graveyard.length}
+                <button className="dv-btn" onClick={() => setGraveView(null)}>FECHAR</button></div>
+              <div className="grid">
+                {[...state.players[graveView].graveyard].reverse().map((c, i) => (
+                  <button key={c.uid} style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }} onClick={() => { setGraveView(null); setPreview({ card: c.def }); }}><TcgCard card={c.def} /></button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {intro && (
+          <div className={`dv-intro ${intro}`}>
+            <div className="side me"><div className="por"><Face frame={frames[0]?.[0] ?? null} /></div><div className="nm dv-px">{nick.toUpperCase()}</div><div className="tt dv-px">DESAFIANTE</div></div>
+            <div className="vs dv-px">VS</div>
+            <div className="side op" style={{ ['--tone' as string]: el.el }}><div className="por"><Face frame={frames[1]?.[0] ?? null} /></div><div className="nm dv-px">{foe.name.toUpperCase()}</div>
+              <div className="tt dv-px">{foe.kind === 'chefe' ? 'CHEFE' : 'MESA'} · {ELEMENT_PT[foe.element].toUpperCase()} · {AI_NAMES[foe.ai].toUpperCase()}</div></div>
+            {intro === 'coin' && (
+              <div className="coin-wrap">
+                <div className="coin"><span>{state.firstPlayer === 0 ? 'VOCÊ' : foe.name.split(' ')[0].toUpperCase()}</span></div>
+                <div className="who dv-px">{state.firstPlayer === 0 ? 'VOCÊ COMEÇA!' : `${foe.name.toUpperCase()} COMEÇA!`}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {state.winner !== null && !result && (
+          <div className={`dv-end-stamp ${state.winner === 0 ? 'win' : 'lose'}`}>
+            <div className="rays" />
+            <div className="txt dv-px">{state.winner === 0 ? 'VITÓRIA!' : 'DERROTA'}</div>
           </div>
         )}
 

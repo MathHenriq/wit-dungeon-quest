@@ -8,6 +8,7 @@ import { CLOTH, MOLDE, type Look } from '@/game/world/outfit';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
 import { DuelView } from '@/components/duel/DuelView';
 import { DeckBuilder } from '@/components/duel/DeckBuilder';
+import { DuelResult as DuelResultPanel } from '@/components/duel/DuelResult';
 import { TcgCard } from '@/components/tcg/TcgCard';
 import { AI_NAMES } from '@/lib/tcg/ai';
 import { ELEMENT_PT } from '@/lib/tcg/labels';
@@ -660,28 +661,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
             if (next !== progress) { saveProgress(next); setProgress(next); }
             setDuel(d => (d ? { ...d, result } : d));
           }}
-          result={duel.result && (
-            <div className={`w-[min(94vw,440px)] rounded-xl border-4 ${duel.result.won ? 'border-[#8cc63f]' : 'border-[#b02a3a]'} bg-[#141018] p-5 text-white text-center ${pixelFont}`}>
-              <div className={`text-[18px] ${duel.result.won ? 'text-lime-300' : 'text-red-300'}`}>{duel.result.won ? 'VITÓRIA!' : 'DERROTA'}</div>
-              {duel.result.won ? (
-                <>
-                  <div className="mt-4 text-[12px] text-yellow-200">+{duel.result.coins} MOEDAS</div>
-                  <div className="mt-1 text-[8px] text-white/60">{duel.result.firstWin ? 'primeira vitória contra este desafiante' : 'revanche: 20% das moedas'}</div>
-                  {duel.result.card && (
-                    <div className="mt-4 flex flex-col items-center gap-2">
-                      <div className="text-[10px] text-lime-200">CARTA CONQUISTADA</div>
-                      <div className="w-[160px]"><TcgCard card={duel.result.card} /></div>
-                    </div>
-                  )}
-                  {duel.result.unlocked && <div className="mt-4 text-[10px] text-lime-300">ANDAR {duel.result.unlocked} LIBERADO! A ESCADA ESTÁ ABERTA.</div>}
-                </>
-              ) : (
-                <div className="mt-4 text-[10px] leading-5 text-white/80">Tente de novo! Dica: monte o deck no botão DECK e guarde os bônus para o ataque certo.</div>
-              )}
-              <div className="mt-5 text-[9px] text-white/60">MOEDAS: {progress.coins}</div>
-              <button onClick={() => setDuel(null)} className="mt-4 px-5 py-2.5 rounded-md bg-[#2f6b1e] border-2 border-[#8cc63f] text-[11px]">VOLTAR</button>
-            </div>
-          )}
+          result={duel.result && <DuelResultPanel result={duel.result} coinsNow={progress.coins} onBack={() => setDuel(null)} />}
         />
       )}
 
