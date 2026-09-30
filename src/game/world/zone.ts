@@ -99,6 +99,8 @@ export interface Lamp {
   y: number;
   /** 0–1: espalha a hora de acender entre os postes. */
   seed: number;
+  /** Poste inteligente (IoT): à noite fica fraquinho e acende forte quando alguém chega perto. */
+  smart?: boolean;
 }
 
 export interface GlowSpot { x: number; y: number; r: number; color: readonly [number, number, number]; k: number }
@@ -131,6 +133,8 @@ export interface Town {
   spots: Spot[];
   /** Água onde a animação de ondas é desenhada na hora (lagos grandes), em blocos. */
   waterAnim?: { x0: number; y0: number; x1: number; y1: number };
+  /** Telões: a tela (em pixels do mundo) onde o jogo escreve o Jornal WIT. */
+  screens?: { x: number; y: number; w: number; h: number; baseY: number }[];
 }
 
 export interface ZoneOptions {
@@ -343,11 +347,11 @@ export class ZoneBuilder {
   }
 
   /** Poste (acende sozinho na sua hora, desenhado à parte pelo jogo). */
-  lamp(tx: number, ty: number): void {
+  lamp(tx: number, ty: number, smart = false): void {
     if (!this.lampArt) this.lampArt = this.A.poste ? { pix: this.A.poste.pix, night: lampNight(this.A.poste, 9) } : T.lampLit();
     const o = this.putLit(`poste-${tx}-${ty}`, { pix: this.lampArt.pix }, tx, ty, 1, 1);
     const i = this.lamps.length;
-    this.lamps.push({ bulb: [tx * TILE + 8, ty * TILE - 9], ground: [tx * TILE + 8, ty * TILE + 10], night: this.lampArt.night, x: o.x, y: o.y, seed: (i * 0.618034) % 1 });
+    this.lamps.push({ bulb: [tx * TILE + 8, ty * TILE - 9], ground: [tx * TILE + 8, ty * TILE + 10], night: this.lampArt.night, x: o.x, y: o.y, seed: (i * 0.618034) % 1, smart });
   }
 
   /** Enfeite de chão (dá para pisar); flor, mato e arbusto florido balançam com o vento. */

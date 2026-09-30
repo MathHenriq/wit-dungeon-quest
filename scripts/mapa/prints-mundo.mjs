@@ -107,7 +107,34 @@ async function open(name, query, viewport = { width: 1280, height: 720 }, touch 
   await shot('tarde');
   await ctx0.close();
 }
-// 5) noite no lago e celular
+// 5) Cidade WIT: chegada pelo Centro, praça com o telão, WIT-Bot, noite com postes inteligentes, Núcleo
+{
+  const { ctx, shot, hold, page } = await open('wit', '?pos=31,45');
+  await hold('ArrowDown', 700);
+  await page.waitForTimeout(1500);
+  await shot('chegou');
+  await ctx.close();
+}
+{
+  const { ctx, shot } = await open('wit-praca', '?zona=wit&pos=35,23');
+  await shot('telao');
+  await ctx.close();
+}
+{
+  const { ctx, shot, hold } = await open('wit-noite', '?zona=wit&pos=24,13&hora=21');
+  await shot('postes');
+  await hold('ArrowRight', 1500);
+  await shot('postes-andando');
+  await ctx.close();
+}
+{
+  const { ctx, shot, hold, page } = await open('wit-nucleo', '?zona=wit&pos=31,13');
+  await hold('ArrowUp', 400);
+  await page.waitForTimeout(500);
+  await shot('cursos');
+  await ctx.close();
+}
+// 6) noite no lago e celular
 {
   const { ctx, shot } = await open('lago-noite', '?zona=lago&pos=24,20&hora=21.5');
   await shot('praca');

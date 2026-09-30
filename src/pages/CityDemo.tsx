@@ -9,6 +9,11 @@ import { chickenFrames, cowFrames, cropArt, sheepFrames, soilArt } from '@/game/
 import { HENYARD, PASTURE } from '@/game/world/zone-fazenda';
 import { actionAt, applyAction, CAN_SIZE, catchUp, CROP_BY_ID, CROPS, itemName, loadFarm, nextDay, saveFarm, type CropId, type FarmState } from '@/game/farm';
 import { FarmPanel, iconOf } from '@/components/city/FarmPanel';
+import { CoursesPanel } from '@/components/city/CoursesPanel';
+import { droneFrames, witBotFrames } from '@/game/world/buildings-wit';
+import { PLAZA_WIT } from '@/game/world/zone-wit';
+import { BOT_TIPS, headlines } from '@/game/news';
+import { drawText, textWidth } from '@/game/world/font';
 import { spawnCritters, stepCritters, type Critter, type CritterKind } from '@/game/world/critters';
 import { drawWaterAnim, makeWaterAnim, type WaterAnim } from '@/game/world/water-anim';
 import { drawAlert, drawOars, drawRod } from '@/game/world/player-acts';
@@ -193,6 +198,7 @@ function CityView({ town, start, startHour, onTravel }: {
   const [fishHouse, setFishHouse] = useState<'quadro' | 'vender' | null>(null);
   const [fishUi, setFishUi] = useState<FishUi | null>(null);
   const [farmPanel, setFarmPanel] = useState<'sementes' | 'envio' | null>(null);
+  const [courses, setCourses] = useState(false);
   /** Só para redesenhar a barra da fazenda (semente escolhida, água). */
   const [, setFarmHud] = useState(0);
   const fields = town.spots.filter(sp => sp.kind === 'campo').map(sp => ({ x0: sp.tx, y0: sp.ty, x1: sp.data!.x1 as number, y1: sp.data!.y1 as number }));
@@ -238,6 +244,11 @@ function CityView({ town, start, startHour, onTravel }: {
     seed: null as CropId | null,
     soil: null as { dry: HTMLCanvasElement; wet: HTMLCanvasElement } | null,
     cropCanvas: new Map<string, HTMLCanvasElement>(),
+    /** Jornal WIT: a faixa de manchetes (canvas) e o cabeçalho do telão. */
+    news: null as { strip: HTMLCanvasElement; head: HTMLCanvasElement } | null,
+    /** Drones de entrega voando (Cidade WIT). */
+    drones: [] as { x: number; y: number; tx: number; ty: number; seed: number }[],
+    droneCanvases: null as HTMLCanvasElement[] | null,
     /** Ferramenta em uso (animação curta): enxada, regador, semente, colheita. */
     act: null as { kind: 'arar' | 'regar' | 'plantar' | 'colher' | 'encher'; t: number; tx: number; ty: number; icon?: string } | null,
     water: null as WaterAnim | null,
@@ -281,9 +292,9 @@ function CityView({ town, start, startHour, onTravel }: {
   });
 
   useEffect(() => {
-    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel;
+    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses;
     g.current.inside = !!inside; g.current.dirty = true;
-  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel]);
+  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel, courses]);
 
   // fazenda: se ficou fora um dia (12 min) ou mais, vira um dia ao chegar
   useEffect(() => {
@@ -340,6 +351,28 @@ function CityView({ town, start, startHour, onTravel }: {
       cc.galinha = { west: chickenFrames(-1).map(toCanvasHd), east: chickenFrames(1).map(toCanvasHd) };
       cc.pato = { west: duckFrames('west').map(toCanvasHd), east: duckFrames('east').map(toCanvasHd) };
       g.current.soil = { dry: toCanvasHd(soilArt(false)), wet: toCanvasHd(soilArt(true)) };
+    }
+    if (town.id === 'wit') {
+      const home = { x0: PLAZA_WIT.x0, y0: PLAZA_WIT.y0 + 5, x1: PLAZA_WIT.x1 + 1, y1: PLAZA_WIT.y1 + 1 };
+      g.current.critters = spawnCritters(town, 'robo', 1, home, 13);
+      cc.robo = { west: witBotFrames(-1).map(toCanvasHd), east: witBotFrames(1).map(toCanvasHd) };
+      g.current.droneCanvases = droneFrames().map(toCanvasHd);
+      const W = town.ground.w, H = town.ground.h;
+      g.current.drones = [0, 1, 2, 3].map(k => ({ x: (k * 0.29 % 1) * W, y: (k * 0.53 % 1) * H, tx: ((k + 2) * 0.37 % 1) * W, ty: ((k + 1) * 0.61 % 1) * H, seed: k / 4 }));
+      // o telão: manchetes numa faixa, com a fonte da cidade em dobro
+      const lines = headlines(Math.floor(Date.now() / 86_400_000), loadProgress());
+      const text = lines.join('   -   ') + '   -   ';
+      const tw = textWidth(text) + 2, k = 2;
+      const pm = new Pixmap(tw, 9);
+      drawText(pm, text, 1, 1, { fill: [220, 255, 190], fillBottom: [150, 230, 90], shadow: [20, 60, 30] });
+      const strip = document.createElement('canvas');
+      strip.width = tw * k; strip.height = 9 * k;
+      const sctx2 = strip.getContext('2d')!;
+      sctx2.imageSmoothingEnabled = false;
+      sctx2.drawImage(toCanvas(pm), 0, 0, tw * k, 9 * k);
+      const hp = new Pixmap(textWidth('JORNAL WIT') + 2, 9);
+      drawText(hp, 'JORNAL WIT', 1, 1, { fill: [255, 255, 255], fillBottom: [220, 240, 255], shadow: [30, 60, 20] });
+      g.current.news = { strip, head: toCanvas(hp) };
     }
     g.current.water = makeWaterAnim(town);
     const qs = new URLSearchParams(window.location.search);
@@ -548,6 +581,17 @@ function CityView({ town, start, startHour, onTravel }: {
         case 'castelo-areia': setDialog({ lines: ['Um castelo de areia caprichado, com bandeirinha e tudo.', 'Melhor não pisar!'], i: 0 }); return;
         case 'fogueira': setDialog({ lines: ['A fogueira do acampamento estala e esquenta.', 'À noite, os vaga-lumes aparecem por aqui.'], i: 0 }); return;
         case 'sementes': setFarmPanel('sementes'); return;
+        case 'telao': setDialog({ lines: ['JORNAL WIT', ...headlines(Math.floor(Date.now() / 86_400_000), loadProgress()).slice(0, 5)], i: 0 }); return;
+        case 'holograma': play('super'); setDialog({ lines: ['O holograma do W gira em cima da praça.', 'Quem fez foi a turma de Metaverso: é um modelo 3D projetado com luz.'], i: 0 }); return;
+        case 'canteiro-iot': setDialog({ lines: ['Canteiro inteligente: o sensor mede a umidade da terra.', `Umidade agora: ${55 + Math.round(Math.sin(Date.now() / 60000) * 20)}%. Quando fica seca, o aspersor liga sozinho.`, 'Em breve a turma de IoT leva isso para a Fazenda (irrigador automático).'], i: 0 }); return;
+        case 'estacao-tempo': {
+          const hh = String(Math.floor(s.hour)).padStart(2, '0');
+          setDialog({ lines: [`Estação do tempo WIT · ${hh}h`, `Temperatura: ${22 + Math.round(Math.sin((s.hour - 9) / 24 * Math.PI * 2) * 6)}°C · Vento: fraco · Céu: ${s.hour >= 6 && s.hour < 18.5 ? 'sol' : 'estrelado'}.`, 'Os dados vão para o telão e para a turma de IoT.'], i: 0 });
+          return;
+        }
+        case 'patinetes': setDialog({ lines: ['Estação de patinetes elétricos (carregando).', 'Veículos chegam em breve: patinete, bicicleta e mais!'], i: 0 }); return;
+        case 'fliperama': play('super'); setDialog({ lines: ['FLIPERAMA WIT', 'Os minijogos da Oficina de Games vão rodar aqui e dar tíquetes. (Em breve!)'], i: 0 }); return;
+        case 'quadra': setDialog({ lines: ['A cesta está baixinha, do seu tamanho.', 'Bora um basquete? Os campeonatos entre guildas chegam em breve!'], i: 0 }); return;
         case 'caixa-envio': setFarmPanel('envio'); return;
         case 'poco': fillCan(); return;
         case 'ninho': {
@@ -572,8 +616,16 @@ function CityView({ town, start, startHour, onTravel }: {
         }
       }
     }
-    // bicho na frente: tirar leite, tosar, fazer carinho
+    // bicho na frente: tirar leite, tosar, fazer carinho (ou o WIT-Bot conversando)
     const critter = s.critters.find(c => Math.floor(c.x / TILE) === f.tx && Math.floor((c.y - 4) / TILE) === f.ty && c.kind !== 'pato');
+    if (critter?.kind === 'robo') {
+      critter.wait = 5000; critter.gx = critter.x; critter.gy = critter.y;
+      critter.face = p.tx * TILE + 8 > critter.x ? 1 : -1;
+      const k = Math.floor(Date.now() / 7000) % BOT_TIPS.length;
+      play('click');
+      setDialog({ lines: [BOT_TIPS[k], BOT_TIPS[(k + 1) % BOT_TIPS.length]], i: 0 });
+      return;
+    }
     if (critter) {
       const id = `${critter.kind}-${s.critters.indexOf(critter)}`, fm = s.farm;
       if (critter.kind === 'galinha') { play('click'); toast('Có-có-có! 🐔'); return; }
@@ -641,7 +693,7 @@ function CityView({ town, start, startHour, onTravel }: {
       }
       if (e.key === 'Shift') g.current.run = true;
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') { e.preventDefault(); interact(); }
-      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); setDeckOpen(false); setMapOpen(false); setFishHouse(null); }
+      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); setDeckOpen(false); setMapOpen(false); setFishHouse(null); setFarmPanel(null); setCourses(false); }
       if ((e.key === 'm' || e.key === 'M') && !g.current.inside) setMapOpen(o => !o);
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
@@ -687,6 +739,7 @@ function CityView({ town, start, startHour, onTravel }: {
           setInside({ kind: 'sala', id });
         }
         else if (door.building === 'casa-pesca') setFishHouse('quadro');
+        else if (door.building === 'nucleo-wit') setCourses(true);
         else if (door.building === 'farol') { setDialog({ lines: ['Você sobe a escada em caracol do farol...', 'Lá de cima dá para ver o mundo todo!'], i: 0 }); window.setTimeout(() => setMapOpen(true), 50); s.player.ty += 1; s.player.dir = 'south'; }
         else setPanel(BUILDING_INFO[door.building] ?? houseInfo(door.building, door.name));
         return;
@@ -752,6 +805,12 @@ function CityView({ town, start, startHour, onTravel }: {
       }
       // bichos soltos (patos no lago)
       if (s.critters.length && stepCritters(s.critters, dt, town, Math.random)) s.dirty = true;
+      // drones: voam em linha reta até um ponto e escolhem outro
+      for (const d of s.drones) {
+        const dx = d.tx - d.x, dy = d.ty - d.y, dist = Math.hypot(dx, dy), v = (32 * dt) / 1000;
+        if (dist < v) { d.tx = Math.random() * town.ground.w; d.ty = 40 + Math.random() * (town.ground.h - 80); }
+        else { d.x += (dx / dist) * v; d.y += (dy / dist) * v; }
+      }
       if (!p.from && !s.held.length && s.path.length && blocked(p.tx + DELTA[s.path[0]][0], p.ty + DELTA[s.path[0]][1])) s.path = [];
       // pet: segue exatamente os blocos que o jogador deixou
       tick(pet, dt, {
@@ -936,12 +995,19 @@ function CityView({ town, start, startHour, onTravel }: {
         }
       }
       // postes: cada um acende na sua hora (pisca antes de firmar); poça de luz no chão
-      const lampsOn = lit ? town.lamps.map((l, i) => ({ l, i, on: lampPower(s.hour, l.seed) }))
+      // poste inteligente (IoT): fraquinho à noite, acende forte quando alguém chega perto
+      const ppx = pixelPos(p, TILE);
+      const smartOn = (l: (typeof town.lamps)[number], on: number) => {
+        if (!l.smart || on <= 0) return on;
+        const d = Math.hypot(l.ground[0] - ppx.x - 8, l.ground[1] - ppx.y - 8);
+        return on * (0.28 + 0.72 * Math.max(0, Math.min(1, 1 - (d - 28) / 56)));
+      };
+      const lampsOn = lit ? town.lamps.map((l, i) => ({ l, i, on: smartOn(l, lampPower(s.hour, l.seed)) }))
         .filter(({ l, on }) => on > 0 && l.bulb[0] > camX - 40 && l.bulb[0] < camX + vw + 40 && l.bulb[1] > camY - 60 && l.bulb[1] < camY + vh + 60) : [];
       if (lampsOn.length) {
         ctx.globalCompositeOperation = 'lighter';
-        const k = Math.min(1, tod.light * 1.3);
-        for (const { l } of lampsOn) {
+        for (const { l, on } of lampsOn) {
+          const k = Math.min(1, tod.light * 1.3) * (l.smart ? on : 1);
           const [gx, gy] = [l.ground[0] - camX, l.ground[1] - camY];
           ctx.save();
           ctx.translate(gx, gy); ctx.scale(1, 0.55);
@@ -1111,6 +1177,38 @@ function CityView({ town, start, startHour, onTravel }: {
         });
         if (age > 700) s.act = null;
       }
+      // telão do Jornal WIT: cabeçalho e manchetes correndo (acende à noite: não escurece)
+      if (s.news && town.screens) for (const sc of town.screens) {
+        const x = sc.x - camX, y = sc.y - camY;
+        if (x > vw || x + sc.w < 0 || y > vh || y + sc.h < 0) continue;
+        const nw = s.news;
+        list.push({
+          baseY: sc.baseY + 0.01,
+          draw: () => {
+            ctx.fillStyle = '#0e1a24'; ctx.fillRect(x, y, sc.w, sc.h);
+            ctx.fillStyle = '#5a9a2a'; ctx.fillRect(x, y, sc.w, 6);
+            ctx.drawImage(nw.head, x + 2, y + 0.5, nw.head.width / 2, nw.head.height / 2);
+            const hh = Math.floor(s.hour), mm = Math.floor((s.hour % 1) * 60);
+            ctx.fillStyle = '#e8ffd8'; ctx.font = '4px monospace'; ctx.textAlign = 'right';
+            ctx.fillText(`${String(hh).padStart(2, '0')}:${String(mm - (mm % 10)).padStart(2, '0')}`, x + sc.w - 2, y + 4.5);
+            // faixa: 9 px de fonte em dobro = 9 px do mundo; anda 20 px por segundo
+            const sw = nw.strip.width / R, off = (now / 50) % sw;
+            ctx.save();
+            ctx.beginPath(); ctx.rect(x + 1, y + 7, sc.w - 2, sc.h - 8); ctx.clip();
+            for (let k = -1; k <= Math.ceil(sc.w / sw); k++) ctx.drawImage(nw.strip, x - off + k * sw, y + 9 + (sc.h - 16) / 2 - 4.5, sw, nw.strip.height / R);
+            // linhas de "tela" e o brilho de cima
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
+            for (let yy = 8; yy < sc.h; yy += 1.5) ctx.fillRect(x, y + yy, sc.w, 0.5);
+            ctx.restore();
+          },
+        });
+      }
+      // sombra dos drones no chão
+      if (s.droneCanvases) for (const d of s.drones) {
+        const x = d.x - camX, y = d.y - camY + 30;
+        if (x < -20 || x > vw + 20 || y < -20 || y > vh + 20) continue;
+        ctx.fillStyle = 'rgba(20,30,40,0.22)'; ctx.beginPath(); ctx.ellipse(x, y, 6, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+      }
       // vara de pesca, linha e boia
       if (s.fish && s.playerFrames) {
         const fi = s.fish, pos = pixelPos(p, TILE);
@@ -1150,10 +1248,10 @@ function CityView({ town, start, startHour, onTravel }: {
 
       // lâmpada dos postes acesos: a cúpula clara e um brilho em volta
       if (lampsOn.length) {
-        const k = Math.min(1, tod.light * 1.3);
-        for (const { l, i } of lampsOn) {
+        for (const { l, i, on } of lampsOn) {
+          const k = Math.min(1, tod.light * 1.3) * (l.smart ? on : 1);
           const n = s.lampNights[i];
-          if (n) ctx.drawImage(n, l.x - camX, l.y - camY, n.width / R, n.height / R);
+          if (n) { ctx.globalAlpha = l.smart ? Math.max(0.35, on) : 1; ctx.drawImage(n, l.x - camX, l.y - camY, n.width / R, n.height / R); ctx.globalAlpha = 1; }
           const [bx, by] = [l.bulb[0] - camX, l.bulb[1] - camY];
           ctx.globalCompositeOperation = 'lighter';
           const gr = ctx.createRadialGradient(bx, by, 0, bx, by, 13);
@@ -1186,6 +1284,14 @@ function CityView({ town, start, startHour, onTravel }: {
       plateAt(p, plateCanvas(s.nick, s.playerTitle, PLATE_PLAYER));
       for (const n of s.npcs) {
         if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) plateAt(n.w, plateCanvas(n.def.name, n.def.title, PLATE_NPC));
+      }
+      // drones voando por cima de tudo
+      if (s.droneCanvases) for (const d of s.drones) {
+        const x = d.x - camX, y = d.y - camY - Math.sin(now / 400 + d.seed * 9);
+        if (x < -20 || x > vw + 20 || y < -20 || y > vh + 20) continue;
+        const c = s.droneCanvases[Math.floor(now / 60) % 2];
+        ctx.drawImage(white ? c : tinted(c, tintKey, tintCss), Math.round(x - c.width / R / 2), Math.round(y - c.height / R / 2), c.width / R, c.height / R);
+        if (lit) { ctx.fillStyle = `rgba(80,255,140,${0.8 * tod.light})`; ctx.fillRect(Math.round(x) - 0.5, Math.round(y) - 1, 1, 1); }
       }
       // o peixe mordeu: "!" do lado da cabeça, por cima de tudo
       if (s.fish?.phase === 'bite') {
@@ -1306,6 +1412,7 @@ function CityView({ town, start, startHour, onTravel }: {
         <div className={`absolute left-1/2 -translate-x-1/2 bottom-[22%] px-4 py-2 rounded-lg bg-black/70 text-white text-[10px] pointer-events-none ${pixelFont}`}>{fishUi.text}</div>
       )}
       {fishHouse && <FishHouse progress={progress} start={fishHouse} onClose={() => setFishHouse(null)} />}
+      {courses && <CoursesPanel onClose={() => setCourses(false)} />}
       {farmPanel && <FarmPanel mode={farmPanel} progress={progress} onClose={() => { setFarmPanel(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
       {town.id === 'fazenda' && !inside && (() => {
         const s = g.current;

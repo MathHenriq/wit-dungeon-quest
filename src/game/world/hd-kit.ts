@@ -288,7 +288,7 @@ export class Art {
   }
 
   /** Parede de vidro (prédio moderno): painéis com caixilho e reflexo; parte acende à noite. */
-  glassWall(x: number, y: number, w: number, h: number, o: { tint?: RGB; frame?: RGB; pane?: [number, number]; seed?: number; lit?: RGB } = {}): void {
+  glassWall(x: number, y: number, w: number, h: number, o: { tint?: RGB; frame?: RGB; pane?: [number, number]; seed?: number; lit?: RGB; litShare?: number } = {}): void {
     const tint = o.tint ?? hex('#6ab8e0'), fr = o.frame ?? hex('#dfe6ee');
     const [pw, ph] = o.pane ?? [10, 12];
     this.rect(x, y, w, h, fr);
@@ -301,7 +301,7 @@ export class Art {
         const X = px + ((k + (px >> 1)) % (ww + 6)) - 3;
         if (X >= px && X < px + ww) this.px(X, py + k, lighten(tint, 0.55));
       }
-      if (hash(px, py, o.seed ?? 3) > 0.35) this.nt.rect(px, py, ww, hh, o.lit ?? LED.warm);
+      if (hash(px, py, o.seed ?? 3) < (o.litShare ?? 0.65)) this.nt.rect(px, py, ww, hh, o.lit ?? LED.warm);
     }
     this.hline(x, y, w, lighten(fr, 0.4));
     this.hline(x, y + h - 1, w, darken(fr, 0.4));

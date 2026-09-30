@@ -15,6 +15,23 @@ export const BUILDING_INFO: Record<string, { title: string; text: string }> = {
   'casa-pesca': { title: 'Casa de Pesca', text: 'O quadro dos peixes do dia, a venda do que você pescou e o álbum de peixes do lago.' },
   'loja-iscas': { title: 'Loja de Iscas', text: 'Varas melhores e iscas para peixes raros chegam com a profissão de pescador (em breve).' },
   farol: { title: 'Farol', text: 'Lá de cima dá para ver o mundo todo.' },
+  // Fazenda do Vale
+  'casa-fazenda': { title: 'Casa da Fazenda', text: 'A casa do Seu Joca. Em breve: a cozinha onde as colheitas viram receitas.' },
+  celeiro: { title: 'Celeiro', text: 'Onde as vacas e as ovelhas dormem. Em breve: comprar bichos e cuidar deles lá dentro.' },
+  galinheiro: { title: 'Galinheiro', text: 'As galinhas botam ovos todo dia. Pegue no ninho, em frente à porta.' },
+  estufa: { title: 'Estufa', text: 'Aqui dentro as plantas crescem o ano todo, faça chuva ou faça sol. (Em breve.)' },
+  moinho: { title: 'Moinho', text: 'Transforma o trigo em farinha para a Padaria da Dona Rosa. (Em breve.)' },
+  // Cidade WIT
+  'lab-ia': { title: 'Laboratório de IA', text: 'Curso de Inteligência Artificial. Profissões: treinador de IA e cientista de dados. Em breve: rotular dados e treinar o WIT-Bot.' },
+  'casa-iot': { title: 'Casa Inteligente', text: 'Curso de IoT (ambientes inteligentes). Profissões: técnico de IoT e instalador. Em breve: montar sensores e o irrigador automático da fazenda.' },
+  estudio: { title: 'Estúdio de Comunicação', text: 'Curso de Comunicação Digital. Profissões: repórter, criador de conteúdo e locutor. Daqui sai o Jornal WIT do telão; em breve, a Rádio WIT.' },
+  metaverso: { title: 'Metaverso', text: 'Curso de Metaverso. Profissões: arquiteto do metaverso e designer 3D. O portal leva à Sala Virtual (em breve).' },
+  entregas: { title: 'Central de Entregas', text: 'Profissão: entregador. Os drones levam as encomendas entre os alunos (em breve).' },
+  'oficina-games': { title: 'Oficina de Games', text: 'Curso de Oficina de Games. Profissões: desenvolvedor e testador de games. Em breve: fases criadas pelos alunos nos fliperamas.' },
+  mercado: { title: 'Mercado Central', text: 'Profissão: comerciante. Em breve: a bolsa de preços, que sobem e descem com a oferta e a procura.' },
+  'estudio-musica': { title: 'Estúdio de Música', text: 'Profissão: músico. Em breve: gravar discos que tocam na sua casa e na Rádio WIT.' },
+  atelie: { title: 'Ateliê de Arte', text: 'Profissão: artista. Em breve: pintar quadros para decorar as casas.' },
+  'casa-coworking': { title: 'Coworking WIT', text: 'Onde as equipes se juntam para os projetos. Em breve: missões em grupo.' },
 };
 
 /** Modelos de casa (sprites em public/game/world). As 3 iniciais e as 7 que se compram. */
@@ -145,6 +162,25 @@ NPCS.push(
   { id: 'lala', zona: 'fazenda', name: 'Lalá', title: 'Estudante', tx: 20, ty: 36, dir: 'west',
     look: { modelo: 'modelo-05', pele: 'pele-3', cabelo: 'castanho', cima: 'rosa', baixo: 'jeans', acc: { cabeca: { id: 'laco', cor: 'amarelo' } } },
     lines: ['Os patinhos da lagoa são meus amigos!', 'Dá para pescar na lagoa também. E encher o regador!'] },
+  // Cidade WIT
+  { id: 'professor', zona: 'wit', name: 'Professor', title: 'Núcleo WIT', tx: 33, ty: 13, dir: 'south',
+    look: { modelo: 'modelo-08', pele: 'pele-3', cabelo: 'preto', cima: 'verde', baixo: 'jeans', acc: { rosto: { id: 'oculos', cor: 'preto' } } },
+    lines: ['Bem-vindo à Cidade WIT!', 'Aqui ficam os cursos do Núcleo: IA, IoT, Metaverso, Comunicação Digital e Oficina de Games.', 'Entre no Núcleo para ver as profissões de cada curso.'] },
+  { id: 'monitora-ia', zona: 'wit', name: 'Ana', title: 'Monitora de IA', tx: 16, ty: 13, dir: 'south',
+    look: { modelo: 'modelo-06', pele: 'pele-5', cabelo: 'preto', cima: 'marinho', baixo: 'preto', acc: { cabeca: { id: 'fone', cor: 'marinho' } } },
+    lines: ['O WIT-Bot anda pela praça. Fale com ele!', 'Ele aprendeu a conversar com os exemplos que a gente deu.'] },
+  { id: 'monitor-games', zona: 'wit', name: 'Davi', title: 'Monitor de Games', tx: 11, ty: 35, dir: 'north', job: { kind: 'passear', route: [[11, 35, 'north'], [20, 36, 'west'], [15, 35, 'north']], pause: [3000, 6000] },
+    look: { modelo: 'modelo-02', pele: 'pele-2', cabelo: 'azul', cima: 'roxo', baixo: 'preto', acc: { rosto: { id: 'oculos-sol', cor: 'preto' } } },
+    lines: ['Os fliperamas vão rodar os jogos que vocês criarem!', 'Já pensou num chefe feito por você na Torre?'] },
+  { id: 'reporter', zona: 'wit', name: 'Rita', title: 'Repórter', tx: 38, ty: 20, dir: 'north', job: { kind: 'passear', route: [[38, 20, 'north'], [46, 13, 'south'], [30, 26, 'west']], pause: [3000, 6000] },
+    look: { modelo: 'modelo-05', pele: 'pele-6', cabelo: 'ruivo', cima: 'vermelho', baixo: 'jeans', acc: { corpo: { id: 'bolsa', cor: 'marinho' } } },
+    lines: ['Olha o telão: é o Jornal WIT! Quem faz somos nós, do Estúdio.', 'Pescou um peixe raro? Pode sair na manchete amanhã!'] },
+  { id: 'entregador', zona: 'wit', name: 'Léo Drone', title: 'Entregador', tx: 60, ty: 13, dir: 'south',
+    look: { modelo: 'modelo-09', pele: 'pele-4', cabelo: 'castanho', cima: 'amarelo', baixo: 'marinho', acc: { cabeca: { id: 'viseira', cor: 'amarelo' } } },
+    lines: ['Os drones voam sozinhos pela cidade levando encomendas.', 'Em breve dá para mandar presentes para os colegas!'] },
+  { id: 'estudante-wit', zona: 'wit', name: 'Bela', title: 'Estudante', tx: 26, ty: 36, dir: 'east', job: { kind: 'passear', route: [[26, 36, 'east'], [50, 36, 'north'], [36, 22, 'west'], [9, 20, 'south']], pause: [2000, 5000] },
+    look: { modelo: 'modelo-10', pele: 'pele-1', cabelo: 'lilas', cima: 'rosa', baixo: 'branco' },
+    lines: ['Eu quero fazer o curso de Metaverso!', 'Dizem que o portal roxo leva para uma sala virtual...'] },
 );
 
 export const MURAL_TEXT = ['MURAL DA CIDADE', 'Avisos do professor e missões da semana aparecem aqui.'];

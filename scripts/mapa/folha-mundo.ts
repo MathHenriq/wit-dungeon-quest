@@ -5,6 +5,7 @@ import { Pixmap } from '../../src/game/world/pixmap';
 import { hex } from '../../src/game/world/pixmap';
 import * as L from '../../src/game/world/buildings-lago';
 import * as F from '../../src/game/world/buildings-fazenda';
+import * as Wt from '../../src/game/world/buildings-wit';
 import { savePixmap } from './png';
 
 const args = process.argv.slice(2).filter(a => a !== '--');
@@ -25,6 +26,11 @@ if (set === 'lago') {
   const wm = F.windmill(); items.push(...wm.frames!.slice(0, 2).map(hdOf));
   add(F.well()); add(F.seedStall()); add(F.shippingBin()); add(F.scarecrow()); add(F.hayBale());
   items.push(...F.chickenFrames(1).map(hdOf), ...F.cowFrames(-1).map(hdOf), ...F.sheepFrames(1).map(hdOf));
+} else if (set === 'wit') {
+  add(Wt.nucleoWit()); add(Wt.labIA()); add(Wt.casaInteligente()); add(Wt.metaverso()); add(Wt.estudioComunicacao());
+  add(Wt.oficinaGames()); add(Wt.mercadoCentral()); add(Wt.centralEntregas()); add(Wt.telao());
+  add(Wt.solarTree()); add(Wt.scooterDock()); add(Wt.arcade(hex('#e84a6a'))); add(Wt.smartPlanter());
+  items.push(...Wt.droneFrames().map(hdOf), ...Wt.witBotFrames(1).map(hdOf));
 } else {
   // plantações: cada planta em cada estágio, em cima da terra molhada
   const soil = hdOf(F.soilArt(true)), dry = hdOf(F.soilArt(false));

@@ -4,7 +4,7 @@
 import type { Town } from './zone';
 import { hash } from './pixmap';
 
-export type CritterKind = 'pato' | 'galinha' | 'vaca' | 'ovelha';
+export type CritterKind = 'pato' | 'galinha' | 'vaca' | 'ovelha' | 'robo';
 
 export interface Critter {
   kind: CritterKind;
@@ -18,7 +18,7 @@ export interface Critter {
   home: { x0: number; y0: number; x1: number; y1: number };
 }
 
-const SPEED: Record<CritterKind, number> = { pato: 9, galinha: 14, vaca: 6, ovelha: 7 };
+const SPEED: Record<CritterKind, number> = { pato: 9, galinha: 14, vaca: 6, ovelha: 7, robo: 16 };
 
 /** Pode ficar neste bloco? Pato só na água funda o bastante; os outros no chão livre. */
 export function critterFloor(town: Town, kind: CritterKind, tx: number, ty: number): boolean {

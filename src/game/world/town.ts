@@ -330,7 +330,7 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
 /** Onde se chega em cada área vindo do Centro (a primeira linha/coluna da faixa de entrada). */
 export const LAGO_ENTRY = { x: 1, y0: 20 };
 export const FAZENDA_ENTRY = { x: 70, y0: 20 };
-export const WIT_ENTRY = { x0: 34, y: 1 };
+export const WIT_ENTRY = { x0: 18, y: 1 };
 
 /** Praça da Torre (em blocos) e o lugar da fonte. */
 export const PLAZA = { x0: 23, y0: 15, x1: 40, y1: 25 };
