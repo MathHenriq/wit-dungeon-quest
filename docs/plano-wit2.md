@@ -288,6 +288,45 @@ nomes de carta:
 
 Nada de +dano ou +vida que decida uma partida.
 
+### 5.5 Tela do duelo (aprovada em 30/09)
+Esboço aprovado: https://claude.ai/artifact/UETfaivdHLuKTuheZd849g
+(referências: Master Duel, TCG Pocket, Marvel Snap, Hearthstone, Balatro,
+Shadowverse WB, Slay the Spire, Pokémon TCG do GBC).
+
+Decisões: mesa inclinada com as vagas marcadas; jogar carta arrastando ou
+tocando; animação forte nos momentos-chave e rápida no resto; efeitos de som
+curtos e simples, com mudo; computador e **celular deitado**.
+
+Peças: placa de cada jogador (retrato de frente com moldura dourada e
+elemento, apelido, título, vida em número e barra em gomos, efeitos em
+ícones com duração); desafiante atrás da mesa; conta do dano estilo Balatro
+(azul = dano somado, vermelho = multiplicador, dourado = total, e de onde veio
+cada parte); mão em leque; carta em foco; botão ENCERRAR TURNO com o número do
+turno e o atalho.
+
+**Tudo que muda tem animação, nada "pula":**
+- **Jogar carta:** a carta sai da mão, gira e pousa na vaga (ou voa até o
+  alvo e bate) com efeito bonito.
+- **Custos:** cada custo acontece à vista: a vida desce animada com o
+  pedaço perdido sumindo devagar e o número contando; a carta descartada
+  voa para o cemitério; as cartas do deck viram e caem no cemitério; a
+  carta banida se desfaz; a compra pulada aparece riscada.
+- **Cemitério e compra (estilo Balatro):** a carta comprada sai do deck,
+  vira no ar e desliza para o lugar dela na mão, que se reorganiza; o
+  cemitério empilha as cartas com um leve giro, e o contador de deck e de
+  cemitério pula a cada mudança. Tocar no cemitério abre as cartas dele.
+- **Boneco do adversário (padrão para todos):** anima os braços ao pensar e
+  ao jogar a carta, se encolhe ao tomar dano, comemora quando vence e cai
+  quando perde. Como os bonecos só mudam roupa e acessório (o formato do
+  corpo é o mesmo nos 10 modelos), as animações são uma só, aplicada por
+  cima de qualquer visual.
+
+Etapas (cada uma fecha com prints aprovados): (1) estrutura da tela ligada
+ao motor e à IA; (2) jogar carta e custos animados; (3) compra e cemitério;
+(4) conta do dano, golpe, armadilha e SUPER EFETIVO; (5) turno do inimigo e
+animações do boneco; (6) abertura (VS, quem começa) e fim (vitória/derrota,
+moedas, carta do chefe); (7) som; (8) desempenho no celular, testes, demo.
+
 ---
 
 ## 6. Guilda: "o aluno cobra o aluno que faltou"
@@ -424,6 +463,10 @@ da virada, a migração roda uma vez e o jogo troca.
 ---
 
 ## 12. Fases
+
+> **30/09: nova direção em aberto.** O Matheus quer misturar o TCG com
+> **Stardew Valley** e vai mandar uma lista grande de ideias. Até lá, a
+> ordem das fases abaixo pode mudar; a tela do duelo (§5.5) segue.
 
 **Visual primeiro** (decidido em 26/09): o Matheus quer ver o mundo pronto
 antes; as funções depois são ligadas no que já existe visualmente. Cada fase
