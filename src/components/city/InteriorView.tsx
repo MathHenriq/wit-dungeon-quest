@@ -4,6 +4,7 @@ import {
   ROOMS, sanitizeHouse, solidGrid, spriteOf, spriteRect, TILE, towerRoom, type Exit, type Manifest, type Placed, type Room, type RoomNpc,
 } from '@/game/interior/room';
 import { ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker } from '@/game/world/movement';
+import { drawExitMark, drawHint } from '@/game/world/player-acts';
 import { CLOTH, MOLDE, type Look } from '@/game/world/outfit';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
 import { DuelView } from '@/components/duel/DuelView';
@@ -499,12 +500,32 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           }
         }
         plate(p, plateCanvas(look.apelido || 'Você', 'Novato', PLATE_PLAYER));
+        // portas e passagens: placa piscando (uma por grupo)
+        const groups = new Map<string, { x0: number; x1: number; ty: number }>();
+        for (const e of room.exits) {
+          const k = `${e.to}|${e.ty}`, g0 = groups.get(k);
+          if (g0) { g0.x0 = Math.min(g0.x0, e.tx); g0.x1 = Math.max(g0.x1, e.tx); } else groups.set(k, { x0: e.tx, x1: e.tx, ty: e.ty });
+        }
+        for (const [k, g0] of groups) {
+          const to = k.split('|')[0];
+          const label = to === 'cidade' ? 'SAIR' : to === 'subir' ? 'SUBIR' : to === 'descer' ? 'DESCER' : 'ENTRAR';
+          const cx = ((g0.x0 + g0.x1 + 1) / 2) * TILE - camX, y = g0.ty * TILE - camY - (to === 'cidade' ? 4 : 10);
+          if (cx > -20 && cx < vw + 20 && y > -10 && y < vh + 10) drawExitMark(ctx, cx, y, label, now);
+        }
+        // tem algo para usar na frente: aviso do botão em cima da cabeça
+        if (!p.from && !S.modal) {
+          const f = ahead(p);
+          const can = S.npcs.some(n => n.def.talk.some(([x, y]) => x === f.tx && y === f.ty))
+            || room.talks?.some(t => t.tiles.some(([x, y]) => x === f.tx && y === f.ty))
+            || room.exits.some(e => e.tx === f.tx && e.ty === f.ty && solid[e.ty]?.[e.tx]);
+          if (can) { const pos = pixelPos(p, TILE); drawHint(ctx, pos.x + 25 - camX, pos.y - 6 - camY, touch ? 'A' : 'ESPAÇO', now); }
+        }
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [m, room, solid, blocked, view, decor, holding, look, S, takeExit]);
+  }, [m, room, solid, blocked, view, decor, holding, look, S, takeExit, touch]);
 
   // ── toque / clique ──
   const toTile = (e: React.PointerEvent<HTMLCanvasElement>) => {

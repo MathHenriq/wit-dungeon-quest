@@ -311,6 +311,31 @@ Os prédios novos saem primeiro **feitos por código** (mesmo estilo dos atuais)
 e podem ser trocados pela arte do GPT quando ela for aprovada
 (`docs/prompts-mundo.md`).
 
+#### Feito em 30/09
+- Mundo em 4 áreas (Centro 64×48 + Lago, Fazenda e Cidade WIT 72×48 cada:
+  ~4,4× a cidade antiga), viagem pela borda com escurecer e nome da área,
+  mapa-múndi com viagem rápida, chão pronto por área.
+- **Lago Azul**: baía, enseada, ilha do farol (só de barco), riacho com ponte,
+  vila (Casa de Pesca, Loja de Iscas, casinhas), praia com guarda-sóis,
+  acampamento com fogueira; **barquinho** navegável; **pesca** com minijogo
+  (16 peixes, água funda, noite), álbum e recordes, venda na Casa de Pesca,
+  quadro do dia; patos, peixes pulando, ondas.
+- **Fazenda do Vale**: casa, celeiro, silo, galinheiro, estufa, moinho, poço,
+  barraca de sementes, caixa de envio, pasto (vacas, ovelhas), terreiro
+  (galinhas), lagoa, pomar, horta do Seu Joca; **plantar/regar/colher** com 7
+  plantas, dia às 6h, caixa de envio, ovos, leite, lã e frutas.
+- **Cidade WIT**: Núcleo WIT (painel dos cursos e profissões), Lab IA, Casa
+  IoT, Metaverso, Estúdio, Oficina de Games, Mercado, Entregas, Coworking,
+  música e arte, moradias, parque; **telão do Jornal WIT** com manchetes do
+  jogo, **postes inteligentes**, **drones**, **WIT-Bot**, holograma, horta IoT,
+  estação do tempo, quadra.
+- Cidade viva: placas, correio, fonte, máquina e mural com o que dizer; aviso
+  "ESPAÇO/A" quando há algo na frente; placa SAIR nas portas dos interiores.
+
+Economia provisória (conferir na fase 9): peixe rende ~200–700 moedas/h
+(teste em `fishing.test.ts`), a fazenda menos que isso por hora de jogo,
+os duelos da Torre 223–561/h.
+
 ---
 
 ## 4. Economia (proposta)
@@ -651,7 +676,7 @@ termina com **prints aprovados pelo Matheus** antes da próxima.
 | **4 — Customização** | Peças de roupa, cabelo e acessório; editor do personagem; casa com móveis; perfil estilo cartão de treinador |
 | **5 — Telas do jogo (visual)** | Batalha, loja e abertura de pacote, álbum, Centro de Cartas, Torre, Quadro de Missões, guilda |
 | **6 — Batalha funcional** | Motor ligado, batalha curta, IA de 3 níveis, decks dos Caminhos e dos chefes, construtor de deck, 100 inimigos gerados |
-| **7 — Mundo grande e cidade viva** | **Mundo ~4× maior em áreas (§3.7): Lago a leste, Fazenda a oeste, Cidade WIT ao sul**, mapa-múndi; moradores trabalhando e passeando, postes acendendo, sentar e mexer em objetos, interiores mais fáceis de navegar. **30/09: postes acendendo um a um, 6 moradores trabalhando + 3 passeando, sentar nos bancos.** |
+| **7 — Mundo grande e cidade viva** | **Mundo ~4× maior em áreas (§3.7): Lago a leste, Fazenda a oeste, Cidade WIT ao sul**, mapa-múndi; moradores trabalhando e passeando, postes acendendo, sentar e mexer em objetos, interiores mais fáceis de navegar. **30/09: postes acendendo um a um, moradores trabalhando e passeando, sentar nos bancos; as 3 áreas novas com barco, pesca, fazenda e a Cidade WIT (ver §3.7 "Feito em 30/09"). Falta: arte do GPT para trocar a por código, interiores das casas novas.** |
 | **8 — Profissões e minigames** | Escolha de cargo; minigames de pescador, padeiro, músico e fazendeiro primeiro, depois os outros; itens produzidos |
 | **9 — Economia e coleção** | Pacotes configuráveis, garantia, forja, loja, Recompensas da Sala, títulos, **mercado com preço por oferta e procura**, **fome**, **veículos** (simulação antes) |
 | **10 — Social** | Cidade global com canais, amizades, conversa em balão com moderação, guilda nova, pedir ajuda, **compra e venda entre alunos** |

@@ -75,3 +75,40 @@ export function drawOars(ctx: CanvasRenderingContext2D, cx: number, cy: number, 
     else { ctx.fillRect(snap(px), snap(py - 4 - life * 2), 0.5, 2); ctx.fillRect(snap(px), snap(py + 2 + life * 2), 0.5, 2); }
   }
 }
+
+/**
+ * Aviso de botão em cima da cabeça: tem algo para usar na frente (conversar,
+ * pescar, plantar, entrar). `label` curto ("A", "ESPAÇO"). Pisca devagar.
+ */
+export function drawHint(ctx: CanvasRenderingContext2D, cx: number, top: number, label: string, now: number): void {
+  const bob = Math.sin(now / 260) > 0 ? 0 : 0.5;
+  ctx.font = 'bold 5px monospace';
+  const w = Math.max(7, ctx.measureText(label).width + 4), h = 7, x = Math.round(cx - w / 2), y = Math.round(top - h - bob);
+  ctx.fillStyle = 'rgba(46,42,64,0.9)';
+  ctx.fillRect(x - 0.5, y - 0.5, w + 1, h + 1);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#2e2a40';
+  ctx.fillRect(Math.round(cx) - 1, y + h + 0.5, 2, 1);
+  ctx.fillStyle = '#e8485a';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, y + h / 2 + 0.5);
+  ctx.textBaseline = 'alphabetic';
+}
+
+/** Placa de saída piscando em cima de uma porta de interior. */
+export function drawExitMark(ctx: CanvasRenderingContext2D, cx: number, y: number, label: string, now: number): void {
+  const a = 0.65 + 0.35 * Math.sin(now / 300);
+  ctx.globalAlpha = a;
+  ctx.font = 'bold 5px monospace';
+  const w = ctx.measureText(label).width + 6;
+  ctx.fillStyle = 'rgba(20,60,30,0.85)';
+  ctx.fillRect(Math.round(cx - w / 2), y - 4, w, 7);
+  ctx.fillStyle = '#b8ff7a';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, y);
+  ctx.textBaseline = 'alphabetic';
+  // setinha para baixo
+  ctx.fillRect(Math.round(cx) - 1.5, y + 4, 3, 1); ctx.fillRect(Math.round(cx) - 0.5, y + 5, 1, 1);
+  ctx.globalAlpha = 1;
+}

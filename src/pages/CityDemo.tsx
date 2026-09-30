@@ -16,7 +16,7 @@ import { BOT_TIPS, headlines } from '@/game/news';
 import { drawText, textWidth } from '@/game/world/font';
 import { spawnCritters, stepCritters, type Critter, type CritterKind } from '@/game/world/critters';
 import { drawWaterAnim, makeWaterAnim, type WaterAnim } from '@/game/world/water-anim';
-import { drawAlert, drawOars, drawRod } from '@/game/world/player-acts';
+import { drawAlert, drawHint, drawOars, drawRod } from '@/game/world/player-acts';
 import { fishIconUrl } from '@/game/world/fish-art';
 import { FishHouse } from '@/components/city/FishHouse';
 import { WorldMap } from '@/components/city/WorldMap';
@@ -1292,6 +1292,19 @@ function CityView({ town, start, startHour, onTravel }: {
         const c = s.droneCanvases[Math.floor(now / 60) % 2];
         ctx.drawImage(white ? c : tinted(c, tintKey, tintCss), Math.round(x - c.width / R / 2), Math.round(y - c.height / R / 2), c.width / R, c.height / R);
         if (lit) { ctx.fillStyle = `rgba(80,255,140,${0.8 * tod.light})`; ctx.fillRect(Math.round(x) - 0.5, Math.round(y) - 1, 1, 1); }
+      }
+      // tem algo para usar na frente: aviso do botão em cima da cabeça
+      if (!p.from && !s.modal && !s.fish && !s.seat && !s.act) {
+        const f = ahead(p);
+        const inF = fields.some(fd => f.tx >= fd.x0 && f.tx <= fd.x1 && f.ty >= fd.y0 && f.ty <= fd.y1);
+        const can = s.npcs.some(n => n.w.tx === f.tx && n.w.ty === f.ty)
+          || town.spots.some(sp => sp.tx === f.tx && sp.ty === f.ty && sp.kind !== 'cais' && sp.kind !== 'ponte' && sp.kind !== 'campo' && sp.kind !== 'barco')
+          || (!!s.boat && s.boat.tx === f.tx && s.boat.ty === f.ty)
+          || s.critters.some(c => c.kind !== 'pato' && Math.floor(c.x / TILE) === f.tx && Math.floor((c.y - 4) / TILE) === f.ty)
+          || (inF && !town.solid[f.ty]?.[f.tx])
+          || (s.sailing ? !!town.terrain[f.ty] && !town.solid[f.ty]?.[f.tx] : openWater(f.tx, f.ty))
+          || town.objects.some(o => o.id.startsWith('banco') && f.ty === Math.floor((o.baseY - 1) / TILE) && f.tx >= Math.floor(o.x / TILE) && f.tx < Math.ceil((o.x + o.pix.w) / TILE));
+        if (can) { const pos = pixelPos(p, TILE); drawHint(ctx, pos.x + 25 - camX, pos.y - 6 - camY + (s.sailing ? 2 : 0), touch ? 'A' : 'ESPAÇO', now); }
       }
       // o peixe mordeu: "!" do lado da cabeça, por cima de tudo
       if (s.fish?.phase === 'bite') {
