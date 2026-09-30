@@ -5,8 +5,9 @@ import { NPCS } from '../content';
 import { recolorBase } from '../recolor';
 
 const town = buildTown();
+const CITY_NPCS = NPCS.filter(n => (n.zona ?? 'cidade') === 'cidade');
 const blocked = (tx: number, ty: number) =>
-  tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H || town.solid[ty][tx] || NPCS.some(n => n.tx === tx && n.ty === ty);
+  tx < 0 || ty < 0 || tx >= MAP_W || ty >= MAP_H || town.solid[ty][tx] || CITY_NPCS.some(n => n.tx === tx && n.ty === ty);
 
 /** Todos os blocos alcançáveis a partir do início. */
 function reachable(): Set<string> {
@@ -48,7 +49,7 @@ describe('cidade inicial', () => {
 
   it('os moradores ficam em blocos livres, alcançáveis, fora das portas', () => {
     const ok = reachable();
-    for (const n of NPCS) {
+    for (const n of CITY_NPCS) {
       expect(town.solid[n.ty][n.tx], `morador ${n.id} dentro de algo`).toBe(false);
       expect(town.doors.some(d => d.tx === n.tx && d.ty === n.ty)).toBe(false);
       const vizinho = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => ok.has(`${n.tx + dx},${n.ty + dy}`));
@@ -56,10 +57,13 @@ describe('cidade inicial', () => {
     }
   });
 
-  it('as saídas sul e leste estão abertas', () => {
+  it('as saídas oeste, sul e leste estão abertas e levam para as outras áreas', () => {
     const ok = reachable();
     expect(ok.has(`31,${MAP_H - 1}`) || ok.has(`32,${MAP_H - 1}`)).toBe(true);
     expect(ok.has(`${MAP_W - 1},20`) || ok.has(`${MAP_W - 1},21`)).toBe(true);
+    expect(ok.has('0,20') || ok.has('0,21')).toBe(true);
+    expect(town.exits.map(e => e.to).sort()).toEqual(['fazenda', 'lago', 'wit']);
+    for (const e of town.exits) for (let y = e.y0; y <= e.y1; y++) for (let x = e.x0; x <= e.x1; x++) expect(ok.has(`${x},${y}`), `saída ${e.to} ${x},${y}`).toBe(true);
   });
 
   it('é determinística: gerar de novo dá o mesmo chão', () => {

@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { addGlowSpots, buildTown, type Placed, type Town } from '@/game/world/town';
-import { hdOf, loadPrebuiltGround, loadWorldAssets } from '@/game/world/assets';
+import { addGlowSpots, type Placed, type Town } from '@/game/world/town';
+import { hdOf, loadPrebuiltGround, loadWorldAssets, type WorldAssets } from '@/game/world/assets';
+import { buildZone, ZONES } from '@/game/world/world';
+import { ZONE_NAMES, type Exit, type ZoneId } from '@/game/world/zone';
+import { biteDelay, meterFor, meterHit, RARITY_COLOR, RARITY_LABEL, rollFish, type Fish, type Meter } from '@/game/fishing';
+import { boatArt, duckFrames } from '@/game/world/buildings-lago';
+import { spawnCritters, stepCritters, type Critter } from '@/game/world/critters';
+import { drawWaterAnim, makeWaterAnim, type WaterAnim } from '@/game/world/water-anim';
+import { drawAlert, drawOars, drawRod } from '@/game/world/player-acts';
+import { fishIconUrl } from '@/game/world/fish-art';
+import { FishHouse } from '@/components/city/FishHouse';
+import { WorldMap } from '@/components/city/WorldMap';
+import { play } from '@/game/sfx';
 import { lampPower, lightHalo, timeOfDay } from '@/game/world/light';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
@@ -11,10 +22,10 @@ import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/worl
 import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
-import { loadProgress, type Progress } from '@/game/progress';
+import { addCatch, loadProgress, saveProgress, type Progress } from '@/game/progress';
 import { DeckBuilder } from '@/components/duel/DeckBuilder';
 import { LookEditor } from '@/components/city/LookEditor';
-import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS } from '@/game/world/content';
+import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS, type NpcDef } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 import { drawAmbient } from '@/game/world/ambient';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
@@ -28,7 +39,7 @@ import { drawJob, jobBob, propsBehind } from '@/game/world/jobs';
 
 /** ?passeio=1: o boneco passeia sozinho (para medir desempenho e gravar vídeo). */
 const TOUR: [number, number][] = [[31, 23], [16, 21], [16, 19], [10, 27], [16, 32], [16, 31], [46, 33], [46, 31], [57, 21], [51, 14], [48, 10], [7, 11], [7, 9], [26, 13], [31, 23], [31, 40], [14, 42], [14, 41], [31, 33]];
-const WALK_MS = 230, RUN_MS = 125;
+const WALK_MS = 230, RUN_MS = 125, BOAT_MS = 190;
 /** Um dia inteiro do jogo dura 12 minutos (30 s por hora). */
 const MS_PER_HOUR = 30_000;
 const KEY_DIR: Record<string, Dir> = {
@@ -83,28 +94,68 @@ function savedLook(): Look {
 }
 
 interface Npc {
-  def: (typeof NPCS)[number]; w: Walker; frames: Frames | null; goal: Dir | null;
+  def: NpcDef; w: Walker; frames: Frames | null; goal: Dir | null;
   /** Moradores com rota: caminho até a próxima parada, tempo parado e parada atual. */
   path: Dir[]; wait: number; stop: number; seed: number;
 }
 
+/** Onde e como o jogador chega numa área (vindo de outra). */
+interface Arrival { tx: number; ty: number; dir: Dir }
+
+/** Pesca em andamento: lançando, esperando, mordeu, minijogo. */
+interface Fishing {
+  phase: 'cast' | 'wait' | 'bite' | 'meter';
+  t: number;
+  tile: { tx: number; ty: number };
+  biteAt: number;
+  deep: boolean;
+  catch?: { fish: Fish; cm: number };
+  meter?: Meter;
+}
+
+type FishUi =
+  | { kind: 'meter'; meter: Meter; t0: number }
+  | { kind: 'catch'; fish: Fish; cm: number; first: boolean; record: boolean }
+  | { kind: 'toast'; text: string };
+
+const BASE = import.meta.env.BASE_URL;
+
 export default function CityDemo() {
   // a cidade cobre a tela inteira: o fundo 3D do app não precisa desenhar
   useOccludesBackdrop();
-  const [town, setTown] = useState<Town | null>(null);
-  useEffect(() => {
-    let alive = true;
+  const [world, setWorld] = useState<{ town: Town; start?: Arrival; hour: number; n: number } | null>(null);
+  const [fade, setFade] = useState(false);
+  const assets = useRef<WorldAssets | null | undefined>(undefined);
+  const load = useCallback(async (zone: ZoneId, start: Arrival | undefined, hour: number) => {
     // ?casa=modelo-gamer mostra a Sua Casa com outro modelo (as 3 iniciais e as 7 à venda)
     const casa = new URLSearchParams(window.location.search).get('casa') ?? undefined;
-    Promise.all([loadWorldAssets(), loadPrebuiltGround()])
-      .then(([a, g]) => { if (alive) setTown(buildTown(a, { casa, groundHd: g?.pix, groundKey: g?.key })); })
-      .catch(err => { console.error('sprites da cidade', err); if (alive) setTown(buildTown(undefined, { casa })); });
-    return () => { alive = false; };
+    if (assets.current === undefined) {
+      assets.current = await loadWorldAssets().catch(err => { console.error('sprites da cidade', err); return null; });
+    }
+    const A = assets.current ?? undefined;
+    const g = A ? await loadPrebuiltGround(`${BASE}game/world/${zone}`) : undefined;
+    const town = buildZone(zone, A, { casa, groundHd: g?.pix, groundKey: g?.key });
+    setWorld(w => ({ town, start, hour, n: (w?.n ?? 0) + 1 }));
   }, []);
-  if (!town) {
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const z = q.get('zona') as ZoneId | null;
+    void load(z && ZONES.includes(z) ? z : 'cidade', undefined, 8);
+  }, [load]);
+  // troca de área: escurece, monta a outra (com o chão pronto dela) e clareia
+  const travel = useCallback((to: ZoneId, at: Arrival | undefined, hour: number) => {
+    setFade(true);
+    window.setTimeout(() => { void load(to, at, hour).then(() => window.setTimeout(() => setFade(false), 60)); }, 280);
+  }, [load]);
+  if (!world) {
     return <div className="fixed inset-0 bg-[#1b2a22] flex items-center justify-center text-white/80 text-xs font-['Press_Start_2P',monospace]">carregando a cidade...</div>;
   }
-  return <CityView town={town} />;
+  return (
+    <>
+      <CityView key={world.n} town={world.town} start={world.start} startHour={world.hour} onTravel={travel} />
+      <div className="fixed inset-0 bg-black pointer-events-none transition-opacity duration-300 z-50" style={{ opacity: fade ? 1 : 0 }} />
+    </>
+  );
 }
 
 function startTile(town: Town): { tx: number; ty: number } {
@@ -116,15 +167,28 @@ function startTile(town: Town): { tx: number; ty: number } {
   return town.spawn;
 }
 
-function CityView({ town }: { town: Town }) {
-  const START = startTile(town);
+function CityView({ town, start, startHour, onTravel }: {
+  town: Town;
+  start?: Arrival;
+  startHour: number;
+  onTravel: (to: ZoneId, at: Arrival | undefined, hour: number) => void;
+}) {
+  const START = start ?? { ...startTile(town), dir: 'north' as Dir };
+  // moradores desta área
+  const [npcDefs] = useState(() => NPCS.filter(n => (n.zona ?? 'cidade') === town.id));
+  const firstQuery = useRef(!start);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [panel, setPanel] = useState<{ title: string; text: string } | null>(null);
   const [dialog, setDialog] = useState<{ lines: string[]; i: number } | null>(null);
   const [ready, setReady] = useState(false);
   const [touch] = useState(() => typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
   const [view, setView] = useState({ w: 320, h: 208, scale: 3 });
-  const [clock, setClock] = useState(8);
+  const [clock, setClock] = useState(startHour);
+  const [banner, setBanner] = useState<string | null>(town.name);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [fishHouse, setFishHouse] = useState<'quadro' | 'vender' | null>(null);
+  const [fishUi, setFishUi] = useState<FishUi | null>(null);
+  useEffect(() => { const t = window.setTimeout(() => setBanner(null), 2600); return () => window.clearTimeout(t); }, []);
   const [near, setNear] = useState<string | null>(null);
   const [look, setLook] = useState<Look>(savedLook);
   const [editing, setEditing] = useState(() => new URLSearchParams(window.location.search).has('visual'));
@@ -148,9 +212,22 @@ function CityView({ town }: { town: Town }) {
   // estado do jogo fora do React (o laço de desenho lê direto)
   const g = useRef({
     // ?pos=tx,ty começa em outro lugar (para prints e testes)
-    player: newWalker(START.tx, START.ty, 'north'),
-    pet: newWalker(START.tx - 1, START.ty, 'east'),
-    npcs: NPCS.map((def, i) => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, goal: null, path: [], wait: 800 + i * 700, stop: 0, seed: (i * 0.618034) % 1 })) as Npc[],
+    player: newWalker(START.tx, START.ty, START.dir),
+    pet: newWalker(START.tx - DELTA[START.dir][0], START.ty - DELTA[START.dir][1], START.dir),
+    npcs: npcDefs.map((def, i) => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, goal: null, path: [], wait: 800 + i * 700, stop: 0, seed: (i * 0.618034) % 1 })) as Npc[],
+    /** Navegando no barquinho (e onde ele fica amarrado quando não está). */
+    sailing: false,
+    boat: ((): { tx: number; ty: number; dir: Dir } | null => {
+      const sp = town.spots.find(p => p.kind === 'barco');
+      return sp ? { tx: sp.tx, ty: sp.ty, dir: (sp.data?.dir as Dir) ?? 'east' } : null;
+    })(),
+    boatCanvases: null as Record<Dir, HTMLCanvasElement> | null,
+    fish: null as Fishing | null,
+    critters: [] as Critter[],
+    duckCanvases: null as { west: HTMLCanvasElement[]; east: HTMLCanvasElement[] } | null,
+    water: null as WaterAnim | null,
+    /** Já saiu pela borda (espera a outra área montar). */
+    leaving: false,
     held: [] as Dir[],
     run: false,
     /** Sentado num banco: o bloco do banco e de onde veio (para levantar). */
@@ -179,15 +256,18 @@ function CityView({ town }: { town: Town }) {
      * uma faixa por quadro e depois troca de lugar com a da frente.
      */
     lit: { front: null as HTMLCanvasElement | null, frontKey: '', back: null as HTMLCanvasElement | null, backKey: '', row: 0 },
-    /** Hora do jogo (0–24). */
-    hour: 8,
+    /** Hora do jogo (0–24); continua a mesma ao trocar de área. */
+    hour: startHour,
     clockSpeed: 1,
     modal: false,
     inside: false,
     dirty: true,
   });
 
-  useEffect(() => { g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen; g.current.inside = !!inside; g.current.dirty = true; }, [panel, dialog, editing, inside, deckOpen]);
+  useEffect(() => {
+    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch';
+    g.current.inside = !!inside; g.current.dirty = true;
+  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi]);
 
   // visual novo → repinta o boneco e guarda (só neste navegador por enquanto)
   const firstLook = useRef(true);
@@ -214,9 +294,17 @@ function CityView({ town }: { town: Town }) {
     const sctx = scene.getContext('2d')!;
     for (const { o, c } of g.current.objs) sctx.drawImage(c, o.x * R, o.y * R);
     g.current.scene = scene;
+    if (g.current.boat || town.spots.some(p => p.kind === 'barco')) {
+      g.current.boatCanvases = { north: toCanvasHd(boatArt('north')), south: toCanvasHd(boatArt('south')), east: toCanvasHd(boatArt('east')), west: toCanvasHd(boatArt('west')) };
+    }
+    if (town.id === 'lago') {
+      g.current.critters = spawnCritters(town, 'pato', 6, { x0: 0, y0: 0, x1: town.solid[0].length, y1: town.solid.length }, 7);
+      g.current.duckCanvases = { west: duckFrames('west').map(toCanvasHd), east: duckFrames('east').map(toCanvasHd) };
+    }
+    g.current.water = makeWaterAnim(town);
     const qs = new URLSearchParams(window.location.search);
     const h = qs.get('hora'), v = Number(qs.get('velocidade'));
-    if (h !== null && !Number.isNaN(Number(h))) { g.current.hour = Number(h) % 24; setClock(g.current.hour); }
+    if (firstQuery.current && h !== null && !Number.isNaN(Number(h))) { g.current.hour = Number(h) % 24; setClock(g.current.hour); }
     // ?velocidade=N: o relógio corre N vezes mais rápido (para vídeo e testes)
     if (v > 0) g.current.clockSpeed = v;
     // halo das luzes: calculado uma vez, depois do primeiro quadro
@@ -255,7 +343,7 @@ function CityView({ town }: { town: Town }) {
       const [pf, pet, ...npcFrames] = await Promise.all([
         loadLookFrames(look),
         loadPetFrames(look.pet ?? DEFAULT_PET),
-        ...NPCS.map(n => loadLookFrames(n.look)),
+        ...npcDefs.map(n => loadLookFrames(normalizeLook(n.look))),
       ]);
       if (!alive) return;
       g.current.playerFrames = pf;
@@ -280,14 +368,62 @@ function CityView({ town }: { town: Town }) {
     return () => window.removeEventListener('resize', fit);
   }, []);
 
+  const inMap = (tx: number, ty: number) => tx >= 0 && ty >= 0 && ty < town.solid.length && tx < town.solid[0].length;
+  /** Água aberta (onde o barco anda): água que não é cais nem ponte. */
+  const openWater = useCallback((tx: number, ty: number) => town.terrain[ty]?.[tx] === 'agua' && !!town.solid[ty]?.[tx], [town]);
+  const npcAt = (tx: number, ty: number) => g.current.npcs.some(n => n.w.tx === tx && n.w.ty === ty);
+  const boatAt = (tx: number, ty: number) => !!g.current.boat && g.current.boat.tx === tx && g.current.boat.ty === ty;
+  /** Onde o jogador não pode ir (a pé ou de barco). */
   const blocked = useCallback((tx: number, ty: number) => {
-    if (tx < 0 || ty < 0 || ty >= town.solid.length || tx >= town.solid[0].length) return true;
+    if (!inMap(tx, ty)) return true;
+    if (g.current.sailing) return !openWater(tx, ty) || npcAt(tx, ty);
     if (town.solid[ty][tx]) return true;
-    return g.current.npcs.some(n => n.w.tx === tx && n.w.ty === ty);
-  }, [town]);
+    return npcAt(tx, ty);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [town, openWater]);
+
+  const toast = (text: string) => setFishUi({ kind: 'toast', text });
+  useEffect(() => {
+    if (fishUi?.kind !== 'toast') return;
+    const t = window.setTimeout(() => setFishUi(u => (u?.kind === 'toast' ? null : u)), 1800);
+    return () => window.clearTimeout(t);
+  }, [fishUi]);
+
+  /** Quantos blocos de água em volta (água funda = longe da margem). */
+  const deepAt = (tx: number, ty: number) => {
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (town.terrain[ty + dy]?.[tx + dx] !== 'agua') return false;
+    return true;
+  };
+
+  /** Espaço durante a pesca: puxar cedo, fisgar ou acertar a faixa. */
+  const fishPress = useCallback(() => {
+    const s = g.current, f = s.fish;
+    if (!f) return;
+    const now = performance.now();
+    if (f.phase === 'cast' || f.phase === 'wait') { s.fish = null; toast('Puxou cedo demais... Espere a boia afundar!'); return; }
+    if (f.phase === 'bite') {
+      const night = s.hour >= 19 || s.hour < 5;
+      const c = rollFish({ deep: f.deep, night, boat: s.sailing }, Math.random(), Math.random());
+      f.catch = c; f.meter = meterFor(c.fish, Math.random()); f.phase = 'meter'; f.t = now;
+      setFishUi({ kind: 'meter', meter: f.meter, t0: now });
+      play('flip');
+      return;
+    }
+    if (f.phase === 'meter' && f.meter && f.catch) {
+      const hit = meterHit(f.meter, now - f.t);
+      s.fish = null;
+      if (!hit) { play('lose'); toast('Escapou! Aperte quando a agulha estiver no verde.'); return; }
+      const r = addCatch(loadProgress(), f.catch.fish.id, f.catch.cm);
+      saveProgress(r.progress);
+      play(f.catch.fish.rarity === 'lendario' || f.catch.fish.rarity === 'epico' ? 'win' : 'coin');
+      setFishUi({ kind: 'catch', fish: f.catch.fish, cm: f.catch.cm, first: r.first, record: r.record });
+    }
+  }, []);
 
   const interact = useCallback(() => {
     const s = g.current;
+    if (fishUi?.kind === 'catch') { setFishUi(null); return; }
+    if (s.fish) { fishPress(); return; }
     if (dialog) {
       if (dialog.i + 1 < dialog.lines.length) setDialog({ ...dialog, i: dialog.i + 1 });
       else setDialog(null);
@@ -295,28 +431,80 @@ function CityView({ town }: { town: Town }) {
     }
     if (panel) { setPanel(null); return; }
     if (g.current.modal) return;
-    const f = ahead(s.player);
+    const p = s.player;
+    const f = ahead(p);
     const npc = s.npcs.find(n => n.w.tx === f.tx && n.w.ty === f.ty);
     if (npc) {
       const back: Record<Dir, Dir> = { north: 'south', south: 'north', west: 'east', east: 'west' };
-      npc.w.dir = back[s.player.dir];
+      npc.w.dir = back[p.dir];
       setDialog({ lines: npc.def.lines, i: 0 });
       return;
     }
+    const startFishing = () => {
+      const now = performance.now();
+      const deep = deepAt(f.tx, f.ty);
+      const night = s.hour >= 19 || s.hour < 5;
+      s.fish = { phase: 'cast', t: now, tile: { tx: f.tx, ty: f.ty }, biteAt: now + 450 + biteDelay(Math.random(), { deep, night }), deep };
+      s.held = []; s.path = [];
+      play('draw');
+    };
+    if (p.from) return;
+    // no barco: desce se estiver de frente para a terra; senão, pesca
+    if (s.sailing) {
+      if (inMap(f.tx, f.ty) && !town.solid[f.ty][f.tx] && !npcAt(f.tx, f.ty)) {
+        s.sailing = false;
+        s.boat = { tx: p.tx, ty: p.ty, dir: p.dir };
+        p.tx = f.tx; p.ty = f.ty;
+        s.pet = newWalker(f.tx, f.ty, p.dir);
+        s.dirty = true;
+        play('drop');
+        return;
+      }
+      if (openWater(f.tx, f.ty)) startFishing();
+      return;
+    }
+    // embarca no barquinho
+    if (boatAt(f.tx, f.ty)) {
+      const b = s.boat!;
+      s.sailing = true;
+      p.tx = b.tx; p.ty = b.ty;
+      s.boat = null; s.path = []; s.held = [];
+      s.dirty = true;
+      play('drop');
+      return;
+    }
+    // objetos com que se fala de frente
+    const spot = town.spots.find(sp => sp.tx === f.tx && sp.ty === f.ty && sp.kind !== 'cais' && sp.kind !== 'ponte');
+    if (spot) {
+      const lines = spot.data?.lines as string[] | undefined;
+      switch (spot.kind) {
+        case 'placa': if (lines) { setDialog({ lines, i: 0 }); return; } break;
+        case 'mural': setDialog({ lines: MURAL_TEXT, i: 0 }); return;
+        case 'correio':
+          setDialog({ lines: spot.data?.own ? ['Sua caixa de correio. Nenhuma carta nova.', 'Em breve: recados dos colegas e do professor chegam aqui.'] : ['A caixa de correio de um morador. Não é sua!'], i: 0 });
+          return;
+        case 'fonte': play('coin'); setDialog({ lines: ['Você jogou uma moedinha imaginária na fonte e fez um pedido...', '✨ Tomara que venha uma carta Mítica no próximo pacotinho!'], i: 0 }); return;
+        case 'maquina': setDialog({ lines: ['Máquina de sucos: uva, laranja e maracujá.', 'Quando a fome chegar ao jogo, um suco daqui vai ajudar.'], i: 0 }); return;
+        case 'banca': setFishHouse('vender'); return;
+        case 'castelo-areia': setDialog({ lines: ['Um castelo de areia caprichado, com bandeirinha e tudo.', 'Melhor não pisar!'], i: 0 }); return;
+        case 'fogueira': setDialog({ lines: ['A fogueira do acampamento estala e esquenta.', 'À noite, os vaga-lumes aparecem por aqui.'], i: 0 }); return;
+      }
+    }
     // banco: senta (qualquer seta levanta)
-    if (!s.seat && !s.player.from) {
+    if (!s.seat) {
       const bench = town.objects.find(o => o.id.startsWith('banco') && f.ty === Math.floor((o.baseY - 1) / TILE)
         && f.tx >= Math.floor(o.x / TILE) && f.tx < Math.ceil((o.x + o.pix.w) / TILE));
       if (bench) {
-        s.seat = { tx: f.tx, ty: f.ty, dx: Math.round(bench.x + bench.pix.w / 2 - (f.tx * TILE + 8)), from: { tx: s.player.tx, ty: s.player.ty } };
-        s.player.tx = f.tx; s.player.ty = f.ty; s.player.dir = 'south'; s.path = []; s.held = [];
+        s.seat = { tx: f.tx, ty: f.ty, dx: Math.round(bench.x + bench.pix.w / 2 - (f.tx * TILE + 8)), from: { tx: p.tx, ty: p.ty } };
+        p.tx = f.tx; p.ty = f.ty; p.dir = 'south'; s.path = []; s.held = [];
         s.dirty = true;
         return;
       }
     }
-    const mural = town.objects.find(o => o.id === 'mural');
-    if (mural && f.ty === 12 && f.tx >= 14 && f.tx <= 16) setDialog({ lines: MURAL_TEXT, i: 0 });
-  }, [dialog, panel, town]);
+    // de frente para a água: pesca
+    if (openWater(f.tx, f.ty)) startFishing();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dialog, panel, town, fishUi, fishPress, openWater]);
 
   // teclado
   useEffect(() => {
@@ -332,12 +520,15 @@ function CityView({ town }: { town: Town }) {
       }
       if (d) {
         e.preventDefault();
+        // andar recolhe a linha
+        if (g.current.fish && g.current.fish.phase !== 'meter') { g.current.fish = null; g.current.dirty = true; }
         if (!g.current.held.includes(d)) g.current.held.unshift(d);
         g.current.path = [];
       }
       if (e.key === 'Shift') g.current.run = true;
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') { e.preventDefault(); interact(); }
-      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); setDeckOpen(false); }
+      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); setDeckOpen(false); setMapOpen(false); setFishHouse(null); }
+      if ((e.key === 'm' || e.key === 'M') && !g.current.inside) setMapOpen(o => !o);
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
     };
@@ -364,6 +555,7 @@ function CityView({ town }: { town: Town }) {
     let lastNearTile = { x: -1, y: -1 }, lastNear: string | null = null;
     const tour = new URLSearchParams(window.location.search).has('passeio');
     let tourIdx = 0;
+    let wasSailing = false;
 
     const onStepDone = () => {
       const s = g.current;
@@ -378,8 +570,28 @@ function CityView({ town }: { town: Town }) {
           const id = Object.keys(ROOM_BUILDING).find(k => ROOM_BUILDING[k] === door.building)!;
           setInside({ kind: 'sala', id });
         }
+        else if (door.building === 'casa-pesca') setFishHouse('quadro');
+        else if (door.building === 'farol') { setDialog({ lines: ['Você sobe a escada em caracol do farol...', 'Lá de cima dá para ver o mundo todo!'], i: 0 }); window.setTimeout(() => setMapOpen(true), 50); s.player.ty += 1; s.player.dir = 'south'; }
         else setPanel(BUILDING_INFO[door.building] ?? houseInfo(door.building, door.name));
+        return;
       }
+      // saída pela borda: passa para a área do lado
+      if (s.sailing || s.leaving) return;
+      const ex = town.exits.find((e: Exit) => s.player.tx >= e.x0 && s.player.tx <= e.x1 && s.player.ty >= e.y0 && s.player.ty <= e.y1);
+      if (!ex) return;
+      s.path = []; s.held = [];
+      if (!ZONES.includes(ex.to)) {
+        // área ainda em obras: volta um passo
+        const back = DELTA[s.player.dir];
+        s.player.tx -= back[0]; s.player.ty -= back[1];
+        s.player.dir = ({ north: 'south', south: 'north', west: 'east', east: 'west' } as const)[s.player.dir];
+        setDialog({ lines: [`${ZONE_NAMES[ex.to]}: em obras!`, 'Esta parte do mundo abre em breve.'], i: 0 });
+        return;
+      }
+      s.leaving = true;
+      const off = ex.keep === 'y' ? s.player.ty - ex.y0 : s.player.tx - ex.x0;
+      const at = ex.keep === 'y' ? { tx: ex.at.tx, ty: ex.at.ty + off } : { tx: ex.at.tx + off, ty: ex.at.ty };
+      onTravel(ex.to, { ...at, dir: ex.dir }, s.hour);
     };
 
     const loop = (now: number) => {
@@ -393,14 +605,27 @@ function CityView({ town }: { town: Town }) {
       const ms = s.run ? RUN_MS : WALK_MS;
       const pet = s.pet;
       // jogador: sem pausa entre blocos; toque rápido só vira
+      if (s.sailing !== wasSailing) { wasSailing = s.sailing; petQueue.length = 0; }
       tick(p, dt, {
-        msPerTile: ms,
+        msPerTile: s.sailing ? BOAT_MS : ms,
         blocked,
         fromPath: !s.held.length,
-        want: () => (s.modal ? null : s.held[0] ?? s.path[0] ?? null),
-        onStep: from => { petQueue.push(from); if (!s.held.length) s.path.shift(); s.dirty = true; },
+        want: () => (s.modal || s.fish ? null : s.held[0] ?? s.path[0] ?? null),
+        onStep: from => { if (!s.sailing) petQueue.push(from); if (!s.held.length) s.path.shift(); s.dirty = true; },
         onArrive: onStepDone,
       });
+      // pesca: a boia cai, espera, o peixe morde; sem resposta, ele foge
+      const fi = s.fish;
+      cv.dataset.pesca = fi?.phase ?? '';   // (para os testes de navegador)
+      if (fi) {
+        s.dirty = true;
+        if (fi.phase === 'cast' && now - fi.t > 450) { fi.phase = 'wait'; fi.t = now; play('drop'); }
+        else if (fi.phase === 'wait' && now >= fi.biteAt) { fi.phase = 'bite'; fi.t = now; play('trap'); }
+        else if (fi.phase === 'bite' && now - fi.t > 1300) { s.fish = null; setFishUi({ kind: 'toast', text: 'O peixe fugiu... Aperte ESPAÇO assim que a boia afundar!' }); }
+        else if (fi.phase === 'meter' && now - fi.t > 6000) { s.fish = null; setFishUi({ kind: 'toast', text: 'Escapou!' }); }
+      }
+      // bichos soltos (patos no lago)
+      if (s.critters.length && stepCritters(s.critters, dt, town, Math.random)) s.dirty = true;
       if (!p.from && !s.held.length && s.path.length && blocked(p.tx + DELTA[s.path[0]][0], p.ty + DELTA[s.path[0]][1])) s.path = [];
       // pet: segue exatamente os blocos que o jogador deixou
       tick(pet, dt, {
@@ -422,7 +647,7 @@ function CityView({ town }: { town: Town }) {
       if (npcTimer > 1600) {
         npcTimer = 0;
         const n = s.npcs[Math.floor(Math.random() * s.npcs.length)];
-        if (!s.modal && !n.w.from && !n.def.job) {
+        if (n && !s.modal && !n.w.from && !n.def.job) {
           const home = n.w.tx === n.def.tx && n.w.ty === n.def.ty;
           const back: Dir = n.def.tx > n.w.tx ? 'east' : n.def.tx < n.w.tx ? 'west' : n.def.ty > n.w.ty ? 'south' : 'north';
           if (home && Math.random() < 0.5) n.goal = DIRS[Math.floor(Math.random() * 4)];
@@ -432,8 +657,8 @@ function CityView({ town }: { town: Town }) {
         }
       }
       for (const n of s.npcs) {
-        const occupied = (tx: number, ty: number) => blocked(tx, ty)
-          || (p.tx === tx && p.ty === ty) || (pet.tx === tx && pet.ty === ty)
+        const occupied = (tx: number, ty: number) => !inMap(tx, ty) || town.solid[ty][tx] || npcAt(tx, ty)
+          || (p.tx === tx && p.ty === ty) || (!s.sailing && pet.tx === tx && pet.ty === ty)
           || town.doors.some(d => d.tx === tx && d.ty === ty);
         const route = n.def.job?.route;
         if (route && !s.modal && !n.w.from && !n.path.length) {
@@ -569,6 +794,8 @@ function CityView({ town }: { town: Town }) {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
       }
+      // ondas do lago grande (desenhadas na hora, por cima da água da cena)
+      if (s.water) drawWaterAnim(ctx, s.water, now, camX, camY, vw, vh, R, 0.85 * ((q[0] + q[1] + q[2]) / 765) ** 1.5);
       // postes: cada um acende na sua hora (pisca antes de firmar); poça de luz no chão
       const lampsOn = lit ? town.lamps.map((l, i) => ({ l, i, on: lampPower(s.hour, l.seed) }))
         .filter(({ l, on }) => on > 0 && l.bulb[0] > camX - 40 && l.bulb[0] < camX + vw + 40 && l.bulb[1] > camY - 60 && l.bulb[1] < camY + vh + 60) : [];
@@ -628,6 +855,16 @@ function CityView({ town }: { town: Town }) {
           baseY: pos.y + 16,
           draw: () => {
             const tx = Math.round(pos.x / TILE), ty = Math.round(pos.y / TILE);
+            if (w === s.player && s.sailing && s.boatCanvases) {
+              // no barco: o casco, o boneco da cintura para cima, os remos
+              const bc = s.boatCanvases[w.dir], bob = Math.sin(now / 420) * 0.6;
+              const bxc = pos.x + 8 - camX, byc = pos.y + 9 - camY + bob;
+              put(bc, Math.round(bxc - bc.width / R / 2), Math.round(byc - bc.height / R / 2));
+              drawOars(ctx, bxc, byc, w.dir, !!w.from, now);
+              const CUT = 13, src = white ? img : tinted(img, tintKey, tintCss);
+              ctx.drawImage(src, 0, 0, src.width, src.height - CUT * R, x, y + bob - 2, src.width / R, src.height / R - CUT);
+              return;
+            }
             const inGrass = town.terrain[ty]?.[tx] === 'mato';
             if (!inGrass && !(w === s.player && s.seat)) {
               ctx.fillStyle = 'rgba(30,50,60,0.3)';
@@ -659,7 +896,33 @@ function CityView({ town }: { town: Town }) {
           },
         });
       };
-      person(s.pet, s.petFrames);
+      if (!s.sailing) person(s.pet, s.petFrames);
+      // barquinho amarrado
+      if (s.boat && s.boatCanvases) {
+        const b = s.boat, bc = s.boatCanvases[b.dir];
+        const bx = b.tx * TILE + 8 - camX, by = b.ty * TILE + 9 - camY + Math.sin(now / 520) * 0.6;
+        if (bx > -40 && bx < vw + 40 && by > -40 && by < vh + 40) {
+          list.push({ baseY: b.ty * TILE + 12, draw: () => put(bc, Math.round(bx - bc.width / R / 2), Math.round(by - bc.height / R / 2)) });
+          people.push({ x: b.tx * TILE - 8, y: b.ty * TILE - 6, w: 32, h: 28, baseY: b.ty * TILE + 12 });
+        }
+      }
+      // patos nadando
+      if (s.duckCanvases) for (const c of s.critters) {
+        const cx = c.x - camX, cy = c.y - camY;
+        if (cx < -20 || cx > vw + 20 || cy < -20 || cy > vh + 20) continue;
+        const frames = c.face > 0 ? s.duckCanvases.east : s.duckCanvases.west;
+        const fc = frames[Math.floor(now / 450 + c.seed * 4) % frames.length];
+        const bobY = Math.round(Math.sin(now / 500 + c.seed * 9) * 2) / 2;
+        list.push({ baseY: c.y, draw: () => put(fc, Math.round(cx - fc.width / R / 2), Math.round(cy - fc.height / R + 3 + bobY)) });
+      }
+      // vara de pesca, linha e boia
+      if (s.fish && s.playerFrames) {
+        const fi = s.fish, pos = pixelPos(p, TILE);
+        const cx = pos.x + 8 - camX, fy = pos.y + 15 - camY + (s.sailing ? -2 : 0);
+        const bx = fi.tile.tx * TILE + 8 - camX, by = fi.tile.ty * TILE + 8 - camY;
+        const k = Math.min(1, (now - fi.t) / 450);
+        list.push({ baseY: pos.y + 16 + (p.dir === 'north' ? -0.02 : 0.02), draw: () => drawRod(ctx, cx, fy, p.dir, bx, by, fi.phase, k, now) });
+      }
       for (const n of s.npcs) {
         const job = n.def.job;
         if (!job) { person(n.w, n.frames); continue; }
@@ -688,6 +951,7 @@ function CityView({ town }: { town: Town }) {
       }
       list.sort((a, b) => a.baseY - b.baseY);
       for (const d of list) d.draw();
+
       // lâmpada dos postes acesos: a cúpula clara e um brilho em volta
       if (lampsOn.length) {
         const k = Math.min(1, tod.light * 1.3);
@@ -726,6 +990,11 @@ function CityView({ town }: { town: Town }) {
       plateAt(p, plateCanvas(s.nick, s.playerTitle, PLATE_PLAYER));
       for (const n of s.npcs) {
         if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) plateAt(n.w, plateCanvas(n.def.name, n.def.title, PLATE_NPC));
+      }
+      // o peixe mordeu: "!" do lado da cabeça, por cima de tudo
+      if (s.fish?.phase === 'bite') {
+        const pos = pixelPos(p, TILE);
+        drawAlert(ctx, pos.x + 20 - camX, pos.y - 14 - camY, now);
       }
       s.dirty = true;   // os efeitos se mexem todo quadro
       raf = requestAnimationFrame(loop);
@@ -787,14 +1056,16 @@ function CityView({ town }: { town: Town }) {
         aria-label="Cidade WIT"
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
-        CIDADE WIT <span className="text-lime-300 hidden sm:inline">· protótipo</span>
+        {town.name.toUpperCase()} <span className="text-lime-300 hidden sm:inline">· protótipo</span>
         <span className="ml-2 text-white/90">{String(Math.floor(clock)).padStart(2, '0')}:00 · {clock >= 6 && clock < 18.5 ? 'dia' : 'noite'}</span>
-        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar · T hora</div>}
+        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar · M mapa · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
 
       <div className="absolute top-2 right-2 flex items-center gap-1.5">
         <span className={`px-2 py-2 rounded-md bg-black/55 text-yellow-200 text-[10px] ${pixelFont}`} title="Moedas">🪙 {progress.coins}</span>
+        <button onClick={() => setMapOpen(true)}
+          className={`px-3 py-2 rounded-md bg-[#8a5a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MAPA</button>
         <button onClick={() => setDeckOpen(true)}
           className={`px-3 py-2 rounded-md bg-[#3c56b0]/90 border-2 border-[#8fb0ff] text-white text-[10px] ${pixelFont}`}>DECK</button>
         <button
@@ -804,6 +1075,46 @@ function CityView({ town }: { town: Town }) {
       </div>
 
       {editing && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
+
+      {banner && (
+        <div className={`absolute top-[22%] left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg border-4 border-[#e8c690] bg-[#2e2a40]/90 text-[#fff4d0] text-[14px] tracking-wider pointer-events-none ${pixelFont}`}>
+          {banner.toUpperCase()}
+        </div>
+      )}
+
+      {fishUi?.kind === 'meter' && (
+        <div className={`absolute left-1/2 -translate-x-1/2 bottom-[18%] w-[min(80vw,360px)] rounded-lg border-4 border-[#2e2a40] bg-white/95 p-3 ${pixelFont}`}>
+          <div className="text-[10px] text-center text-[#2e2a40] mb-2">FISGOU! APERTE NO VERDE!</div>
+          <div className="relative h-5 rounded bg-[#e8485a]/30 overflow-hidden border-2 border-[#2e2a40]">
+            <div className="absolute inset-y-0 bg-[#3ac46a]" style={{ left: `${fishUi.meter.zone[0] * 100}%`, width: `${(fishUi.meter.zone[1] - fishUi.meter.zone[0]) * 100}%` }} />
+            <div className="absolute inset-y-[-2px] w-1.5 bg-[#2e2a40]" style={{ animation: `wit-needle ${fishUi.meter.period}ms linear infinite` }} />
+          </div>
+          <style>{`@keyframes wit-needle { 0% { left: 0% } 50% { left: calc(100% - 6px) } 100% { left: 0% } }`}</style>
+        </div>
+      )}
+      {fishUi?.kind === 'catch' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/35" onPointerDown={() => setFishUi(null)}>
+          <div className={`w-[min(86vw,340px)] rounded-xl border-4 bg-[#f4efe2] p-4 text-center text-[#2e2a40] ${pixelFont}`} style={{ borderColor: RARITY_COLOR[fishUi.fish.rarity] }}>
+            <div className="text-[10px] text-[#5a5470]">{fishUi.fish.rarity === 'lixo' ? 'VOCÊ PESCOU... ' : 'VOCÊ PESCOU!'}</div>
+            <img src={fishIconUrl(fishUi.fish, 3)} alt="" className="mx-auto my-2 w-[144px] h-[96px] [image-rendering:pixelated]" />
+            <div className="text-[13px]">{fishUi.fish.name}</div>
+            <div className="text-[9px] mt-1" style={{ color: RARITY_COLOR[fishUi.fish.rarity] }}>{RARITY_LABEL[fishUi.fish.rarity]} · {fishUi.cm} cm</div>
+            {fishUi.first && <div className="text-[9px] mt-2 text-[#3a9a5a]">NOVO NO ÁLBUM!</div>}
+            {fishUi.record && <div className="text-[9px] mt-2 text-[#e8a020]">NOVO RECORDE!</div>}
+            <div className="text-[8px] leading-4 mt-2 text-[#5a5470]">{fishUi.fish.about}</div>
+            <div className="text-[8px] mt-3 text-[#b0487a]">{fishUi.fish.price ? `Vale ${fishUi.fish.price} 🪙 na Casa de Pesca` : 'Leve para o lixo da Casa de Pesca'} · toque para continuar</div>
+          </div>
+        </div>
+      )}
+      {fishUi?.kind === 'toast' && (
+        <div className={`absolute left-1/2 -translate-x-1/2 bottom-[22%] px-4 py-2 rounded-lg bg-black/70 text-white text-[10px] pointer-events-none ${pixelFont}`}>{fishUi.text}</div>
+      )}
+      {fishHouse && <FishHouse progress={progress} start={fishHouse} onClose={() => setFishHouse(null)} />}
+      {mapOpen && (
+        <WorldMap zone={town.id} pos={{ tx: g.current.player.tx, ty: g.current.player.ty }} size={{ w: town.solid[0].length, h: town.solid.length }}
+          ready={ZONES} onClose={() => setMapOpen(false)}
+          onTravel={to => { setMapOpen(false); g.current.leaving = true; onTravel(to, undefined, g.current.hour); }} />
+      )}
 
       {near && !panel && !dialog && (
         <div className={`absolute top-3 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg border-2 border-[#8cc63f] bg-[#0e3a1e]/85 text-white text-[11px] ${pixelFont}`}>

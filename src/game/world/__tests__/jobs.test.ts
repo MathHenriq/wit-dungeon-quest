@@ -1,28 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { buildTown } from '../town';
+import { buildZone, ZONES } from '../world';
 import { NPCS } from '../content';
 import { findPath } from '../movement';
 import { lampPower } from '../light';
+import { normalizeLook } from '../outfit';
+import type { Town, ZoneId } from '../zone';
 
 describe('moradores trabalhando', () => {
-  const town = buildTown();
-  const free = (x: number, y: number) => !town.solid[y]?.[x] && !town.doors.some(d => d.tx === x && d.ty === y);
-  const blocked = (x: number, y: number) => x < 0 || y < 0 || y >= town.solid.length || x >= town.solid[0].length || !free(x, y);
+  const towns = Object.fromEntries(ZONES.map(z => [z, buildZone(z)])) as Record<ZoneId, Town>;
+  const townOf = (n: (typeof NPCS)[number]) => towns[n.zona ?? 'cidade'];
+  const free = (t: Town, x: number, y: number) => !t.solid[y]?.[x] && !t.doors.some(d => d.tx === x && d.ty === y);
+  const blocked = (t: Town) => (x: number, y: number) => x < 0 || y < 0 || y >= t.solid.length || x >= t.solid[0].length || !free(t, x, y);
+
+  it('cada morador mora numa área que existe e tem o visual válido', () => {
+    for (const n of NPCS) {
+      expect(townOf(n), `${n.id}: área ${n.zona}`).toBeDefined();
+      expect(normalizeLook(n.look), `${n.id}: visual`).toEqual(n.look);
+    }
+  });
 
   it('cada morador começa num bloco livre e sem outro morador em cima', () => {
     const seen = new Set<string>();
     for (const n of NPCS) {
-      expect(free(n.tx, n.ty), n.id).toBe(true);
-      expect(seen.has(`${n.tx},${n.ty}`), n.id).toBe(false);
-      seen.add(`${n.tx},${n.ty}`);
+      expect(free(townOf(n), n.tx, n.ty), n.id).toBe(true);
+      const k = `${n.zona ?? 'cidade'}:${n.tx},${n.ty}`;
+      expect(seen.has(k), n.id).toBe(false);
+      seen.add(k);
     }
   });
 
   it('toda parada das rotas é livre e dá para chegar a partir do começo', () => {
     for (const n of NPCS) {
+      const t = townOf(n);
       for (const [x, y] of n.job?.route ?? []) {
-        expect(free(x, y), `${n.id} ${x},${y}`).toBe(true);
-        if (x !== n.tx || y !== n.ty) expect(findPath(n.tx, n.ty, x, y, blocked).length, `${n.id} → ${x},${y}`).toBeGreaterThan(0);
+        expect(free(t, x, y), `${n.id} ${x},${y}`).toBe(true);
+        if (x !== n.tx || y !== n.ty) expect(findPath(n.tx, n.ty, x, y, blocked(t)).length, `${n.id} → ${x},${y}`).toBeGreaterThan(0);
       }
     }
   });
@@ -31,7 +43,7 @@ describe('moradores trabalhando', () => {
     const D = { north: [0, -1], south: [0, 1], west: [-1, 0], east: [1, 0] } as const;
     for (const n of NPCS.filter(m => m.job?.kind === 'pescar')) {
       const [dx, dy] = D[n.dir];
-      expect(town.terrain[n.ty + dy][n.tx + dx], n.id).toBe('agua');
+      expect(townOf(n).terrain[n.ty + dy][n.tx + dx], n.id).toBe('agua');
     }
   });
 });

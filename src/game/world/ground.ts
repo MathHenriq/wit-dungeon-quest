@@ -531,7 +531,11 @@ function paintGroundTextured(grid: Terrain[][], tex: GroundTextures, k = 1): Pix
   // vitórias-régias (desenho de 1 px do mundo, ampliado em hd)
   const pad = ['.oooo.', 'ollllo', 'olloll', '.oooo.'];
   for (let ty = 0; ty < TH; ty++) for (let tx = 0; tx < TW; tx++) {
-    if (grid[ty][tx] !== 'agua' || hash(tx, ty, 9) < 0.72) continue;
+    if (grid[ty][tx] !== 'agua' || hash(tx, ty, 9) < 0.85) continue;
+    // só perto da margem (no meio de um lago grande ficaria salpicado)
+    let shore = false;
+    for (let dy = -2; dy <= 2 && !shore; dy++) for (let dx = -2; dx <= 2; dx++) if (grid[ty + dy]?.[tx + dx] !== 'agua') { shore = true; break; }
+    if (!shore) continue;
     const X = (tx * TILE + 4) * k, Y = (ty * TILE + 5) * k;
     if (!inW(X, Y) || !inW(X + 8 * k, Y + 6 * k)) continue;
     pad.forEach((row, ry) => [...row].forEach((ch, rx) => {
@@ -552,7 +556,7 @@ function paintGroundTextured(grid: Terrain[][], tex: GroundTextures, k = 1): Pix
  * arquivo) ou as texturas, para o chão pronto (scripts/mapa/chao-pronto.ts)
  * deixar de valer e ser gerado de novo.
  */
-export const GROUND_VERSION = 3;
+export const GROUND_VERSION = 4;
 
 /** Chave do chão: a planta dos terrenos + a versão do desenho. */
 export function groundKey(grid: Terrain[][]): string {

@@ -2,6 +2,7 @@
 import type { Dir } from './movement';
 import type { Look } from './outfit';
 import type { NpcJob } from './jobs';
+import type { ZoneId } from './zone';
 
 export const BUILDING_INFO: Record<string, { title: string; text: string }> = {
   torre: { title: 'Torre dos 100 Andares', text: 'A dungeon. Cada andar é um duelo de cartas; a cada 10 andares, um chefe que pode te dar uma carta do deck dele.' },
@@ -10,6 +11,10 @@ export const BUILDING_INFO: Record<string, { title: string; text: string }> = {
   arena: { title: 'Arena', text: 'Duelos PvP: contra a IA jogando com o deck de um colega, ou ao vivo.' },
   guildas: { title: 'Castelo das Guildas', text: 'Sua equipe, a meta de presença da semana e o chefe da guilda.' },
   'sua-casa': { title: 'Sua Casa', text: 'Personalize seu personagem e decore sua casa com móveis.' },
+  // Lago Azul
+  'casa-pesca': { title: 'Casa de Pesca', text: 'O quadro dos peixes do dia, a venda do que você pescou e o álbum de peixes do lago.' },
+  'loja-iscas': { title: 'Loja de Iscas', text: 'Varas melhores e iscas para peixes raros chegam com a profissão de pescador (em breve).' },
+  farol: { title: 'Farol', text: 'Lá de cima dá para ver o mundo todo.' },
 };
 
 /** Modelos de casa (sprites em public/game/world). As 3 iniciais e as 7 que se compram. */
@@ -62,6 +67,8 @@ export interface NpcDef {
   lines: string[];
   /** Trabalho na cidade (pescar, tocar, fazer pão...) ou passeio; sem isso, fica perto de casa. */
   job?: NpcJob;
+  /** Área onde mora (sem isso, o Centro). */
+  zona?: ZoneId;
 }
 
 export const NPCS: NpcDef[] = [
@@ -106,5 +113,25 @@ export const NPCS: NpcDef[] = [
     look: { modelo: 'modelo-08', pele: 'pele-3', cabelo: 'azul', cima: 'verde', baixo: 'preto', acc: { rosto: { id: 'oculos', cor: 'preto' } } },
     lines: ['Você viu o pescador pegando um peixe?', 'Um dia quero ter uma bicicleta!'] },
 ];
+
+/** Moradores das outras áreas. */
+NPCS.push(
+  // Lago Azul
+  { id: 'tiao', zona: 'lago', name: 'Seu Tião', title: 'Dono da Casa de Pesca', tx: 10, ty: 18, dir: 'west',
+    look: { modelo: 'modelo-04', pele: 'pele-5', cabelo: 'castanho', cima: 'marinho', baixo: 'caqui', acc: { cabeca: { id: 'chapeu', cor: 'marinho' } } },
+    lines: ['Bem-vindo ao Lago Azul!', 'Pescou alguma coisa? Traga na Casa de Pesca que eu compro.', 'No quadro eu anoto o que o pessoal pegou hoje.'] },
+  { id: 'nando', zona: 'lago', name: 'Nando', title: 'Pescador', tx: 41, ty: 15, dir: 'south', job: { kind: 'pescar' },
+    look: { modelo: 'modelo-09', pele: 'pele-3', cabelo: 'castanho', cima: 'verde', baixo: 'jeans', acc: { cabeca: { id: 'chapeu', cor: 'caqui' } } },
+    lines: ['Longe da margem, a água é funda: é lá que vivem o Dourado e o Tucunaré.', 'Do barquinho dá para pescar no meio do lago!'] },
+  { id: 'lucia', zona: 'lago', name: 'Lúcia', title: 'Pescadora', tx: 40, ty: 36, dir: 'north', job: { kind: 'pescar' },
+    look: { modelo: 'modelo-10', pele: 'pele-6', cabelo: 'preto', cima: 'amarelo', baixo: 'caqui' },
+    lines: ['Dizem que à noite aparece um peixe que brilha...', 'Eu nunca vi. Mas também nunca fiquei até tarde!'] },
+  { id: 'marinho', zona: 'lago', name: 'Marinho', title: 'Barqueiro', tx: 26, ty: 22, dir: 'east',
+    look: { modelo: 'modelo-08', pele: 'pele-2', cabelo: 'ruivo', cima: 'branco', baixo: 'marinho', acc: { cabeca: { id: 'bandana', cor: 'vermelho' } } },
+    lines: ['O barquinho está no fim do cais. Pode usar!', 'De frente para o barco, aperte ESPAÇO. Para descer, encoste na terra.'] },
+  { id: 'pipo', zona: 'lago', name: 'Pipo', title: 'Estudante', tx: 22, ty: 30, dir: 'south', job: { kind: 'passear', route: [[22, 30, 'south'], [34, 39, 'east'], [50, 40, 'north'], [23, 25, 'west']], pause: [2500, 6000] },
+    look: { modelo: 'modelo-07', pele: 'pele-4', cabelo: 'loiro', cima: 'laranja', baixo: 'jeans' },
+    lines: ['Fiz um castelo de areia! Não pisa, hein!', 'O farol fica numa ilha. Só dá para ir de barco.'] },
+);
 
 export const MURAL_TEXT = ['MURAL DA CIDADE', 'Avisos do professor e missões da semana aparecem aqui.'];

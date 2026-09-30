@@ -25,6 +25,10 @@ export interface Progress {
   /** Tapetes do duelo que o aluno tem e o que está usando. */
   mats: string[];
   mat: string;
+  /** Mochila: peixes, sementes e colheitas (`peixe:tilapia` → quantidade). */
+  itens: Record<string, number>;
+  /** Maior peixe de cada espécie (cm): o álbum de peixes da Casa de Pesca. */
+  recordes: Record<string, number>;
 }
 
 export function newProgress(): Progress {
@@ -37,6 +41,8 @@ export function newProgress(): Progress {
     wins: {},
     mats: [DEFAULT_MAT],
     mat: DEFAULT_MAT,
+    itens: {},
+    recordes: {},
   };
 }
 
@@ -63,8 +69,20 @@ export function sanitizeProgress(raw: unknown): Progress {
   }
   const mats = [...new Set([DEFAULT_MAT, ...(Array.isArray(r.mats) ? r.mats : []).filter((x): x is string => typeof x === 'string' && MAT_BY_ID.has(x))])];
   const mat = typeof r.mat === 'string' && mats.includes(r.mat) ? r.mat : DEFAULT_MAT;
+  const counts = (v: unknown, max: number) => {
+    const out: Record<string, number> = {};
+    if (v && typeof v === 'object') {
+      for (const [id, n] of Object.entries(v as Record<string, unknown>)) {
+        const k = num(n, 0, 0, max);
+        if (/^[a-z0-9:-]{1,40}$/.test(id) && k > 0) out[id] = k;
+      }
+    }
+    return out;
+  };
   return {
     mats, mat,
+    itens: counts(r.itens, 9999),
+    recordes: counts(r.recordes, 1000),
     coins: num(r.coins, 0),
     collection: col,
     decks,
@@ -200,6 +218,38 @@ export function buyMat(p: Progress, id: string): { ok: true; progress: Progress 
 /** Passa a usar um tapete que já tem. */
 export function equipMat(p: Progress, id: string): Progress {
   return p.mats.includes(id) ? { ...p, mat: id } : p;
+}
+
+// ─── Mochila ────────────────────────────────────────────────────────────────
+
+/** Soma (ou tira, com `n` negativo) itens da mochila; nunca fica negativo. */
+export function addItem(p: Progress, id: string, n = 1): Progress {
+  const itens = { ...p.itens, [id]: Math.max(0, (p.itens[id] ?? 0) + n) };
+  if (!itens[id]) delete itens[id];
+  return { ...p, itens };
+}
+
+/** Guarda o peixe pescado e o recorde de tamanho. Diz se é a primeira vez e se bateu o recorde. */
+export function addCatch(p: Progress, fishId: string, cm: number): { progress: Progress; first: boolean; record: boolean } {
+  const before = p.recordes[fishId] ?? 0;
+  const next = addItem(p, `peixe:${fishId}`, 1);
+  const record = cm > before;
+  if (record) next.recordes = { ...p.recordes, [fishId]: cm };
+  return { progress: next, first: before === 0, record: record && before > 0 };
+}
+
+/** Vende itens da mochila: `price(id)` diz quanto vale cada um (0 = não compra). */
+export function sellItems(p: Progress, ids: string[], price: (id: string) => number): { progress: Progress; coins: number; sold: number } {
+  let coins = 0, sold = 0;
+  const itens = { ...p.itens };
+  for (const id of ids) {
+    const n = itens[id] ?? 0;
+    if (!n) continue;
+    coins += n * price(id);
+    sold += n;
+    delete itens[id];
+  }
+  return { progress: { ...p, itens, coins: p.coins + coins }, coins, sold };
 }
 
 // ─── Navegador ──────────────────────────────────────────────────────────────
