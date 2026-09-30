@@ -406,6 +406,19 @@ ao motor e à IA (**feita em 30/09**: palco 16:9 em `DuelView.tsx` + `.css`, cel
 animações do boneco; (6) abertura (VS, quem começa) e fim (vitória/derrota,
 moedas, carta do chefe); (7) som; (8) desempenho no celular, testes, demo.
 
+### 5.6 Tapetes do duelo (cosmético, 30/09)
+O tapete é a mesa do duelo. **Não muda regra nenhuma**: é estilo, comprado
+com moedas na aba TAPETES da tela do deck (e, no futuro, numa das lojas do
+shopping). Começa com o **Clássico** (grátis, muda de cor com o elemento do
+desafiante); os feitos em código custam 600–1.200 moedas (Circuito WIT,
+Tatame, Noite Estrelada, Sakura, Fundo do Mar, Vulcão).
+
+Os temáticos de **anime, cartas e monstrinhos** (1.500–2.000) usam arte do
+GPT (`docs/prompts-tapetes.md`), sempre **originais**: estilo anime, sem
+personagem, logo ou criatura de franquia. Entram como EM BREVE e são
+liberados quando a arte for aprovada. Ideias para depois: tapete animado
+(brilho, partículas), tapete de evento e de chefe (prêmio), tapete da guilda.
+
 ---
 
 ## 6. Guilda: "o aluno cobra o aluno que faltou"

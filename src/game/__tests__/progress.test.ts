@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bossFoe, tableFoe, TABLES_FOR_BOSS } from '@/lib/tcg/opponents';
 import {
-  activeDeckCards, applyDuel, bossUnlocked, canGoUp, checkDeck, newProgress, sanitizeProgress, suggestDeck, tablesWon,
+  activeDeckCards, applyDuel, bossUnlocked, buyMat, canGoUp, checkDeck, equipMat, newProgress, sanitizeProgress, suggestDeck, tablesWon,
 } from '../progress';
 
 describe('progresso', () => {
@@ -70,5 +70,26 @@ describe('progresso', () => {
     const rare = boss.deck.find(c => c.rarity === 'epic' || c.rarity === 'legendary')!;
     const col = { ...p.collection, [rare.id]: 1 };
     expect(suggestDeck(col, rare.element)).toContain(rare.id);
+  });
+
+  it('tapetes: começa com o Clássico; compra desconta moedas e já equipa; recusa sem moedas, repetido ou em breve', () => {
+    const p = newProgress();
+    expect(p.mats).toEqual(['classico']);
+    expect(p.mat).toBe('classico');
+    expect(buyMat(p, 'circuito').ok).toBe(false);
+    const rich = { ...p, coins: 1000 };
+    const r = buyMat(rich, 'circuito');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.progress.coins).toBe(400);
+    expect(r.progress.mat).toBe('circuito');
+    expect(buyMat(r.progress, 'circuito').ok).toBe(false);
+    expect(buyMat({ ...rich, coins: 99999 }, 'monstrinhos').ok).toBe(false);
+    expect(equipMat(r.progress, 'classico').mat).toBe('classico');
+    expect(equipMat(r.progress, 'vulcao').mat).toBe('circuito');
+    // salvo estragado: tapete que não existe some, o Clássico nunca falta
+    const s = sanitizeProgress({ mats: ['xx', 'noite'], mat: 'xx' });
+    expect(s.mats).toEqual(['classico', 'noite']);
+    expect(s.mat).toBe('classico');
   });
 });

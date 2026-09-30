@@ -652,6 +652,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           foeSprite={duel.sprite}
           deck={activeDeckCards(progress)}
           look={look}
+          mat={progress.mat}
           nick={look.apelido || 'Você'}
           onQuit={() => setDuel(null)}
           onEnd={won => {

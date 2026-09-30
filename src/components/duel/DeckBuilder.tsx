@@ -4,6 +4,7 @@ import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { ELEMENT_PT, RARITY_PT, TYPE_PT } from '@/lib/tcg/labels';
 import { maxCopies, RARITY_ORDER } from '@/lib/tcg/opponents';
 import type { CardDef, CardType, Element } from '@/lib/tcg/types';
+import { MatShop } from './MatShop';
 import { checkDeck, DECK_SIZE, DECK_SLOTS, saveProgress, suggestDeck, type Progress } from '@/game/progress';
 
 /**
@@ -24,6 +25,7 @@ export function DeckBuilder({ progress, onClose }: { progress: Progress; onClose
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<CardDef | null>(null);
   const [saved, setSaved] = useState(false);
+  const [tab, setTab] = useState<'deck' | 'tapetes'>(() => (new URLSearchParams(window.location.search).has('tapetes') ? 'tapetes' : 'deck'));
 
   const deck = decks[slot];
   const inDeck = (id: string) => deck.filter(x => x === id).length;
@@ -61,26 +63,34 @@ export function DeckBuilder({ progress, onClose }: { progress: Progress; onClose
     <div className="absolute inset-0 z-40 flex flex-col bg-[#15101c] text-white">
       {/* topo */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b-2 border-white/10">
-        <span className={`text-[12px] text-lime-300 ${pixel}`}>MEU DECK</span>
         <div className="flex gap-1">
+          {(['deck', 'tapetes'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-2.5 py-1.5 rounded text-[10px] ${pixel} ${tab === t ? 'text-lime-300 bg-white/10' : 'text-white/50'}`}>{t === 'deck' ? 'MEU DECK' : 'TAPETES'}</button>
+          ))}
+        </div>
+        {tab === 'deck' && <div className="flex gap-1">
           {Array.from({ length: DECK_SLOTS }, (_, i) => (
             <button key={i} onClick={() => setSlot(i)}
               className={`px-2 py-1.5 rounded text-[9px] border-2 ${pixel} ${slot === i ? 'bg-[#2f6b1e] border-[#8cc63f]' : 'bg-white/5 border-white/15'}`}>
               {progress.activeDeck === i ? '★ ' : ''}DECK {i + 1}
             </button>
           ))}
-        </div>
+        </div>}
         <div className="ml-auto flex gap-1.5">
+          {tab === 'deck' && <>
           <button onClick={() => setDeck(suggestDeck(progress.collection))} className={`px-2.5 py-1.5 rounded bg-[#3c56b0] text-[9px] ${pixel}`}>SUGERIR</button>
           <button onClick={() => setDeck([])} className={`px-2.5 py-1.5 rounded bg-white/10 text-[9px] ${pixel}`}>LIMPAR</button>
           <button onClick={save} className={`px-2.5 py-1.5 rounded text-[9px] ${pixel} ${check.ok ? 'bg-[#2f6b1e] border-2 border-[#8cc63f]' : 'bg-white/10'}`}>
             {saved ? 'SALVO!' : check.ok ? 'SALVAR E USAR' : 'SALVAR'}
           </button>
+          </>}
           <button onClick={onClose} className={`px-2.5 py-1.5 rounded bg-[#e8485a] text-[9px] ${pixel}`}>FECHAR</button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+      {tab === 'tapetes' && <MatShop progress={progress} />}
+      {tab === 'deck' && <div className="flex-1 min-h-0 flex flex-col md:flex-row">
         {/* o deck */}
         <div className="md:w-[320px] shrink-0 border-b-2 md:border-b-0 md:border-r-2 border-white/10 p-3 flex flex-col gap-2 max-h-[42vh] md:max-h-none">
           <div className="flex items-center gap-2">
@@ -154,7 +164,7 @@ export function DeckBuilder({ progress, onClose }: { progress: Progress; onClose
             })}
           </div>
         </div>
-      </div>
+      </div>}
 
       {open && (
         <div className="absolute inset-0 z-10 bg-black/70 flex items-center justify-center p-4" onClick={() => setOpen(null)}>

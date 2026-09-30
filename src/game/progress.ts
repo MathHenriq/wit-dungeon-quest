@@ -6,6 +6,7 @@
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { maxCopies, rewardFor, starterCollection, starterDeck, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opponents';
 import type { CardDef } from '@/lib/tcg/types';
+import { DEFAULT_MAT, MAT_BY_ID } from './playmats';
 
 export const DECK_SIZE = 20;
 export const DECK_SLOTS = 3;
@@ -21,6 +22,9 @@ export interface Progress {
   towerMax: number;
   /** Vitórias por adversário (id do Foe). */
   wins: Record<string, number>;
+  /** Tapetes do duelo que o aluno tem e o que está usando. */
+  mats: string[];
+  mat: string;
 }
 
 export function newProgress(): Progress {
@@ -31,6 +35,8 @@ export function newProgress(): Progress {
     activeDeck: 0,
     towerMax: 1,
     wins: {},
+    mats: [DEFAULT_MAT],
+    mat: DEFAULT_MAT,
   };
 }
 
@@ -55,7 +61,10 @@ export function sanitizeProgress(raw: unknown): Progress {
   if (r.wins && typeof r.wins === 'object') {
     for (const [id, n] of Object.entries(r.wins as Record<string, unknown>)) if (/^[a-z0-9-]{1,40}$/.test(id)) wins[id] = num(n, 0, 0, 1e6);
   }
+  const mats = [...new Set([DEFAULT_MAT, ...(Array.isArray(r.mats) ? r.mats : []).filter((x): x is string => typeof x === 'string' && MAT_BY_ID.has(x))])];
+  const mat = typeof r.mat === 'string' && mats.includes(r.mat) ? r.mat : DEFAULT_MAT;
   return {
+    mats, mat,
     coins: num(r.coins, 0),
     collection: col,
     decks,
@@ -174,6 +183,23 @@ export function applyDuel(p: Progress, foe: Foe, won: boolean, pick: number): { 
     }
   }
   return { progress: next, result };
+}
+
+// ─── Tapetes ────────────────────────────────────────────────────────────────
+
+/** Compra um tapete (e já passa a usar). Sem moedas, já tem ou ainda sem arte: recusa com o motivo. */
+export function buyMat(p: Progress, id: string): { ok: true; progress: Progress } | { ok: false; reason: string } {
+  const m = MAT_BY_ID.get(id);
+  if (!m) return { ok: false, reason: 'Tapete não existe.' };
+  if (p.mats.includes(id)) return { ok: false, reason: 'Você já tem este tapete.' };
+  if (m.emBreve) return { ok: false, reason: 'Este tapete chega em breve.' };
+  if (p.coins < m.preco) return { ok: false, reason: `Faltam ${m.preco - p.coins} moedas.` };
+  return { ok: true, progress: { ...p, coins: p.coins - m.preco, mats: [...p.mats, id], mat: id } };
+}
+
+/** Passa a usar um tapete que já tem. */
+export function equipMat(p: Progress, id: string): Progress {
+  return p.mats.includes(id) ? { ...p, mat: id } : p;
 }
 
 // ─── Navegador ──────────────────────────────────────────────────────────────

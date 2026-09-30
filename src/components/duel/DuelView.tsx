@@ -7,6 +7,7 @@ import type { Foe } from '@/lib/tcg/opponents';
 import type { CardDef, CardInstance, Element, GameState, PlayerState } from '@/lib/tcg/types';
 import type { Look } from '@/game/world/outfit';
 import { loadLookFrames, loadNpcFrames } from '@/game/world/sprites';
+import { matOf, matStyle } from '@/game/playmats';
 import './DuelView.css';
 
 /**
@@ -31,6 +32,8 @@ interface Props {
   onQuit: () => void;
   /** Tela do resultado (moedas, carta), montada por quem chamou depois de `onEnd`. */
   result?: React.ReactNode;
+  /** Tapete do aluno (src/game/playmats.ts); sem ele, o Clássico. */
+  mat?: string;
 }
 
 /** Elemento do herói do aluno: o mais comum no deck (define fraquezas). */
@@ -158,7 +161,7 @@ function Row({ side, p, hidden, open }: { side: 'op' | 'me'; p: PlayerState; hid
   );
 }
 
-export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result }: Props) {
+export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result, mat }: Props) {
   const [state, setState] = useState<GameState>(() => createGame([
     { name: nick, element: heroElement(deck), deck },
     { name: foe.name, element: foe.element, deck: foe.deck, life: foe.life },
@@ -304,7 +307,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
 
         {/* mesa */}
         <div className="dv-table">
-          <div className="dv-mat">
+          <div className="dv-mat" style={matStyle(matOf(mat), import.meta.env.BASE_URL)}>
             <Row side="op" p={op} hidden open={c => setPreview({ card: c })} />
             <div className="dv-field">
               <Slot label="CAMPO" card={state.field?.card.def} onOpen={state.field ? () => setPreview({ card: state.field!.card.def }) : undefined} />
