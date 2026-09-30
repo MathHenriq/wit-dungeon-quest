@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { addGlowSpots, buildTown, type Placed, type Town } from '@/game/world/town';
 import { hdOf, loadPrebuiltGround, loadWorldAssets } from '@/game/world/assets';
-import { lightHalo, timeOfDay } from '@/game/world/light';
+import { lampPower, lightHalo, timeOfDay } from '@/game/world/light';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
 import {
@@ -18,6 +18,7 @@ import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS } from '@/game/world/content
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 import { drawAmbient } from '@/game/world/ambient';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
+import { drawJob, jobBob, propsBehind } from '@/game/world/jobs';
 
 /**
  * Protótipo jogável da Cidade WIT: andar pela cidade (setas/WASD ou toque),
@@ -81,7 +82,11 @@ function savedLook(): Look {
   try { return normalizeLook(JSON.parse(localStorage.getItem(LOOK_KEY) ?? 'null')); } catch { return DEFAULT_LOOK; }
 }
 
-interface Npc { def: (typeof NPCS)[number]; w: Walker; frames: Frames | null; goal: Dir | null }
+interface Npc {
+  def: (typeof NPCS)[number]; w: Walker; frames: Frames | null; goal: Dir | null;
+  /** Moradores com rota: caminho até a próxima parada, tempo parado e parada atual. */
+  path: Dir[]; wait: number; stop: number; seed: number;
+}
 
 export default function CityDemo() {
   // a cidade cobre a tela inteira: o fundo 3D do app não precisa desenhar
@@ -145,9 +150,11 @@ function CityView({ town }: { town: Town }) {
     // ?pos=tx,ty começa em outro lugar (para prints e testes)
     player: newWalker(START.tx, START.ty, 'north'),
     pet: newWalker(START.tx - 1, START.ty, 'east'),
-    npcs: NPCS.map(def => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, goal: null })) as Npc[],
+    npcs: NPCS.map((def, i) => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, goal: null, path: [], wait: 800 + i * 700, stop: 0, seed: (i * 0.618034) % 1 })) as Npc[],
     held: [] as Dir[],
     run: false,
+    /** Sentado num banco: o bloco do banco e de onde veio (para levantar). */
+    seat: null as { tx: number; ty: number; dx: number; from: { tx: number; ty: number } } | null,
     path: [] as Dir[],
     playerFrames: null as Frames | null,
     /** Apelido e título do jogador (na plaquinha). */
@@ -159,6 +166,8 @@ function CityView({ town }: { town: Town }) {
     objs: [] as { o: Placed; c: HTMLCanvasElement; n: HTMLCanvasElement | null }[],
     /** Objetos animados: ficam fora da cena pré-composta. */
     anims: [] as { o: Placed; cs: HTMLCanvasElement[]; ns: HTMLCanvasElement[] | null }[],
+    /** Cúpula acesa de cada poste (os postes acendem um a um, fora da camada da noite). */
+    lampNights: [] as (HTMLCanvasElement | null)[],
     /** Os ritmos (ms por quadro) diferentes entre os objetos animados. */
     animRates: [] as number[],
     /** Luzes fixas + halo numa imagem só, somada à cena à noite. */
@@ -199,6 +208,7 @@ function CityView({ town }: { town: Town }) {
     g.current.anims = town.objects.filter(o => o.frames).map(o => ({
       o, cs: o.frames!.map(toCanvasHd), ns: o.nightFrames ? o.nightFrames.map(toCanvasHd) : null,
     }));
+    g.current.lampNights = town.lamps.map(l => (l.night ? toCanvasHd(l.night) : null));
     g.current.animRates = [...new Set(g.current.anims.map(a => a.o.frameMs ?? 500))];
     const scene = toCanvasHd(town.ground);
     const sctx = scene.getContext('2d')!;
@@ -293,6 +303,17 @@ function CityView({ town }: { town: Town }) {
       setDialog({ lines: npc.def.lines, i: 0 });
       return;
     }
+    // banco: senta (qualquer seta levanta)
+    if (!s.seat && !s.player.from) {
+      const bench = town.objects.find(o => o.id.startsWith('banco') && f.ty === Math.floor((o.baseY - 1) / TILE)
+        && f.tx >= Math.floor(o.x / TILE) && f.tx < Math.ceil((o.x + o.pix.w) / TILE));
+      if (bench) {
+        s.seat = { tx: f.tx, ty: f.ty, dx: Math.round(bench.x + bench.pix.w / 2 - (f.tx * TILE + 8)), from: { tx: s.player.tx, ty: s.player.ty } };
+        s.player.tx = f.tx; s.player.ty = f.ty; s.player.dir = 'south'; s.path = []; s.held = [];
+        s.dirty = true;
+        return;
+      }
+    }
     const mural = town.objects.find(o => o.id === 'mural');
     if (mural && f.ty === 12 && f.tx >= 14 && f.tx <= 16) setDialog({ lines: MURAL_TEXT, i: 0 });
   }, [dialog, panel, town]);
@@ -301,6 +322,14 @@ function CityView({ town }: { town: Town }) {
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       const d = KEY_DIR[e.key];
+      if (d && g.current.seat) {
+        // levanta e volta para onde estava
+        e.preventDefault();
+        const st = g.current.seat; g.current.seat = null;
+        g.current.player.tx = st.from.tx; g.current.player.ty = st.from.ty; g.current.player.dir = d;
+        g.current.dirty = true;
+        return;
+      }
       if (d) {
         e.preventDefault();
         if (!g.current.held.includes(d)) g.current.held.unshift(d);
@@ -393,7 +422,7 @@ function CityView({ town }: { town: Town }) {
       if (npcTimer > 1600) {
         npcTimer = 0;
         const n = s.npcs[Math.floor(Math.random() * s.npcs.length)];
-        if (!s.modal && !n.w.from) {
+        if (!s.modal && !n.w.from && !n.def.job) {
           const home = n.w.tx === n.def.tx && n.w.ty === n.def.ty;
           const back: Dir = n.def.tx > n.w.tx ? 'east' : n.def.tx < n.w.tx ? 'west' : n.def.ty > n.w.ty ? 'south' : 'north';
           if (home && Math.random() < 0.5) n.goal = DIRS[Math.floor(Math.random() * 4)];
@@ -406,11 +435,32 @@ function CityView({ town }: { town: Town }) {
         const occupied = (tx: number, ty: number) => blocked(tx, ty)
           || (p.tx === tx && p.ty === ty) || (pet.tx === tx && pet.ty === ty)
           || town.doors.some(d => d.tx === tx && d.ty === ty);
+        const route = n.def.job?.route;
+        if (route && !s.modal && !n.w.from && !n.path.length) {
+          // chegou: fica um tempo na parada, olhando para o trabalho; depois vai para a próxima
+          if (n.wait > 0) n.wait -= dt;
+          else {
+            n.stop = (n.stop + 1) % route.length;
+            const [gx, gy] = route[n.stop];
+            n.path = findPath(n.w.tx, n.w.ty, gx, gy, (x, y) => x < 0 || y < 0 || y >= town.solid.length || x >= town.solid[0].length || town.solid[y][x] || town.doors.some(d => d.tx === x && d.ty === y));
+            if (!n.path.length) n.wait = 3000;
+          }
+        }
         tick(n.w, dt, {
           msPerTile: WALK_MS * 1.4,
           blocked: occupied,
           fromPath: true,
-          want: () => { const gd = n.goal; n.goal = null; return gd; },
+          want: () => {
+            if (route) return s.modal ? null : n.path[0] ?? null;
+            const gd = n.goal; n.goal = null; return gd;
+          },
+          onStep: () => { if (route) n.path.shift(); },
+          onArrive: () => {
+            if (!route || n.path.length) return;
+            const [, , face] = route[n.stop];
+            const [a, b] = n.def.job?.pause ?? [2000, 4000];
+            n.w.dir = face; n.wait = a + Math.random() * (b - a); s.dirty = true;
+          },
         });
         if (n.w.from) s.dirty = true;
       }
@@ -519,6 +569,33 @@ function CityView({ town }: { town: Town }) {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
       }
+      // postes: cada um acende na sua hora (pisca antes de firmar); poça de luz no chão
+      const lampsOn = lit ? town.lamps.map((l, i) => ({ l, i, on: lampPower(s.hour, l.seed) }))
+        .filter(({ l, on }) => on > 0 && l.bulb[0] > camX - 40 && l.bulb[0] < camX + vw + 40 && l.bulb[1] > camY - 60 && l.bulb[1] < camY + vh + 60) : [];
+      if (lampsOn.length) {
+        ctx.globalCompositeOperation = 'lighter';
+        const k = Math.min(1, tod.light * 1.3);
+        for (const { l } of lampsOn) {
+          const [gx, gy] = [l.ground[0] - camX, l.ground[1] - camY];
+          ctx.save();
+          ctx.translate(gx, gy); ctx.scale(1, 0.55);
+          const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, 30);
+          gr.addColorStop(0, `rgba(255,206,130,${0.42 * k})`);
+          gr.addColorStop(0.6, `rgba(255,170,90,${0.16 * k})`);
+          gr.addColorStop(1, 'rgba(255,170,90,0)');
+          ctx.fillStyle = gr;
+          ctx.fillRect(-30, -30, 60, 60);
+          ctx.restore();
+          // facho da lâmpada até o chão
+          const [bx, by] = [l.bulb[0] - camX, l.bulb[1] - camY];
+          const cone = ctx.createLinearGradient(0, by, 0, gy);
+          cone.addColorStop(0, `rgba(255,220,150,${0.2 * k})`);
+          cone.addColorStop(1, 'rgba(255,200,130,0)');
+          ctx.fillStyle = cone;
+          ctx.beginPath(); ctx.moveTo(bx - 3, by + 2); ctx.lineTo(bx + 3, by + 2); ctx.lineTo(bx + 14, gy); ctx.lineTo(bx - 14, gy); ctx.closePath(); ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+      }
       // tom da hora arredondado (muda pouco a pouco no entardecer)
       const tintKey = q.join(','), tintCss = `rgb(${q[0]},${q[1]},${q[2]})`;
       tintBudget.left = 2;
@@ -536,7 +613,7 @@ function CityView({ town }: { town: Town }) {
       type D = { baseY: number; draw: () => void };
       const list: D[] = [];
       const people: { x: number; y: number; w: number; h: number; baseY: number }[] = [];
-      const person = (w: Walker, fr: Frames | null) => {
+      const person = (w: Walker, fr: Frames | null, bob = 0) => {
         if (!fr) return;
         const pos = pixelPos(w, TILE);
         // cada passo usa metade dos quadros da caminhada (6 da PixelLab, 4 dos modelos)
@@ -544,7 +621,7 @@ function CityView({ town }: { town: Town }) {
         const frameMs = (w === s.player && s.run ? RUN_MS : WALK_MS) / (n / 2);
         const img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % n : 0];
         const wx = Math.round(pos.x + 8 - fr.w / 2), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
-        const x = wx - camX, y = wy - camY;
+        const x = wx - camX, y = wy - camY + bob;
         if (x > vw || y > vh || x < -32 || y < -48) return;
         people.push({ x: wx, y: wy, w: fr.w, h: 40, baseY: pos.y + 16 });
         list.push({
@@ -552,7 +629,7 @@ function CityView({ town }: { town: Town }) {
           draw: () => {
             const tx = Math.round(pos.x / TILE), ty = Math.round(pos.y / TILE);
             const inGrass = town.terrain[ty]?.[tx] === 'mato';
-            if (!inGrass) {
+            if (!inGrass && !(w === s.player && s.seat)) {
               ctx.fillStyle = 'rgba(30,50,60,0.3)';
               ctx.beginPath(); ctx.ellipse(x + fr.w / 2, y + fr.foot[w.dir], Math.min(7, fr.w / 3), 2.5, 0, 0, Math.PI * 2); ctx.fill();
             }
@@ -567,7 +644,11 @@ function CityView({ town }: { town: Town }) {
                 ctx.fillRect(Math.round((x + fr.w / 2 + dx - sz / 2) * 2) / 2, Math.round((y + fr.foot[w.dir] - 1 + dy - life * 3) * 2) / 2, sz, sz);
               }
             }
-            put(img, x, y);
+            if (w === s.player && s.seat) {
+              // sentado: as pernas somem atrás do assento e o corpo desce um pouco
+              const CUT = 6, src = white ? img : tinted(img, tintKey, tintCss);
+              ctx.drawImage(src, 0, 0, src.width, src.height - CUT * R, x + s.seat.dx, y + 2, src.width / R, src.height / R - CUT);
+            } else put(img, x, y);
             // capim alto: a parte de baixo do bloco (o mato) é desenhada de novo por cima das pernas
             if (inGrass) {
               const src = sceneKey && L.front ? L.front : s.scene!;
@@ -579,7 +660,18 @@ function CityView({ town }: { town: Town }) {
         });
       };
       person(s.pet, s.petFrames);
-      for (const n of s.npcs) person(n.w, n.frames);
+      for (const n of s.npcs) {
+        const job = n.def.job;
+        if (!job) { person(n.w, n.frames); continue; }
+        const st = { now, moving: !!n.w.from || n.path.length > 0, stop: n.stop, seed: n.seed };
+        person(n.w, n.frames, jobBob(job.kind, st));
+        if (!n.frames || job.kind === 'passear') continue;
+        const pos = pixelPos(n.w, TILE);
+        const cx = pos.x + 8 - camX, fy = pos.y + 15 - camY;
+        if (cx < -40 || cx > vw + 40 || fy < -40 || fy > vh + 40) continue;
+        const dir = n.w.dir;
+        list.push({ baseY: pos.y + 16 + (propsBehind(dir) ? -0.01 : 0.01), draw: () => drawJob(ctx, job.kind, cx, fy, dir, st) });
+      }
       person(p, s.playerFrames);
       for (const { o, cs, ns } of s.anims) {
         const f = (Math.floor(now / (o.frameMs ?? 500)) + (o.phase ?? 0)) % cs.length;
@@ -596,6 +688,23 @@ function CityView({ town }: { town: Town }) {
       }
       list.sort((a, b) => a.baseY - b.baseY);
       for (const d of list) d.draw();
+      // lâmpada dos postes acesos: a cúpula clara e um brilho em volta
+      if (lampsOn.length) {
+        const k = Math.min(1, tod.light * 1.3);
+        for (const { l, i } of lampsOn) {
+          const n = s.lampNights[i];
+          if (n) ctx.drawImage(n, l.x - camX, l.y - camY, n.width / R, n.height / R);
+          const [bx, by] = [l.bulb[0] - camX, l.bulb[1] - camY];
+          ctx.globalCompositeOperation = 'lighter';
+          const gr = ctx.createRadialGradient(bx, by, 0, bx, by, 13);
+          gr.addColorStop(0, `rgba(255,236,190,${0.75 * k})`);
+          gr.addColorStop(0.35, `rgba(255,200,120,${0.3 * k})`);
+          gr.addColorStop(1, 'rgba(255,190,110,0)');
+          ctx.fillStyle = gr;
+          ctx.fillRect(bx - 13, by - 13, 26, 26);
+          ctx.globalCompositeOperation = 'source-over';
+        }
+      }
       // vida da cidade (fumaça, brilhos, borboletas, pássaros, nuvens, vaga-lumes)
       drawAmbient(ctx, town.fx, { now, camX, camY, vw, vh, tint: tod.tint, light: tod.light }, mapW, mapH);
       // plaquinhas: a do jogador sempre; a dos moradores quando o jogador chega perto
@@ -631,6 +740,7 @@ function CityView({ town }: { town: Town }) {
   const onTap = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const s = g.current;
     if (s.modal) { interact(); return; }
+    if (s.seat) { s.player.tx = s.seat.from.tx; s.player.ty = s.seat.from.ty; s.seat = null; s.dirty = true; }
     const cv = canvasRef.current!;
     const rect = cv.getBoundingClientRect();
     const cw = cv.width / R, ch = cv.height / R;

@@ -58,8 +58,10 @@ export interface Town {
   groundNight: Pixmap;
   /** Pixels de cada circuito da calçada, da Torre para fora (pulsos à noite). */
   circuits: [number, number][][];
-  /** Poças de luz no chão (postes), somadas à noite. */
+  /** Poças de luz fixas (prédios), somadas à noite. */
   glowSpots: GlowSpot[];
+  /** Postes: cada um acende e apaga na sua hora (desenhados à parte, não entram em `lights`). */
+  lamps: Lamp[];
   /** Onde acontecem os efeitos de ambiente (fumaça, brilhos, borboletas…), em pixels do mundo. */
   fx: Ambient;
 }
@@ -79,6 +81,18 @@ export interface Ambient {
   beacons: [number, number][];
   /** Áreas com vaga-lumes à noite. */
   fireflies: { x0: number; y0: number; x1: number; y1: number }[];
+}
+
+export interface Lamp {
+  /** Lâmpada e centro da poça no chão, em pixels do mundo. */
+  bulb: [number, number];
+  ground: [number, number];
+  /** Camada acesa do poste (a cúpula) e onde ela vai. */
+  night?: Pixmap;
+  x: number;
+  y: number;
+  /** 0–1: espalha a hora de acender entre os postes. */
+  seed: number;
 }
 
 export interface GlowSpot { x: number; y: number; r: number; color: readonly [number, number, number]; k: number }
@@ -369,18 +383,19 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
     putLit(`vaso-${tx}-${ty}`, sprLit('vaso', () => T.planterLit(hex(c))), tx, ty, 1, 1);
   }
   const lamp = A.poste ? { pix: A.poste.pix, night: lampNight(A.poste, 9) } : T.lampLit();
-  const glowSpots: GlowSpot[] = [];
+  const lampList: Lamp[] = [];
   const lamps: [number, number][] = [
     [28, 16], [35, 16], [28, 24], [35, 24],                    // praça
     [3, 19], [12, 22], [21, 19], [42, 22], [50, 19], [60, 19], // avenidas
     [30, 28], [33, 36], [30, 41],                              // avenida sul
     [12, 9], [25, 9], [38, 9], [58, 9], [8, 31], [56, 31], [16, 41], [49, 41], // ruas
   ];
-  for (const [tx, ty] of lamps) {
-    putLit(`poste-${tx}-${ty}`, lamp, tx, ty, 1, 1);
-    glowSpots.push({ x: tx * TILE + 8, y: ty * TILE + 10, r: 26, color: LED.warm, k: 0.32 });
-    glowSpots.push({ x: tx * TILE + 8, y: ty * TILE - 9, r: 10, color: LED.warmSoft, k: 0.35 });
-  }
+  lamps.forEach(([tx, ty], i) => {
+    // o poste entra sem a camada da noite: quem acende é o jogo, poste a poste
+    putLit(`poste-${tx}-${ty}`, { pix: lamp.pix }, tx, ty, 1, 1);
+    const o = objects[objects.length - 1];
+    lampList.push({ bulb: [tx * TILE + 8, ty * TILE - 9], ground: [tx * TILE + 8, ty * TILE + 10], night: lamp.night, x: o.x, y: o.y, seed: (i * 0.618034) % 1 });
+  });
   putLit('maquina', sprLit('maquina', T.vendingLit), 49, 18, 1, 1);
   const sign = sprLit('placa', () => ({ pix: P.signPost() }));
   putLit('placa-guildas', sign, 12, 31, 1, 1);
@@ -528,7 +543,8 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
     lights: composeLights(groundNight, objects.filter(o => !o.frames)),
     groundNight,
     circuits: circuits.map(circuitPixels),
-    glowSpots: [...glowSpots, ...buildingGlow],
+    glowSpots: buildingGlow,
+    lamps: lampList,
   };
 }
 
@@ -664,10 +680,19 @@ export function renderTown(town: Town, extra: Placed[] = [], hour?: number): Pix
   const lights = new Pixmap(out.w, out.h);
   lights.data.set(town.lights.data);
   for (const o of town.objects) if (o.frames && o.night) lights.blit(o.night, o.x, o.y);
+  for (const l of town.lamps) if (l.night) lights.blit(l.night, l.x, l.y);
   const halo = lightHalo(lights);
-  addGlowSpots(halo, town.glowSpots);
+  addGlowSpots(halo, [...town.glowSpots, ...lampSpots(town.lamps)]);
   applyTimeOfDay(out, lights, halo, tod);
   return out;
+}
+
+/** Poças de luz dos postes, como GlowSpot (imagens de revisão: todos acesos). */
+export function lampSpots(lamps: Lamp[]): GlowSpot[] {
+  return lamps.flatMap(l => [
+    { x: l.ground[0], y: l.ground[1], r: 26, color: LED.warm, k: 0.32 },
+    { x: l.bulb[0], y: l.bulb[1], r: 10, color: LED.warmSoft, k: 0.35 },
+  ]);
 }
 
 /** Soma as poças de luz (queda suave até a borda) numa imagem de halo. */

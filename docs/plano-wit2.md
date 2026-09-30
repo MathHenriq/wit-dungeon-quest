@@ -162,6 +162,85 @@ tem um menu rápido que leva direto a qualquer lugar.
   inicial para um tipo). **Nunca** mais forte que uma carta.
 - Vêm de pacotinhos de pet, de eventos e de metas de guilda.
 
+### 3.6 Vida na cidade: profissões, mercado, fome e veículos (30/09)
+
+**Direção:** TCG + Stardew Valley. O aluno escolhe como ganhar moedas:
+**trabalhando numa profissão, jogando o TCG, ou os dois.** Quem quiser focar
+só no TCG pode; a cidade nunca vira obrigação para duelar.
+
+#### Profissões
+- O aluno escolhe um cargo (pode trocar; regra de troca a definir) e vai à
+  cidade trabalhar. **Cada profissão tem um minigame próprio e funcional.**
+- O que ele produz vira item que **outros alunos compram**. É a economia
+  entre alunos (as moedas circulam, não só nascem do sistema).
+- Primeiras profissões (proposta; mais virão):
+
+| Profissão | Onde | Minigame | Produz |
+|---|---|---|---|
+| Pescador | Riacho grande à direita do mapa + casa no lago (onde vende) | Pesca com tempo de fisgada | Peixes (comida) |
+| Padeiro | Padaria da Dona Rosa | Massa, forno no ponto, decorar bolo | Pães e bolos (comida) |
+| Músico | Casa do Músico | Gravar a música (ritmo) | Discos que tocam dentro da casa de quem compra |
+| Fazendeiro | Casa do Fazendeiro + plantação | Plantar, regar, colher | Frutas e verduras (comida, ingrediente do padeiro) |
+| Florista | Floricultura | Montar buquê pela encomenda | Flores e vasos (decoração) |
+| Inventor | Oficina do Inventor | Montar circuito (quebra-cabeça) | Móveis e objetos tech |
+| Artista | Ateliê | Pintar por referência | Quadros para a casa |
+| Bibliotecária | Casa da Bibliotecária | Organizar / perguntas da aula | Livros (bônus pequenos, missões) |
+
+Encadeamento pensado para a economia: o fazendeiro vende ao padeiro, o
+padeiro vende a todos (fome).
+
+#### Mercado real
+- Preço de cada item sobe quando está em falta e desce quando sobra
+  (oferta × procura das últimas horas), dentro de um piso e um teto.
+- Quem produz o que falta ganha mais: isso guia os alunos para as
+  profissões que a cidade precisa.
+- Precisa de banco (itens e preços compartilhados entre todos) → entra
+  junto com o Supabase, **com o OK do Matheus**. Antes disso, simular a
+  economia (como já foi feito com as moedas da Torre) para não inflacionar.
+
+#### Fome
+- Barra de fome que desce com o tempo de jogo e com esforço (correr,
+  veículos, trabalhar).
+- **Fome baixa impede correr e usar veículos.** Nunca impede andar, duelar
+  nem entrar nas salas (a criança não fica travada).
+- Come-se o que os colegas produzem (pão, peixe, fruta): move a economia.
+
+#### Veículos
+- Bicicleta (X moedas) → moto → carro → avião, cada um mais rápido e mais
+  caro, com variações (cores, modelos) para colecionar.
+- Avião precisa de regra própria (pistas/pontos de pouso, ou voo rápido
+  entre pontos da cidade). Veículos exigem ruas largas o bastante no mapa.
+
+#### Cidade mais viva
+- **Moradores trabalhando:** lojista arrumando a loja, pescadores no lago,
+  músico tocando, padeiro fazendo pão, gente passeando.
+- **Objetos interativos:** sentar em bancos, abrir baús/caixas de correio,
+  mexer em fontes, placas; animações maiores no que já existe.
+- **Postes que acendem** ao anoitecer (apagados de dia).
+- **Música e fotos dos alunos:** trilha da cidade e murais/quadros com fotos
+  reais dos alunos no WIT. ⚠ **Foto de aluno é dado pessoal de criança**:
+  só com autorização dos responsáveis e passando pela sessão de LGPD
+  (`docs/LGPD_SEGURANCA.md`). A automação (foto enviada pelo professor
+  aparece no jogo) depende disso; sem autorização, entram só desenhos.
+- Mais estruturas no mapa, sempre pensando nos locais das profissões
+  (riacho, plantação, feira).
+
+#### Interiores
+- Deixar mais agradáveis e fáceis de navegar (caminhos mais largos,
+  menos móveis no caminho, saída sempre à vista, tocar para andar).
+
+#### Dungeon (estilo Soul Knight)
+- Área para explorar em tempo real, com salas, inimigos e tesouros; as
+  **cartas do deck viram poderes** (ataque, escudo, armadilha, campo).
+- É um modo novo, grande: motor de ação próprio (movimento livre,
+  colisão, projéteis) ligado ao catálogo de cartas. Vem depois da tela do
+  duelo e das profissões básicas.
+
+#### Qualidade visual
+- Avaliar dobrar a resolução (hoje o jogo desenha em 2×) para ficar mais
+  próximo das imagens originais do GPT. Medir memória e FPS no celular antes
+  de decidir; se ficar pesado, subir só personagens e prédios.
+
 ---
 
 ## 4. Economia (proposta)
@@ -464,9 +543,9 @@ da virada, a migração roda uma vez e o jogo troca.
 
 ## 12. Fases
 
-> **30/09: nova direção em aberto.** O Matheus quer misturar o TCG com
-> **Stardew Valley** e vai mandar uma lista grande de ideias. Até lá, a
-> ordem das fases abaixo pode mudar; a tela do duelo (§5.5) segue.
+> **30/09: TCG + Stardew Valley** (ideias em §3.6). As fases abaixo foram
+> reordenadas: a tela do duelo segue primeiro; profissões, fome e mercado
+> entram antes do lançamento; mais ideias ainda virão.
 
 **Visual primeiro** (decidido em 26/09): o Matheus quer ver o mundo pronto
 antes; as funções depois são ligadas no que já existe visualmente. Cada fase
@@ -480,13 +559,18 @@ termina com **prints aprovados pelo Matheus** antes da próxima.
 | **4 — Customização** | Peças de roupa, cabelo e acessório; editor do personagem; casa com móveis; perfil estilo cartão de treinador |
 | **5 — Telas do jogo (visual)** | Batalha, loja e abertura de pacote, álbum, Centro de Cartas, Torre, Quadro de Missões, guilda |
 | **6 — Batalha funcional** | Motor ligado, batalha curta, IA de 3 níveis, decks dos Caminhos e dos chefes, construtor de deck, 100 inimigos gerados |
-| **7 — Economia e coleção** | Pacotes configuráveis, garantia, forja, loja, Recompensas da Sala, títulos |
-| **8 — Social** | Cidade global com canais, amizades, conversa em balão com moderação, guilda nova, pedir ajuda |
-| **9 — Pets e cosméticos em volume** | ~50 pets, loja de roupas e móveis |
-| **10 — PvP** | Assíncrono com IA usando o deck exato do colega + online em tempo real |
-| **11 — Professor rápido e métricas** | "Aula de hoje", presença no servidor com histórico, entrega em lote, lista rápida, master por e-mail, permissões, relatório |
-| **12 — Virada** | Migração, remoção dos sistemas antigos, `test:build`, medição de desempenho |
-| **13 — Lançamento** | **Comercial de lançamento** (gravação de tela + narração, como no projeto integrador) |
+| **7 — Cidade viva (visual)** | Moradores trabalhando e passeando, postes acendendo, sentar e mexer em objetos, riacho à direita com a casa no lago, interiores mais fáceis de navegar. **30/09: postes acendendo um a um, 6 moradores trabalhando + 3 passeando, sentar nos bancos.** |
+| **8 — Profissões e minigames** | Escolha de cargo; minigames de pescador, padeiro, músico e fazendeiro primeiro, depois os outros; itens produzidos |
+| **9 — Economia e coleção** | Pacotes configuráveis, garantia, forja, loja, Recompensas da Sala, títulos, **mercado com preço por oferta e procura**, **fome**, **veículos** (simulação antes) |
+| **10 — Social** | Cidade global com canais, amizades, conversa em balão com moderação, guilda nova, pedir ajuda, **compra e venda entre alunos** |
+| **11 — Pets e cosméticos em volume** | ~50 pets, loja de roupas e móveis, discos e quadros na casa |
+| **12 — PvP** | Assíncrono com IA usando o deck exato do colega + online em tempo real |
+| **13 — Professor rápido e métricas** | "Aula de hoje", presença no servidor com histórico, entrega em lote, lista rápida, master por e-mail, permissões, relatório, fotos da turma (com autorização) |
+| **14 — Virada** | Migração, remoção dos sistemas antigos, `test:build`, medição de desempenho |
+| **15 — Lançamento** | **Comercial de lançamento** (gravação de tela + narração, como no projeto integrador) |
+
+Em avaliação (encaixar quando decidido): **Dungeon estilo Soul Knight** com
+as cartas como poderes; **resolução 2× maior**; música da cidade.
 
 Custo de deixar o professor para o fim: a presença só passa a ser medida
 direito perto do lançamento, então o "antes" do relatório fica curto.
@@ -509,4 +593,6 @@ direito perto do lançamento, então o "antes" do relatório fica curto.
 | Economia quebrada (inflação ou frustração) | Simular antes; ajustar preços no banco sem deploy |
 | Escopo gigante | Fases fechadas, cada uma aprovada por print antes da próxima |
 | Limite do plano gratuito do Supabase (Realtime) com cidade global | Canais automáticos por mapa; medir na fase 2 |
+| Profissões, fome e mercado deixarem o TCG de lado | TCG sempre rende moedas sozinho; fome nunca bloqueia duelo; minigames curtos |
+| Fotos de alunos no jogo | Só com autorização dos responsáveis, via sessão de LGPD |
 | Volume de arte própria (centenas de peças) | Boneco base aprovado primeiro; peças em lote, sempre no mesmo padrão; começar com poucas peças bem feitas |

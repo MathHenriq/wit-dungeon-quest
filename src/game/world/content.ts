@@ -1,6 +1,7 @@
 // Textos da cidade: o que cada prédio vai ter e o que os moradores dizem.
 import type { Dir } from './movement';
 import type { Look } from './outfit';
+import type { NpcJob } from './jobs';
 
 export const BUILDING_INFO: Record<string, { title: string; text: string }> = {
   torre: { title: 'Torre dos 100 Andares', text: 'A dungeon. Cada andar é um duelo de cartas; a cada 10 andares, um chefe que pode te dar uma carta do deck dele.' },
@@ -59,6 +60,8 @@ export interface NpcDef {
   name: string;
   title: string;
   lines: string[];
+  /** Trabalho na cidade (pescar, tocar, fazer pão...) ou passeio; sem isso, fica perto de casa. */
+  job?: NpcJob;
 }
 
 export const NPCS: NpcDef[] = [
@@ -74,6 +77,34 @@ export const NPCS: NpcDef[] = [
     lines: ['Na guilda, cada presença conta para a meta da equipe.', 'Faltou? A equipe inteira sente!'] },
   { id: 'mural', name: 'Téo', title: 'Mensageiro', tx: 27, ty: 17, dir: 'west', look: { modelo: 'modelo-07', pele: 'pele-3', cabelo: 'ruivo', cima: 'laranja', baixo: 'jeans' },
     lines: ['O mural mostra os avisos do professor e as missões da semana.'] },
+  // moradores trabalhando e passeando (a base das profissões)
+  { id: 'pescador-1', name: 'Seu Zé', title: 'Pescador', tx: 10, ty: 37, dir: 'west', job: { kind: 'pescar' },
+    look: { modelo: 'modelo-04', pele: 'pele-4', cabelo: 'preto', cima: 'marinho', baixo: 'caqui', acc: { cabeca: { id: 'chapeu', cor: 'amarelo' } } },
+    lines: ['Shhh... assim você espanta os peixes!', 'Quando as profissões abrirem, eu te ensino a pescar.'] },
+  { id: 'pescador-2', name: 'Bia', title: 'Pescadora', tx: 7, ty: 34, dir: 'south', job: { kind: 'pescar' },
+    look: { modelo: 'modelo-10', pele: 'pele-2', cabelo: 'ruivo', cima: 'verde', baixo: 'jeans' },
+    lines: ['Hoje o lago está cheio de peixe!', 'O Seu Zé diz que o segredo é paciência.'] },
+  { id: 'musico', name: 'Toni', title: 'Músico', tx: 58, ty: 19, dir: 'south', job: { kind: 'musica' },
+    look: { modelo: 'modelo-02', pele: 'pele-5', cabelo: 'preto', cima: 'roxo', baixo: 'preto', acc: { cabeca: { id: 'fone', cor: 'preto' } } },
+    lines: ['♪ Lá lá lá... ♪', 'Estou gravando um disco! Um dia ele vai tocar na sua casa.'] },
+  { id: 'padeiro', name: 'Dona Rosa', title: 'Padeira', tx: 5, ty: 19, dir: 'south', job: { kind: 'padeiro', route: [[5, 19, 'south'], [10, 20, 'east'], [4, 19, 'south']], pause: [2500, 5000] },
+    look: { modelo: 'modelo-06', pele: 'pele-3', cabelo: 'castanho', cima: 'branco', baixo: 'caqui', acc: { cabeca: { id: 'bandana', cor: 'vermelho' } } },
+    lines: ['Pão quentinho saindo do forno!', 'Saco vazio não para em pé: sem comer, ninguém corre!'] },
+  { id: 'fazendeira', name: 'Dona Cida', title: 'Fazendeira', tx: 58, ty: 38, dir: 'south', job: { kind: 'regar', route: [[58, 38, 'east'], [60, 38, 'west'], [59, 37, 'south'], [61, 39, 'west']], pause: [2500, 4500] },
+    look: { modelo: 'modelo-03', pele: 'pele-4', cabelo: 'preto', cima: 'amarelo', baixo: 'jeans', acc: { cabeca: { id: 'chapeu', cor: 'verde' } } },
+    lines: ['Essas cenouras vão virar bolo na padaria!', 'Planta regada, planta feliz.'] },
+  { id: 'lojista', name: 'Caio', title: 'Repositor', tx: 48, ty: 19, dir: 'north', job: { kind: 'arrumar', route: [[52, 21, 'east'], [48, 19, 'north']], pause: [1500, 3000] },
+    look: { modelo: 'modelo-09', pele: 'pele-1', cabelo: 'loiro', cima: 'vermelho', baixo: 'preto' },
+    lines: ['Chegou caixa nova de pacotinhos!', 'Não sobra tempo nem para abrir um...'] },
+  { id: 'passeio-1', name: 'Léo', title: 'Estudante', tx: 20, ty: 21, dir: 'east', job: { kind: 'passear', route: [[20, 21, 'east'], [44, 21, 'south'], [31, 33, 'west'], [10, 42, 'north']], pause: [1500, 6000] },
+    look: { modelo: 'modelo-07', pele: 'pele-6', cabelo: 'preto', cima: 'laranja', baixo: 'jeans', acc: { corpo: { id: 'mochila', cor: 'marinho' } } },
+    lines: ['Tô indo para a Torre, quer vir?', 'Já passei do andar 5!'] },
+  { id: 'passeio-2', name: 'Mari', title: 'Estudante', tx: 40, ty: 11, dir: 'west', job: { kind: 'passear', route: [[40, 11, 'west'], [12, 11, 'south'], [22, 32, 'east']], pause: [2000, 6000] },
+    look: { modelo: 'modelo-05', pele: 'pele-2', cabelo: 'lilas', cima: 'rosa', baixo: 'branco', acc: { cabeca: { id: 'laco', cor: 'rosa' } } },
+    lines: ['Troquei minha carta repetida ontem!', 'A Oficina de Cartas é o melhor lugar da cidade.'] },
+  { id: 'passeio-3', name: 'Gui', title: 'Estudante', tx: 50, ty: 42, dir: 'west', job: { kind: 'passear', route: [[50, 42, 'west'], [31, 43, 'north'], [57, 33, 'south']], pause: [2000, 5000] },
+    look: { modelo: 'modelo-08', pele: 'pele-3', cabelo: 'azul', cima: 'verde', baixo: 'preto', acc: { rosto: { id: 'oculos', cor: 'preto' } } },
+    lines: ['Você viu o pescador pegando um peixe?', 'Um dia quero ter uma bicicleta!'] },
 ];
 
 export const MURAL_TEXT = ['MURAL DA CIDADE', 'Avisos do professor e missões da semana aparecem aqui.'];

@@ -102,3 +102,19 @@ export function applyTimeOfDay(img: Pixmap, lights: Pixmap, halo: Pixmap, tod: T
     img.data[o] = Math.min(255, r); img.data[o + 1] = Math.min(255, g); img.data[o + 2] = Math.min(255, b);
   }
 }
+
+/**
+ * Quanto um poste está aceso (0 ou 1) na hora `hour`. Cada poste tem a sua
+ * hora (espalhadas pelo `seed`): acendem um a um no fim da tarde, piscando
+ * umas vezes antes de firmar, e apagam um a um de manhã.
+ */
+export function lampPower(hour: number, seed: number): number {
+  const h = ((hour % 24) + 24) % 24;
+  const on = 18 + seed * 0.8, off = 5.6 + seed * 0.6;
+  if (h >= off && h < on) return 0;
+  const since = h >= on ? h - on : -1;
+  // os primeiros ~5 minutos do jogo: pisca (liga, desliga, liga...)
+  const FLICKER = 0.09;
+  if (since >= 0 && since < FLICKER) return [1, 0, 1, 0, 0, 1, 0, 1][Math.floor((since / FLICKER) * 8)];
+  return 1;
+}
