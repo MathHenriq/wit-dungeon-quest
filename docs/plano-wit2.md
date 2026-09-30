@@ -241,6 +241,76 @@ padeiro vende a todos (fome).
   próximo das imagens originais do GPT. Medir memória e FPS no celular antes
   de decidir; se ficar pesado, subir só personagens e prédios.
 
+### 3.7 O mundo grande (30/09)
+
+O mapa cresce para **~4× o tamanho da cidade atual**, em **áreas ligadas
+pelas bordas** (como no Stardew Valley e no Pokémon: andou até a borda,
+passa para a área do lado com uma transição rápida). Cada área tem o
+tamanho de uma cidade; só a área em que o aluno está fica carregada, o que
+mantém o celular a 60 fps e já separa os **canais do multijogador** por área.
+
+```
+              ┌──────────────┐
+ ┌──────────┐ │   CIDADE     │ ┌──────────┐
+ │ FAZENDA  │═│ (Torre, Loja,│═│   LAGO   │
+ │  oeste   │ │  Arena...)   │ │  leste   │
+ └──────────┘ └──────╥───────┘ └──────────┘
+              ┌──────╨───────┐
+              │  CIDADE WIT  │
+              │ (sul: cursos │
+              │ e profissões)│
+              └──────────────┘
+```
+
+Mapa-múndi na tecla **M** (e no botão MAPA), com "você está aqui".
+
+#### Lago (leste)
+- Lago enorme com margem de praia, ilha no meio (só se chega de barco) e farol.
+- **Casa de Pesca**: onde os pescadores anunciam e vendem os peixes
+  (**quadro de peixes** com o que cada um pescou, preço e raridade).
+- Píeres e pontos de pesca na margem; pescadores trabalhando.
+- **Barquinho**: embarca no cais, navega pelo lago todo, desembarca em outro
+  cais (ilha, margem leste).
+- Vida: patos nadando, peixe pulando, gaivotas, taboas, vitórias-régias.
+
+#### Fazenda (oeste) — o "Stardew Valley" do WIT
+Quanto mais, melhor. Entra em ondas:
+- **Base (agora):** casa da fazenda, celeiro, silo, galinheiro, estufa,
+  moinho, poço, espantalhos, cercas, pomar e lago; **campos para plantar**:
+  arar com a enxada, plantar a semente, **regar todo dia**, a planta cresce
+  um estágio por dia regado, colher, vender na **caixa de envio** (paga no
+  fim do dia). Sementes na barraca da fazenda. Galinhas e vacas andando.
+- **Depois:** estações do ano com safras diferentes, chuva (rega sozinha),
+  animais que dão ovo/leite (alimentar, pegar), árvores frutíferas,
+  apicultura (mel), máquinas (queijo, geleia), irrigador automático
+  (vem da IoT), adubo, qualidade da colheita (prata/ouro), trator,
+  feira de fim de mês, lote próprio de cada aluno no multijogador.
+
+#### Cidade WIT (sul) — onde os alunos trabalham
+Os prédios são das **profissões**, e o destaque são os **cursos do Núcleo
+WIT**: IA, IoT (ambientes inteligentes), Metaverso, Comunicação Digital e
+Oficina de Games.
+
+| Prédio | Curso | Profissões | O que a tecnologia faz no jogo |
+|---|---|---|---|
+| **Núcleo WIT** (sede) | todos | Professor (Matheus), monitor | Aulas, quadro de missões dos cursos, onde o aluno escolhe a profissão |
+| **Laboratório de IA** | IA | Treinador de IA, cientista de dados | Minigame de rotular dados e treinar modelo; o **WIT-Bot** (robô assistente) anda pela praça e responde dúvidas; modelos treinados viram itens (ex.: "previsão de preço" no mercado, "detector de peixe raro") |
+| **Casa Inteligente** | IoT | Técnico de IoT, instalador | Minigame de ligar sensores e circuitos; fabrica **irrigador automático** (fazenda), **sonar de peixe** (lago), **lâmpada e casa inteligentes** (Sua Casa), estação do tempo |
+| **Metaverso** | Metaverso | Arquiteto do metaverso, designer 3D | **Portal VR** para a Sala Virtual (encontros e eventos); cria salas e cosméticos virtuais |
+| **Estúdio de Comunicação** | Comunicação Digital | Repórter, criador de conteúdo, locutor | **Jornal WIT** no telão da praça (notícias automáticas do jogo: quem pescou o quê, preços em alta), **Rádio WIT** (toca os discos do músico), mural de postagens com moderação |
+| **Oficina de Games** | Oficina de Games | Desenvolvedor de games, testador | **Fliperamas** com minijogos que dão tíquetes; fases criadas pelos alunos |
+| Mercado Central | — | Comerciante | **Bolsa de preços** (oferta e procura, §3.6) no painel |
+| Central de Entregas | IoT | Entregador | **Drones** levando encomendas entre os jogadores |
+| Estúdio de Música, Ateliê, Padaria | — | Músico, artista, padeiro | Os minigames da §3.6 |
+
+A praça da Cidade WIT tem o **telão** com o Jornal WIT, postes e semáforos
+inteligentes, drones cruzando o céu, árvores solares e carregador de patinete.
+
+#### Arte
+Os prédios novos saem primeiro **feitos por código** (mesmo estilo dos atuais)
+e podem ser trocados pela arte do GPT quando ela for aprovada
+(`docs/prompts-mundo.md`).
+
 ---
 
 ## 4. Economia (proposta)
@@ -581,7 +651,7 @@ termina com **prints aprovados pelo Matheus** antes da próxima.
 | **4 — Customização** | Peças de roupa, cabelo e acessório; editor do personagem; casa com móveis; perfil estilo cartão de treinador |
 | **5 — Telas do jogo (visual)** | Batalha, loja e abertura de pacote, álbum, Centro de Cartas, Torre, Quadro de Missões, guilda |
 | **6 — Batalha funcional** | Motor ligado, batalha curta, IA de 3 níveis, decks dos Caminhos e dos chefes, construtor de deck, 100 inimigos gerados |
-| **7 — Cidade viva (visual)** | Moradores trabalhando e passeando, postes acendendo, sentar e mexer em objetos, riacho à direita com a casa no lago, interiores mais fáceis de navegar. **30/09: postes acendendo um a um, 6 moradores trabalhando + 3 passeando, sentar nos bancos.** |
+| **7 — Mundo grande e cidade viva** | **Mundo ~4× maior em áreas (§3.7): Lago a leste, Fazenda a oeste, Cidade WIT ao sul**, mapa-múndi; moradores trabalhando e passeando, postes acendendo, sentar e mexer em objetos, interiores mais fáceis de navegar. **30/09: postes acendendo um a um, 6 moradores trabalhando + 3 passeando, sentar nos bancos.** |
 | **8 — Profissões e minigames** | Escolha de cargo; minigames de pescador, padeiro, músico e fazendeiro primeiro, depois os outros; itens produzidos |
 | **9 — Economia e coleção** | Pacotes configuráveis, garantia, forja, loja, Recompensas da Sala, títulos, **mercado com preço por oferta e procura**, **fome**, **veículos** (simulação antes) |
 | **10 — Social** | Cidade global com canais, amizades, conversa em balão com moderação, guilda nova, pedir ajuda, **compra e venda entre alunos** |

@@ -36,7 +36,7 @@ Decisões já tomadas (não reabrir sem o Matheus pedir):
 - Evolução de cartas: fica para depois do básico.
 
 **Plano completo do WIT 2 (fases, economia, cidade, professor): `docs/plano-wit2.md`.**
-Prompts do GPT: personagem `docs/prompts-personagem.md`; interiores e pets `docs/prompts-interiores.md`.
+Prompts do GPT: personagem `docs/prompts-personagem.md`; interiores e pets `docs/prompts-interiores.md`; mundo grande (lago, fazenda, Cidade WIT) `docs/prompts-mundo.md`.
 Regras completas: `docs/regras-tcg.md`. Lista das cartas: `docs/cartas-tcg.md`.
 
 **Em aberto:** conteúdo do pacotinho (proposta em `docs/regras-tcg.md`:
