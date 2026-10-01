@@ -33,6 +33,10 @@ const BASE: ItemDef[] = [
   { id: 'fruta:limao', name: 'Limão', icon: 'fruta:limao', kind: 'fazenda', price: 3, food: 4 },
   // comida pronta (padaria e receitas)
   { id: 'pao', name: 'Pão', icon: 'pao', kind: 'comida', price: 4, food: 25, about: 'Quentinho, da Padaria da Dona Rosa.' },
+  { id: 'pao-bisnaga', name: 'Bisnaga', icon: 'pao-bisnaga', kind: 'comida', price: 6, food: 25, about: 'Feita por você na Padaria.' },
+  { id: 'pao-tranca', name: 'Pão Trançado', icon: 'pao-tranca', kind: 'comida', price: 9, food: 28, about: 'Feito por você na Padaria.' },
+  { id: 'pao-redondo', name: 'Pão Redondo', icon: 'pao-redondo', kind: 'comida', price: 6, food: 25, about: 'Feito por você na Padaria.' },
+  { id: 'pao-forma', name: 'Pão de Forma', icon: 'pao-forma', kind: 'comida', price: 8, food: 30, about: 'Feito por você na Padaria.' },
   { id: 'bolo', name: 'Bolo', icon: 'bolo', kind: 'comida', price: 12, food: 40 },
   { id: 'omelete', name: 'Omelete', icon: 'omelete', kind: 'comida', price: 10, food: 28 },
   { id: 'salada', name: 'Salada', icon: 'salada', kind: 'comida', price: 22, food: 35 },

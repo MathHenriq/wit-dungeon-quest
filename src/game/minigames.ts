@@ -17,7 +17,7 @@ export function rng(seed: number): () => number {
  * Recompensa de cada minijogo. `perk` = bônus do cargo (0 sem o cargo;
  * 0,25 a 1,5 com ele, pelo nível). `hits`/`extra` vêm de cada jogo.
  */
-export function rewardOf(game: MinigameId, score: number, perk: number, hits = 0): Reward {
+export function rewardOf(game: MinigameId, score: number, perk: number, hits = 0, item?: string): Reward {
   const s = Math.max(0, Math.min(1, score));
   const xp = Math.round(8 + 22 * s);
   switch (game) {
@@ -45,6 +45,16 @@ export function rewardOf(game: MinigameId, score: number, perk: number, hits = 0
     }
     case 'noticia':
       return { items: {}, coins: Math.round(hits * 4 * (1 + perk * 0.4)), xp };
+    case 'compor': {
+      // a música vira disco; bem feita (melodia + batida + variedade), disco de ouro
+      const gold = s >= 0.85 - perk * 0.05, any = s >= 0.35;
+      return { items: gold ? { 'disco-ouro': 1 } : any ? { disco: 1 } : {}, coins: 0, xp };
+    }
+    case 'pao': {
+      // o pão sai no formato escolhido; queimado ou cru não rende
+      const n = s >= 0.4 ? (s >= 0.85 ? 3 : 2) + (perk > 0 ? 1 : 0) : s >= 0.2 ? 1 : 0;
+      return { items: n ? { [item ?? 'pao']: n } : {}, coins: 0, xp };
+    }
     case 'teste-jogo':
       return { items: hits ? { tiquete: Math.round(hits * (1 + perk * 0.3)) } : {}, coins: 0, xp };
   }

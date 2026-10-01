@@ -3,7 +3,7 @@ import { applyReward, chooseProfession, playsLeft, today, spendPlay, WORK_HUNGER
 import { buy, buyPrice } from '@/game/market';
 import { rewardOf } from '@/game/minigames';
 import { plain } from '@/game/news';
-import { perkLevel, profOfMinigame, TITLES, type MinigameId } from '@/game/professions';
+import { MINIGAME_NAME, perkLevel, profOfMinigame, TITLES, type MinigameId } from '@/game/professions';
 import { loadProgress, saveProgress, type Progress } from '@/game/progress';
 import { itemIcon, itemLabel } from '@/game/items';
 import { play } from '@/game/sfx';
@@ -12,7 +12,7 @@ import { LevelBar, Shell, Tabs } from './Shell';
 import { Icon } from '@/components/Icon';
 
 const COLOR: Record<MinigameId, string> = {
-  forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', 'teste-jogo': '#c8a020',
+  compor: '#3a78c8', pao: '#c87a2a', forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', 'teste-jogo': '#c8a020',
 };
 
 /**
@@ -20,7 +20,9 @@ const COLOR: Record<MinigameId, string> = {
  * entrega o que ele rendeu (5 vezes por dia rendem; depois é só treino).
  * `shop` = o que o lugar vende (a Padaria vende pão e bolo).
  */
-export function WorkPanel({ game, progress, nick, shop, onClose }: { game: MinigameId; progress: Progress; nick: string; shop?: string[]; onClose: () => void }) {
+export function WorkPanel({ game: first, also = [], progress, nick, shop, onClose }: { game: MinigameId; also?: MinigameId[]; progress: Progress; nick: string; shop?: string[]; onClose: () => void }) {
+  const [game, setGame] = useState<MinigameId>(first);
+  const games = [first, ...also];
   const prof = profOfMinigame(game);
   const color = COLOR[game];
   const [phase, setPhase] = useState<'intro' | 'play' | 'result'>('intro');
@@ -42,7 +44,7 @@ export function WorkPanel({ game, progress, nick, shop, onClose }: { game: Minig
     let reward: Reward | null = null, levelUp: number | undefined, news = false;
     let next: Progress = { ...p, fome: Math.max(0, p.fome - WORK_HUNGER) };
     if (playsLeft(p, game) > 0) {
-      reward = rewardOf(game, r.score, perk, r.hits);
+      reward = rewardOf(game, r.score, perk, r.hits, r.item);
       const a = applyReward(spendPlay(next, game), prof.id, reward);
       next = a.progress; levelUp = a.levelUp;
       if (game === 'noticia' && r.headline && r.score >= 0.6) { next = { ...next, jornal: { day: today(), text: plain(`${nick}: ${r.headline}`) } }; news = true; }
@@ -60,7 +62,7 @@ export function WorkPanel({ game, progress, nick, shop, onClose }: { game: Minig
   };
 
   return (
-    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose}>
+    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={game === 'compor' || game === 'pao'}>
       {phase === 'intro' && shop && <Tabs tabs={[['trabalhar', 'TRABALHO'], ['comprar', 'COMPRAR']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
       {phase === 'intro' && tab === 'comprar' && shop && (
         <div className="grid gap-1.5">
@@ -75,6 +77,16 @@ export function WorkPanel({ game, progress, nick, shop, onClose }: { game: Minig
       )}
       {phase === 'intro' && tab === 'trabalhar' && (
         <div>
+          {games.length > 1 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {games.map(g => (
+                <button key={g} onClick={() => { setGame(g); setMsg(null); }}
+                  className={`px-2 py-1.5 rounded text-[8px] border-2 ${g === game ? 'text-white' : 'bg-white border-[#c8c0ac]'}`}
+                  style={g === game ? { background: COLOR[g], borderColor: COLOR[g] } : undefined}>{MINIGAME_NAME[g].toUpperCase()}</button>
+              ))}
+            </div>
+          )}
+        <div>
           <div className="text-[10px] mb-1">{prof.name}</div>
           <div className="text-[8px] leading-4 text-[#5a5470] mb-2">{prof.how}</div>
           <LevelBar xp={xp} />
@@ -85,6 +97,7 @@ export function WorkPanel({ game, progress, nick, shop, onClose }: { game: Minig
           </div>
           <div className="text-[8px] mt-2 text-[#5a5470]">Hoje ainda rende: {left}/{PLAYS_PER_DAY} {left <= 0 && '(agora é só treino, sem prêmio)'} · gasta um pouco da barriga</div>
           <button onClick={start} className="mt-3 w-full py-3 rounded-lg text-white text-[11px] border-b-4 border-black/30" style={{ background: color }}>TRABALHAR</button>
+        </div>
         </div>
       )}
       {phase === 'play' && <Game perk={perk} seed={seed} onDone={done} towerMax={progress.towerMax} day={Math.floor(Date.now() / 86_400_000)} />}

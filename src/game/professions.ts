@@ -8,7 +8,7 @@ export type ProfId =
   | 'treinador-ia' | 'tecnico-iot' | 'arquiteto-meta' | 'reporter' | 'dev-games'
   | 'entregador' | 'comerciante';
 
-export type MinigameId = 'forno' | 'ritmo' | 'pintura' | 'rotular' | 'circuito' | 'pares' | 'noticia' | 'teste-jogo';
+export type MinigameId = 'forno' | 'ritmo' | 'pintura' | 'rotular' | 'circuito' | 'pares' | 'noticia' | 'teste-jogo' | 'compor' | 'pao';
 
 export interface Profession {
   id: ProfId;
@@ -41,7 +41,17 @@ export const PROFESSIONS: Profession[] = [
   { id: 'comerciante', name: 'Comerciante', icon: 'moeda', place: 'Mercado Central', how: 'Venda no Mercado quando o preço estiver alto.', perk: '+5% nos preços do Mercado por nível.' },
 ];
 export const PROF_BY_ID = new Map(PROFESSIONS.map(p => [p.id, p]));
-export const profOfMinigame = (m: MinigameId) => PROFESSIONS.find(p => p.minigame === m)!;
+/** De qual profissão é cada trabalho (uma profissão tem vários). */
+const MINIGAME_PROF: Record<MinigameId, ProfId> = {
+  forno: 'padeiro', pao: 'padeiro', ritmo: 'musico', compor: 'musico', pintura: 'artista', rotular: 'treinador-ia',
+  circuito: 'tecnico-iot', pares: 'arquiteto-meta', noticia: 'reporter', 'teste-jogo': 'dev-games',
+};
+export const profOfMinigame = (m: MinigameId) => PROF_BY_ID.get(MINIGAME_PROF[m])!;
+/** Nome do trabalho (aba na tela do prédio). */
+export const MINIGAME_NAME: Record<MinigameId, string> = {
+  forno: 'Forno rápido', pao: 'Fazer pão', ritmo: 'Show na praça', compor: 'Compor música', pintura: 'Pintar de memória',
+  rotular: 'Ensinar a IA', circuito: 'Circuito', pares: 'Pares 3D', noticia: 'Checar a notícia', 'teste-jogo': 'Pegar bugs',
+};
 
 /** XP para chegar em cada nível (nível 1 começa em 0). */
 export const LEVELS = [0, 40, 120, 260, 480, 800];

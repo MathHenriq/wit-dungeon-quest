@@ -6,9 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { labelSet, litTiles, connected, makeCircuit, paintPattern, PAINT_COLORS, reporterQuiz, rng, shown, type Circuit } from '@/game/minigames';
 import type { MinigameId } from '@/game/professions';
 import { play } from '@/game/sfx';
+import { Composer } from './Composer';
+import { BreadMaker } from './BreadMaker';
 import { Icon, Symbol } from '@/components/Icon';
 
-export interface GameResult { score: number; hits: number; headline?: string }
+export interface GameResult { score: number; hits: number; headline?: string; /** item que sai (o formato do pão) */ item?: string }
 export interface GameProps { perk: number; seed: number; onDone: (r: GameResult) => void; towerMax?: number; day?: number }
 
 /** Relógio que redesenha a cada quadro enquanto o jogo roda. */
@@ -417,5 +419,6 @@ function TesteJogo({ perk, seed, onDone }: GameProps) {
 }
 
 export const GAMES: Record<MinigameId, (p: GameProps) => JSX.Element> = {
+  compor: Composer, pao: BreadMaker,
   forno: Forno, ritmo: Ritmo, pintura: Pintura, rotular: Rotular, circuito: Circuito, pares: Pares, noticia: Noticia, 'teste-jogo': TesteJogo,
 };

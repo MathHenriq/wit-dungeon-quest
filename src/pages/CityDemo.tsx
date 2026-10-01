@@ -59,9 +59,9 @@ import { drawJob, jobBob, propsBehind } from '@/game/world/jobs';
 const TOUR: [number, number][] = [[31, 23], [16, 21], [16, 19], [10, 27], [16, 32], [16, 31], [46, 33], [46, 31], [57, 21], [51, 14], [48, 10], [7, 11], [7, 9], [26, 13], [31, 23], [31, 40], [14, 42], [14, 41], [31, 33]];
 const WALK_MS = 230, RUN_MS = 125, BOAT_MS = 190;
 /** Portas onde se trabalha (minijogo da profissão); `?trabalho=<porta>` abre direto. */
-const WORK_DOORS: Record<string, { game: MinigameId; shop?: string[] }> = {
-  'npc-padaria': { game: 'forno', shop: ['pao', 'bolo'] },
-  'npc-musico': { game: 'ritmo' }, 'estudio-musica': { game: 'ritmo' },
+const WORK_DOORS: Record<string, { game: MinigameId; also?: MinigameId[]; shop?: string[] }> = {
+  'npc-padaria': { game: 'pao', also: ['forno'], shop: ['pao', 'bolo'] },
+  'npc-musico': { game: 'compor', also: ['ritmo'] }, 'estudio-musica': { game: 'compor', also: ['ritmo'] },
   'npc-artista': { game: 'pintura' }, atelie: { game: 'pintura' },
   'lab-ia': { game: 'rotular' },
   'casa-iot': { game: 'circuito' },
@@ -232,7 +232,7 @@ function CityView({ town, start, startHour, onTravel }: {
   const [farmPanel, setFarmPanel] = useState<'sementes' | 'envio' | null>(null);
   const [courses, setCourses] = useState(false);
   /** Trabalho num prédio (minijogo), mochila, mercado, cozinha, entregas. */
-  const [work, setWork] = useState<{ game: MinigameId; shop?: string[] } | null>(() => {
+  const [work, setWork] = useState<{ game: MinigameId; also?: MinigameId[]; shop?: string[] } | null>(() => {
     const w = new URLSearchParams(window.location.search).get('trabalho');
     return w && WORK_DOORS[w] ? WORK_DOORS[w] : null;
   });
@@ -1568,7 +1568,7 @@ function CityView({ town, start, startHour, onTravel }: {
           </span>
         </div>
       )}
-      {work && <WorkPanel game={work.game} shop={work.shop} progress={progress} nick={look.apelido || 'Você'} onClose={() => setWork(null)} />}
+      {work && <WorkPanel game={work.game} also={work.also} shop={work.shop} progress={progress} nick={look.apelido || 'Você'} onClose={() => setWork(null)} />}
       {bag && <Backpack progress={progress} start={bag} onClose={() => { setBag(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
       {shopUi === 'mercado' && <MarketPanel progress={progress} onClose={() => setShopUi(null)} />}
       {shopUi === 'cozinha' && <KitchenPanel progress={progress} onClose={() => setShopUi(null)} />}

@@ -92,7 +92,9 @@ nome do arquivo final é o da lista; o importador corta em ordem).
 ```
 A sprite sheet of 36 separate item icons for a cute pixel-art life-sim game, in a 6 by 6 grid, each icon centered in its own square cell with empty space around it, all the same size and style, bright colors, crisp pixel art with clean dark outlines, no anti-aliasing, no text, no numbers. Flat solid magenta background (#FF00FF). Icons in reading order: [LISTA]
 ```
-- **icones-1** (comida): pão francês, bolo de chocolate (fatia), omelete na frigideira, salada na tigela, pipoca no saquinho, peixe assado no prato, copo de vitamina de fruta, bolo de cenoura com cobertura, torta de abóbora, caixinha de suco, rosquinha, sorvete de casquinha, pirulito, picolé, barra de chocolate, cupcake, cenoura, alface, morango, tomate, espiga de milho, girassol, abóbora, ovo, garrafa de leite, novelo de lã, maçã, laranja, pêssego, limão, saquinho de sementes, peixe cru, isca de minhoca, coxinha de frango (ícone de fome), gota d'água, moeda dourada.
+(As folhas passam de 36 se precisar: faça uma folha a mais com o que sobrar, na mesma ordem.)
+
+- **icones-1** (comida): pão francês, bisnaga, pão redondo, pão de forma, pão trançado, bolo de chocolate (fatia), omelete na frigideira, salada na tigela, pipoca no saquinho, peixe assado no prato, copo de vitamina de fruta, bolo de cenoura com cobertura, torta de abóbora, caixinha de suco, rosquinha, sorvete de casquinha, pirulito, picolé, barra de chocolate, cupcake, cenoura, alface, morango, tomate, espiga de milho, girassol, abóbora, ovo, garrafa de leite, novelo de lã, maçã, laranja, pêssego, limão, saquinho de sementes, peixe cru, isca de minhoca, coxinha de frango (ícone de fome), gota d'água, moeda dourada.
 - **icones-2** (profissões e produtos): disco de vinil, disco de ouro, quadro emoldurado, chip de IA brilhante, sensor IoT pequeno, irrigador automático, cubo holográfico, tíquete de fliperama, jornalzinho dobrado, câmera fotográfica, microfone, controle de videogame, pacote de entrega, drone pequeno, robozinho gari, prancheta com gráfico, cesta de pão, regador, enxada, vara de pesca, pincel com tinta, teclado musical, violão, tambor, flauta, xilofone, chave de fenda, lâmpada inteligente, notebook, óculos de realidade virtual, lupa, troféu, medalha, estrela, coração, cadeado.
 - **icones-3** (pacotinhos e cartas): pacotinho de cartas comum (cinza), incomum (verde), raro (azul), épico (roxo), lendário (dourado), mítico (rosa iridescente), desconhecido (preto com estrelas); carta virada (verso), carta brilhando, pó de carta, bigorna, martelo, baú, chave dourada, mapa, bandeira de guilda, escudo de guilda, espada cruzada, coroa, sino, envelope, presente, balão de fala, mão acenando, coração partido, joinha, nota musical, raio, floco de neve, chama, folha, gota, caveira fofa, lua, fantasma fofo, tornado.
 
@@ -126,4 +128,41 @@ entrada, com destaque e movimento. Precisa de:
 `public/Novos assets/interiores/loja-pacotinhos.png`
 ```
 The front of a card pack shop inside a small shopping mall, top-down RPG interior style (Pokémon HeartGold/SoulSilver), wide storefront: a glowing counter, a huge decorative card pack display behind it with packs in 7 rarity colors (grey, green, blue, purple, gold, iridescent pink, black with stars), shelves with packs, spotlights, a small rotating pedestal with a giant golden pack on top. Bright, eye-catching, magical sparkle. Crisp pixel art, clean outlines, no text, no logos, no people. Flat solid magenta background (#FF00FF).
+```
+
+## J. Pacotinhos (abrir pacote) — 01/10
+
+A loja e a animação de abrir já funcionam com um pacote desenhado em código
+(provisório). Com a arte, cada pacote vira a imagem do GPT (o jogo troca
+sozinho pelo nome). Uma imagem por pacote, em pé, sem fundo:
+`public/Novos assets/pacotes/comum.png`, `incomum.png`, `raro.png`,
+`epico.png`, `lendario.png`, `mitico.png` (e `desconhecido.png`, para o futuro).
+
+```
+A sealed trading card booster pack standing upright, front view, for a cheerful kids card game called WIT: shiny foil wrapper with crimped top and bottom edges, a big glowing gem emblem in the center, sparkles, and the color theme [COR]. No text, no letters, no logos, no characters on it. Crisp pixel art with clean dark outlines, slight 3D shading, no anti-aliasing. Flat solid magenta background (#FF00FF).
+```
+Cores: comum = silver grey; incomum = emerald green; raro = sapphire blue; épico = royal purple with violet sparkles; lendário = shiny gold with orange glow; mítico = iridescent pink and cyan holographic; desconhecido = black with tiny white stars and a purple glow.
+
+Também para a abertura (opcional, deixa mais bonito):
+`public/Novos assets/pacotes/rasgado.png`
+```
+The same kind of booster pack seen from the front but with the top strip torn open, bright light rays shining out of the opening, a few small sparkles flying out. Silver grey color (the game recolors it). No text. Crisp pixel art, clean outlines. Flat solid magenta background (#FF00FF).
+```
+
+## K. Forja do Prof. Ian (Oficina) — 01/10
+
+A tela da forja funciona; falta a cara dela. `public/Novos assets/interiores/forja-tela.png`
+```
+A cozy fantasy card forge workshop seen from the front, wide horizontal scene for a menu background: a glowing brick furnace with orange fire, an anvil with a hammer, shelves with seven glass jars of glittering dust in seven colors (grey, green, blue, purple, gold, pink, black with stars), a playing card floating above the anvil surrounded by sparkles, warm light. Cute pixel art, clean outlines, no people, no text. Flat solid magenta background (#FF00FF) outside the scene.
+```
+E os 7 potes de pó como ícones (entram na folha **icones-3**, depois do último): pote de pó comum (cinza), incomum (verde), raro (azul), épico (roxo), lendário (dourado), mítico (rosa iridescente), desconhecido (preto com estrelas).
+
+## L. Estúdio de Música e Padaria (complementos) — 01/10
+
+Os dois minijogos novos já funcionam (compor com som de verdade; fazer pão
+em 6 passos). Além das cenas da seção H, precisam:
+- **Ícones dos instrumentos** (botões do compositor), na folha **icones-2**, nesta ordem: teclado, violão, flauta, xilofone (já estão na lista; o jogo usa `inst-teclado`, `inst-violao`, `inst-flauta`, `inst-xilofone`).
+- **Padaria, folha extra** `public/Novos assets/minijogos/padaria-extras.png` (4 × 2):
+```
+A sprite sheet of bakery mini-game props, 4 columns by 2 rows, each item centered in its own cell, cute pixel art with clean outlines: row 1: an empty clear glass measuring cup with marks, a big empty mixing bowl (blue ceramic), a wooden spoon, a sack of flour; row 2: a jar of yeast, a pitcher of warm water, a milk bottle, a baker's peel (wooden paddle). No text, no numbers. Flat solid magenta background (#FF00FF).
 ```

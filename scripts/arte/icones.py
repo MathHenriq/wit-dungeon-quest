@@ -72,6 +72,8 @@ ICONS = {
     'ouro': file('rpg/I_GoldBar.png'), 'cristal': file('rpg/I_Crystal03.png'),
     # comida
     'pao': file('soul/32x32/bread.png'),
+    'pao-bisnaga': cell(BC, 0, 1), 'pao-redondo': cell(BC, 0, 3), 'pao-forma': cell(BC, 0, 2), 'pao-tranca': cell(BC, 1, 0),
+    'farinha': file('rpg/I_Fabric.png'), 'fermento': file('rpg/I_Bottle04.png'), 'tigela': file('rpg/I_SolidShell.png'),
     'bolo': cell(BC, 1, 2),
     'omelete': cell(BC, 2, 0),
     'salada': cell(BC, 10, 2),
