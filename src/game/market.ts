@@ -32,7 +32,8 @@ export function marketPrice(p: Progress, item: string, day = today()): number {
   const base = itemDef(item)?.price ?? 0;
   if (base <= 0) return 0;
   const satF = 1 / (1 + saturation(p, item, day) / 25);
-  const bonus = 1 + perkLevel(p.profissao, 'comerciante', p.xp.comerciante ?? 0) * 0.2;
+  const art = item === 'quadro' && p.profissao === 'artista' ? 1.2 : 1;
+  const bonus = (1 + perkLevel(p.profissao, 'comerciante', p.xp.comerciante ?? 0) * 0.2) * art;
   return Math.max(1, Math.round(base * demand(item, day) * satF * bonus));
 }
 

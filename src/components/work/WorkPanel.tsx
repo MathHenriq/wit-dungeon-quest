@@ -1,0 +1,113 @@
+import { useState } from 'react';
+import { applyReward, chooseProfession, playsLeft, today, spendPlay, WORK_HUNGER, PLAYS_PER_DAY, type Reward } from '@/game/life';
+import { buy, buyPrice } from '@/game/market';
+import { rewardOf } from '@/game/minigames';
+import { plain } from '@/game/news';
+import { perkLevel, profOfMinigame, TITLES, type MinigameId } from '@/game/professions';
+import { loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { itemIcon, itemLabel } from '@/game/items';
+import { play } from '@/game/sfx';
+import { GAMES, type GameResult } from './Minigames';
+import { LevelBar, Shell, Tabs } from './Shell';
+
+const COLOR: Record<MinigameId, string> = {
+  forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', 'teste-jogo': '#c8a020',
+};
+
+/**
+ * Trabalho num prédio: explica a profissão, mostra o nível, joga o minijogo e
+ * entrega o que ele rendeu (5 vezes por dia rendem; depois é só treino).
+ * `shop` = o que o lugar vende (a Padaria vende pão e bolo).
+ */
+export function WorkPanel({ game, progress, nick, shop, onClose }: { game: MinigameId; progress: Progress; nick: string; shop?: string[]; onClose: () => void }) {
+  const prof = profOfMinigame(game);
+  const color = COLOR[game];
+  const [phase, setPhase] = useState<'intro' | 'play' | 'result'>('intro');
+  const [tab, setTab] = useState<'trabalhar' | 'comprar'>('trabalhar');
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e6));
+  const [res, setRes] = useState<{ r: GameResult; reward: Reward | null; levelUp?: number; news?: boolean } | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const xp = progress.xp[prof.id] ?? 0;
+  const perk = perkLevel(progress.profissao, prof.id, xp);
+  const left = playsLeft(progress, game);
+  const Game = GAMES[game];
+
+  const start = () => {
+    if (progress.fome < WORK_HUNGER) { setMsg('Você está com fome demais para trabalhar. Coma alguma coisa (MOCHILA)!'); play('lose'); return; }
+    setSeed(Math.floor(Math.random() * 1e6)); setMsg(null); setPhase('play'); play('click');
+  };
+  const done = (r: GameResult) => {
+    const p = loadProgress();
+    let reward: Reward | null = null, levelUp: number | undefined, news = false;
+    let next: Progress = { ...p, fome: Math.max(0, p.fome - WORK_HUNGER) };
+    if (playsLeft(p, game) > 0) {
+      reward = rewardOf(game, r.score, perk, r.hits);
+      const a = applyReward(spendPlay(next, game), prof.id, reward);
+      next = a.progress; levelUp = a.levelUp;
+      if (game === 'noticia' && r.headline && r.score >= 0.6) { next = { ...next, jornal: { day: today(), text: plain(`${nick}: ${r.headline}`) } }; news = true; }
+    }
+    saveProgress(next);
+    play(r.score >= 0.5 ? 'win' : 'lose');
+    setRes({ r, reward, levelUp, news });
+    setPhase('result');
+  };
+  const choose = () => { saveProgress(chooseProfession(progress, prof.id)); play('coin'); setMsg(`Agora você é ${prof.name}! O bônus já vale.`); };
+  const buyOne = (id: string) => {
+    const r = buy(progress, id);
+    if ('reason' in r) { setMsg(r.reason); play('lose'); return; }
+    saveProgress(r.progress); play('coin'); setMsg(`+1 ${itemLabel(id)}`);
+  };
+
+  return (
+    <Shell title={`${prof.icon} ${prof.place.toUpperCase()}`} color={color} coins={progress.coins} onClose={onClose}>
+      {phase === 'intro' && shop && <Tabs tabs={[['trabalhar', 'TRABALHO'], ['comprar', 'COMPRAR']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
+      {phase === 'intro' && tab === 'comprar' && shop && (
+        <div className="grid gap-1.5">
+          {shop.map(id => (
+            <div key={id} className="flex items-center gap-2 py-1 border-b border-[#e0d8c4]">
+              <span className="text-[22px] w-8 text-center">{itemIcon(id)}</span>
+              <span className="flex-1 text-[9px]">{itemLabel(id)} <span className="text-[#5a5470]">· tem {progress.itens[id] ?? 0}</span></span>
+              <button onClick={() => buyOne(id)} className="px-2 py-1.5 rounded bg-[#3a9a5a] text-white text-[8px]">{buyPrice(id)} 🪙</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {phase === 'intro' && tab === 'trabalhar' && (
+        <div>
+          <div className="text-[10px] mb-1">{prof.name}</div>
+          <div className="text-[8px] leading-4 text-[#5a5470] mb-2">{prof.how}</div>
+          <LevelBar xp={xp} />
+          <div className="mt-2 rounded-lg bg-white border-2 p-2 text-[8px] leading-4" style={{ borderColor: color }}>
+            {progress.profissao === prof.id
+              ? <>✔ SEU CARGO · bônus: {prof.perk}</>
+              : <>Bônus de quem tem o cargo: {prof.perk}<br /><button onClick={choose} className="mt-1 px-2 py-1 rounded text-white text-[8px]" style={{ background: color }}>ESCOLHER ESTE CARGO</button></>}
+          </div>
+          <div className="text-[8px] mt-2 text-[#5a5470]">Hoje ainda rende: {left}/{PLAYS_PER_DAY} {left <= 0 && '(agora é só treino, sem prêmio)'} · gasta um pouco da barriga</div>
+          <button onClick={start} className="mt-3 w-full py-3 rounded-lg text-white text-[11px] border-b-4 border-black/30" style={{ background: color }}>TRABALHAR</button>
+        </div>
+      )}
+      {phase === 'play' && <Game perk={perk} seed={seed} onDone={done} towerMax={progress.towerMax} day={Math.floor(Date.now() / 86_400_000)} />}
+      {phase === 'result' && res && (
+        <div className="text-center">
+          <div className="text-[13px] mb-1" style={{ color }}>{res.r.score >= 0.9 ? 'EXCELENTE!' : res.r.score >= 0.6 ? 'BOM TRABALHO!' : res.r.score >= 0.3 ? 'DÁ PARA MELHORAR' : 'NÃO FOI DESSA VEZ'}</div>
+          <div className="text-[9px] text-[#5a5470] mb-3">Nota: {Math.round(res.r.score * 100)}%</div>
+          {res.reward ? (
+            <div className="flex flex-wrap justify-center gap-2 mb-2">
+              {Object.entries(res.reward.items).map(([id, n]) => <span key={id} className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px]">{itemIcon(id)} {itemLabel(id)} ×{n}</span>)}
+              {res.reward.coins > 0 && <span className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px]">🪙 +{res.reward.coins}</span>}
+              <span className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px]">⭐ +{res.reward.xp} XP</span>
+              {!Object.keys(res.reward.items).length && !res.reward.coins && <div className="w-full text-[8px] text-[#5a5470]">Nenhum item desta vez: capriche mais na próxima!</div>}
+            </div>
+          ) : <div className="text-[8px] text-[#5a5470] mb-2">Treino: este trabalho já rendeu {PLAYS_PER_DAY} vezes hoje. Amanhã rende de novo.</div>}
+          {res.levelUp && <div className="text-[10px] text-[#e8a020] my-2">SUBIU DE NÍVEL! {prof.name} · {TITLES[res.levelUp - 1]}</div>}
+          {res.news && <div className="text-[8px] text-[#c84a6a] my-2">📣 Sua matéria saiu no telão do Jornal WIT!</div>}
+          <div className="flex gap-2 justify-center mt-3">
+            <button onClick={() => setPhase('intro')} className="px-3 py-2 rounded bg-[#4a4660] text-white text-[9px]">VOLTAR</button>
+            <button onClick={start} className="px-3 py-2 rounded text-white text-[9px]" style={{ background: color }}>DE NOVO</button>
+          </div>
+        </div>
+      )}
+      {msg && <div className="mt-3 text-[9px] text-[#3a9a5a]">{msg}</div>}
+    </Shell>
+  );
+}

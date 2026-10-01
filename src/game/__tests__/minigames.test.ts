@@ -40,3 +40,10 @@ describe('minijogos', () => {
     expect(rewardOf('pintura', 1, 0).xp).toBe(30);
   });
 });
+
+describe('circuito embaralhado', () => {
+  it('começa desligado', async () => {
+    const { makeCircuit, connected } = await import('../minigames');
+    for (let seed = 1; seed < 200; seed++) expect(connected(makeCircuit(seed))).toBe(false);
+  });
+});

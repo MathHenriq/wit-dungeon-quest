@@ -45,6 +45,8 @@ export interface Progress {
   mercado: { day: number; sat: Record<string, number> };
   /** Entrega em andamento (Central de Entregas). */
   entrega?: { zona: string; porta: string; nome: string; ate: number };
+  /** Matéria do repórter que sai no telão (Jornal WIT) no dia em que foi feita. */
+  jornal?: { day: number; text: string };
 }
 
 export function newProgress(): Progress {
@@ -108,7 +110,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     profissao: typeof r.profissao === 'string' && PROF_BY_ID.has(r.profissao as ProfId) ? (r.profissao as ProfId) : undefined,
     xp: counts(r.xp, 1e6),
     stats: counts(r.stats, 1e9),
-    fome: num(r.fome, 100, 0, 100),
+    fome: typeof r.fome === 'number' && Number.isFinite(r.fome) ? Math.max(0, Math.min(100, Math.round(r.fome * 100) / 100)) : 100,
     jogos: (() => { const j = (r.jogos ?? {}) as Record<string, unknown>; return { day: num(j.day, 0), n: counts(j.n, 99) }; })(),
     missoes: (() => {
       const m = (r.missoes ?? {}) as Record<string, unknown>;
@@ -117,7 +119,11 @@ export function sanitizeProgress(raw: unknown): Progress {
     mercado: (() => { const m = (r.mercado ?? {}) as Record<string, unknown>; return { day: num(m.day, 0), sat: counts(m.sat, 1e4) }; })(),
     entrega: (() => {
       const e = r.entrega as Record<string, unknown> | undefined;
-      return e && typeof e.zona === 'string' && typeof e.porta === 'string' && typeof e.nome === 'string' ? { zona: e.zona, porta: e.porta, nome: e.nome, ate: num(e.ate, 0) } : undefined;
+      return e && typeof e.zona === 'string' && typeof e.porta === 'string' && typeof e.nome === 'string' ? { zona: e.zona, porta: e.porta, nome: e.nome, ate: num(e.ate, 0, 0, 1e14) } : undefined;
+    })(),
+    jornal: (() => {
+      const j = r.jornal as Record<string, unknown> | undefined;
+      return j && typeof j.text === 'string' ? { day: num(j.day, 0), text: j.text.slice(0, 80) } : undefined;
     })(),
     coins: num(r.coins, 0),
     collection: col,
@@ -225,7 +231,7 @@ export function applyDuel(p: Progress, foe: Foe, won: boolean, pick: number): { 
   if (!won) return { progress: p, result: { won: false, coins: 0, firstWin: false } };
   const before = winsOf(p, foe.id);
   const coins = rewardFor(foe, before);
-  const next: Progress = { ...p, coins: p.coins + coins, wins: { ...p.wins, [foe.id]: before + 1 }, collection: { ...p.collection } };
+  const next: Progress = { ...p, coins: p.coins + coins, wins: { ...p.wins, [foe.id]: before + 1 }, collection: { ...p.collection }, stats: { ...p.stats, mesas: (p.stats.mesas ?? 0) + 1 } };
   const result: DuelResult = { won: true, coins, firstWin: before === 0 };
   if (foe.kind === 'chefe') {
     const card = foe.deck[Math.floor(Math.abs(pick) * foe.deck.length) % foe.deck.length];

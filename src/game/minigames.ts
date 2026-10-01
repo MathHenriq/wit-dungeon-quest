@@ -39,8 +39,10 @@ export function rewardOf(game: MinigameId, score: number, perk: number, hits = 0
       const n = hits + (perk > 0 && hits > 0 ? 1 : 0);
       return { items: n ? { sensor: n } : {}, coins: 0, xp };
     }
-    case 'pares':
-      return { items: s >= 0.5 ? { 'cubo-virtual': s >= 0.85 ? 2 : 1 } : {}, coins: 0, xp };
+    case 'pares': {
+      const n = s >= 0.5 ? (s >= 0.85 ? 2 : 1) + (perk > 0 ? 1 : 0) : 0;
+      return { items: n ? { 'cubo-virtual': n } : {}, coins: 0, xp };
+    }
     case 'noticia':
       return { items: {}, coins: Math.round(hits * 4 * (1 + perk * 0.4)), xp };
     case 'teste-jogo':
@@ -76,23 +78,21 @@ export function makeCircuit(seed: number, w = 5, h = 4): Circuit {
   // o resto: peças soltas para enganar
   for (let k = 0; k < tiles.length; k++) if (!tiles[k] && r() < 0.6) tiles[k] = [3, 5, 6, 7, 9, 10, 12][Math.floor(r() * 7)];
   const turns = tiles.map(() => Math.floor(r() * 4));
-  return { w, h, tiles, turns, inY, outY };
+  return scramble({ w, h, tiles, turns, inY, outY }, seed);
 }
 
 /** Peça como está na tela (com o giro). */
 export const shown = (c: Circuit, i: number) => rot(c.tiles[i], c.turns[i]);
 
-/** A água (o sinal) chega da esquerda (linha inY) até a direita (linha outY)? */
-export function connected(c: Circuit): boolean {
+/** Peças por onde o sinal já passa, saindo da entrada (as acesas na tela). */
+export function litTiles(c: Circuit): Set<number> {
   const seen = new Set<number>();
-  const q: number[] = [];
   const start = c.inY * c.w;
-  if (!(shown(c, start) & 8)) return false;
-  q.push(start); seen.add(start);
+  if (!(shown(c, start) & 8)) return seen;
+  const q = [start]; seen.add(start);
   const D: [number, number, number, number][] = [[1, 0, -1, 4], [2, 1, 0, 8], [4, 0, 1, 1], [8, -1, 0, 2]];
   while (q.length) {
     const i = q.shift()!, x = i % c.w, y = (i / c.w) | 0, p = shown(c, i);
-    if (x === c.w - 1 && y === c.outY && p & 2) return true;
     for (const [bit, dx, dy, opp] of D) {
       if (!(p & bit)) continue;
       const nx = x + dx, ny = y + dy;
@@ -102,12 +102,31 @@ export function connected(c: Circuit): boolean {
       seen.add(j); q.push(j);
     }
   }
-  return false;
+  return seen;
+}
+
+/** O sinal chega da esquerda (linha inY) até a direita (linha outY)? */
+export function connected(c: Circuit): boolean {
+  const out = c.outY * c.w + c.w - 1;
+  return litTiles(c).has(out) && !!(shown(c, out) & 2);
+}
+
+/** Gira peças até o circuito começar desligado (senão não tem graça). */
+export function scramble(c: Circuit, seed: number): Circuit {
+  const r = rng(seed + 77);
+  const turns = [...c.turns];
+  let next = { ...c, turns };
+  for (let k = 0; k < 50 && connected(next); k++) {
+    const i = Math.floor(r() * turns.length);
+    turns[i] = (turns[i] + 1) % 4;
+    next = { ...c, turns: [...turns] };
+  }
+  return next;
 }
 
 // ─── repórter: perguntas com os dados do jogo ───────────────────────────────
 
-export interface Question { q: string; options: string[]; answer: number }
+export interface Question { q: string; options: string[]; answer: number; /** Manchete se a matéria sair (acertou). */ headline: string }
 
 export function reporterQuiz(day: number, seed: number, towerMax: number): Question[] {
   const r = rng(seed);
@@ -119,24 +138,24 @@ export function reporterQuiz(day: number, seed: number, towerMax: number): Quest
   if (board.length) {
     const top = [...board].sort((a, b) => b.cm - a.cm)[0];
     const o = shuffle(board.map(b => b.who).filter(w => w !== top.who), top.who);
-    qs.push({ q: `Quem pescou o MAIOR peixe hoje no Lago Azul (veja o quadro da Casa de Pesca)?`, options: o, answer: o.indexOf(top.who) });
+    qs.push({ q: `Quem pescou o MAIOR peixe hoje no Lago Azul (veja o quadro da Casa de Pesca)?`, options: o, answer: o.indexOf(top.who), headline: `${top.who} pescou o maior peixe do dia: ${top.fish.name} de ${top.cm} cm` });
   }
   const best = [...CROPS].sort((a, b) => b.sellPrice - a.sellPrice)[0];
   const o2 = shuffle(CROPS.filter(c => c.id !== best.id).map(c => c.name).sort(() => r() - 0.5).slice(0, 3), best.name);
-  qs.push({ q: 'Qual planta da fazenda vale MAIS na caixa de envio?', options: o2, answer: o2.indexOf(best.name) });
+  qs.push({ q: 'Qual planta da fazenda vale MAIS na caixa de envio?', options: o2, answer: o2.indexOf(best.name), headline: `Fazenda: ${best.name} é a planta que mais vale` });
   const night = FISH.find(f => f.night === 'only')!;
   const o3 = shuffle(FISH.filter(f => f.rarity !== 'lixo' && f.id !== night.id).map(f => f.name).sort(() => r() - 0.5).slice(0, 3), night.name);
-  qs.push({ q: 'Que peixe SÓ aparece à noite?', options: o3, answer: o3.indexOf(night.name) });
+  qs.push({ q: 'Que peixe SÓ aparece à noite?', options: o3, answer: o3.indexOf(night.name), headline: `Lago: o ${night.name} só aparece à noite` });
   const fact = pick([
-    { q: 'O que é IoT?', right: 'Coisas ligadas na internet que conversam entre si', wrong: ['Um tipo de peixe raro', 'Um jogo de cartas', 'Uma planta da fazenda'] },
-    { q: 'Como uma IA aprende?', right: 'Com muitos exemplos (dados)', wrong: ['Sozinha, sem nada', 'Comendo pão', 'Só com sorte'] },
-    { q: 'O que é o Metaverso?', right: 'Um mundo virtual onde as pessoas se encontram', wrong: ['Um prédio de tijolo', 'Um barco do lago', 'Uma receita de bolo'] },
+    { q: 'O que é IoT?', right: 'Coisas ligadas na internet que conversam entre si', headline: 'IoT: as coisas da cidade conversam pela internet', wrong: ['Um tipo de peixe raro', 'Um jogo de cartas', 'Uma planta da fazenda'] },
+    { q: 'Como uma IA aprende?', right: 'Com muitos exemplos (dados)', headline: 'Lab de IA: a IA aprende com exemplos', wrong: ['Sozinha, sem nada', 'Comendo pão', 'Só com sorte'] },
+    { q: 'O que é o Metaverso?', right: 'Um mundo virtual onde as pessoas se encontram', headline: 'Metaverso: um mundo virtual para se encontrar', wrong: ['Um prédio de tijolo', 'Um barco do lago', 'Uma receita de bolo'] },
   ]);
   const o4 = shuffle(fact.wrong, fact.right);
-  qs.push({ q: fact.q, options: o4, answer: o4.indexOf(fact.right) });
+  qs.push({ q: fact.q, options: o4, answer: o4.indexOf(fact.right), headline: fact.headline });
   const floors = [towerMax + 3, towerMax > 1 ? towerMax - 1 : towerMax + 7, towerMax + 12].map(String);
   const o5 = shuffle(floors, String(towerMax));
-  qs.push({ q: 'Até que andar da Torre VOCÊ já chegou?', options: o5, answer: o5.indexOf(String(towerMax)) });
+  qs.push({ q: 'Até que andar da Torre VOCÊ já chegou?', options: o5, answer: o5.indexOf(String(towerMax)), headline: `Torre: repórter já chegou ao andar ${towerMax}` });
   return qs;
 }
 

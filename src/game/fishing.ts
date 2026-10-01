@@ -60,6 +60,8 @@ export interface FishingContext {
   night: boolean;
   /** Pescando do barco (água funda conta mais). */
   boat?: boolean;
+  /** Sorte do pescador (bônus do cargo, 0 a 1,5): peixe raro, épico e lendário aparecem mais. */
+  luck?: number;
 }
 
 /** Peso de cada peixe no lugar e na hora (0 = não aparece). */
@@ -70,6 +72,7 @@ export function fishWeight(f: Fish, c: FishingContext): number {
   if (f.night === 'more' && c.night) w *= 2.5;
   if (f.shape === 'camarao' && c.deep) w *= 0.2;
   if (f.rarity === 'lixo' && c.deep) w *= 0.5;
+  if (c.luck && (f.rarity === 'raro' || f.rarity === 'epico' || f.rarity === 'lendario')) w *= 1 + c.luck * 0.6;
   return w;
 }
 

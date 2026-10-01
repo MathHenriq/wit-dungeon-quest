@@ -332,6 +332,35 @@ e podem ser trocados pela arte do GPT quando ela for aprovada
 - Cidade viva: placas, correio, fonte, máquina e mural com o que dizer; aviso
   "ESPAÇO/A" quando há algo na frente; placa SAIR nas portas dos interiores.
 
+#### Feito em 01/10 (tudo o que não depende de arte)
+- **12 profissões** (`professions.ts`): cargo escolhido no Núcleo WIT ou na
+  mochila (troca quando quiser), 6 níveis por profissão (XP guardada em cada
+  uma), título na plaquinha. Bônus do cargo: pescador (mais peixe raro, +10%
+  na venda), fazendeiro (regador +5/nível, +10% na caixa), técnico de IoT
+  (sensor a mais, irrigador rega mais), comerciante (+5%/nível no Mercado),
+  artista (+20% nos quadros), entregador (mais tempo e moedas) etc.
+- **8 minijogos** nas portas dos prédios (`minigames.ts` + `components/work`):
+  forno (Padaria), ritmo (Estúdio de Música e casa do músico), pintura de
+  memória (Ateliê), rotular dados (Lab IA), circuito de canos (Casa IoT),
+  pares 3D (Metaverso), checar fatos (Estúdio de Comunicação; a matéria sai
+  no telão), pegar bugs (Oficina de Games e fliperama). Rendem 5 vezes por dia
+  cada; depois é treino. Gastam um pouco da barriga.
+- **Entregas** (`deliveries.ts`): encomenda para uma de 20 portas em qualquer
+  área, prazo e pagamento por distância, aviso no canto da tela.
+- **Fome e comida** (`life.ts`): barriga esvazia andando (~25 min), com fome
+  não corre e não trabalha, **nunca atrapalha duelo**. Mochila com comer,
+  Padaria (compra + forno), máquina de suco, **cozinha** da Casa da Fazenda
+  (7 receitas com curinga "qualquer peixe/fruta").
+- **Mercado Central** (`market.ts`): preço = base × procura do dia (0,7–1,4,
+  igual para todos) × quanto o aluno já vendeu (esquece 30%/dia); compra de
+  comida. Comerciante ganha XP vendendo.
+- **Irrigador**: 3 sensores IoT → irrigador; instalado na fazenda, rega
+  sozinho 8 canteiros por dia (até 4 irrigadores).
+- **Missões do dia** (`missions.ts`): 3 por dia, iguais para a turma, no mural
+  da praça, no Núcleo e na mochila; contam peixes, colheitas, regas, bichos,
+  mesas da Torre, minijogos, entregas, vendas, receitas e comidas.
+- Tudo no navegador (`wit.progresso`) até ligar no banco.
+
 Economia provisória (conferir na fase 9): peixe rende ~200–700 moedas/h
 (teste em `fishing.test.ts`), a fazenda menos que isso por hora de jogo,
 os duelos da Torre 223–561/h.
@@ -677,7 +706,7 @@ termina com **prints aprovados pelo Matheus** antes da próxima.
 | **5 — Telas do jogo (visual)** | Batalha, loja e abertura de pacote, álbum, Centro de Cartas, Torre, Quadro de Missões, guilda |
 | **6 — Batalha funcional** | Motor ligado, batalha curta, IA de 3 níveis, decks dos Caminhos e dos chefes, construtor de deck, 100 inimigos gerados |
 | **7 — Mundo grande e cidade viva** | **Mundo ~4× maior em áreas (§3.7): Lago a leste, Fazenda a oeste, Cidade WIT ao sul**, mapa-múndi; moradores trabalhando e passeando, postes acendendo, sentar e mexer em objetos, interiores mais fáceis de navegar. **30/09: postes acendendo um a um, moradores trabalhando e passeando, sentar nos bancos; as 3 áreas novas com barco, pesca, fazenda e a Cidade WIT (ver §3.7 "Feito em 30/09"). Falta: arte do GPT para trocar a por código, interiores das casas novas.** |
-| **8 — Profissões e minigames** | Escolha de cargo; minigames de pescador, padeiro, músico e fazendeiro primeiro, depois os outros; itens produzidos |
+| **8 — Profissões e minigames** | Escolha de cargo; minigames de pescador, padeiro, músico e fazendeiro primeiro, depois os outros; itens produzidos. **01/10: as 12 profissões, 8 minijogos, entregas, fome, mochila, cozinha, Mercado com oferta e procura e missões do dia (ver §3.7 "Feito em 01/10"). Falta: arte do GPT, ligar no banco, multijogador no mercado.** |
 | **9 — Economia e coleção** | Pacotes configuráveis, garantia, forja, loja, Recompensas da Sala, títulos, **mercado com preço por oferta e procura**, **fome**, **veículos** (simulação antes) |
 | **10 — Social** | Cidade global com canais, amizades, conversa em balão com moderação, guilda nova, pedir ajuda, **compra e venda entre alunos** |
 | **11 — Pets e cosméticos em volume** | ~50 pets, loja de roupas e móveis, discos e quadros na casa |

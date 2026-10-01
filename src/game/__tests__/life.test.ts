@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addItem, newProgress, sanitizeProgress } from '../progress';
-import { applyReward, bump, canCook, chooseProfession, cook, eat, gainXp, playsLeft, RECIPES, spendEnergy, usePlay } from '../life';
+import { applyReward, bump, canCook, chooseProfession, cook, eat, gainXp, playsLeft, RECIPES, spendEnergy, spendPlay } from '../life';
 import { levelOf, PROFESSIONS, profTitle } from '../professions';
 import { buy, buyPrice, demand, marketPrice, sell } from '../market';
 import { claimMission, missionProgress, missionsOf, syncMissions } from '../missions';
@@ -64,7 +64,7 @@ describe('fome e comida', () => {
 describe('minijogos por dia', () => {
   it('cada minijogo rende até 5 vezes por dia; no outro dia volta', () => {
     let p = newProgress();
-    for (let k = 0; k < 5; k++) p = usePlay(p, 'forno', 100);
+    for (let k = 0; k < 5; k++) p = spendPlay(p, 'forno', 100);
     expect(playsLeft(p, 'forno', 100)).toBe(0);
     expect(playsLeft(p, 'ritmo', 100)).toBe(5);
     expect(playsLeft(p, 'forno', 101)).toBe(5);
@@ -130,5 +130,38 @@ describe('missões do dia', () => {
     expect(p.fome).toBe(100);
     expect(p.xp.padeiro).toBe(30);
     expect(p.missoes.day).toBe(0);
+  });
+});
+
+describe('bônus das profissões no mapa', () => {
+  it('irrigador rega canteiros plantados quando o dia vira', async () => {
+    const { newFarm, nextDay } = await import('../farm');
+    const f = { ...newFarm(0), irrig: 1, plots: { '1,1': { wet: false, crop: 'cenoura' as const, stage: 0, idle: 0 }, '2,1': { wet: false, stage: 0, idle: 0 } } };
+    const r = nextDay(f, 1);
+    expect(r.farm.plots['1,1'].wet).toBe(true);
+    expect(r.farm.plots['2,1'].wet).toBe(false);
+  });
+  it('3 sensores viram um irrigador; regador maior para o fazendeiro', async () => {
+    const { craftIrrigator, canSize } = await import('../life');
+    const { newProgress, addItem } = await import('../progress');
+    const r = craftIrrigator(addItem(newProgress(), 'sensor', 4));
+    expect(r.ok && r.progress.itens).toEqual({ sensor: 1, irrigador: 1 });
+    expect(canSize({ ...newProgress(), profissao: 'fazendeiro', xp: { fazendeiro: 130 } })).toBe(35);
+  });
+  it('vitória na Torre conta para as missões', async () => {
+    const { applyDuel, newProgress } = await import('../progress');
+    const { tableFoe } = await import('../../lib/tcg/opponents');
+    const r = applyDuel(newProgress(), tableFoe(1, 0, 'mesa-1', 'Teste'), true, 0);
+    expect(r.progress.stats.mesas).toBe(1);
+  });
+});
+
+describe('salvar e carregar', () => {
+  it('prazo da entrega e fome quebrada sobrevivem ao salvar', async () => {
+    const { sanitizeProgress, newProgress } = await import('../progress');
+    const ate = Date.now() + 60_000;
+    const p = sanitizeProgress(JSON.parse(JSON.stringify({ ...newProgress(), fome: 93.67, entrega: { zona: 'cidade', porta: 'x', nome: 'X', ate } })));
+    expect(p.entrega!.ate).toBe(ate);
+    expect(p.fome).toBeCloseTo(93.67);
   });
 });

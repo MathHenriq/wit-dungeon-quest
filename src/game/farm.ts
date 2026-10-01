@@ -71,14 +71,21 @@ export interface FarmState {
   /** Dia em que já pegou os ovos / tirou leite de cada vaca / tosou cada ovelha. */
   eggsDay: number;
   milked: Record<string, number>;
+  /** Irrigadores automáticos instalados (cada um rega `IRRIG_PLOTS` canteiros quando o dia vira). */
+  irrig: number;
 }
 
 export const CAN_SIZE = 20;
+/** Regador do fazendeiro nível 6 (20 + 5 por nível). */
+export const MAX_CAN = 50;
+/** Canteiros que cada irrigador rega por dia, e quantos cabem na fazenda. */
+export const IRRIG_PLOTS = 8;
+export const MAX_IRRIG = 4;
 /** Tempo de verdade de um dia do jogo (12 min: 30 s por hora). */
 export const DAY_MS = 12 * 60 * 1000;
 
 export function newFarm(now: number): FarmState {
-  return { day: 1, lastDay: now, plots: {}, bin: {}, water: CAN_SIZE, eggsDay: 0, milked: {} };
+  return { day: 1, lastDay: now, plots: {}, bin: {}, water: CAN_SIZE, eggsDay: 0, milked: {}, irrig: 0 };
 }
 
 /** Fazenda de quem chega pela primeira vez: umas fileiras já aradas com cenoura brotando, para mostrar como é. */
@@ -98,7 +105,7 @@ export type Action =
   | { kind: 'plantar'; crop: CropId }
   | { kind: 'regar' }
   | { kind: 'colher'; crop: CropId }
-  | { kind: 'encher' }
+  | { kind: 'encher'; size?: number }
   | { kind: 'nada'; why: string };
 
 /** O que o ESPAÇO faz neste bloco do campo (a ação certa, sem trocar de ferramenta). */
@@ -141,7 +148,7 @@ export function applyAction(f: FarmState, tx: number, ty: number, a: Action): { 
       return { farm: { ...f, plots }, harvested: p.crop };
     }
     case 'encher':
-      return { farm: { ...f, water: CAN_SIZE } };
+      return { farm: { ...f, water: a.size ?? CAN_SIZE } };
     default:
       return { farm: f };
   }
@@ -151,7 +158,7 @@ export function applyAction(f: FarmState, tx: number, ty: number, a: Action): { 
  * Vira o dia: planta regada cresce um estágio, a terra seca, a caixa de envio
  * paga, terra arada vazia há 3 dias volta a ser grama.
  */
-export function nextDay(f: FarmState, now: number, rain = false): { farm: FarmState; paid: number; grown: number } {
+export function nextDay(f: FarmState, now: number, rain = false, irrigPlots = IRRIG_PLOTS): { farm: FarmState; paid: number; grown: number } {
   const plots: Record<string, Plot> = {};
   let grown = 0;
   for (const [k, p0] of Object.entries(f.plots)) {
@@ -167,14 +174,20 @@ export function nextDay(f: FarmState, now: number, rain = false): { farm: FarmSt
     p.wet = rain;
     plots[k] = p;
   }
+  // irrigadores: já deixam regados os canteiros plantados (os que ainda vão crescer)
+  let left = f.irrig * irrigPlots;
+  for (const p of Object.values(plots)) {
+    if (left <= 0) break;
+    if (p.crop && !p.wet && p.stage < CROP_BY_ID.get(p.crop)!.days) { p.wet = true; left--; }
+  }
   const paid = Object.entries(f.bin).reduce((s, [id, n]) => s + sellPrice(id) * n, 0);
   return { farm: { ...f, day: f.day + 1, lastDay: now, plots, bin: {} }, paid, grown };
 }
 
 /** Voltando depois de um tempo fora: vira no máximo um dia (quem não regou não ganha nada). */
-export function catchUp(f: FarmState, now: number): { farm: FarmState; paid: number; grown: number } | null {
+export function catchUp(f: FarmState, now: number, irrigPlots = IRRIG_PLOTS): { farm: FarmState; paid: number; grown: number } | null {
   if (now - f.lastDay < DAY_MS) return null;
-  return nextDay(f, now);
+  return nextDay(f, now, false, irrigPlots);
 }
 
 export function sanitizeFarm(raw: unknown, now: number): FarmState {
@@ -197,7 +210,7 @@ export function sanitizeFarm(raw: unknown, now: number): FarmState {
   if (r.milked && typeof r.milked === 'object') for (const [k, v] of Object.entries(r.milked as Record<string, unknown>)) if (/^[a-z0-9-]{1,20}$/.test(k)) milked[k] = num(v, 0);
   return {
     day: num(r.day, 1, 1), lastDay: num(r.lastDay, now, 0, now), plots, bin,
-    water: num(r.water, CAN_SIZE, 0, CAN_SIZE), eggsDay: num(r.eggsDay, 0), milked,
+    water: num(r.water, CAN_SIZE, 0, MAX_CAN), eggsDay: num(r.eggsDay, 0), milked, irrig: num(r.irrig, 0, 0, MAX_IRRIG),
   };
 }
 

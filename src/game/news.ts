@@ -3,6 +3,7 @@
 // Torre do aluno, o dia da fazenda) e dos avisos dos cursos do Núcleo WIT.
 import { boardOfDay, FISH_BY_ID } from './fishing';
 import type { Progress } from './progress';
+import { today } from './life';
 
 const WIT_NEWS = [
   'LAB DE IA: OS ALUNOS ESTAO TREINANDO O WIT-BOT',
@@ -11,7 +12,7 @@ const WIT_NEWS = [
   'OFICINA DE GAMES: FLIPERAMAS NA RUA DE BAIXO',
   'ESTUDIO: A RADIO WIT VAI TOCAR OS DISCOS DOS MUSICOS',
   'CENTRAL DE ENTREGAS: DRONES LEVANDO ENCOMENDAS',
-  'MERCADO: EM BREVE OS PRECOS MUDAM COM A OFERTA E A PROCURA',
+  'MERCADO CENTRAL: OS PRECOS MUDAM COM A OFERTA E A PROCURA',
 ];
 
 /** Deixa só o que a fonte da cidade desenha (maiúsculas sem acento, números, . : ! -). */
@@ -29,6 +30,7 @@ export function headlines(day: number, p: Progress): string[] {
     const top = recs.sort((a, b) => b.f!.price - a.f!.price)[0];
     out.push(`RECORDE: VOCE JA PESCOU ${top.f!.name} DE ${top.cm} CM`);
   }
+  if (p.jornal && p.jornal.day === today()) out.unshift(p.jornal.text);
   if (p.towerMax > 1) out.push(`TORRE: VOCE JA CHEGOU AO ANDAR ${p.towerMax}`);
   out.push('FAZENDA DO VALE: ABOBORA VALE 28 MOEDAS NA CAIXA DE ENVIO');
   // os avisos dos cursos mudam de ordem a cada dia

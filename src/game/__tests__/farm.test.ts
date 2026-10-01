@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionAt, applyAction, CAN_SIZE, catchUp, CROPS, DAY_MS, newFarm, nextDay, sanitizeFarm, sellPrice } from '../farm';
+import { actionAt, applyAction, CAN_SIZE, MAX_CAN, catchUp, CROPS, DAY_MS, newFarm, nextDay, sanitizeFarm, sellPrice } from '../farm';
 
 describe('fazenda', () => {
   it('toda planta dá lucro sobre a semente', () => {
@@ -62,6 +62,6 @@ describe('fazenda', () => {
     expect(f.plots['3,4'].crop).toBeUndefined();
     expect(f.plots.x).toBeUndefined();
     expect(f.bin).toEqual({ ovo: 2 });
-    expect(f.water).toBe(CAN_SIZE);
+    expect(f.water).toBe(MAX_CAN);
   });
 });

@@ -4,7 +4,8 @@
 import type { Progress } from './progress';
 import { addItem } from './progress';
 import { itemDef } from './items';
-import { levelOf, PROF_BY_ID, type ProfId } from './professions';
+import { levelOf, perkLevel, PROF_BY_ID, type ProfId } from './professions';
+import { CAN_SIZE, IRRIG_PLOTS, MAX_CAN } from './farm';
 
 /** Dia do jogo para missões e limites: o dia de verdade (muda à meia-noite). */
 export const today = (now = Date.now()) => Math.floor((now - new Date(now).getTimezoneOffset() * 60_000) / 86_400_000);
@@ -99,7 +100,7 @@ export function playsLeft(p: Progress, game: string, day = today()): number {
   return PLAYS_PER_DAY - (p.jogos.day === day ? p.jogos.n[game] ?? 0 : 0);
 }
 
-export function usePlay(p: Progress, game: string, day = today()): Progress {
+export function spendPlay(p: Progress, game: string, day = today()): Progress {
   const n = p.jogos.day === day ? { ...p.jogos.n } : {};
   n[game] = (n[game] ?? 0) + 1;
   return { ...p, jogos: { day, n } };
@@ -117,3 +118,39 @@ export function applyReward(p: Progress, prof: ProfId, r: Reward): { progress: P
   next = bump(next, 'minijogos');
   return gainXp(next, prof, r.xp);
 }
+
+// ─── trabalho no mapa (pescar, fazenda, mercado, entregas) ──────────────────
+
+/** Faz uma atividade: conta para as missões e dá experiência na profissão dela. */
+export function doWork(p: Progress, prof: ProfId, stat: string | null, xp: number, n = 1): { progress: Progress; levelUp?: number } {
+  return gainXp(stat ? bump(p, stat, n) : p, prof, xp);
+}
+
+/** Experiência do pescador por raridade. */
+export const FISH_XP: Record<string, number> = { lixo: 1, comum: 4, incomum: 7, raro: 12, epico: 20, lendario: 35 };
+
+/** Tamanho do regador (o fazendeiro carrega mais). */
+export function canSize(p: Progress): number {
+  return Math.min(MAX_CAN, CAN_SIZE + (p.profissao === 'fazendeiro' ? levelOf(p.xp.fazendeiro ?? 0).level * 5 : 0));
+}
+
+/** Canteiros que cada irrigador rega (o técnico de IoT instala melhor). */
+export function irrigPlots(p: Progress): number {
+  return IRRIG_PLOTS + (p.profissao === 'tecnico-iot' ? levelOf(p.xp['tecnico-iot'] ?? 0).level * 2 : 0);
+}
+
+/** Quanto a caixa de envio paga a mais (fazendeiro) e a Casa de Pesca (pescador). */
+export const shipBonus = (p: Progress) => (p.profissao === 'fazendeiro' ? 1.1 : 1);
+export const fishSellBonus = (p: Progress) => (p.profissao === 'pescador' ? 1.1 : 1);
+export const fishLuck = (p: Progress) => perkLevel(p.profissao, 'pescador', p.xp.pescador ?? 0);
+
+/** Monta um irrigador com 3 sensores IoT. */
+export const SENSORS_PER_IRRIG = 3;
+export function craftIrrigator(p: Progress): { ok: true; progress: Progress } | { ok: false; reason: string } {
+  const have = p.itens.sensor ?? 0;
+  if (have < SENSORS_PER_IRRIG) return { ok: false, reason: `Precisa de ${SENSORS_PER_IRRIG} sensores (tem ${have}). Faça na Casa Inteligente.` };
+  return { ok: true, progress: addItem(addItem(p, 'sensor', -SENSORS_PER_IRRIG), 'irrigador', 1) };
+}
+
+/** Comer custa: trabalhar (minijogo) gasta um pouco da barriga. */
+export const WORK_HUNGER = 6;

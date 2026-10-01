@@ -32,6 +32,13 @@ import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Fra
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
 import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { canSize, doWork, fishLuck, FISH_XP, HUNGRY, irrigPlots, shipBonus, spendEnergy } from '@/game/life';
+import { buy } from '@/game/market';
+import { finishDelivery } from '@/game/deliveries';
+import { profTitle, type MinigameId } from '@/game/professions';
+import { WorkPanel } from '@/components/work/WorkPanel';
+import { Backpack, DeliveryPanel, KitchenPanel, MarketPanel } from '@/components/work/LifePanels';
+import { HungerBar } from '@/components/work/Shell';
 import { DeckBuilder } from '@/components/duel/DeckBuilder';
 import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS, type NpcDef } from '@/game/world/content';
@@ -49,6 +56,17 @@ import { drawJob, jobBob, propsBehind } from '@/game/world/jobs';
 /** ?passeio=1: o boneco passeia sozinho (para medir desempenho e gravar vídeo). */
 const TOUR: [number, number][] = [[31, 23], [16, 21], [16, 19], [10, 27], [16, 32], [16, 31], [46, 33], [46, 31], [57, 21], [51, 14], [48, 10], [7, 11], [7, 9], [26, 13], [31, 23], [31, 40], [14, 42], [14, 41], [31, 33]];
 const WALK_MS = 230, RUN_MS = 125, BOAT_MS = 190;
+/** Portas onde se trabalha (minijogo da profissão); `?trabalho=<porta>` abre direto. */
+const WORK_DOORS: Record<string, { game: MinigameId; shop?: string[] }> = {
+  'npc-padaria': { game: 'forno', shop: ['pao', 'bolo'] },
+  'npc-musico': { game: 'ritmo' }, 'estudio-musica': { game: 'ritmo' },
+  'npc-artista': { game: 'pintura' }, atelie: { game: 'pintura' },
+  'lab-ia': { game: 'rotular' },
+  'casa-iot': { game: 'circuito' },
+  metaverso: { game: 'pares' },
+  estudio: { game: 'noticia' },
+  'oficina-games': { game: 'teste-jogo' },
+};
 /** Um dia inteiro do jogo dura 12 minutos (30 s por hora). */
 const MS_PER_HOUR = 30_000;
 const KEY_DIR: Record<string, Dir> = {
@@ -199,6 +217,16 @@ function CityView({ town, start, startHour, onTravel }: {
   const [fishUi, setFishUi] = useState<FishUi | null>(null);
   const [farmPanel, setFarmPanel] = useState<'sementes' | 'envio' | null>(null);
   const [courses, setCourses] = useState(false);
+  /** Trabalho num prédio (minijogo), mochila, mercado, cozinha, entregas. */
+  const [work, setWork] = useState<{ game: MinigameId; shop?: string[] } | null>(() => {
+    const w = new URLSearchParams(window.location.search).get('trabalho');
+    return w && WORK_DOORS[w] ? WORK_DOORS[w] : null;
+  });
+  const [bag, setBag] = useState<'mochila' | 'cargos' | 'missoes' | null>(() => (new URLSearchParams(window.location.search).has('mochila') ? 'mochila' : null));
+  const [shopUi, setShopUi] = useState<'mercado' | 'cozinha' | 'entregas' | null>(() => {
+    const q = new URLSearchParams(window.location.search).get('loja');
+    return q === 'mercado' || q === 'cozinha' || q === 'entregas' ? q : null;
+  });
   /** Só para redesenhar a barra da fazenda (semente escolhida, água). */
   const [, setFarmHud] = useState(0);
   const fields = town.spots.filter(sp => sp.kind === 'campo').map(sp => ({ x0: sp.tx, y0: sp.ty, x1: sp.data!.x1 as number, y1: sp.data!.y1 as number }));
@@ -256,6 +284,9 @@ function CityView({ town, start, startHour, onTravel }: {
     leaving: false,
     held: [] as Dir[],
     run: false,
+    /** Barriga vazia: não corre. Caminhada acumulada (s) para gastar a barriga. */
+    starving: false,
+    hungerAcc: 0,
     /** Sentado num banco: o bloco do banco e de onde veio (para levantar). */
     seat: null as { tx: number; ty: number; dx: number; from: { tx: number; ty: number } } | null,
     path: [] as Dir[],
@@ -292,16 +323,30 @@ function CityView({ town, start, startHour, onTravel }: {
   });
 
   useEffect(() => {
-    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses;
+    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses || !!work || !!bag || !!shopUi;
     g.current.inside = !!inside; g.current.dirty = true;
-  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel, courses]);
+  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel, courses, work, bag, shopUi]);
+
+  // título do cargo na plaquinha; com fome não corre
+  useEffect(() => {
+    g.current.playerTitle = progress.profissao ? profTitle(progress.profissao, progress.xp[progress.profissao] ?? 0) : 'Novato';
+    g.current.starving = progress.fome <= 0;
+    g.current.dirty = true;
+  }, [progress]);
+  // relógio da entrega (só enquanto tem uma)
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!progress.entrega) return;
+    const t = window.setInterval(() => setTick(n => n + 1), 1000);
+    return () => window.clearInterval(t);
+  }, [progress.entrega]);
 
   // fazenda: se ficou fora um dia (12 min) ou mais, vira um dia ao chegar
   useEffect(() => {
-    const cu = catchUp(g.current.farm, Date.now());
+    const cu = catchUp(g.current.farm, Date.now(), irrigPlots(loadProgress()));
     if (!cu) return;
     g.current.farm = cu.farm; saveFarm(cu.farm);
-    if (cu.paid) { const pr = loadProgress(); saveProgress({ ...pr, coins: pr.coins + cu.paid }); }
+    if (cu.paid) { const pr = loadProgress(); cu.paid = Math.round(cu.paid * shipBonus(pr)); saveProgress({ ...pr, coins: pr.coins + cu.paid }); }
     if (cu.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `☀ Dia ${cu.farm.day} na fazenda!${cu.paid ? ` A caixa de envio pagou ${cu.paid} moedas.` : ''}` });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -476,7 +521,7 @@ function CityView({ town, start, startHour, onTravel }: {
     if (f.phase === 'cast' || f.phase === 'wait') { s.fish = null; toast('Puxou cedo demais... Espere a boia afundar!'); return; }
     if (f.phase === 'bite') {
       const night = s.hour >= 19 || s.hour < 5;
-      const c = rollFish({ deep: f.deep, night, boat: s.sailing }, Math.random(), Math.random());
+      const c = rollFish({ deep: f.deep, night, boat: s.sailing, luck: fishLuck(loadProgress()) }, Math.random(), Math.random());
       f.catch = c; f.meter = meterFor(c.fish, Math.random()); f.phase = 'meter'; f.t = now;
       setFishUi({ kind: 'meter', meter: f.meter, t0: now });
       play('flip');
@@ -487,7 +532,9 @@ function CityView({ town, start, startHour, onTravel }: {
       s.fish = null;
       if (!hit) { play('lose'); toast('Escapou! Aperte quando a agulha estiver no verde.'); return; }
       const r = addCatch(loadProgress(), f.catch.fish.id, f.catch.cm);
-      saveProgress(r.progress);
+      const w = doWork(r.progress, 'pescador', 'peixes', FISH_XP[f.catch.fish.rarity] ?? 1);
+      saveProgress(w.progress);
+      if (w.levelUp) window.setTimeout(() => toast(`⭐ Pescador subiu para o nível ${w.levelUp}!`), 2500);
       play(f.catch.fish.rarity === 'lendario' || f.catch.fish.rarity === 'epico' ? 'win' : 'coin');
       setFishUi({ kind: 'catch', fish: f.catch.fish, cm: f.catch.cm, first: r.first, record: r.record });
     }
@@ -505,10 +552,11 @@ function CityView({ town, start, startHour, onTravel }: {
 
   const fillCan = () => {
     const s = g.current;
-    s.farm = applyAction(s.farm, 0, 0, { kind: 'encher' }).farm; saveFarm(s.farm);
+    const size = canSize(loadProgress());
+    s.farm = applyAction(s.farm, 0, 0, { kind: 'encher', size }).farm; saveFarm(s.farm);
     const f = ahead(s.player);
     s.act = { kind: 'encher', t: performance.now(), tx: f.tx, ty: f.ty };
-    play('draw'); toast(`Regador cheio! 💧 ${CAN_SIZE}/${CAN_SIZE}`);
+    play('draw'); toast(`Regador cheio! 💧 ${size}/${size}`);
     setFarmHud(n => n + 1);
   };
 
@@ -571,26 +619,31 @@ function CityView({ town, start, startHour, onTravel }: {
       const lines = spot.data?.lines as string[] | undefined;
       switch (spot.kind) {
         case 'placa': if (lines) { setDialog({ lines, i: 0 }); return; } break;
-        case 'mural': setDialog({ lines: MURAL_TEXT, i: 0 }); return;
+        case 'mural': setBag('missoes'); return;
         case 'correio':
           setDialog({ lines: spot.data?.own ? ['Sua caixa de correio. Nenhuma carta nova.', 'Em breve: recados dos colegas e do professor chegam aqui.'] : ['A caixa de correio de um morador. Não é sua!'], i: 0 });
           return;
         case 'fonte': play('coin'); setDialog({ lines: ['Você jogou uma moedinha imaginária na fonte e fez um pedido...', '✨ Tomara que venha uma carta Mítica no próximo pacotinho!'], i: 0 }); return;
-        case 'maquina': setDialog({ lines: ['Máquina de sucos: uva, laranja e maracujá.', 'Quando a fome chegar ao jogo, um suco daqui vai ajudar.'], i: 0 }); return;
+        case 'maquina': {
+          const r = buy(loadProgress(), 'suco');
+          if ('reason' in r) { toast(`Máquina de sucos: ${r.reason}`); return; }
+          saveProgress(r.progress); play('coin'); toast('Saiu um suco! 🧃 Está na mochila.');
+          return;
+        }
         case 'banca': setFishHouse('vender'); return;
         case 'castelo-areia': setDialog({ lines: ['Um castelo de areia caprichado, com bandeirinha e tudo.', 'Melhor não pisar!'], i: 0 }); return;
         case 'fogueira': setDialog({ lines: ['A fogueira do acampamento estala e esquenta.', 'À noite, os vaga-lumes aparecem por aqui.'], i: 0 }); return;
         case 'sementes': setFarmPanel('sementes'); return;
         case 'telao': setDialog({ lines: ['JORNAL WIT', ...headlines(Math.floor(Date.now() / 86_400_000), loadProgress()).slice(0, 5)], i: 0 }); return;
         case 'holograma': play('super'); setDialog({ lines: ['O holograma do W gira em cima da praça.', 'Quem fez foi a turma de Metaverso: é um modelo 3D projetado com luz.'], i: 0 }); return;
-        case 'canteiro-iot': setDialog({ lines: ['Canteiro inteligente: o sensor mede a umidade da terra.', `Umidade agora: ${55 + Math.round(Math.sin(Date.now() / 60000) * 20)}%. Quando fica seca, o aspersor liga sozinho.`, 'Em breve a turma de IoT leva isso para a Fazenda (irrigador automático).'], i: 0 }); return;
+        case 'canteiro-iot': setDialog({ lines: ['Canteiro inteligente: o sensor mede a umidade da terra.', `Umidade agora: ${55 + Math.round(Math.sin(Date.now() / 60000) * 20)}%. Quando fica seca, o aspersor liga sozinho.`, 'Monte 3 sensores na Casa Inteligente e vire um irrigador para a sua fazenda (MOCHILA).'], i: 0 }); return;
         case 'estacao-tempo': {
           const hh = String(Math.floor(s.hour)).padStart(2, '0');
           setDialog({ lines: [`Estação do tempo WIT · ${hh}h`, `Temperatura: ${22 + Math.round(Math.sin((s.hour - 9) / 24 * Math.PI * 2) * 6)}°C · Vento: fraco · Céu: ${s.hour >= 6 && s.hour < 18.5 ? 'sol' : 'estrelado'}.`, 'Os dados vão para o telão e para a turma de IoT.'], i: 0 });
           return;
         }
         case 'patinetes': setDialog({ lines: ['Estação de patinetes elétricos (carregando).', 'Veículos chegam em breve: patinete, bicicleta e mais!'], i: 0 }); return;
-        case 'fliperama': play('super'); setDialog({ lines: ['FLIPERAMA WIT', 'Os minijogos da Oficina de Games vão rodar aqui e dar tíquetes. (Em breve!)'], i: 0 }); return;
+        case 'fliperama': play('super'); setWork({ game: 'teste-jogo' }); return;
         case 'quadra': setDialog({ lines: ['A cesta está baixinha, do seu tamanho.', 'Bora um basquete? Os campeonatos entre guildas chegam em breve!'], i: 0 }); return;
         case 'caixa-envio': setFarmPanel('envio'); return;
         case 'poco': fillCan(); return;
@@ -599,7 +652,7 @@ function CityView({ town, start, startHour, onTravel }: {
           if (fm.eggsDay >= fm.day) { toast('Você já pegou os ovos de hoje. Volte amanhã!'); return; }
           const n = s.critters.filter(c => c.kind === 'galinha').length || 4;
           s.farm = { ...fm, eggsDay: fm.day }; saveFarm(s.farm);
-          saveProgress(addItem(loadProgress(), 'ovo', n));
+          saveProgress(doWork(addItem(loadProgress(), 'ovo', n), 'fazendeiro', 'bichos', 3).progress);
           s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: '🥚' };
           play('coin'); toast(`+${n} ovos! Venda na caixa de envio.`);
           return;
@@ -609,7 +662,7 @@ function CityView({ town, start, startHour, onTravel }: {
           if ((fm.milked[tree] ?? 0) >= fm.day) { toast('Esta árvore já deu fruta hoje.'); return; }
           const fruit = `fruta:${spot.data!.fruit as string}`;
           s.farm = { ...fm, milked: { ...fm.milked, [tree]: fm.day } }; saveFarm(s.farm);
-          saveProgress(addItem(loadProgress(), fruit, 3));
+          saveProgress(doWork(addItem(loadProgress(), fruit, 3), 'fazendeiro', 'bichos', 2).progress);
           s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: iconOf(fruit) };
           play('coin'); toast(`+3 ${itemName(fruit)}!`);
           return;
@@ -632,7 +685,7 @@ function CityView({ town, start, startHour, onTravel }: {
       if ((fm.milked[id] ?? 0) >= fm.day) { toast(critter.kind === 'vaca' ? 'Esta vaca já deu leite hoje. 🐄' : 'Esta ovelha já foi tosada hoje. 🐑'); return; }
       const item = critter.kind === 'vaca' ? 'leite' : 'la';
       s.farm = { ...fm, milked: { ...fm.milked, [id]: fm.day } }; saveFarm(s.farm);
-      saveProgress(addItem(loadProgress(), item, 1));
+      saveProgress(doWork(addItem(loadProgress(), item, 1), 'fazendeiro', 'bichos', 3).progress);
       critter.wait = 3000; critter.gx = critter.x; critter.gy = critter.y;
       s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: iconOf(item) };
       play('coin'); toast(critter.kind === 'vaca' ? '+1 Leite! 🥛' : '+1 Lã! 🧶');
@@ -646,8 +699,10 @@ function CityView({ town, start, startHour, onTravel }: {
       if (a.kind === 'nada') { toast(a.why); return; }
       const r = applyAction(s.farm, f.tx, f.ty, a);
       s.farm = r.farm; saveFarm(r.farm);
-      if (a.kind === 'plantar') saveProgress(addItem(pr, `semente:${a.crop}`, -1));
-      if (r.harvested) saveProgress(addItem(pr, `colheita:${r.harvested}`, 1));
+      const after = a.kind === 'plantar' ? addItem(pr, `semente:${a.crop}`, -1) : r.harvested ? addItem(pr, `colheita:${r.harvested}`, 1) : pr;
+      const w = doWork(after, 'fazendeiro', a.kind === 'colher' ? 'colheitas' : a.kind === 'regar' ? 'regas' : null, a.kind === 'colher' ? 5 : 1);
+      saveProgress(w.progress);
+      if (w.levelUp) toast(`⭐ Fazendeiro subiu para o nível ${w.levelUp}!`);
       s.act = { kind: a.kind === 'colher' ? 'colher' : a.kind === 'plantar' ? 'plantar' : a.kind === 'regar' ? 'regar' : 'arar', t: performance.now(), tx: f.tx, ty: f.ty, icon: r.harvested ? iconOf(r.harvested) : undefined };
       play(a.kind === 'colher' ? 'coin' : a.kind === 'regar' ? 'draw' : 'drop');
       s.dirty = true; setFarmHud(n => n + 1);
@@ -666,7 +721,7 @@ function CityView({ town, start, startHour, onTravel }: {
     }
     // de frente para a água: na fazenda, enche o regador (se não estiver cheio); senão, pesca
     if (openWater(f.tx, f.ty)) {
-      if (town.id === 'fazenda' && s.farm.water < CAN_SIZE) { fillCan(); return; }
+      if (town.id === 'fazenda' && s.farm.water < canSize(loadProgress())) { fillCan(); return; }
       startFishing();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -693,7 +748,9 @@ function CityView({ town, start, startHour, onTravel }: {
       }
       if (e.key === 'Shift') g.current.run = true;
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') { e.preventDefault(); interact(); }
-      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); setDeckOpen(false); setMapOpen(false); setFishHouse(null); setFarmPanel(null); setCourses(false); }
+      if (e.key === 'Escape') { setPanel(null); setDialog(null); setEditing(false); setDeckOpen(false); setMapOpen(false); setFishHouse(null); setFarmPanel(null); setCourses(false); setWork(null); setBag(null); setShopUi(null); }
+      // I: mochila
+      if ((e.key === 'i' || e.key === 'I') && !g.current.inside && !g.current.modal) setBag('mochila');
       if ((e.key === 'm' || e.key === 'M') && !g.current.inside) setMapOpen(o => !o);
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
@@ -730,6 +787,21 @@ function CityView({ town, start, startHour, onTravel }: {
       const door = town.doors.find(d => d.tx === s.player.tx && d.ty === s.player.ty);
       if (door && s.player.dir === 'north') {
         s.path = []; s.held = [];
+        // entrega para esta porta: entrega e não entra
+        const pe = loadProgress();
+        if (pe.entrega && pe.entrega.zona === town.id && pe.entrega.porta === door.building) {
+          const fin = finishDelivery(pe, Date.now())!;
+          saveProgress(fin.progress); play('coin');
+          setDialog({ lines: [`📦 Entregue em ${door.name}! +${fin.coins} moedas${fin.late ? ' (atrasada: metade)' : ''}.`, ...(fin.levelUp ? [`⭐ Entregador subiu para o nível ${fin.levelUp}!`] : []), 'Pegue outra na Central de Entregas (Cidade WIT).'], i: 0 });
+          s.player.ty += 1; s.player.dir = 'south';
+          return;
+        }
+        if (WORK_DOORS[door.building]) { setWork(WORK_DOORS[door.building]); s.player.ty += 1; s.player.dir = 'south'; return; }
+        if (door.building === 'mercado' || door.building === 'casa-fazenda' || door.building === 'entregas') {
+          setShopUi(door.building === 'mercado' ? 'mercado' : door.building === 'casa-fazenda' ? 'cozinha' : 'entregas');
+          s.player.ty += 1; s.player.dir = 'south';
+          return;
+        }
         // a Torre abre no andar mais alto já liberado
         if (door.building === 'torre') setInside({ kind: 'torre', andar: loadProgress().towerMax });
         else if (door.building === 'sua-casa') setInside({ kind: 'casa' });
@@ -766,9 +838,9 @@ function CityView({ town, start, startHour, onTravel }: {
     // 6h: vira o dia da fazenda (planta regada cresce, caixa de envio paga)
     const newDay = () => {
       const s = g.current;
-      const r = nextDay(s.farm, Date.now());
+      const r = nextDay(s.farm, Date.now(), false, irrigPlots(loadProgress()));
       s.farm = r.farm; saveFarm(r.farm);
-      if (r.paid) { const pr = loadProgress(); saveProgress({ ...pr, coins: pr.coins + r.paid }); play('coin'); }
+      if (r.paid) { const pr = loadProgress(); r.paid = Math.round(r.paid * shipBonus(pr)); saveProgress({ ...pr, coins: pr.coins + r.paid }); play('coin'); }
       if (r.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `☀ Dia ${r.farm.day}!${r.paid ? ` A caixa de envio pagou ${r.paid} moedas.` : ''}${r.grown ? ` ${r.grown} planta${r.grown > 1 ? 's' : ''} cresce${r.grown > 1 ? 'ram' : 'u'}.` : ''}` });
       setFarmHud(n => n + 1);
     };
@@ -781,7 +853,21 @@ function CityView({ town, start, startHour, onTravel }: {
         const [tx, ty] = TOUR[tourIdx++ % TOUR.length];
         s.path = findPath(p.tx, p.ty, tx, ty, blocked);
       }
-      const ms = s.run ? RUN_MS : WALK_MS;
+      const running = s.run && !s.starving;
+      const ms = running ? RUN_MS : WALK_MS;
+      // a barriga esvazia andando (a pé); guarda a cada ~5 s de caminhada
+      if (p.from && !s.sailing && !s.modal) {
+        s.hungerAcc += (dt / 1000) * (running ? 2 : 1);
+        if (s.hungerAcc >= 5) {
+          const pr = loadProgress();
+          const was = pr.fome;
+          const next = spendEnergy(pr, s.hungerAcc, false);
+          s.hungerAcc = 0;
+          if (next !== pr) saveProgress(next);
+          if (was > HUNGRY && next.fome <= HUNGRY) toast('Barriga roncando... 😣 Coma algo (MOCHILA).');
+          if (was > 0 && next.fome <= 0) toast('Com fome você não consegue correr. Coma algo!');
+        }
+      }
       const pet = s.pet;
       // jogador: sem pausa entre blocos; toque rápido só vira
       if (s.sailing !== wasSailing) { wasSailing = s.sailing; petQueue.length = 0; }
@@ -1050,7 +1136,7 @@ function CityView({ town, start, startHour, onTravel }: {
         const pos = pixelPos(w, TILE);
         // cada passo usa metade dos quadros da caminhada (6 da PixelLab, 4 dos modelos)
         const n = fr.walk[w.dir].length;
-        const frameMs = (w === s.player && s.run ? RUN_MS : WALK_MS) / (n / 2);
+        const frameMs = (w === s.player && s.run && !s.starving ? RUN_MS : WALK_MS) / (n / 2);
         const img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % n : 0];
         const wx = Math.round(pos.x + 8 - fr.w / 2), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
         const x = wx - camX, y = wy - camY + bob;
@@ -1076,7 +1162,7 @@ function CityView({ town, start, startHour, onTravel }: {
               ctx.beginPath(); ctx.ellipse(x + fr.w / 2, y + fr.foot[w.dir], Math.min(7, fr.w / 3), 2.5, 0, 0, Math.PI * 2); ctx.fill();
             }
             // poeirinha nos pés de quem corre
-            if (w === s.player && s.run && w.from) {
+            if (w === s.player && s.run && !s.starving && w.from) {
               const back = DELTA[w.dir];
               for (let k = 0; k < 3; k++) {
                 const life = ((now / 260) + k / 3) % 1;
@@ -1377,8 +1463,11 @@ function CityView({ town, start, startHour, onTravel }: {
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
 
-      <div className="absolute top-2 right-2 flex items-center gap-1.5">
+      <div className="absolute top-2 right-2 flex flex-wrap justify-end items-center gap-1.5 max-w-[calc(100vw-150px)] sm:max-w-none">
+        <span className={`px-2 py-1.5 rounded-md bg-black/55 text-[10px] ${pixelFont}`}><HungerBar v={progress.fome} compact /></span>
         <span className={`px-2 py-2 rounded-md bg-black/55 text-yellow-200 text-[10px] ${pixelFont}`} title="Moedas">🪙 {progress.coins}</span>
+        <button onClick={() => setBag('mochila')}
+          className={`px-3 py-2 rounded-md bg-[#6a4a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MOCHILA</button>
         <button onClick={() => setMapOpen(true)}
           className={`px-3 py-2 rounded-md bg-[#8a5a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MAPA</button>
         <button onClick={() => setDeckOpen(true)}
@@ -1424,8 +1513,22 @@ function CityView({ town, start, startHour, onTravel }: {
       {fishUi?.kind === 'toast' && (
         <div className={`absolute left-1/2 -translate-x-1/2 bottom-[22%] px-4 py-2 rounded-lg bg-black/70 text-white text-[10px] pointer-events-none ${pixelFont}`}>{fishUi.text}</div>
       )}
+      {progress.entrega && !inside && (
+        <div className={`absolute top-24 sm:top-14 right-2 px-3 py-2 rounded-md bg-[#2a8a8a]/90 border-2 border-white/50 text-white text-[9px] leading-4 ${pixelFont}`}>
+          📦 {progress.entrega.nome}<br />
+          <span className={progress.entrega.ate < Date.now() ? 'text-[#ffb0b0]' : 'text-[#c8fff0]'}>
+            {progress.entrega.ate < Date.now() ? 'ATRASADA' : `${Math.floor((progress.entrega.ate - Date.now()) / 60000)}:${String(Math.floor(((progress.entrega.ate - Date.now()) % 60000) / 1000)).padStart(2, '0')}`}
+            {progress.entrega.zona !== town.id && ` · ${ZONE_NAMES[progress.entrega.zona as ZoneId] ?? ''}`}
+          </span>
+        </div>
+      )}
+      {work && <WorkPanel game={work.game} shop={work.shop} progress={progress} nick={look.apelido || 'Você'} onClose={() => setWork(null)} />}
+      {bag && <Backpack progress={progress} start={bag} onClose={() => { setBag(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
+      {shopUi === 'mercado' && <MarketPanel progress={progress} onClose={() => setShopUi(null)} />}
+      {shopUi === 'cozinha' && <KitchenPanel progress={progress} onClose={() => setShopUi(null)} />}
+      {shopUi === 'entregas' && <DeliveryPanel progress={progress} zone={town.id} onClose={() => setShopUi(null)} />}
       {fishHouse && <FishHouse progress={progress} start={fishHouse} onClose={() => setFishHouse(null)} />}
-      {courses && <CoursesPanel onClose={() => setCourses(false)} />}
+      {courses && <CoursesPanel progress={progress} onClose={() => setCourses(false)} />}
       {farmPanel && <FarmPanel mode={farmPanel} progress={progress} onClose={() => { setFarmPanel(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
       {town.id === 'fazenda' && !inside && (() => {
         const s = g.current;
@@ -1438,7 +1541,7 @@ function CityView({ town, start, startHour, onTravel }: {
             <button onClick={() => cycleSeed(-1)} className="px-1.5 py-1 rounded bg-white/15" aria-label="semente anterior">◀</button>
             <span className="min-w-[132px] text-center">{crop ? <>{iconOf(crop.id)} {crop.name} ×{progress.itens[`semente:${crop.id}`] ?? 0}</> : 'sem sementes'}</span>
             <button onClick={() => cycleSeed(1)} className="px-1.5 py-1 rounded bg-white/15" aria-label="próxima semente">▶</button>
-            <span className="ml-2 text-[#8ad0ff]">💧 {s.farm.water}/{CAN_SIZE}</span>
+            <span className="ml-2 text-[#8ad0ff]">💧 {s.farm.water}/{canSize(progress)}</span>{s.farm.irrig > 0 && <span className="ml-2">💦×{s.farm.irrig}</span>}
             <span className="ml-2 text-[#e8c690]">DIA {s.farm.day}</span>
           </div>
         );
