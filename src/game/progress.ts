@@ -7,6 +7,7 @@ import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { maxCopies, rewardFor, starterCollection, starterDeck, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opponents';
 import type { CardDef } from '@/lib/tcg/types';
 import { DEFAULT_MAT, MAT_BY_ID } from './playmats';
+import { PROF_BY_ID, type ProfId } from './professions';
 
 export const DECK_SIZE = 20;
 export const DECK_SLOTS = 3;
@@ -29,6 +30,21 @@ export interface Progress {
   itens: Record<string, number>;
   /** Maior peixe de cada espécie (cm): o álbum de peixes da Casa de Pesca. */
   recordes: Record<string, number>;
+  /** Cargo escolhido no Núcleo WIT (dá bônus) e a experiência em cada profissão. */
+  profissao?: ProfId;
+  xp: Record<string, number>;
+  /** Contadores de tudo que o aluno fez (missões, Jornal WIT): peixes, colheitas, mesas... */
+  stats: Record<string, number>;
+  /** Barriga: 100 = cheio, 0 = com fome (não corre). Nunca impede duelo. */
+  fome: number;
+  /** Minijogos jogados hoje (cada um rende só algumas vezes por dia). */
+  jogos: { day: number; n: Record<string, number> };
+  /** Missões do dia: o valor dos contadores no começo do dia e as já recebidas. */
+  missoes: { day: number; base: Record<string, number>; feitas: string[] };
+  /** Mercado: quanto o aluno vendeu de cada item (baixa o preço; esquece 30% por dia). */
+  mercado: { day: number; sat: Record<string, number> };
+  /** Entrega em andamento (Central de Entregas). */
+  entrega?: { zona: string; porta: string; nome: string; ate: number };
 }
 
 export function newProgress(): Progress {
@@ -43,6 +59,12 @@ export function newProgress(): Progress {
     mat: DEFAULT_MAT,
     itens: {},
     recordes: {},
+    xp: {},
+    stats: {},
+    fome: 100,
+    jogos: { day: 0, n: {} },
+    missoes: { day: 0, base: {}, feitas: [] },
+    mercado: { day: 0, sat: {} },
   };
 }
 
@@ -83,6 +105,20 @@ export function sanitizeProgress(raw: unknown): Progress {
     mats, mat,
     itens: counts(r.itens, 9999),
     recordes: counts(r.recordes, 1000),
+    profissao: typeof r.profissao === 'string' && PROF_BY_ID.has(r.profissao as ProfId) ? (r.profissao as ProfId) : undefined,
+    xp: counts(r.xp, 1e6),
+    stats: counts(r.stats, 1e9),
+    fome: num(r.fome, 100, 0, 100),
+    jogos: (() => { const j = (r.jogos ?? {}) as Record<string, unknown>; return { day: num(j.day, 0), n: counts(j.n, 99) }; })(),
+    missoes: (() => {
+      const m = (r.missoes ?? {}) as Record<string, unknown>;
+      return { day: num(m.day, 0), base: counts(m.base, 1e9), feitas: Array.isArray(m.feitas) ? m.feitas.filter((x): x is string => typeof x === 'string').slice(0, 10) : [] };
+    })(),
+    mercado: (() => { const m = (r.mercado ?? {}) as Record<string, unknown>; return { day: num(m.day, 0), sat: counts(m.sat, 1e4) }; })(),
+    entrega: (() => {
+      const e = r.entrega as Record<string, unknown> | undefined;
+      return e && typeof e.zona === 'string' && typeof e.porta === 'string' && typeof e.nome === 'string' ? { zona: e.zona, porta: e.porta, nome: e.nome, ate: num(e.ate, 0) } : undefined;
+    })(),
     coins: num(r.coins, 0),
     collection: col,
     decks,
