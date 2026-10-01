@@ -39,6 +39,8 @@ import { profTitle, type MinigameId } from '@/game/professions';
 import { WorkPanel } from '@/components/work/WorkPanel';
 import { Backpack, DeliveryPanel, KitchenPanel, MarketPanel } from '@/components/work/LifePanels';
 import { HungerBar } from '@/components/work/Shell';
+import { Icon } from '@/components/Icon';
+import { iconUrl } from '@/game/icons';
 import { DeckBuilder } from '@/components/duel/DeckBuilder';
 import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS, type NpcDef } from '@/game/world/content';
@@ -79,6 +81,18 @@ const KEY_DIR: Record<string, Dir> = {
 // (posições, colisão, câmera) continua em pixels do mundo.
 
 /** Canvas da arte em hd (a hd do sprite, ou a normal ampliada); um por arte (árvores iguais dividem). */
+/** Progresso para o laço de desenho, sem ler o navegador a cada quadro. */
+let progressCache: Progress | null = null;
+if (typeof window !== 'undefined') window.addEventListener('wit-progresso', e => { progressCache = (e as CustomEvent<Progress>).detail; });
+const loadProgressCached = () => (progressCache ??= loadProgress());
+
+/** Ícones dos itens já carregados (para desenhar no canvas: colheita subindo). */
+const iconImages = new Map<string, HTMLImageElement>();
+function iconImage(id: string): HTMLImageElement {
+  let im = iconImages.get(id);
+  if (!im) { im = new Image(); im.src = iconUrl(id); iconImages.set(id, im); }
+  return im;
+}
 const hdCanvases = new WeakMap<Pixmap, HTMLCanvasElement>();
 function toCanvasHd(pm: Pixmap): HTMLCanvasElement {
   let c = hdCanvases.get(pm);
@@ -274,6 +288,8 @@ function CityView({ town, start, startHour, onTravel }: {
     cropCanvas: new Map<string, HTMLCanvasElement>(),
     /** Jornal WIT: a faixa de manchetes (canvas) e o cabeçalho do telão. */
     news: null as { strip: HTMLCanvasElement; head: HTMLCanvasElement } | null,
+    /** Número do andar na telinha da Torre (refeito quando o andar muda). */
+    floorSign: null as { n: number; c: HTMLCanvasElement } | null,
     /** Drones de entrega voando (Cidade WIT). */
     drones: [] as { x: number; y: number; tx: number; ty: number; seed: number }[],
     droneCanvases: null as HTMLCanvasElement[] | null,
@@ -347,7 +363,7 @@ function CityView({ town, start, startHour, onTravel }: {
     if (!cu) return;
     g.current.farm = cu.farm; saveFarm(cu.farm);
     if (cu.paid) { const pr = loadProgress(); cu.paid = Math.round(cu.paid * shipBonus(pr)); saveProgress({ ...pr, coins: pr.coins + cu.paid }); }
-    if (cu.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `☀ Dia ${cu.farm.day} na fazenda!${cu.paid ? ` A caixa de envio pagou ${cu.paid} moedas.` : ''}` });
+    if (cu.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `Dia ${cu.farm.day} na fazenda!${cu.paid ? ` A caixa de envio pagou ${cu.paid} moedas.` : ''}` });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -534,7 +550,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const r = addCatch(loadProgress(), f.catch.fish.id, f.catch.cm);
       const w = doWork(r.progress, 'pescador', 'peixes', FISH_XP[f.catch.fish.rarity] ?? 1);
       saveProgress(w.progress);
-      if (w.levelUp) window.setTimeout(() => toast(`⭐ Pescador subiu para o nível ${w.levelUp}!`), 2500);
+      if (w.levelUp) window.setTimeout(() => toast(`Pescador subiu para o nível ${w.levelUp}!`), 2500);
       play(f.catch.fish.rarity === 'lendario' || f.catch.fish.rarity === 'epico' ? 'win' : 'coin');
       setFishUi({ kind: 'catch', fish: f.catch.fish, cm: f.catch.cm, first: r.first, record: r.record });
     }
@@ -556,7 +572,7 @@ function CityView({ town, start, startHour, onTravel }: {
     s.farm = applyAction(s.farm, 0, 0, { kind: 'encher', size }).farm; saveFarm(s.farm);
     const f = ahead(s.player);
     s.act = { kind: 'encher', t: performance.now(), tx: f.tx, ty: f.ty };
-    play('draw'); toast(`Regador cheio! 💧 ${size}/${size}`);
+    play('draw'); toast(`Regador cheio! ${size}/${size}`);
     setFarmHud(n => n + 1);
   };
 
@@ -623,11 +639,11 @@ function CityView({ town, start, startHour, onTravel }: {
         case 'correio':
           setDialog({ lines: spot.data?.own ? ['Sua caixa de correio. Nenhuma carta nova.', 'Em breve: recados dos colegas e do professor chegam aqui.'] : ['A caixa de correio de um morador. Não é sua!'], i: 0 });
           return;
-        case 'fonte': play('coin'); setDialog({ lines: ['Você jogou uma moedinha imaginária na fonte e fez um pedido...', '✨ Tomara que venha uma carta Mítica no próximo pacotinho!'], i: 0 }); return;
+        case 'fonte': play('coin'); setDialog({ lines: ['Você jogou uma moedinha imaginária na fonte e fez um pedido...', 'Tomara que venha uma carta Mítica no próximo pacotinho!'], i: 0 }); return;
         case 'maquina': {
           const r = buy(loadProgress(), 'suco');
           if ('reason' in r) { toast(`Máquina de sucos: ${r.reason}`); return; }
-          saveProgress(r.progress); play('coin'); toast('Saiu um suco! 🧃 Está na mochila.');
+          saveProgress(r.progress); play('coin'); toast('Saiu um suco! Está na mochila.');
           return;
         }
         case 'banca': setFishHouse('vender'); return;
@@ -653,7 +669,7 @@ function CityView({ town, start, startHour, onTravel }: {
           const n = s.critters.filter(c => c.kind === 'galinha').length || 4;
           s.farm = { ...fm, eggsDay: fm.day }; saveFarm(s.farm);
           saveProgress(doWork(addItem(loadProgress(), 'ovo', n), 'fazendeiro', 'bichos', 3).progress);
-          s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: '🥚' };
+          s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: 'ovo' };
           play('coin'); toast(`+${n} ovos! Venda na caixa de envio.`);
           return;
         }
@@ -681,14 +697,14 @@ function CityView({ town, start, startHour, onTravel }: {
     }
     if (critter) {
       const id = `${critter.kind}-${s.critters.indexOf(critter)}`, fm = s.farm;
-      if (critter.kind === 'galinha') { play('click'); toast('Có-có-có! 🐔'); return; }
-      if ((fm.milked[id] ?? 0) >= fm.day) { toast(critter.kind === 'vaca' ? 'Esta vaca já deu leite hoje. 🐄' : 'Esta ovelha já foi tosada hoje. 🐑'); return; }
+      if (critter.kind === 'galinha') { play('click'); toast('Có-có-có!'); return; }
+      if ((fm.milked[id] ?? 0) >= fm.day) { toast(critter.kind === 'vaca' ? 'Esta vaca já deu leite hoje.' : 'Esta ovelha já foi tosada hoje.'); return; }
       const item = critter.kind === 'vaca' ? 'leite' : 'la';
       s.farm = { ...fm, milked: { ...fm.milked, [id]: fm.day } }; saveFarm(s.farm);
       saveProgress(doWork(addItem(loadProgress(), item, 1), 'fazendeiro', 'bichos', 3).progress);
       critter.wait = 3000; critter.gx = critter.x; critter.gy = critter.y;
       s.act = { kind: 'colher', t: performance.now(), tx: f.tx, ty: f.ty, icon: iconOf(item) };
-      play('coin'); toast(critter.kind === 'vaca' ? '+1 Leite! 🥛' : '+1 Lã! 🧶');
+      play('coin'); toast(critter.kind === 'vaca' ? '+1 Leite!' : '+1 Lã!');
       return;
     }
     // campo: a ação certa para o bloco (arar, plantar, regar, colher)
@@ -702,7 +718,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const after = a.kind === 'plantar' ? addItem(pr, `semente:${a.crop}`, -1) : r.harvested ? addItem(pr, `colheita:${r.harvested}`, 1) : pr;
       const w = doWork(after, 'fazendeiro', a.kind === 'colher' ? 'colheitas' : a.kind === 'regar' ? 'regas' : null, a.kind === 'colher' ? 5 : 1);
       saveProgress(w.progress);
-      if (w.levelUp) toast(`⭐ Fazendeiro subiu para o nível ${w.levelUp}!`);
+      if (w.levelUp) toast(`Fazendeiro subiu para o nível ${w.levelUp}!`);
       s.act = { kind: a.kind === 'colher' ? 'colher' : a.kind === 'plantar' ? 'plantar' : a.kind === 'regar' ? 'regar' : 'arar', t: performance.now(), tx: f.tx, ty: f.ty, icon: r.harvested ? iconOf(r.harvested) : undefined };
       play(a.kind === 'colher' ? 'coin' : a.kind === 'regar' ? 'draw' : 'drop');
       s.dirty = true; setFarmHud(n => n + 1);
@@ -792,7 +808,7 @@ function CityView({ town, start, startHour, onTravel }: {
         if (pe.entrega && pe.entrega.zona === town.id && pe.entrega.porta === door.building) {
           const fin = finishDelivery(pe, Date.now())!;
           saveProgress(fin.progress); play('coin');
-          setDialog({ lines: [`📦 Entregue em ${door.name}! +${fin.coins} moedas${fin.late ? ' (atrasada: metade)' : ''}.`, ...(fin.levelUp ? [`⭐ Entregador subiu para o nível ${fin.levelUp}!`] : []), 'Pegue outra na Central de Entregas (Cidade WIT).'], i: 0 });
+          setDialog({ lines: [`Entregue em ${door.name}! +${fin.coins} moedas${fin.late ? ' (atrasada: metade)' : ''}.`, ...(fin.levelUp ? [`Entregador subiu para o nível ${fin.levelUp}!`] : []), 'Pegue outra na Central de Entregas (Cidade WIT).'], i: 0 });
           s.player.ty += 1; s.player.dir = 'south';
           return;
         }
@@ -803,7 +819,7 @@ function CityView({ town, start, startHour, onTravel }: {
           return;
         }
         // a Torre abre no andar mais alto já liberado
-        if (door.building === 'torre') setInside({ kind: 'torre', andar: loadProgress().towerMax });
+        if (door.building === 'torre') { const pt = loadProgress(); setInside({ kind: 'torre', andar: Math.min(pt.andar, pt.towerMax) }); }
         else if (door.building === 'sua-casa') setInside({ kind: 'casa' });
         else if (Object.values(ROOM_BUILDING).includes(door.building)) {
           // a primeira sala de cada prédio (a Arena abre no saguão)
@@ -841,7 +857,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const r = nextDay(s.farm, Date.now(), false, irrigPlots(loadProgress()));
       s.farm = r.farm; saveFarm(r.farm);
       if (r.paid) { const pr = loadProgress(); r.paid = Math.round(r.paid * shipBonus(pr)); saveProgress({ ...pr, coins: pr.coins + r.paid }); play('coin'); }
-      if (r.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `☀ Dia ${r.farm.day}!${r.paid ? ` A caixa de envio pagou ${r.paid} moedas.` : ''}${r.grown ? ` ${r.grown} planta${r.grown > 1 ? 's' : ''} cresce${r.grown > 1 ? 'ram' : 'u'}.` : ''}` });
+      if (r.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `Dia ${r.farm.day}!${r.paid ? ` A caixa de envio pagou ${r.paid} moedas.` : ''}${r.grown ? ` ${r.grown} planta${r.grown > 1 ? 's' : ''} cresce${r.grown > 1 ? 'ram' : 'u'}.` : ''}` });
       setFarmHud(n => n + 1);
     };
 
@@ -864,7 +880,7 @@ function CityView({ town, start, startHour, onTravel }: {
           const next = spendEnergy(pr, s.hungerAcc, false);
           s.hungerAcc = 0;
           if (next !== pr) saveProgress(next);
-          if (was > HUNGRY && next.fome <= HUNGRY) toast('Barriga roncando... 😣 Coma algo (MOCHILA).');
+          if (was > HUNGRY && next.fome <= HUNGRY) toast('Barriga roncando... Coma algo (MOCHILA).');
           if (was > 0 && next.fome <= 0) toast('Com fome você não consegue correr. Coma algo!');
         }
       }
@@ -1148,12 +1164,17 @@ function CityView({ town, start, startHour, onTravel }: {
             const tx = Math.round(pos.x / TILE), ty = Math.round(pos.y / TILE);
             if (w === s.player && s.sailing && s.boatCanvases) {
               // no barco: o casco, o boneco da cintura para cima, os remos
+              // sentado dentro do barco: metade de trás do casco, o boneco da cintura
+              // para cima com a cintura no meio do casco e a metade da frente por cima
               const bc = s.boatCanvases[w.dir], bob = Math.sin(now / 420) * 0.6;
               const bxc = pos.x + 8 - camX, byc = pos.y + 9 - camY + bob;
-              put(bc, Math.round(bxc - bc.width / R / 2), Math.round(byc - bc.height / R / 2));
+              const bw = bc.width / R, bh = bc.height / R, bx0 = Math.round(bxc - bw / 2), by0 = Math.round(byc - bh / 2);
+              const half = Math.round(bc.height / 2);
+              ctx.drawImage(bc, 0, 0, bc.width, half, bx0, by0, bw, half / R);
               drawOars(ctx, bxc, byc, w.dir, !!w.from, now);
-              const CUT = 13, src = white ? img : tinted(img, tintKey, tintCss);
-              ctx.drawImage(src, 0, 0, src.width, src.height - CUT * R, x, y + bob - 2, src.width / R, src.height / R - CUT);
+              const SHOW = 31, src = white ? img : tinted(img, tintKey, tintCss);
+              ctx.drawImage(src, 0, 0, src.width, SHOW * R, Math.round(bxc - fr.w / 2), Math.round(byc + 2 - SHOW), src.width / R, SHOW);
+              ctx.drawImage(bc, 0, half, bc.width, bc.height - half, bx0, by0 + half / R, bw, (bc.height - half) / R);
               return;
             }
             const inGrass = town.terrain[ty]?.[tx] === 'mato';
@@ -1173,9 +1194,12 @@ function CityView({ town, start, startHour, onTravel }: {
               }
             }
             if (w === s.player && s.seat) {
-              // sentado: as pernas somem atrás do assento e o corpo desce um pouco
-              const CUT = 6, src = white ? img : tinted(img, tintKey, tintCss);
-              ctx.drawImage(src, 0, 0, src.width, src.height - CUT * R, x + s.seat.dx, y + 2, src.width / R, src.height / R - CUT);
+              // sentado (até o GPT fazer o quadro de sentar): o corpo desce até o
+              // assento e as pernas encolhem para a frente (dobradas), sem cortar
+              const LEGS = 12, SQ = 6, src = white ? img : tinted(img, tintKey, tintCss);
+              const top = src.height / R - LEGS, sx = x + s.seat.dx, sy = y + LEGS - SQ - 1;
+              ctx.drawImage(src, 0, 0, src.width, top * R, sx, sy, src.width / R, top);
+              ctx.drawImage(src, 0, top * R, src.width, LEGS * R, sx, sy + top, src.width / R, SQ);
             } else put(img, x, y);
             // capim alto: a parte de baixo do bloco (o mato) é desenhada de novo por cima das pernas
             if (inGrass) {
@@ -1255,13 +1279,35 @@ function CityView({ town, start, startHour, onTravel }: {
             if (a.kind === 'colher' && a.icon) {
               const life = Math.min(1, age / 700);
               ctx.globalAlpha = 1 - Math.max(0, life - 0.6) / 0.4;
-              ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-              ctx.fillText(a.icon, cx, fy - 28 - life * 10);
+              const im = iconImage(a.icon);
+              if (im.complete && im.naturalWidth) ctx.drawImage(im, cx - 8, fy - 38 - life * 10, 16, 16);
               ctx.globalAlpha = 1;
             }
           },
         });
         if (age > 700) s.act = null;
+      }
+      // telinha da Torre: o andar em que o aluno está (acesa, não escurece)
+      const ts = town.towerScreen;
+      if (ts) {
+        const n = loadProgressCached().andar;
+        if (s.floorSign?.n !== n) {
+          const t = String(n), pm = new Pixmap(textWidth(t) + 2, 9);
+          drawText(pm, t, 1, 1, { fill: [184, 255, 122], shadow: [30, 70, 20] });
+          s.floorSign = { n, c: toCanvas(pm) };
+        }
+        const fc = s.floorSign.c, x = ts.x - camX, y = ts.y - camY;
+        if (x < vw && x + ts.w > 0 && y < vh && y + ts.h > 0) list.push({
+          baseY: ts.baseY + 0.01,
+          draw: () => {
+            // a tela da arte é baixinha: abre um painel do tamanho do número, centrado nela
+            const pw = Math.max(ts.w, fc.width + 4), ph = fc.height + 1;
+            const px = Math.round(x + ts.w / 2 - pw / 2), py = Math.round(y + ts.h / 2 - ph / 2);
+            ctx.fillStyle = '#2e3a34'; ctx.fillRect(px - 1, py - 1, pw + 2, ph + 2);
+            ctx.fillStyle = '#0c1a10'; ctx.fillRect(px, py, pw, ph);
+            ctx.drawImage(fc, Math.round(px + (pw - fc.width) / 2), py + 1);
+          },
+        });
       }
       // telão do Jornal WIT: cabeçalho e manchetes correndo (acende à noite: não escurece)
       if (s.news && town.screens) for (const sc of town.screens) {
@@ -1465,7 +1511,7 @@ function CityView({ town, start, startHour, onTravel }: {
 
       <div className="absolute top-2 right-2 flex flex-wrap justify-end items-center gap-1.5 max-w-[calc(100vw-150px)] sm:max-w-none">
         <span className={`px-2 py-1.5 rounded-md bg-black/55 text-[10px] ${pixelFont}`}><HungerBar v={progress.fome} compact /></span>
-        <span className={`px-2 py-2 rounded-md bg-black/55 text-yellow-200 text-[10px] ${pixelFont}`} title="Moedas">🪙 {progress.coins}</span>
+        <span className={`px-2 py-2 rounded-md bg-black/55 text-yellow-200 text-[10px] flex items-center gap-1 ${pixelFont}`} title="Moedas"><Icon id="moeda" size={14} /> {progress.coins}</span>
         <button onClick={() => setBag('mochila')}
           className={`px-3 py-2 rounded-md bg-[#6a4a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MOCHILA</button>
         <button onClick={() => setMapOpen(true)}
@@ -1506,7 +1552,7 @@ function CityView({ town, start, startHour, onTravel }: {
             {fishUi.first && <div className="text-[9px] mt-2 text-[#3a9a5a]">NOVO NO ÁLBUM!</div>}
             {fishUi.record && <div className="text-[9px] mt-2 text-[#e8a020]">NOVO RECORDE!</div>}
             <div className="text-[8px] leading-4 mt-2 text-[#5a5470]">{fishUi.fish.about}</div>
-            <div className="text-[8px] mt-3 text-[#b0487a]">{fishUi.fish.price ? `Vale ${fishUi.fish.price} 🪙 na Casa de Pesca` : 'Leve para o lixo da Casa de Pesca'} · toque para continuar</div>
+            <div className="text-[8px] mt-3 text-[#b0487a]">{fishUi.fish.price ? `Vale ${fishUi.fish.price} moedas na Casa de Pesca` : 'Leve para o lixo da Casa de Pesca'} · toque para continuar</div>
           </div>
         </div>
       )}
@@ -1515,7 +1561,7 @@ function CityView({ town, start, startHour, onTravel }: {
       )}
       {progress.entrega && !inside && (
         <div className={`absolute top-24 sm:top-14 right-2 px-3 py-2 rounded-md bg-[#2a8a8a]/90 border-2 border-white/50 text-white text-[9px] leading-4 ${pixelFont}`}>
-          📦 {progress.entrega.nome}<br />
+          <Icon id="pacote" size={14} /> {progress.entrega.nome}<br />
           <span className={progress.entrega.ate < Date.now() ? 'text-[#ffb0b0]' : 'text-[#c8fff0]'}>
             {progress.entrega.ate < Date.now() ? 'ATRASADA' : `${Math.floor((progress.entrega.ate - Date.now()) / 60000)}:${String(Math.floor(((progress.entrega.ate - Date.now()) % 60000) / 1000)).padStart(2, '0')}`}
             {progress.entrega.zona !== town.id && ` · ${ZONE_NAMES[progress.entrega.zona as ZoneId] ?? ''}`}
@@ -1539,9 +1585,9 @@ function CityView({ town, start, startHour, onTravel }: {
         return (
           <div className={`absolute left-1/2 -translate-x-1/2 bottom-2 flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#2e2a40]/85 border-2 border-[#e8c690] text-white text-[9px] ${pixelFont}`}>
             <button onClick={() => cycleSeed(-1)} className="px-1.5 py-1 rounded bg-white/15" aria-label="semente anterior">◀</button>
-            <span className="min-w-[132px] text-center">{crop ? <>{iconOf(crop.id)} {crop.name} ×{progress.itens[`semente:${crop.id}`] ?? 0}</> : 'sem sementes'}</span>
+            <span className="min-w-[132px] text-center">{crop ? <><Icon id={iconOf(crop.id)} size={16} /> {crop.name} ×{progress.itens[`semente:${crop.id}`] ?? 0}</> : 'sem sementes'}</span>
             <button onClick={() => cycleSeed(1)} className="px-1.5 py-1 rounded bg-white/15" aria-label="próxima semente">▶</button>
-            <span className="ml-2 text-[#8ad0ff]">💧 {s.farm.water}/{canSize(progress)}</span>{s.farm.irrig > 0 && <span className="ml-2">💦×{s.farm.irrig}</span>}
+            <span className="ml-2 text-[#8ad0ff] flex items-center gap-1"><Icon id="agua" size={14} /> {s.farm.water}/{canSize(progress)}</span>{s.farm.irrig > 0 && <span className="ml-2">IRRIGADOR ×{s.farm.irrig}</span>}
             <span className="ml-2 text-[#e8c690]">DIA {s.farm.day}</span>
           </div>
         );

@@ -60,8 +60,12 @@ export interface RoomNpc {
   talk: [number, number][];
   /** Sentado atrás de uma mesa: desenhado por cima dela, um pouco mais baixo. */
   seated?: boolean;
+  /** Vende alguma coisa (ids dos itens, src/game/items.ts). */
+  shop?: string[];
   /** Aceita duelo: qual adversário da Torre ele é (ver src/lib/tcg/opponents.ts). */
-  duel?: { kind: 'mesa'; andar: number; mesa: number; table: string } | { kind: 'chefe'; andar: number };
+  duel?: { kind: 'mesa'; andar: number; mesa: number; table: string } | { kind: 'chefe'; andar: number }
+    /** Mesa da Arena: o nível acompanha o andar do aluno na Torre; não conta para a Torre. */
+    | { kind: 'arena'; mesa: number; table: string };
 }
 
 /**
@@ -73,7 +77,13 @@ export type ExitKind = 'cidade' | 'subir' | `sala:${string}`;
 export interface Exit { tx: number; ty: number; to: ExitKind }
 
 /** Ponto de conversa sem personagem (vitrine de loja, balcão, portal). */
-export interface Talk { tiles: [number, number][]; lines: string[] }
+export interface Talk {
+  tiles: [number, number][]; lines: string[];
+  /** Abre uma tela em vez de só falar: o elevador da Torre, sentar numa mesa vazia (PvP). */
+  action?: 'elevador' | 'sentar';
+  /** Mesa vazia: o bloco da cadeira (onde o aluno senta). */
+  seat?: [number, number];
+}
 /** Faixa de outro piso por cima do piso da sala (tapete vermelho do castelo). */
 export interface Patch { piso: string; tx: number; ty: number; w: number; h: number }
 
@@ -261,6 +271,8 @@ export function towerRoom(andar: number): Room {
   items.push({ id: 'gongo', tx: 16, ty: 3 });
   items.push({ id: 'quadro-chaves', tx: 12, ty: WALL - 1 });
   items.push({ id: 'placa-andar', tx: 7, ty: 16 });
+  // elevador: painel na parede do canto direito (escolhe o andar)
+  items.push({ id: 'painel-led', tx: 18, ty: WALL - 1 });
   // 8 mesas em 2 fileiras de 4 (o corredor do meio fica livre até o chefe)
   const cols = [1, 5, 12, 16], rows = [9, 13];
   let k = 0;
@@ -310,6 +322,8 @@ export function towerRoom(andar: number): Room {
     items, npcs,
     spawn: { tx: 10, ty: 16, dir: 'north' },
     exits: [{ tx: 9, ty: 17, to: 'cidade' }, { tx: 10, ty: 17, to: 'cidade' }, { tx: 2, ty: 4, to: 'subir' }],
+    talks: [{ tiles: [[18, 2], [19, 2], [18, 3], [19, 3]], lines: ['Elevador da Torre.'], action: 'elevador' }],
+    entries: { elevador: { tx: 18, ty: 5, dir: 'south' } },
   };
 }
 
@@ -399,45 +413,64 @@ const seatedAt = (id: string, sprite: string, tx: number, ty: number, name: stri
   npc(id, sprite, tx + 1, ty - 1, name, title, lines, { talk: [[tx + 1, ty - 1], ...area(tx, ty, 3, 2)], seated: true });
 
 /**
- * Arena, saguão: como o saguão de um campeonato. Mesas de desafio em que os
- * jogadores esperam alguém (lâmpada verde = livre, vermelha = em duelo),
- * recepção, placar e telão; o portal leva ao Salão de Treino Rank S.
+ * Arena, saguão: salão grande de campeonato. As mesas de duelo são como as da
+ * Torre (cadeira alta atrás, o jogador senta de verdade). Metade tem um
+ * desafiante esperando (dá para duelar); a outra metade está vazia, com a
+ * plaquinha LIVRE: o aluno senta e espera outro aluno sentar na frente (PvP).
+ * Recepção, placar e telão na parede; o portal leva ao Salão de Treino.
  */
+export const ARENA_TABLES: { tx: number; ty: number; table: string; npc?: { sprite: string; name: string } }[] = [
+  { tx: 2, ty: 7, table: 'mesa-duelo-azul', npc: { sprite: 'npc-desafiante-04', name: 'Nina' } },
+  { tx: 8, ty: 7, table: 'mesa-duelo-verde' },
+  { tx: 17, ty: 7, table: 'mesa-duelo-vermelha', npc: { sprite: 'npc-desafiante-08', name: 'Maya' } },
+  { tx: 23, ty: 7, table: 'mesa-duelo-roxa' },
+  { tx: 2, ty: 11, table: 'mesa-duelo-vermelha' },
+  { tx: 8, ty: 11, table: 'mesa-duelo-roxa', npc: { sprite: 'npc-desafiante-05', name: 'Theo' } },
+  { tx: 17, ty: 11, table: 'mesa-duelo-azul' },
+  { tx: 23, ty: 11, table: 'mesa-duelo-verde', npc: { sprite: 'npc-desafiante-01', name: 'Kaio' } },
+  { tx: 2, ty: 15, table: 'mesa-duelo-verde', npc: { sprite: 'npc-desafiante-03', name: 'Lia' } },
+  { tx: 8, ty: 15, table: 'mesa-duelo-azul' },
+  { tx: 17, ty: 15, table: 'mesa-duelo-roxa' },
+  { tx: 23, ty: 15, table: 'mesa-duelo-vermelha', npc: { sprite: 'npc-desafiante-07', name: 'Duda' } },
+];
+
 export function arenaRoom(): Room {
+  const W = 28, H = 20, WALL = 3;
   const items: Placed[] = [
-    { id: 'placar-ranking', tx: 2, ty: 3 }, { id: 'trofeu-pedestal', tx: 6, ty: 3 },
-    { id: 'recepcao', tx: 9, ty: 4 }, { id: 'trofeu-pedestal', tx: 15, ty: 3 }, { id: 'telao', tx: 17, ty: 3 },
-    { id: 'refletor', tx: 0, ty: 3 }, { id: 'refletor', tx: 21, ty: 3 },
-    { id: 'mesa-desafio-livre', tx: 2, ty: 8 }, { id: 'mesa-desafio-ocupada', tx: 9, ty: 8 }, { id: 'mesa-desafio-prata', tx: 16, ty: 8 },
-    { id: 'mesa-desafio-prata-ocupada', tx: 2, ty: 12 }, { id: 'mesa-vip', tx: 9, ty: 12 },
-    { id: 'portal-azul', tx: 18, ty: 12 },
-    { id: 'sofa-saguao', tx: 0, ty: 6 }, { id: 'planta-saguao', tx: 0, ty: 15 }, { id: 'maquina-bebidas', tx: 21, ty: 6 },
-    { id: 'bebedouro', tx: 21, ty: 8 }, { id: 'banco-espera', tx: 6, ty: 15 }, { id: 'banco-espera', tx: 14, ty: 15 },
-    { id: 'planta-saguao', tx: 21, ty: 15 },
+    { id: 'placar-ranking', tx: 2, ty: 3 }, { id: 'trofeu-pedestal', tx: 7, ty: 3 },
+    { id: 'recepcao', tx: 12, ty: 4 }, { id: 'trofeu-pedestal', tx: 18, ty: 3 }, { id: 'telao', tx: 20, ty: 3 },
+    { id: 'refletor', tx: 0, ty: 3 }, { id: 'refletor', tx: 27, ty: 3 },
+    { id: 'portal-azul', tx: 24, ty: 3 },
+    { id: 'planta-saguao', tx: 0, ty: 18 }, { id: 'maquina-bebidas', tx: 27, ty: 7 }, { id: 'bebedouro', tx: 27, ty: 10 },
+    { id: 'banco-espera', tx: 6, ty: 18 }, { id: 'banco-espera', tx: 19, ty: 18 }, { id: 'planta-saguao', tx: 27, ty: 18 },
   ];
-  const lines = ['Estou esperando um desafiante. Quer duelar?', 'Os duelos da Arena chegam em breve: aqui você vai enfrentar o deck dos colegas.'];
+  const npcs: RoomNpc[] = [
+    npc('recepcao', 'npc-desafiante-10', 13, 3, 'Rafa', 'Recepção da Arena', [
+      'Bem-vinda à Arena! Mesa com alguém sentado: pode desafiar. Mesa LIVRE: sente e espere um colega.',
+      'O portal azul leva ao Salão de Treino dos Rank S. Só entra quem tem coragem!',
+    ], { talk: [[13, 3], ...area(12, 4, 3, 1)], seated: true }),
+  ];
+  const talks: Talk[] = [
+    { tiles: area(2, 3, 3, 1), lines: ['Placar do ranking: os melhores da semana aparecem aqui.'] },
+    { tiles: area(20, 3, 3, 1), lines: ['No telão passam os duelos ao vivo (em breve).'] },
+  ];
+  ARENA_TABLES.forEach((t, k) => {
+    items.push({ id: t.table, tx: t.tx, ty: t.ty });
+    if (t.npc) {
+      npcs.push({
+        ...seatedAt(`arena-${k + 1}`, t.npc.sprite, t.tx, t.ty, t.npc.name, 'Esperando desafio', ['Estou esperando um desafiante. Quer duelar?']),
+        duel: { kind: 'arena', mesa: k + 1, table: t.table },
+      });
+    } else {
+      talks.push({ tiles: area(t.tx, t.ty, 3, 2), lines: ['Mesa livre.'], action: 'sentar', seat: [t.tx + 1, t.ty - 1] });
+    }
+  });
   return {
-    id: 'arena', title: 'Arena · Saguão', w: 22, h: 17, wallRows: 3,
-    piso: 'piso-arena-piso-1', parede: 'parede-arena-parede-1', items,
-    npcs: [
-      npc('recepcao', 'npc-desafiante-10', 10, 3, 'Rafa', 'Recepção da Arena', [
-        'Bem-vinda à Arena! Mesa com luz verde: o jogador está livre. Luz vermelha: em duelo.',
-        'O portal azul leva ao Salão de Treino dos Rank S. Só entra quem tem coragem!',
-      ], { talk: [[10, 3], ...area(9, 4, 3, 1)], seated: true }),
-      seatedAt('mesa-1', 'npc-desafiante-04', 2, 8, 'Nina', 'Esperando desafio', lines),
-      seatedAt('mesa-2', 'npc-desafiante-05', 9, 8, 'Theo', 'Em duelo', ['Agora não, estou no meio de um duelo!']),
-      seatedAt('mesa-3', 'npc-desafiante-08', 16, 8, 'Maya', 'Esperando desafio', lines),
-      seatedAt('mesa-4', 'npc-desafiante-01', 2, 12, 'Kaio', 'Em duelo', ['Shh... é a vez dele jogar.']),
-      seatedAt('mesa-5', 'npc-desafiante-12', 9, 12, 'Campeão', 'Mesa VIP', ['A mesa VIP é de quem chega ao topo do ranking da semana.']),
-    ],
-    talks: [
-      { tiles: area(2, 3, 3, 1), lines: ['Placar do ranking: os melhores da semana aparecem aqui.'] },
-      { tiles: area(17, 3, 3, 1), lines: ['No telão passam os duelos ao vivo (em breve).'] },
-      { tiles: area(18, 12, 3, 1), lines: ['O portal brilha... chegue por baixo para entrar no Salão de Treino.'] },
-    ],
-    spawn: { tx: 10, ty: 15, dir: 'north' },
-    exits: [{ tx: 10, ty: 16, to: 'cidade' }, { tx: 11, ty: 16, to: 'cidade' }, ...[18, 19, 20].map(tx => ({ tx, ty: 13, to: 'sala:treino' as const }))],
-    entries: { treino: { tx: 19, ty: 14, dir: 'south' } },
+    id: 'arena', title: 'Arena · Saguão', w: W, h: H, wallRows: WALL,
+    piso: 'piso-arena-piso-1', parede: 'parede-arena-parede-1', items, npcs, talks,
+    spawn: { tx: 13, ty: 18, dir: 'north' },
+    exits: [{ tx: 13, ty: 19, to: 'cidade' }, { tx: 14, ty: 19, to: 'cidade' }, ...[24, 25, 26].map(tx => ({ tx, ty: 4, to: 'sala:treino' as const }))],
+    entries: { treino: { tx: 25, ty: 5, dir: 'south' } },
   };
 }
 
@@ -527,10 +560,9 @@ export function workshopRoom(): Room {
     id: 'oficina', title: 'Oficina de Cartas', w: 20, h: 17, wallRows: 3,
     piso: 'piso-oficina-piso', parede: 'parede-oficina-parede', items,
     npcs: [
-      npc('barista', 'npc-desafiante-09', 4, 3, 'Dona Bia', 'Café das Trocas', [
-        'Chocolate quente? As mesas são para trocar duplicatas com os colegas.',
-        'Aqui não se compra nada: troca, álbum e forja.',
-      ], { talk: [[4, 3], ...area(3, 4, 3, 1)], seated: true }),
+      npc('barista', 'npc-desafiante-09', 4, 3, 'Dona Ana', 'Doces e Café', [
+        'Um docinho para pensar melhor nas trocas? Tudo fresquinho!',
+      ], { talk: [[4, 3], ...area(3, 4, 3, 1), ...area(6, 5, 2, 1)], seated: true, shop: ['rosquinha', 'cupcake', 'chocolate', 'sorvete', 'picole', 'pirulito'] }),
       npc('ferreiro', 'npc-desafiante-03', 17, 3, 'Prof. Ian', 'Forja de Cartas', [
         'Junte pó de carta desmanchando duplicatas e forje a carta que falta no seu álbum.',
         'A forja acende em breve!',
@@ -541,6 +573,9 @@ export function workshopRoom(): Room {
     talks: [
       { tiles: area(15, 9, 2, 1), lines: ['O álbum aberto mostra quais cartas você já tem e quais faltam. (Em breve.)'] },
       { tiles: area(13, 15, 2, 1), lines: ['Mural de ofertas: "Troco Mítica por 3 Raras!" (ofertas dos colegas em breve).'] },
+      // mesas de troca vazias: senta e espera um colega (vê a coleção dele e pede troca)
+      { tiles: area(6, 8, 3, 2), lines: ['Mesa de trocas livre.'], action: 'sentar', seat: [7, 7] },
+      { tiles: area(1, 12, 4, 2), lines: ['Mesa de trocas livre.'], action: 'sentar', seat: [2, 11] },
     ],
     spawn: { tx: 10, ty: 15, dir: 'north' },
     exits: [{ tx: 9, ty: 16, to: 'cidade' }, { tx: 10, ty: 16, to: 'cidade' }],

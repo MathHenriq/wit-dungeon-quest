@@ -9,6 +9,7 @@ import { itemIcon, itemLabel } from '@/game/items';
 import { play } from '@/game/sfx';
 import { GAMES, type GameResult } from './Minigames';
 import { LevelBar, Shell, Tabs } from './Shell';
+import { Icon } from '@/components/Icon';
 
 const COLOR: Record<MinigameId, string> = {
   forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', 'teste-jogo': '#c8a020',
@@ -59,15 +60,15 @@ export function WorkPanel({ game, progress, nick, shop, onClose }: { game: Minig
   };
 
   return (
-    <Shell title={`${prof.icon} ${prof.place.toUpperCase()}`} color={color} coins={progress.coins} onClose={onClose}>
+    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose}>
       {phase === 'intro' && shop && <Tabs tabs={[['trabalhar', 'TRABALHO'], ['comprar', 'COMPRAR']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
       {phase === 'intro' && tab === 'comprar' && shop && (
         <div className="grid gap-1.5">
           {shop.map(id => (
             <div key={id} className="flex items-center gap-2 py-1 border-b border-[#e0d8c4]">
-              <span className="text-[22px] w-8 text-center">{itemIcon(id)}</span>
+              <Icon id={itemIcon(id)} size={32} />
               <span className="flex-1 text-[9px]">{itemLabel(id)} <span className="text-[#5a5470]">· tem {progress.itens[id] ?? 0}</span></span>
-              <button onClick={() => buyOne(id)} className="px-2 py-1.5 rounded bg-[#3a9a5a] text-white text-[8px]">{buyPrice(id)} 🪙</button>
+              <button onClick={() => buyOne(id)} className="px-2 py-1.5 rounded bg-[#3a9a5a] text-white text-[8px]">{buyPrice(id)} <Icon id="moeda" size={10} /></button>
             </div>
           ))}
         </div>
@@ -79,7 +80,7 @@ export function WorkPanel({ game, progress, nick, shop, onClose }: { game: Minig
           <LevelBar xp={xp} />
           <div className="mt-2 rounded-lg bg-white border-2 p-2 text-[8px] leading-4" style={{ borderColor: color }}>
             {progress.profissao === prof.id
-              ? <>✔ SEU CARGO · bônus: {prof.perk}</>
+              ? <>SEU CARGO · bônus: {prof.perk}</>
               : <>Bônus de quem tem o cargo: {prof.perk}<br /><button onClick={choose} className="mt-1 px-2 py-1 rounded text-white text-[8px]" style={{ background: color }}>ESCOLHER ESTE CARGO</button></>}
           </div>
           <div className="text-[8px] mt-2 text-[#5a5470]">Hoje ainda rende: {left}/{PLAYS_PER_DAY} {left <= 0 && '(agora é só treino, sem prêmio)'} · gasta um pouco da barriga</div>
@@ -93,14 +94,14 @@ export function WorkPanel({ game, progress, nick, shop, onClose }: { game: Minig
           <div className="text-[9px] text-[#5a5470] mb-3">Nota: {Math.round(res.r.score * 100)}%</div>
           {res.reward ? (
             <div className="flex flex-wrap justify-center gap-2 mb-2">
-              {Object.entries(res.reward.items).map(([id, n]) => <span key={id} className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px]">{itemIcon(id)} {itemLabel(id)} ×{n}</span>)}
-              {res.reward.coins > 0 && <span className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px]">🪙 +{res.reward.coins}</span>}
-              <span className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px]">⭐ +{res.reward.xp} XP</span>
+              {Object.entries(res.reward.items).map(([id, n]) => <span key={id} className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px] flex items-center gap-1"><Icon id={itemIcon(id)} size={20} /> {itemLabel(id)} ×{n}</span>)}
+              {res.reward.coins > 0 && <span className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px] flex items-center gap-1"><Icon id="moeda" size={16} /> +{res.reward.coins}</span>}
+              <span className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px]">+{res.reward.xp} XP</span>
               {!Object.keys(res.reward.items).length && !res.reward.coins && <div className="w-full text-[8px] text-[#5a5470]">Nenhum item desta vez: capriche mais na próxima!</div>}
             </div>
           ) : <div className="text-[8px] text-[#5a5470] mb-2">Treino: este trabalho já rendeu {PLAYS_PER_DAY} vezes hoje. Amanhã rende de novo.</div>}
           {res.levelUp && <div className="text-[10px] text-[#e8a020] my-2">SUBIU DE NÍVEL! {prof.name} · {TITLES[res.levelUp - 1]}</div>}
-          {res.news && <div className="text-[8px] text-[#c84a6a] my-2">📣 Sua matéria saiu no telão do Jornal WIT!</div>}
+          {res.news && <div className="text-[8px] text-[#c84a6a] my-2">Sua matéria saiu no telão do Jornal WIT!</div>}
           <div className="flex gap-2 justify-center mt-3">
             <button onClick={() => setPhase('intro')} className="px-3 py-2 rounded bg-[#4a4660] text-white text-[9px]">VOLTAR</button>
             <button onClick={start} className="px-3 py-2 rounded text-white text-[9px]" style={{ background: color }}>DE NOVO</button>

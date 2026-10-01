@@ -51,6 +51,7 @@
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
 
+.tcg-card__emblem-ico { width: 62%; height: 62%; filter: drop-shadow(0 0.3cqw 0 rgba(0,0,0,0.45)); }
 .tcg-card__emblem {
   flex-shrink: 0;
   width: 9.3cqw;

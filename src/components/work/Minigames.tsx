@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { labelSet, litTiles, connected, makeCircuit, paintPattern, PAINT_COLORS, reporterQuiz, rng, shown, type Circuit } from '@/game/minigames';
 import type { MinigameId } from '@/game/professions';
 import { play } from '@/game/sfx';
+import { Icon, Symbol } from '@/components/Icon';
 
 export interface GameResult { score: number; hits: number; headline?: string }
 export interface GameProps { perk: number; seed: number; onDone: (r: GameResult) => void; towerMax?: number; day?: number }
@@ -57,7 +58,7 @@ function Forno({ perk, onDone }: GameProps) {
     const close = Math.max(0, 1 - Math.abs(val - TARGET) / 30);
     const hit = Math.abs(val - TARGET) <= WIN;
     play(hit ? 'coin' : 'lose');
-    setShownRes(val >= 100 ? 'QUEIMOU! 🔥' : hit ? (Math.abs(val - TARGET) < 3 ? 'PERFEITO! 🍞✨' : 'NO PONTO! 🍞') : val < TARGET ? 'CRU... 🥖' : 'PASSOU DO PONTO');
+    setShownRes(val >= 100 ? 'QUEIMOU!' : hit ? (Math.abs(val - TARGET) < 3 ? 'PERFEITO!' : 'NO PONTO!') : val < TARGET ? 'CRU...' : 'PASSOU DO PONTO');
     const m = [...marks, hit ? 1 + close : close];
     setMarks(m);
     window.setTimeout(() => {
@@ -77,7 +78,7 @@ function Forno({ perk, onDone }: GameProps) {
       <div className="text-[9px] mb-2">FORNADA {Math.min(round + 1, ROUNDS)} DE {ROUNDS} · tire quando a agulha estiver no verde</div>
       <div className="mx-auto w-[220px] h-[120px] rounded-t-[60px] bg-[#8a4a2a] border-4 border-[#4a2a1a] flex items-center justify-center relative">
         <div className="w-[170px] h-[70px] mt-6 rounded-lg bg-[#2a1a12] flex items-center justify-center" style={{ boxShadow: `inset 0 0 ${10 + brown * 30}px #ff8a20` }}>
-          <span className="text-[42px]" style={{ filter: `sepia(${brown}) brightness(${1.15 - brown * 0.55})` }}>🍞</span>
+          <span style={{ filter: `brightness(${1.15 - brown * 0.6})` }}><Icon id="pao" size={64} /></span>
         </div>
       </div>
       <div className="relative mx-auto mt-3 w-[min(80vw,320px)] h-5 rounded bg-[#e8d8c0] border-2 border-[#4a2a1a] overflow-hidden">
@@ -215,7 +216,7 @@ function Rotular({ perk, seed, onDone }: GameProps) {
     <div className="text-center">
       <div className="text-[9px] mb-2">Ensine a IA: cada exemplo vai para o lado certo · {i + 1}/{set.items.length}</div>
       <Bar v={left / TIME} color="#4ad0ff" />
-      <div className={`mx-auto my-4 w-[120px] h-[120px] rounded-xl bg-white border-4 flex items-center justify-center text-[64px] ${Date.now() - wrong < 300 ? 'border-[#e8485a]' : 'border-[#4ad0ff]'}`}>{set.items[i].icon}</div>
+      <div className={`mx-auto my-4 w-[120px] h-[120px] rounded-xl bg-white border-4 flex items-center justify-center ${Date.now() - wrong < 300 ? 'border-[#e8485a]' : 'border-[#4ad0ff]'}`}><Icon id={set.items[i].icon} size={80} /></div>
       <div className="flex justify-center gap-3">
         <button onPointerDown={() => pick(0)} className={`${btn} px-5 py-4 bg-[#3a78c8] border-[#1a4a8a] text-white text-[10px]`}>◀ {set.left}</button>
         <button onPointerDown={() => pick(1)} className={`${btn} px-5 py-4 bg-[#c86a3a] border-[#8a3a1a] text-white text-[10px]`}>{set.right} ▶</button>
@@ -264,7 +265,7 @@ function Circuito({ perk, seed, onDone }: GameProps) {
   };
   return (
     <div className="text-center">
-      <div className="text-[9px] mb-2">Gire as peças e leve o sinal da ⚡ até o 📡 · sensores: {n}</div>
+      <div className="text-[9px] mb-2">Gire as peças e leve o sinal da tomada até o sensor · sensores: {n}</div>
       <Bar v={left / TIME} color="#4ae88a" />
       <div className="relative mx-auto mt-3 inline-block">
         <div className="grid gap-0.5 p-1 rounded bg-[#0e161e]" style={{ gridTemplateColumns: `repeat(${c.w}, 48px)` }}>
@@ -272,8 +273,8 @@ function Circuito({ perk, seed, onDone }: GameProps) {
             <button key={i} onPointerDown={() => tap(i)} className="w-12 h-12" aria-label={`peça ${i + 1}`}><PipeTile p={shown(c, i)} lit={lit.has(i) || win} /></button>
           ))}
         </div>
-        <span className="absolute text-[18px]" style={{ left: -26, top: 4 + c.inY * 50 + 10 }}>⚡</span>
-        <span className="absolute text-[18px]" style={{ right: -28, top: 4 + c.outY * 50 + 10 }}>📡</span>
+        <span className="absolute rounded bg-[#e8a020] p-0.5" style={{ left: -28, top: 4 + c.inY * 50 + 12 }}><Symbol id="eletrico" size={18} /></span>
+        <span className="absolute" style={{ right: -32, top: 4 + c.outY * 50 + 8 }}><Icon id="sensor" size={26} /></span>
       </div>
       {win && <div className="text-[10px] text-[#3a9a5a] mt-2">LIGOU! +1 SENSOR</div>}
       {!win && <div><button onPointerDown={() => end(n)} className={`${btn} mt-3 px-4 py-2 bg-[#4a4660] border-[#2e2a40] text-white text-[9px]`}>TERMINAR</button></div>}
@@ -283,7 +284,7 @@ function Circuito({ perk, seed, onDone }: GameProps) {
 
 // ─── Metaverso: pares 3D ────────────────────────────────────────────────────
 
-const OBJ3D = ['🧊', '🪐', '🎲', '🏠', '🌳', '🚀', '💎', '🎮'];
+const OBJ3D = ['rubi', 'safira', 'jade', 'ametista', 'diamante', 'opala', 'ouro', 'cristal'];
 function Pares({ perk, seed, onDone }: GameProps) {
   const TIME = 60000 + perk * 8000;
   const cards = useMemo(() => { const r = rng(seed); return [...OBJ3D, ...OBJ3D].map(v => ({ v, k: r() })).sort((a, b) => a.k - b.k).map(x => x.v); }, [seed]);
@@ -319,7 +320,7 @@ function Pares({ perk, seed, onDone }: GameProps) {
           const up = open.includes(i) || found.has(i);
           return (
             <button key={i} onPointerDown={() => flip(i)} className={`h-[54px] rounded-lg border-4 text-[26px] ${up ? 'bg-white border-[#c88aff]' : 'bg-[#4a2a7a] border-[#2a1a4a]'} ${found.has(i) ? 'opacity-60' : ''}`}>
-              {up ? v : ''}
+              {up ? <Icon id={v} size={34} /> : ''}
             </button>
           );
         })}
@@ -404,11 +405,11 @@ function TesteJogo({ perk, seed, onDone }: GameProps) {
   };
   return (
     <div className="text-center">
-      <div className="text-[9px] mb-2">Pegue os bugs 🐛, fuja das bombas 💣 · bugs: {score}</div>
+      <div className="text-[9px] mb-2">Pegue os bugs, fuja das bombas · bugs: {score}</div>
       <Bar v={left / TIME} color="#ffd84a" />
       <div className={`mx-auto mt-3 grid grid-cols-3 gap-2 w-[228px] p-2 rounded-lg ${now - boom < 250 ? 'bg-[#e8485a]' : 'bg-[#1e1a30]'}`}>
         {holes.map((x, i) => (
-          <button key={i} onPointerDown={() => whack(i)} className="h-[68px] rounded-lg bg-[#3a3456] border-2 border-[#6a6488] text-[34px]">{x ? (x.bug ? '🐛' : '💣') : ''}</button>
+          <button key={i} onPointerDown={() => whack(i)} className="h-[68px] rounded-lg bg-[#3a3456] border-2 border-[#6a6488] flex items-center justify-center">{x ? <Icon id={x.bug ? 'bug' : 'bomba'} size={44} /> : ''}</button>
         ))}
       </div>
     </div>

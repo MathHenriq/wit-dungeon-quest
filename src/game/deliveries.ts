@@ -31,7 +31,7 @@ export const DESTINOS: Destino[] = [
   { zona: 'wit', porta: 'moradia-4', nome: 'Moradia 4 (Cidade WIT)' },
 ];
 
-const PACOTES = ['📦 uma caixa', '💌 uma carta', '🎁 um presente', '📚 uns livros', '🧩 um quebra-cabeça', '🪴 uma plantinha'];
+const PACOTES = ['uma caixa', 'uma carta', 'um presente', 'uns livros', 'um quebra-cabeça', 'uma plantinha'];
 
 /** Tempo (ms) e pagamento: entregar em outra área dá mais tempo e mais moedas. */
 export function deliveryTerms(p: Progress, sameZone: boolean): { ms: number; coins: number; xp: number } {

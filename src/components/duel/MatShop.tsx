@@ -66,7 +66,7 @@ export function MatShop({ progress }: { progress: Progress }) {
                       ? <div className={`py-2 rounded text-center text-[9px] bg-white/5 text-white/50 ${pixel}`}>EM BREVE</div>
                       : <button onClick={() => act(m)} disabled={using}
                           className={`py-2 rounded text-[9px] ${pixel} ${using ? 'bg-transparent text-lime-300' : have ? 'bg-[#3c56b0]' : 'bg-[#2f6b1e] border-2 border-[#8cc63f]'}`}>
-                          {using ? '✓ EM USO' : have ? 'USAR' : 'COMPRAR'}
+                          {using ? 'EM USO' : have ? 'USAR' : 'COMPRAR'}
                         </button>}
                     {msg?.id === m.id && <div className="text-[12px] text-center text-yellow-100">{msg.text}</div>}
                   </div>

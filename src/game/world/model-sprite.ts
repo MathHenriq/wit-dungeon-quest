@@ -67,11 +67,16 @@ export function paintModel(img: HTMLImageElement, look: Look, acc?: AccAssets | 
     const put = (behind: boolean) => {
       for (const p of pieces) {
         const src = p.dirs[r], pos = placeAcc(p.id, r, bodies[r * 4 + c], src.width, src.height);
-        if (!pos.hidden && pos.behind === behind) x.drawImage(src, pos.x, pos.y);
+        if (!pos.hidden && pos.behind === behind) x.drawImage(src, pos.x, pos.y, Math.round(src.width * pos.scale), Math.round(src.height * pos.scale));
       }
     };
     put(true);
     x.drawImage(full, c * w, r * h, w, h, 0, 0, w, h);
+    // boné/chapéu: o cabelo acima da aba fica dentro dele (senão o boné "flutua" em cima do topete)
+    for (const p of pieces) {
+      const src = p.dirs[r], pos = placeAcc(p.id, r, bodies[r * 4 + c], src.width, src.height);
+      if (!pos.hidden && pos.clearAbove !== undefined) x.clearRect(0, 0, w, Math.max(0, pos.clearAbove));
+    }
     put(false);
     return cv;
   }));

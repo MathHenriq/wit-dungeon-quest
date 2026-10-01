@@ -47,13 +47,15 @@ export const DEFAULT_ACC_COLOR = 'vermelho';
 export interface Body {
   top: number; neck: number; headL: number; headR: number;
   torsoL: number; torsoR: number; torsoBottom: number;
+  /** Linha da testa (primeiro pixel de pele da cabeça): onde a aba do boné encosta. */
+  brow: number;
 }
 
 const hexRgb = (h: string) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const keyOf = (r: number, g: number, b: number) => (r << 16) | (g << 8) | b;
 const setOf = (hs: readonly string[]) => new Set(hs.map(h => { const [r, g, b] = hexRgb(h); return keyOf(r, g, b); }));
 // (calculados na primeira medida: outfit.ts importa este módulo)
-let HEAD: Set<number> | null = null, TOP: Set<number> | null = null;
+let HEAD: Set<number> | null = null, TOP: Set<number> | null = null, SKIN: Set<number> | null = null;
 
 /**
  * Mede cabeça e tronco de cada quadro de uma folha em cores-molde (antes de
@@ -65,6 +67,8 @@ export function measureFrames(data: Uint8ClampedArray | Uint8Array, width: numbe
   TOP ??= setOf(MOLDE.top);
   const head = HEAD, topSet = TOP;
   const out: Body[] = [];
+  SKIN ??= setOf(MOLDE.skin);
+  const skin = SKIN;
   for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
     let top = -1, neck = -1, torsoBottom = -1;
     let headL = cw, headR = -1, torsoL = cw, torsoR = -1;
@@ -87,10 +91,19 @@ export function measureFrames(data: Uint8ClampedArray | Uint8Array, width: numbe
       const i = at(x, y);
       if (data[i + 3] && head.has(keyOf(data[i], data[i + 1], data[i + 2]))) { headL = Math.min(headL, x); headR = Math.max(headR, x); }
     }
+    let brow = -1;
+    for (let y = top; y < neck && brow < 0; y++) for (let x = 0; x < cw; x++) {
+      const i = at(x, y);
+      if (data[i + 3] && skin.has(keyOf(data[i], data[i + 1], data[i + 2]))) { brow = y; break; }
+    }
     if (headR < 0) { headL = cw * 0.25; headR = cw * 0.75; }
     if (torsoR < 0) { torsoL = cw * 0.35; torsoR = cw * 0.65; torsoBottom = neck + 10; }
-    out.push({ top, neck, headL, headR: headR + 1, torsoL, torsoR: torsoR + 1, torsoBottom: torsoBottom + 1 });
+    out.push({ top, neck, headL, headR: headR + 1, torsoL, torsoR: torsoR + 1, torsoBottom: torsoBottom + 1, brow });
   }
+  // de costas não aparece pele na cabeça (só a nuca): usa a distância testa→pescoço da frente
+  const front = out.slice(0, 4).filter(b => b.brow >= 0);
+  const gap = front.length ? front.reduce((a, b) => a + (b.neck - b.brow), 0) / front.length : 0;
+  for (const b of out) if (b.brow < 0 || b.brow > b.neck - 3) b.brow = gap ? Math.round(b.neck - gap) : Math.round(b.top + (b.neck - b.top) * 0.45);
   return out;
 }
 
@@ -98,14 +111,22 @@ export function measureFrames(data: Uint8ClampedArray | Uint8Array, width: numbe
  * Onde desenhar o acessório no quadro: canto de cima à esquerda, se fica atrás
  * do corpo e se some nesta direção. dir: 0 frente, 1 esquerda, 2 direita, 3 costas.
  */
-export function placeAcc(id: string, dir: number, b: Body, w: number, h: number): { x: number; y: number; behind: boolean; hidden: boolean } {
+export function placeAcc(id: string, dir: number, b: Body, w0: number, h0: number): { x: number; y: number; behind: boolean; hidden: boolean; scale: number; clearAbove?: number } {
   const info = ACC_INFO[id];
+  // chapéus e bonés: no máximo um pouco mais largos que a cabeça (o desenho do GPT veio grande)
+  const anchor0 = info?.anchor ?? 'topo';
+  const headW0 = b.headR - b.headL, torsoW0 = b.torsoR - b.torsoL;
+  const scale = anchor0 === 'topo' ? Math.min(1, (headW0 * 1.12) / w0) : anchor0 === 'pescoco' ? Math.min(1, (torsoW0 * 1.1) / w0) : 1;
+  const w = w0 * scale, h = h0 * scale;
+  let clearAbove: number | undefined;
   const headH = b.neck - b.top, headW = b.headR - b.headL, cx = (b.headL + b.headR) / 2;
   const tcx = (b.torsoL + b.torsoR) / 2;
   let x = cx - w / 2, y = b.top, behind = false, hidden = false;
   switch (info?.anchor ?? 'topo') {
     case 'topo':
-      y = b.top + (info?.k ?? 0.4) * headH - h;
+      // a aba encosta na testa; o cabelo que sobraria por cima some (fica dentro do boné)
+      y = id === 'coroa' || id === 'orelhas-gato' || id === 'coroa-flores' ? b.top + (info?.k ?? 0.4) * headH - h : b.brow + 2 - h;
+      if (id !== 'coroa' && id !== 'orelhas-gato' && id !== 'coroa-flores') clearAbove = Math.round(y + h * 0.45);
       // de lado, encosta a parte de trás do chapéu na nuca (a aba vai para a frente)
       if (dir === 1) x = b.headR + 1 - w;
       if (dir === 2) x = b.headL - 1;
@@ -127,6 +148,8 @@ export function placeAcc(id: string, dir: number, b: Body, w: number, h: number)
     }
     case 'pescoco':
       x = tcx - w / 2; y = b.neck - 3;
+      // de costas o cachecol virava uma faixa estranha: some (fica escondido pela nuca)
+      hidden = dir === 3;
       break;
     case 'costas':
       y = b.neck - 1;
@@ -142,7 +165,7 @@ export function placeAcc(id: string, dir: number, b: Body, w: number, h: number)
       behind = dir === 3;
       break;
   }
-  return { x: Math.round(x), y: Math.round(y), behind, hidden };
+  return { x: Math.round(x), y: Math.round(y), behind, hidden, scale, clearAbove };
 }
 
 /** Pinta um acessório cinza com a rampa (o contorno escuro fica). */

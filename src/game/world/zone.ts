@@ -135,6 +135,8 @@ export interface Town {
   waterAnim?: { x0: number; y0: number; x1: number; y1: number };
   /** Telões: a tela (em pixels do mundo) onde o jogo escreve o Jornal WIT. */
   screens?: { x: number; y: number; w: number; h: number; baseY: number }[];
+  /** A telinha em cima da porta da Torre (o andar do aluno), em pixels do mundo. */
+  towerScreen?: { x: number; y: number; w: number; h: number; baseY: number };
 }
 
 export interface ZoneOptions {
@@ -150,7 +152,7 @@ export interface ZoneOptions {
 export const DOOR_X: Record<string, number> = {
   'casa-azul': 36, 'casa-chale': 37, 'casa-laranja': 36.5, 'casa-roxa': 36.5, 'casa-verde': 37,
   'casa-vermelha-antena': 36.5, 'casa-padaria': 48, 'casa-moderna': 47, 'casa-floricultura': 34.5,
-  'casa-rosa': 36, torre: 43.5, oficina: 55.5,
+  'casa-rosa': 36, torre: 57.7, oficina: 55.5,
 };
 
 /** Sprites que têm chaminé (os outros têm antena, bandeira ou nada no telhado). */

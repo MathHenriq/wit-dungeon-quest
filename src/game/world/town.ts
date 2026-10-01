@@ -9,7 +9,7 @@ import { LED, PAVE } from './palette';
 import * as P from './props';
 import * as T from './props-tech';
 import { swayFrames } from './motion';
-import { waterFrames, type WorldAssets } from './assets';
+import { findPlaque, padTo, waterFrames, type WorldAssets } from './assets';
 import { HOUSE_MODELS, NPC_HOUSES } from './content';
 import { houseHG } from './house-hg';
 import { arenaHG, towerHG } from './buildings-hg';
@@ -36,6 +36,13 @@ export const CIDADE_EXITS = {
 export interface BuildOptions extends ZoneOptions {
   /** Modelo da Sua Casa. */
   casa?: string;
+}
+
+/** A Torre por código (6 blocos) no terreno de 8 blocos da Torre do GPT. */
+function towerWide(): ReturnType<typeof towerHG> {
+  const b = towerHG(), W = 8 * TILE;
+  const pad = (pm: Pixmap) => padTo(pm, W, pm.h);
+  return { ...b, tilesW: 8, doorCols: [3, 4], pix: pad(b.pix), night: b.night && pad(b.night), frames: b.frames?.map(pad), nightFrames: b.nightFrames?.map(pad) };
 }
 
 export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
@@ -89,7 +96,15 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   fillT('floresta', MAP_W - 2, 0, 2, E_.y0); fillT('floresta', MAP_W - 2, E_.y1 + 1, 2, MAP_H - E_.y1 - 1);
 
   // ── prédios ──
-  building(sprB('torre', 'torre', 'Torre dos 100 Andares', 6, 7, [2, 3], towerHG), 29, 8);
+  const tower = building(sprB('torre', 'torre', 'Torre dos 100 Andares', 8, 7, [3, 4], towerWide), 28, 8);
+  // a telinha em cima da porta: o jogo escreve ali o andar em que o aluno está
+  // (procura só no quarto de baixo da arte, onde fica a porta)
+  const low = Math.floor(tower.pix.h * 0.75), base = new Pixmap(tower.pix.w, tower.pix.h - low);
+  base.blit(tower.pix, 0, -low);
+  const tbox = A.torre ? findPlaque(base, c => c[0] + c[1] + c[2] < 170 && c[1] >= c[0]) : null;
+  const towerScreen = tbox && tbox.x1 - tbox.x0 >= 8
+    ? { x: tower.x + tbox.x0, y: tower.y + low + tbox.y0, w: tbox.x1 - tbox.x0 + 1, h: tbox.y1 - tbox.y0 + 1, baseY: 15 * TILE }
+    : undefined;
   {
     // ponta da antena: o pixel mais alto da arte da Torre
     const tw = objects[objects.length - 1], src = tw.pix;
@@ -97,7 +112,7 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
     for (let y = 0; y < src.h && !top; y++) for (let x = 0; x < src.w; x++) if (src.data[(y * src.w + x) * 4 + 3] > 200) { top = [tw.x + x + 0.5, tw.y + y + 1]; break; }
     if (top) fx.beacons.push(top);
   }
-  block(29, 4, 6, 4); // a arte da Torre sobe até aqui: ninguém anda por trás dela
+  block(28, 2, 8, 6); // a arte da Torre sobe até aqui: ninguém anda por trás dela
   building(sprB('oficina', 'centro', 'Oficina de Cartas', 7, 5, [3], cardWorkshop), 13, 14);
   building(sprB('palacio-cartas', 'loja', 'Loja de Pacotinhos', 5, 5, [2], packShop), 44, 14);
   building(sprB('castelo', 'guildas', 'Castelo das Guildas', 7, 5, [3], guildCastle), 13, 26);
@@ -324,7 +339,7 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
     fx.fireflies.push({ x0: tx * TILE, y0: 2 * TILE, x1: tx * TILE + 48, y1: 3 * TILE });
     if (!(tx >= 26 && tx <= 36)) fx.fireflies.push({ x0: tx * TILE, y0: (MAP_H - 3) * TILE, x1: tx * TILE + 48, y1: (MAP_H - 2) * TILE });
   }
-  return z.finish('cidade', ground, groundNight, { tx: 31, ty: 23 }, { circuits: circuits.map(circuitPixels) });
+  return z.finish('cidade', ground, groundNight, { tx: 31, ty: 23 }, { circuits: circuits.map(circuitPixels), towerScreen });
 }
 
 /** Onde se chega em cada área vindo do Centro (a primeira linha/coluna da faixa de entrada). */

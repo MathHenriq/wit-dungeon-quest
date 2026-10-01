@@ -163,10 +163,13 @@ export function reporterQuiz(day: number, seed: number, towerMax: number): Quest
 
 export interface LabelSet { left: string; right: string; items: { icon: string; side: 0 | 1 }[] }
 
+/** Pares de categorias e os ícones de cada lado (public/game/icons/itens). */
 const SETS: [string, string, string[], string[]][] = [
-  ['FRUTA', 'ANIMAL', ['🍎', '🍌', '🍇', '🍓', '🍍', '🥝', '🍐', '🍒'], ['🐶', '🐱', '🐸', '🐵', '🐔', '🐟', '🐮', '🐰']],
-  ['VEÍCULO', 'COMIDA', ['🚗', '🚲', '✈️', '🚌', '🛵', '🚂', '🚀', '⛵'], ['🍕', '🍞', '🧀', '🍔', '🥕', '🍰', '🥚', '🍿']],
-  ['CALOR', 'FRIO', ['☀️', '🔥', '🌋', '🏜️', '🍲', '☕'], ['❄️', '⛄', '🧊', '🐧', '🍦', '🏔️']],
+  ['FRUTA', 'LEGUME', ['fruta:maca', 'banana', 'uva', 'colheita:morango', 'abacaxi', 'pera', 'cereja', 'melancia', 'fruta:laranja', 'fruta:limao'],
+    ['colheita:cenoura', 'rabanete', 'pimentao', 'colheita:alface', 'colheita:milho', 'colheita:abobora']],
+  ['COMIDA', 'OBJETO', ['pao', 'bolo', 'omelete', 'peixe-assado', 'leite', 'ovo', 'salada', 'torta-abobora'],
+    ['livro', 'tocha', 'espelho', 'luneta', 'bau', 'pena', 'mapa', 'chave']],
+  ['JOIA', 'COMIDA', ['rubi', 'safira', 'jade', 'ametista', 'diamante', 'opala', 'ouro'], ['pao', 'bolo', 'fruta:maca', 'banana', 'colheita:cenoura', 'ovo']],
 ];
 
 export function labelSet(seed: number, n = 16): LabelSet {

@@ -212,6 +212,8 @@ export interface ActiveStatus {
   kind: StatusKind;
   value: number;
   turnsLeft: number;
+  /** Carta (id) que causou, para a tela mostrar. */
+  source?: string;
 }
 
 export interface Aura {
@@ -224,6 +226,8 @@ export interface Aura {
 export interface Lock {
   cardType: CardType;
   turnsLeft: number;
+  /** Carta (id) que causou, para a tela mostrar. */
+  source?: string;
 }
 
 export interface PlayerState {

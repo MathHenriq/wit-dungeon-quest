@@ -165,3 +165,19 @@ describe('salvar e carregar', () => {
     expect(p.fome).toBeCloseTo(93.67);
   });
 });
+
+describe('torre: andar atual', () => {
+  it('nunca passa do maior andar liberado; sem andar salvo, abre no maior', async () => {
+    const { sanitizeProgress } = await import('../progress');
+    expect(sanitizeProgress({ towerMax: 5, andar: 9 }).andar).toBe(5);
+    expect(sanitizeProgress({ towerMax: 7 }).andar).toBe(7);
+    expect(sanitizeProgress({ towerMax: 7, andar: 3 }).andar).toBe(3);
+  });
+  it('todo andar tem elevador e a Arena tem mesas livres e com desafiante', async () => {
+    const { towerRoom, arenaRoom, ARENA_TABLES } = await import('../interior/room');
+    expect(towerRoom(3).talks?.some(t => t.action === 'elevador')).toBe(true);
+    const a = arenaRoom();
+    expect(a.talks?.filter(t => t.action === 'sentar').length).toBe(ARENA_TABLES.filter(t => !t.npc).length);
+    expect(a.npcs.filter(n => n.duel?.kind === 'arena').length).toBe(ARENA_TABLES.filter(t => t.npc).length);
+  });
+});

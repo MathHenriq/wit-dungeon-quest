@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { levelOf, PROFESSIONS, TITLES, type ProfId } from '@/game/professions';
 import type { Progress } from '@/game/progress';
 import { HUNGRY } from '@/game/life';
+import { Icon } from '@/components/Icon';
 
 export const font = "font-['Press_Start_2P',monospace]";
 
@@ -15,7 +16,7 @@ export function Shell({ title, color = '#3c56b0', coins, onClose, children, wide
         style={{ borderColor: color }} onPointerDown={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3 gap-2">
           <div className="text-[12px]" style={{ color }}>{title}</div>
-          {coins !== undefined && <span className="text-[10px] text-[#8a6a1a] ml-auto">🪙 {coins}</span>}
+          {coins !== undefined && <span className="text-[10px] text-[#8a6a1a] ml-auto flex items-center gap-1"><Icon id="moeda" size={14} /> {coins}</span>}
           <button onClick={onClose} className="px-2 py-1 rounded bg-[#4a4660] text-white text-[10px]">SAIR</button>
         </div>
         {children}
@@ -51,7 +52,7 @@ export function HungerBar({ v, compact }: { v: number; compact?: boolean }) {
   const low = v <= HUNGRY;
   return (
     <div className={`flex items-center gap-1 ${compact ? '' : 'text-[8px]'}`} title="Barriga">
-      <span className={low ? 'animate-pulse' : ''}>{low ? '😣' : '🍽️'}</span>
+      <span className={low ? 'animate-pulse' : ''}><Icon id="fome" size={compact ? 14 : 16} /></span>
       <div className={`${compact ? 'w-12' : 'w-24'} h-2.5 rounded bg-black/30 overflow-hidden border border-white/40`}>
         <div className="h-full" style={{ width: `${v}%`, background: v > 50 ? '#3ac46a' : v > HUNGRY ? '#f0c040' : '#e8485a' }} />
       </div>

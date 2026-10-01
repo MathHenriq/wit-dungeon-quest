@@ -1,3 +1,4 @@
+import { Symbol } from '@/components/Icon';
 import { useMemo, useState } from 'react';
 import { TcgCard, ELEMENT_STYLE } from '@/components/tcg/TcgCard';
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
@@ -15,7 +16,7 @@ import { checkDeck, DECK_SIZE, DECK_SLOTS, saveProgress, suggestDeck, type Progr
 
 const pixel = "font-['Press_Start_2P',monospace]";
 const TYPES: CardType[] = ['attack', 'challenger', 'equipment', 'trap', 'field'];
-const TYPE_ICON: Record<CardType, string> = { attack: '⚔️', challenger: '✨', equipment: '🛡️', trap: '🪤', field: '🏟️' };
+const TYPE_ICON: Record<CardType, string> = { attack: 'ataque', challenger: 'desafiante', equipment: 'equipamento', trap: 'armadilha', field: 'campo' };
 
 export function DeckBuilder({ progress, onClose }: { progress: Progress; onClose: () => void }) {
   const [slot, setSlot] = useState(progress.activeDeck);
@@ -73,7 +74,7 @@ export function DeckBuilder({ progress, onClose }: { progress: Progress; onClose
           {Array.from({ length: DECK_SLOTS }, (_, i) => (
             <button key={i} onClick={() => setSlot(i)}
               className={`px-2 py-1.5 rounded text-[9px] border-2 ${pixel} ${slot === i ? 'bg-[#2f6b1e] border-[#8cc63f]' : 'bg-white/5 border-white/15'}`}>
-              {progress.activeDeck === i ? '★ ' : ''}DECK {i + 1}
+              {progress.activeDeck === i ? '> ' : ''}DECK {i + 1}
             </button>
           ))}
         </div>}
@@ -100,11 +101,11 @@ export function DeckBuilder({ progress, onClose }: { progress: Progress; onClose
             </div>
           </div>
           <div className="flex flex-wrap gap-1 text-[10px]">
-            {TYPES.map(t => <span key={t} className="px-1.5 py-0.5 rounded bg-white/10" title={TYPE_PT[t]}>{TYPE_ICON[t]} {defs.filter(c => c.type === t).length}</span>)}
+            {TYPES.map(t => <span key={t} className="px-1.5 py-0.5 rounded bg-white/10" title={TYPE_PT[t]}><Symbol id={TYPE_ICON[t]} size={12} /> {defs.filter(c => c.type === t).length}</span>)}
             <span className="mx-1 text-white/30">|</span>
             {[...new Set(defs.map(c => c.element))].map(e => (
               <span key={e} className="px-1.5 py-0.5 rounded" style={{ background: `${ELEMENT_STYLE[e].el2}` }} title={ELEMENT_PT[e]}>
-                {ELEMENT_STYLE[e].icon} {defs.filter(c => c.element === e).length}
+                <Symbol id={ELEMENT_STYLE[e].icon} size={12} /> {defs.filter(c => c.element === e).length}
               </span>
             ))}
           </div>
@@ -114,7 +115,7 @@ export function DeckBuilder({ progress, onClose }: { progress: Progress; onClose
           <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 pr-1">
             {grouped.map(({ c, n }) => (
               <div key={c.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-[12px]" style={{ background: `${ELEMENT_STYLE[c.element].el2}cc` }}>
-                <span title={TYPE_PT[c.type]}>{TYPE_ICON[c.type]}</span>
+                <span title={TYPE_PT[c.type]}><Symbol id={TYPE_ICON[c.type]} size={14} /></span>
                 <button onClick={() => setOpen(c)} className="flex-1 min-w-0 text-left truncate">{c.name}</button>
                 {c.type === 'attack' && <span className="text-white/70 text-[11px]">{c.damage}</span>}
                 <span className={`text-[10px] ${pixel}`}>×{n}</span>
@@ -132,14 +133,14 @@ export function DeckBuilder({ progress, onClose }: { progress: Progress; onClose
               className="px-2 py-1.5 rounded bg-white/10 border border-white/15 text-[12px] w-[140px]" />
             <button onClick={() => setType('')} className={`px-2 py-1 rounded text-[11px] ${!type ? 'bg-white/25' : 'bg-white/5'}`}>Todas</button>
             {TYPES.map(t => (
-              <button key={t} onClick={() => setType(type === t ? '' : t)} className={`px-2 py-1 rounded text-[11px] ${type === t ? 'bg-white/25' : 'bg-white/5'}`}>{TYPE_ICON[t]} {TYPE_PT[t]}</button>
+              <button key={t} onClick={() => setType(type === t ? '' : t)} className={`px-2 py-1 rounded text-[11px] ${type === t ? 'bg-white/25' : 'bg-white/5'}`}><Symbol id={TYPE_ICON[t]} size={12} /> {TYPE_PT[t]}</button>
             ))}
           </div>
           <div className="flex flex-wrap gap-1">
             {elements.map(e => (
               <button key={e} onClick={() => setElement(element === e ? '' : e)} title={ELEMENT_PT[e]}
                 className={`px-2 py-1 rounded text-[12px] border ${element === e ? 'border-white' : 'border-transparent'}`} style={{ background: ELEMENT_STYLE[e].el2 }}>
-                {ELEMENT_STYLE[e].icon}
+                <Symbol id={ELEMENT_STYLE[e].icon} size={14} />
               </button>
             ))}
             <span className="ml-auto text-[11px] text-white/50 self-center">{owned.length} cartas diferentes na coleção</span>

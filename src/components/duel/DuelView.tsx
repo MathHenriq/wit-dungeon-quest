@@ -55,6 +55,21 @@ const ICON = {
 };
 const STATUS_COLOR = { burn: '#f97316', poison: '#a855f7', bleed: '#ef4444', freeze: '#67e8f9' } as const;
 
+/** O que impede quem começa o turno de jogar (para avisar bem grande, com a carta que causou). */
+interface Block { text: string; card?: CardDef }
+function blocksOf(p: PlayerState): Block[] {
+  const out: Block[] = [];
+  const freeze = p.statuses.find(x => x.kind === 'freeze');
+  if (freeze) out.push({ text: 'CONGELADO: SEM ATAQUE', card: freeze.source ? CARD_BY_ID.get(freeze.source) : undefined });
+  for (const l of p.locks) {
+    if (l.cardType === 'attack' && freeze) continue;
+    out.push({ text: l.cardType === 'attack' ? 'IMPEDIDO DE ATACAR' : `SEM ${TYPE_PT_PLURAL[l.cardType].toUpperCase()}`, card: l.source ? CARD_BY_ID.get(l.source) : undefined });
+  }
+  return out;
+}
+/** Quanto tempo a troca de turno ocupa a tela (o inimigo espera para jogar). */
+const TURN_BANNER_MS = 1150, BLOCK_MS = 2000;
+
 /** Rosto recortado do primeiro quadro (de frente) do boneco. */
 function Face({ frame }: { frame: HTMLCanvasElement | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -77,7 +92,7 @@ function Face({ frame }: { frame: HTMLCanvasElement | null }) {
  * (balança), jogar (os braços mexem com os quadros de andar e ele se inclina),
  * apanhar (tremida e clarão), vencer (pulinhos) e perder (cai de lado).
  */
-export type FoeMood = 'idle' | 'think' | 'throw' | 'hurt' | 'win' | 'lose';
+export type FoeMood = 'idle' | 'think' | 'throw' | 'hurt' | 'bigHurt' | 'shock' | 'cheer' | 'blocked' | 'win' | 'lose';
 function Body({ frames, mood }: { frames: HTMLCanvasElement[] | null; mood: FoeMood }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -262,10 +277,19 @@ function CalcPanel({ c }: { c: DamageCalc }) {
 }
 
 export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result, mat }: Props) {
-  const [state, setState] = useState<GameState>(() => createGame([
-    { name: nick, deck },
-    { name: foe.name, deck: foe.deck, life: foe.life },
-  ], { seed: (Date.now() & 0x7fffffff) || 1, firstPlayer: Math.random() < 0.5 ? 0 : 1 }));
+  const [state, setState] = useState<GameState>(() => {
+    // ?mao=id1,id2 põe essas cartas na mão e ?comeca=eu|ele escolhe quem começa (prints e testes)
+    const q = new URLSearchParams(window.location.search);
+    const first = q.get('comeca') === 'eu' ? 0 : q.get('comeca') === 'ele' ? 1 : Math.random() < 0.5 ? 0 : 1;
+    const st = createGame([
+      { name: nick, deck },
+      { name: foe.name, deck: foe.deck, life: foe.life },
+    ], { seed: (Date.now() & 0x7fffffff) || 1, firstPlayer: first });
+    (q.get('mao') ?? '').split(',').filter(id => CARD_BY_ID.has(id)).forEach((id, i) => {
+      st.players[0].hand[i] = { uid: `teste-${i}`, def: CARD_BY_ID.get(id)! };
+    });
+    return st;
+  });
   const [preview, setPreview] = useState<{ card: CardDef; uid?: string } | null>(null);
   const [focus, setFocus] = useState<CardDef | null>(null);
   const [picking, setPicking] = useState<{ uid: string; need: number; picked: string[]; filter: (c: CardInstance) => boolean } | null>(null);
@@ -280,6 +304,8 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   const [trapShow, setTrapShow] = useState<{ card: CardDef; owner: 0 | 1; key: number } | null>(null);
   const [flash, setFlash] = useState<{ color: string; key: number } | null>(null);
   const [foeMood, setFoeMood] = useState<FoeMood>('idle');
+  /** Troca de turno (faixa) e, se tiver, o aviso do que está impedido (com a carta que causou). */
+  const [turnShow, setTurnShow] = useState<{ who: 0 | 1; key: number; blocks: Block[]; phase: 'turn' | 'block' } | null>(null);
   const [meHurt, setMeHurt] = useState(0);
   const [graveView, setGraveView] = useState<0 | 1 | null>(null);
   const [intro, setIntro] = useState<'vs' | 'coin' | null>('vs');
@@ -377,7 +403,6 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         const card = CARD_BY_ID.get(l.trap.id);
         if (card) { setTrapShow({ card, owner: l.trap.owner, key: Date.now() }); play('trap'); later(1500, () => setTrapShow(t => (t?.card === card ? null : t))); }
       }
-      if (l.text.startsWith('— Turno') && l.player === 0) play('turn');
       const c = l.calc;
       if (!c) continue;
       const key = Date.now() + Math.random();
@@ -393,7 +418,17 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
             { transform: `translate(${-3 * k - 1}px, ${2 * k}px)` }, { transform: 'translate(0,0)' },
           ], { duration: 320 + 200 * k, easing: 'ease-out' });
           setFlash({ color: ELEMENT_STYLE[c.element].el, key });
-          if (c.target === 1) { setFoeMood(m => (m === 'lose' || m === 'win' ? m : 'hurt')); later(650, () => setFoeMood(m => (m === 'hurt' ? 'idle' : m))); } else setMeHurt(key);
+          const mult = c.mults.reduce((a, b) => a * b.value, 1);
+          if (c.target === 1) {
+            // golpe grande: leva as mãos à cabeça; combo: leva um susto
+            const mood: FoeMood = mult >= 2 ? 'shock' : c.total >= 30 ? 'bigHurt' : 'hurt';
+            setFoeMood(m => (m === 'lose' || m === 'win' ? m : mood));
+            later(mood === 'hurt' ? 650 : 1300, () => setFoeMood(m => (m === mood ? 'idle' : m)));
+          } else {
+            setMeHurt(key);
+            // o desafiante comemora quando acerta você com força
+            if (c.total >= 25) { setFoeMood(m => (m === 'lose' || m === 'win' ? m : 'cheer')); later(1100, () => setFoeMood(m => (m === 'cheer' ? 'idle' : m))); }
+          }
         }
         if (c.shield) setStamp({ text: 'ESCUDO!', kind: 'shield', key });
         else {
@@ -442,6 +477,22 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     return () => { [t1, t2, t3].forEach(t => window.clearTimeout(t)); };
   }, []);
 
+  // troca de turno: faixa de quem joga agora e, depois, o que está impedido
+  useEffect(() => {
+    if (intro || state.winner !== null) return;
+    const who = state.active, blocks = blocksOf(state.players[who]);
+    const key = Date.now();
+    setTurnShow({ who, key, blocks, phase: 'turn' });
+    play('turn');
+    const ts: number[] = [];
+    if (blocks.length) {
+      ts.push(window.setTimeout(() => { setTurnShow(t => (t?.key === key ? { ...t, phase: 'block' } : t)); play('trap'); if (who === 1) setFoeMood('blocked'); }, TURN_BANNER_MS));
+      ts.push(window.setTimeout(() => { setTurnShow(t => (t?.key === key ? null : t)); if (who === 1) setFoeMood(m => (m === 'blocked' ? 'think' : m)); }, TURN_BANNER_MS + BLOCK_MS));
+    } else ts.push(window.setTimeout(() => setTurnShow(t => (t?.key === key ? null : t)), TURN_BANNER_MS));
+    return () => ts.forEach(t => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.active, state.turn, intro]);
+
   // turno do inimigo: uma carta por vez
   useEffect(() => {
     if (state.active !== 1 || state.winner !== null || intro) return;
@@ -473,7 +524,9 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
       setFoeMood(m => (m === 'think' ? 'idle' : m));
       if (s.winner === null) setState(endTurn(s));
     };
-    const t = window.setTimeout(step, 700);
+    // espera a faixa da troca de turno (e o aviso de impedido) sair da frente
+    const wait = TURN_BANNER_MS + (blocksOf(state.players[1]).length ? BLOCK_MS : 0) + 200;
+    const t = window.setTimeout(step, wait);
     return () => { alive = false; window.clearTimeout(t); };
     // só quando o turno passa para o inimigo (ou a abertura acaba)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -548,7 +601,10 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         {/* desafiante atrás da mesa */}
         <div className={`dv-foe ${foeMood}`}>
           <Body frames={frames[1]} mood={foeMood} />
-          {state.active === 1 && state.winner === null && <div className="dv-think"><i /><i /><i /></div>}
+          {state.active === 1 && state.winner === null && foeMood !== 'blocked' && <div className="dv-think"><i /><i /><i /></div>}
+          {(foeMood === 'shock' || foeMood === 'bigHurt') && <div className="dv-react dv-px">{foeMood === 'shock' ? '!!' : '!'}</div>}
+          {foeMood === 'bigHurt' && <div className="dv-sweat"><i /><i /><i /></div>}
+          {foeMood === 'blocked' && <div className="dv-think dv-px">?!</div>}
         </div>
 
         {/* mesa */}
@@ -577,6 +633,20 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
           </div>
         )}
         {flash && <div key={`flash-${flash.key}`} className="dv-flash" style={{ ['--c' as string]: flash.color }} />}
+        {turnShow && turnShow.phase === 'turn' && (
+          <div key={`turn-${turnShow.key}`} className={`dv-turnband ${turnShow.who === 0 ? 'me' : 'op'}`}>
+            <div className="band"><span className="dv-px">{turnShow.who === 0 ? 'SEU TURNO' : `TURNO DE ${foe.name.toUpperCase()}`}</span></div>
+          </div>
+        )}
+        {turnShow && turnShow.phase === 'block' && (
+          <div key={`block-${turnShow.key}`} className={`dv-blocked ${turnShow.who === 0 ? 'me' : 'op'}`}>
+            <div className="who dv-px">{turnShow.who === 0 ? 'VOCÊ ESTÁ' : `${foe.name.toUpperCase()} ESTÁ`}</div>
+            {turnShow.blocks.map((b, i) => <div key={i} className="txt dv-px">{b.text}</div>)}
+            <div className="cards">
+              {turnShow.blocks.filter(b => b.card).map((b, i) => <div key={i} className="src"><TcgCard card={b.card!} /><div className="by dv-px">POR CAUSA DESTA CARTA</div></div>)}
+            </div>
+          </div>
+        )}
         {stamp && <div key={`stamp-${stamp.key}`} className={`dv-stamp dv-px ${stamp.kind}`}>{stamp.text}</div>}
         {trapShow && (
           <div key={trapShow.key} className="dv-trap">

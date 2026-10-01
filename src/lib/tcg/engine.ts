@@ -141,7 +141,7 @@ function loseLife(state: GameState, who: 0 | 1, amount: number): void {
   if (p.life <= 0) {
     p.life = 0;
     state.winner = other(who);
-    log(state, null, `🏆 ${state.players[other(who)].name} venceu!`);
+    log(state, null, `${state.players[other(who)].name} venceu!`);
   }
 }
 
@@ -427,7 +427,7 @@ function fireTrap(
   if (idx < 0) return 'none';
   const [trap] = p.traps.splice(idx, 1);
   const spec = trap.def.trap!;
-  log(state, owner, `⚠ Armadilha revelada: ${trap.def.name}!`, { trap: { id: trap.def.id, owner } });
+  log(state, owner, `Armadilha revelada: ${trap.def.name}!`, { trap: { id: trap.def.id, owner } });
   if (spec.effects) resolveEffects(state, owner, spec.effects, trap);
   toGraveyard(state, owner, trap);
   if (spec.reflect && incoming.def.type === 'attack') {
@@ -647,13 +647,14 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
       const value = e.value ?? 0;
       const atual = t.statuses.find(s => s.kind === e.status);
       if (!atual) {
-        t.statuses.push({ kind: e.status, value, turnsLeft: e.turns });
+        t.statuses.push({ kind: e.status, value, turnsLeft: e.turns, ...(e.status === 'freeze' ? { source: source.def.id } : {}) });
       } else if (e.status === 'poison' || e.status === 'bleed') {
         atual.value += value;                       // veneno e sangramento acumulam
         atual.turnsLeft = Math.max(atual.turnsLeft, e.turns);
       } else {
         atual.value = Math.max(atual.value, value); // queimadura/congelamento renovam
         atual.turnsLeft = Math.max(atual.turnsLeft, e.turns);
+        if (e.status === 'freeze') atual.source = source.def.id;
       }
       log(state, actor, `${t.name} recebe ${STATUS_PT[e.status]}${value ? ` (${value}/turno)` : ''} por ${e.turns} turno(s).`);
       return;
@@ -661,8 +662,8 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
     case 'lock': {
       const t = state.players[resolveSide(actor, e.target, 'opponent')];
       const atual = t.locks.find(l => l.cardType === e.cardType);
-      if (atual) atual.turnsLeft = Math.max(atual.turnsLeft, e.turns);
-      else t.locks.push({ cardType: e.cardType, turnsLeft: e.turns });
+      if (atual) { atual.turnsLeft = Math.max(atual.turnsLeft, e.turns); atual.source = source.def.id; }
+      else t.locks.push({ cardType: e.cardType, turnsLeft: e.turns, source: source.def.id });
       log(state, actor, `${t.name} não pode jogar ${TYPE_PT_PLURAL[e.cardType]} por ${e.turns} turno(s).`);
       return;
     }

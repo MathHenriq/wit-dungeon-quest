@@ -3,6 +3,7 @@ import { boardOfDay, FISH, FISH_BY_ID, RARITY_COLOR, RARITY_LABEL } from '@/game
 import { fishIconUrl } from '@/game/world/fish-art';
 import { saveProgress, sellItems, type Progress } from '@/game/progress';
 import { play } from '@/game/sfx';
+import { Icon } from '@/components/Icon';
 
 /**
  * Casa de Pesca: o QUADRO com o que os pescadores pegaram hoje, a VENDA dos
@@ -33,7 +34,7 @@ export function FishHouse({ progress, onClose, start = 'quadro' }: { progress: P
       <div className={`w-[min(94vw,640px)] max-h-[92vh] overflow-auto rounded-xl border-4 border-[#27566e] bg-[#f4efe2] p-4 text-[#2e2a40] ${font}`} onPointerDown={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3 gap-2">
           <div className="text-[13px] text-[#27566e]">CASA DE PESCA</div>
-          <span className="text-[10px] text-[#8a6a1a]">🪙 {progress.coins}</span>
+          <span className="text-[10px] text-[#8a6a1a] flex items-center gap-1"><Icon id="moeda" size={14} /> {progress.coins}</span>
           <button onClick={onClose} className="px-2 py-1 rounded bg-[#4a4660] text-white text-[10px]">SAIR</button>
         </div>
         <div className="flex gap-1 mb-3">
@@ -68,13 +69,13 @@ export function FishHouse({ progress, onClose, start = 'quadro' }: { progress: P
                 <div key={f.id} className="flex items-center gap-2 py-1.5 border-b border-[#e0d8c4] text-[9px]">
                   <img src={fishIconUrl(f, 1)} alt="" className="w-12 h-8 [image-rendering:pixelated]" />
                   <span className="flex-1">{f.name} ×{n}</span>
-                  <span className="text-[#8a6a1a]">{f.price ? `${f.price * n} 🪙` : 'lixo'}</span>
+                  <span className="text-[#8a6a1a]">{f.price ? `${f.price * n} moedas` : 'lixo'}</span>
                   <button onClick={() => sell([`peixe:${f.id}`])} className="px-2 py-1 rounded bg-[#3a9a5a] text-white text-[8px]">{f.price ? 'VENDER' : 'JOGAR FORA'}</button>
                 </div>
               );
             })}
             {bag.length > 1 && (
-              <button onClick={() => sell(bag.map(f => `peixe:${f.id}`))} className="mt-3 px-3 py-2 rounded bg-[#27566e] text-white text-[9px]">VENDER TUDO · {total} 🪙</button>
+              <button onClick={() => sell(bag.map(f => `peixe:${f.id}`))} className="mt-3 px-3 py-2 rounded bg-[#27566e] text-white text-[9px]">VENDER TUDO · {total} moedas</button>
             )}
             {msg && <div className="mt-3 text-[9px] text-[#3a9a5a]">{msg}</div>}
           </div>

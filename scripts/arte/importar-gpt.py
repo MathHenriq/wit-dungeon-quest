@@ -29,7 +29,7 @@ OUT = os.path.join(ROOT, 'public', 'game', 'world')
 
 # nome do arquivo → nome(s) do sprite e tamanho no jogo ('w' ou 'h' em px)
 SINGLE = {
-    'torre': ('torre', {'h': 178}),
+    'torre': ('torre', {'h': 236}),
     'oficina': ('oficina', {'w': 112}),
     'arena': ('arena', {'w': 128}),
     'castelo': ('castelo', {'w': 112}),

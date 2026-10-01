@@ -1,14 +1,15 @@
 import { ZONE_NAMES, type ZoneId } from '@/game/world/zone';
+import { Icon } from '@/components/Icon';
 
 /**
  * Mapa-múndi (tecla M ou botão MAPA): as áreas ligadas pelas bordas, com
  * "você está aqui" e a viagem rápida para a entrada de qualquer área.
  */
 const AREAS: { id: ZoneId; col: number; row: number; icon: string; color: string; text: string }[] = [
-  { id: 'fazenda', col: 1, row: 1, icon: '🌾', color: '#c8a040', text: 'Plantar, regar, colher e cuidar dos bichos.' },
-  { id: 'cidade', col: 2, row: 1, icon: '🗼', color: '#8cc63f', text: 'Torre, Loja, Oficina, Arena e as guildas.' },
-  { id: 'lago', col: 3, row: 1, icon: '🎣', color: '#4a9ae8', text: 'Pesca, Casa de Pesca, barquinho e o farol.' },
-  { id: 'wit', col: 2, row: 2, icon: '💡', color: '#b06ae8', text: 'Os cursos do Núcleo WIT e as profissões.' },
+  { id: 'fazenda', col: 1, row: 1, icon: 'colheita:milho', color: '#c8a040', text: 'Plantar, regar, colher e cuidar dos bichos.' },
+  { id: 'cidade', col: 2, row: 1, icon: 'moeda', color: '#8cc63f', text: 'Torre, Loja, Oficina, Arena e as guildas.' },
+  { id: 'lago', col: 3, row: 1, icon: 'peixe', color: '#4a9ae8', text: 'Pesca, Casa de Pesca, barquinho e o farol.' },
+  { id: 'wit', col: 2, row: 2, icon: 'sensor', color: '#b06ae8', text: 'Os cursos do Núcleo WIT e as profissões.' },
 ];
 
 export function WorldMap({ zone, pos, size, ready, onClose, onTravel }: {
@@ -34,7 +35,7 @@ export function WorldMap({ zone, pos, size, ready, onClose, onTravel }: {
             return (
               <div key={a.id} style={{ gridColumn: a.col, gridRow: a.row, borderColor: a.color }}
                 className={`relative rounded-lg border-4 p-2 min-h-[118px] flex flex-col ${here ? 'bg-white' : 'bg-white/70'}`}>
-                <div className="text-[18px] leading-none mb-1">{a.icon}</div>
+                <div className="leading-none mb-1"><Icon id={a.icon} size={24} /></div>
                 <div className="text-[9px] leading-4" style={{ color: a.color }}>{ZONE_NAMES[a.id].toUpperCase()}</div>
                 <div className="text-[8px] leading-4 text-[#5a5470] mt-1 flex-1">{a.text}</div>
                 {here && (

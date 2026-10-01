@@ -21,6 +21,8 @@ export interface Progress {
   activeDeck: number;
   /** Maior andar liberado da Torre (vencer o chefe libera o próximo). */
   towerMax: number;
+  /** Andar em que o aluno está (a Torre abre nele; nunca acima de towerMax). */
+  andar: number;
   /** Vitórias por adversário (id do Foe). */
   wins: Record<string, number>;
   /** Tapetes do duelo que o aluno tem e o que está usando. */
@@ -56,6 +58,7 @@ export function newProgress(): Progress {
     decks: [starterDeck().map(c => c.id), [], []],
     activeDeck: 0,
     towerMax: 1,
+    andar: 1,
     wins: {},
     mats: [DEFAULT_MAT],
     mat: DEFAULT_MAT,
@@ -130,6 +133,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     decks,
     activeDeck: num(r.activeDeck, 0, 0, DECK_SLOTS - 1),
     towerMax: num(r.towerMax, 1, 1, 100),
+    andar: Math.min(num(r.towerMax, 1, 1, 100), num(r.andar, num(r.towerMax, 1, 1, 100), 1, 100)),
     wins,
   };
 }

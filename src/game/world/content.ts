@@ -110,7 +110,7 @@ export const NPCS: NpcDef[] = [
     lines: ['Hoje o lago está cheio de peixe!', 'O Seu Zé diz que o segredo é paciência.'] },
   { id: 'musico', name: 'Toni', title: 'Músico', tx: 58, ty: 19, dir: 'south', job: { kind: 'musica' },
     look: { modelo: 'modelo-02', pele: 'pele-5', cabelo: 'preto', cima: 'roxo', baixo: 'preto', acc: { cabeca: { id: 'fone', cor: 'preto' } } },
-    lines: ['♪ Lá lá lá... ♪', 'Estou gravando um disco! Um dia ele vai tocar na sua casa.'] },
+    lines: ['Lá lá lá...', 'Estou gravando um disco! Um dia ele vai tocar na sua casa.'] },
   { id: 'padeiro', name: 'Dona Rosa', title: 'Padeira', tx: 5, ty: 19, dir: 'south', job: { kind: 'padeiro', route: [[5, 19, 'south'], [10, 20, 'east'], [4, 19, 'south']], pause: [2500, 5000] },
     look: { modelo: 'modelo-06', pele: 'pele-3', cabelo: 'castanho', cima: 'branco', baixo: 'caqui', acc: { cabeca: { id: 'bandana', cor: 'vermelho' } } },
     lines: ['Pão quentinho saindo do forno!', 'Saco vazio não para em pé: sem comer, ninguém corre!'] },

@@ -47,15 +47,20 @@ const side = (dir: Dir) => (dir === 'west' ? -1 : 1);
 export function drawJob(ctx: CanvasRenderingContext2D, kind: JobKind, cx: number, fy: number, dir: Dir, st: JobState): void {
   if (kind === 'pescar') return fishing(ctx, cx, fy, dir, st);
   if (kind === 'passear') return;
-  // o que fica na mão é desenhado 1,5× maior, a partir da altura das mãos
-  ctx.save();
-  ctx.translate(cx, fy - 12); ctx.scale(HELD, HELD); ctx.translate(-cx, -(fy - 12));
-  if (kind === 'musica') guitar(ctx, cx, fy, dir, st);
-  else if (kind === 'padeiro') tray(ctx, cx, fy, dir, st);
-  else if (kind === 'regar') wateringCan(ctx, cx, fy, dir, st);
-  else if (st.moving && st.stop % 2 === 0) box(ctx, cx, fy, dir);
-  else if (!st.moving) sparkle(ctx, cx, fy, st);
-  ctx.restore();
+  // Objetos na mão (violão, bandeja, regador, caixa) ficavam flutuando na
+  // frente do boneco, sem braço segurando: saem até o GPT fazer os quadros
+  // "segurando" de cada morador (docs/prompts-poses.md). Fica só o efeito.
+  if (kind === 'musica') notes(ctx, cx, fy, dir, st);
+  else if (kind === 'regar' && !st.moving) waterDrops(ctx, cx, fy, dir, st);
+  else if (kind === 'arrumar' && !st.moving) sparkle(ctx, cx, fy, st);
+}
+/** Gotas caindo na frente de quem rega (sem o regador). */
+function waterDrops(ctx: CanvasRenderingContext2D, cx: number, fy: number, dir: Dir, st: JobState) {
+  const s = dir === 'west' ? -1 : 1;
+  for (let i = 0; i < 6; i++) {
+    const life = ((st.now / 600) + i / 6) % 1;
+    px(ctx, `rgba(140,205,255,${0.9 * (1 - life)})`, cx + s * (9 + (i % 3)), fy - 10 + life * 10, 0.5, 1);
+  }
 }
 const HELD = 1.5;
 
@@ -105,7 +110,11 @@ function fishing(ctx: CanvasRenderingContext2D, cx: number, fy: number, dir: Dir
 
 // ── músico: violão no colo, dedilhando; notas coloridas subindo ──
 const NOTE_COLORS = ['#ffe070', '#ff8ab0', '#8ad8ff', '#b8f080'];
-function guitar(ctx: CanvasRenderingContext2D, cx: number, fy: number, dir: Dir, st: JobState) {
+function notes(ctx: CanvasRenderingContext2D, cx: number, fy: number, dir: Dir, st: JobState) {
+  const s = dir === 'west' ? -1 : 1;
+  noteStream(ctx, cx, fy, s, st);
+}
+export function guitar(ctx: CanvasRenderingContext2D, cx: number, fy: number, dir: Dir, st: JobState) {
   const s = dir === 'west' ? -1 : 1;
   const bx = cx - s * 1, by = fy - 11 + jobBob('musica', st);
   // braço do violão
@@ -116,7 +125,10 @@ function guitar(ctx: CanvasRenderingContext2D, cx: number, fy: number, dir: Dir,
   ctx.fillStyle = '#b8642a'; ctx.beginPath(); ctx.ellipse(bx - s * 1, by + 1, 4, 3.2, s * -0.5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#d88a44'; ctx.beginPath(); ctx.ellipse(bx - s * 1.6, by + 0.4, 2.2, 1.6, s * -0.5, 0, Math.PI * 2); ctx.fill();
   px(ctx, '#3a200c', bx - s * 0.5 - 0.5, by, 1, 1);
-  // notas: uma nova a cada 650 ms, sobem balançando e somem
+  noteStream(ctx, cx, fy, s, st);
+}
+/** Notas: uma nova a cada 650 ms, sobem balançando e somem. */
+function noteStream(ctx: CanvasRenderingContext2D, cx: number, fy: number, s: number, st: JobState) {
   for (let i = 0; i < 4; i++) {
     const born = Math.floor(st.now / 650) - i;
     const life = (st.now - born * 650) / 2600;

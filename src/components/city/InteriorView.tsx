@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { play } from '@/game/sfx';
+import { buy, buyPrice } from '@/game/market';
+import { itemDef, itemIcon, itemLabel } from '@/game/items';
+import { Icon } from '@/components/Icon';
 import {
   canPlace, catalogOf, footprint, HOUSE_CATS, HOUSE_FLOORS, HOUSE_START, HOUSE_WALLS, houseRoom, layerOf, nextFacing,
   ROOMS, sanitizeHouse, solidGrid, spriteOf, spriteRect, TILE, towerRoom, type Exit, type Manifest, type Placed, type Room, type RoomNpc,
@@ -130,6 +134,15 @@ function savedHouse(m: Manifest): { items: Placed[]; piso: string; parede: strin
   return { items: HOUSE_START, piso: HOUSE_FLOORS[0], parede: HOUSE_WALLS[0] };
 }
 
+type DuelSpec = NonNullable<RoomNpc['duel']>;
+/** O adversário de uma mesa (Torre ou Arena). Na Arena o nível acompanha o andar do aluno e a vitória não conta para a Torre. */
+function foeFor(d: DuelSpec, name: string, p: Progress): Foe {
+  if (d.kind === 'chefe') return bossFoe(d.andar, name);
+  if (d.kind === 'arena') return { ...tableFoe(Math.max(1, p.towerMax), d.mesa + 100, d.table, name), id: foeIdOf(d) };
+  return tableFoe(d.andar, d.mesa, d.table, name);
+}
+const foeIdOf = (d: DuelSpec) => (d.kind === 'chefe' ? `torre-${d.andar}-chefe` : d.kind === 'arena' ? `arena-${d.mesa}` : `torre-${d.andar}-mesa-${d.mesa}`);
+
 function buildRoom(m: Manifest, sala: Sala): Room {
   if (sala.kind === 'torre') return towerRoom(sala.andar);
   if (sala.kind === 'sala') return (ROOMS[sala.id] ?? ROOMS.arena)();
@@ -164,13 +177,22 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   const [ask, setAsk] = useState<{ npc: RoomNpc; foe: Foe } | null>(null);
   const [duel, setDuel] = useState<{ foe: Foe; sprite: string; result?: DuelResult } | null>(null);
   const [deckOpen, setDeckOpen] = useState(false);
+  /** Elevador da Torre aberto (escolher o andar). */
+  const [lift, setLift] = useState(false);
+  /** Sentado esperando outro aluno (PvP). */
+  const [waiting, setWaiting] = useState(false);
+  /** Balcão de quem vende (Dona Ana). */
+  const [shopOf, setShopOf] = useState<RoomNpc | null>(null);
+  const [shopMsg, setShopMsg] = useState<string | null>(null);
+  /** Faixa grande "ANDAR N" ao chegar num andar. */
+  const [floorBanner, setFloorBanner] = useState<number | null>(sala0.kind === 'torre' ? sala0.andar : null);
   // ?duelo=3 (ou chefe) abre o convite da mesa 3 do andar (prints e testes)
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('duelo');
     const npc = q && room.npcs.find(n => n.id === (q === 'chefe' ? 'chefe' : `mesa-${q}`));
     const d = npc ? npc.duel : undefined;
     if (!npc || !d) return;
-    setAsk({ npc, foe: d.kind === 'chefe' ? bossFoe(d.andar, npc.name) : tableFoe(d.andar, d.mesa, d.table, npc.name) });
+    setAsk({ npc, foe: foeFor(d, npc.name, loadProgress()) });
     // só ao abrir a sala
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -197,9 +219,18 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     modal: false,
     leaving: false,
     progress: null as unknown as Progress,
+    /** Sentado numa mesa vazia esperando um desafiante (PvP): a cadeira e de onde veio. */
+    sit: null as { tx: number; ty: number; from: { tx: number; ty: number; dir: Dir } } | null,
   });
   const S = g.current;
-  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen;
+  if (import.meta.env.DEV) (window as unknown as { __interior: unknown }).__interior = S;
+  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf;
+  const standUp = () => {
+    const st = S.sit;
+    if (!st) return;
+    S.sit = null; setWaiting(false);
+    S.player = newWalker(st.from.tx, st.from.ty, st.from.dir);
+  };
   S.progress = progress;
 
   // personagens
@@ -256,6 +287,24 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     return solid[ty][tx];
   }, [room, solid]);
 
+  // andar da Torre: guarda onde o aluno está (a Torre abre nele) e mostra a faixa grande
+  useEffect(() => {
+    if (sala.kind !== 'torre') return;
+    const p = loadProgress();
+    if (p.andar !== sala.andar && sala.andar <= p.towerMax) saveProgress({ ...p, andar: sala.andar });
+    setFloorBanner(sala.andar);
+    const t = window.setTimeout(() => setFloorBanner(null), 1900);
+    return () => window.clearTimeout(t);
+  }, [sala]);
+
+  /** Elevador: vai direto para um andar já liberado. */
+  const goFloor = (andar: number) => {
+    setLift(false);
+    if (sala.kind !== 'torre' || andar === sala.andar) return;
+    play('drop');
+    enter({ kind: 'torre', andar }, towerRoom(andar), 'elevador');
+  };
+
   /** Troca de sala (sobe um andar, entra pelo portal...), aparecendo na entrada certa. */
   const enter = useCallback((next: Sala, r: Room, fromId: string) => {
     const at = r.entries?.[fromId] ?? r.spawn;
@@ -308,10 +357,11 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           setDialog({ lines: [`${npc.def.name}: ${npc.def.lines[0]}`, `Vença mais ${falta} mesa(s) deste andar e volte aqui.`], i: 0 });
           return;
         }
-        const foe = d.kind === 'chefe' ? bossFoe(d.andar, npc.def.name) : tableFoe(d.andar, d.mesa, d.table, npc.def.name);
+        const foe = foeFor(d, npc.def.name, progress);
         setAsk({ npc: npc.def, foe });
         return;
       }
+      if (npc.def.shop) { S.held = []; setShopMsg(null); setShopOf(npc.def); return; }
       setDialog({ lines: [`${npc.def.name}: ${npc.def.lines[0]}`, ...npc.def.lines.slice(1)], i: 0 });
       return;
     }
@@ -319,6 +369,15 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     const exit = room.exits.find(e => e.tx === f.tx && e.ty === f.ty && solid[e.ty]?.[e.tx]);
     // olhando para a escada ou o portal: usa (a conversa do portal fica para quem olha de lado)
     if (exit) { takeExit(exit); return; }
+    if (talk?.action === 'elevador') { S.held = []; setLift(true); return; }
+    if (talk?.action === 'sentar' && talk.seat) {
+      // senta na cadeira da mesa vazia e espera um colega sentar na frente
+      S.sit = { tx: talk.seat[0], ty: talk.seat[1], from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
+      S.player = newWalker(talk.seat[0], talk.seat[1], 'south');
+      S.held = []; S.path = [];
+      play('drop'); setWaiting(true);
+      return;
+    }
     if (talk) setDialog({ lines: talk.lines, i: 0 });
   }, [dialog, room, S, solid, takeExit, progress]);
 
@@ -327,6 +386,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     const down = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
       const d = KEY_DIR[e.key];
+      if (d && S.sit) { e.preventDefault(); standUp(); return; }
       if (d && !decor) {
         e.preventDefault();
         if (!S.held.includes(d)) S.held.unshift(d);
@@ -455,7 +515,16 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           },
         });
       };
-      if (!decor) { person(pt, S.petFrames); person(p, S.playerFrames); }
+      if (!decor) {
+        if (!S.sit) person(pt, S.petFrames);
+        // sentado na mesa vazia: igual aos desafiantes, cortado no tampo da mesa
+        person(p, S.playerFrames, S.sit ? (S.sit.ty + 1) * TILE - 8 : null);
+      }
+      // mesas vazias: plaquinha LIVRE em cima da cadeira
+      for (const t of room.talks ?? []) if (t.action === 'sentar' && t.seat && !(S.sit && S.sit.tx === t.seat[0] && S.sit.ty === t.seat[1])) {
+        const cx = (t.seat[0] + 0.5) * TILE - camX, y = t.seat[1] * TILE - camY - 4;
+        if (cx > -30 && cx < vw + 30 && y > -10 && y < vh + 10) list.push({ baseY: 1e9, draw: () => drawExitMark(ctx, cx, y, 'LIVRE', now) });
+      }
       for (const n of S.npcs) {
         let clip: number | null = null;
         if (n.def.seated && n.w.tx === n.def.tx && n.w.ty === n.def.ty) {
@@ -495,7 +564,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         for (const n of S.npcs) {
           if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) {
             const d = n.def.duel;
-            const won = d ? winsOf(S.progress, d.kind === 'chefe' ? `torre-${d.andar}-chefe` : `torre-${d.andar}-mesa-${d.mesa}`) > 0 : false;
+            const won = d ? winsOf(S.progress, foeIdOf(d)) > 0 : false;
             plate(n.w, plateCanvas(n.def.name, won ? `${n.def.title} - VENCIDO` : n.def.title, PLATE_NPC));
           }
         }
@@ -512,8 +581,14 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           const cx = ((g0.x0 + g0.x1 + 1) / 2) * TILE - camX, y = g0.ty * TILE - camY - (to === 'cidade' ? 4 : 10);
           if (cx > -20 && cx < vw + 20 && y > -10 && y < vh + 10) drawExitMark(ctx, cx, y, label, now);
         }
+        // elevador da Torre: placa como a da escada
+        for (const t of room.talks ?? []) if (t.action === 'elevador') {
+          const xs = t.tiles.map(([x]) => x), ty = Math.min(...t.tiles.map(([, y]) => y));
+          const cx = ((Math.min(...xs) + Math.max(...xs) + 1) / 2) * TILE - camX, y = ty * TILE - camY - 6;
+          if (cx > -30 && cx < vw + 30 && y > -10 && y < vh + 10) drawExitMark(ctx, cx, y, 'ELEVADOR', now);
+        }
         // tem algo para usar na frente: aviso do botão em cima da cabeça
-        if (!p.from && !S.modal) {
+        if (!p.from && !S.modal && !S.sit) {
           const f = ahead(p);
           const can = S.npcs.some(n => n.def.talk.some(([x, y]) => x === f.tx && y === f.ty))
             || room.talks?.some(t => t.tiles.some(([x, y]) => x === f.tx && y === f.ty))
@@ -623,8 +698,8 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         aria-label={title}
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
-        {title}{room.id.startsWith('torre') ? <span className="ml-2 text-yellow-200">🪙 {progress.coins}</span> : null}
-        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir' : ''}{room.id === 'arena' ? ' · portal: treino' : ''}</div>}
+        {title}{room.id.startsWith('torre') ? <span className="ml-2 text-yellow-200 inline-flex items-center gap-1"><Icon id="moeda" size={12} /> {progress.coins}</span> : null}
+        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir · painel: elevador' : ''}{room.id === 'arena' ? ' · portal: treino' : ''}</div>}
         {decor && <div className="text-lime-300 mt-1">{holding ? 'toque para pôr · R gira · ESC devolve' : 'escolha um móvel ou toque num para mover'}</div>}
       </div>
 
@@ -633,6 +708,76 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           className={`absolute top-2 right-2 px-3 py-2 rounded-md bg-[#3c56b0]/90 border-2 border-[#8fb0ff] text-white text-[10px] ${pixelFont}`}>DECK</button>
       )}
       {deckOpen && <DeckBuilder progress={progress} onClose={() => setDeckOpen(false)} />}
+
+      {sala.kind === 'torre' && (
+        <div className={`absolute top-14 right-2 rounded-md border-2 border-[#8cc63f] bg-[#0e1a14]/90 px-3 py-1.5 text-center ${pixelFont}`}>
+          <div className="text-[7px] text-[#b8ff7a]">ANDAR</div>
+          <div className="text-[20px] leading-6 text-white">{sala.andar}</div>
+          <div className="text-[6px] text-white/60">DE {progress.towerMax}</div>
+        </div>
+      )}
+      {floorBanner !== null && (
+        <div key={floorBanner} className={`absolute top-[26%] left-1/2 -translate-x-1/2 pointer-events-none text-center wit-floor-in ${pixelFont}`}>
+          <div className="text-[11px] text-[#b8ff7a] tracking-[0.3em]">TORRE DOS 100 ANDARES</div>
+          <div className="text-[44px] leading-[56px] text-white [text-shadow:0_4px_0_#2e2a40,0_0_18px_#8cc63f]">ANDAR {floorBanner}</div>
+        </div>
+      )}
+      <style>{`.wit-floor-in{animation:wit-floor 1.9s ease-out both}@keyframes wit-floor{0%{opacity:0;transform:translate(-50%,-14px) scale(1.15)}12%{opacity:1;transform:translate(-50%,0) scale(1)}80%{opacity:1}100%{opacity:0}}`}</style>
+      {waiting && (
+        <div className={`absolute left-1/2 -translate-x-1/2 bottom-4 w-[min(92vw,560px)] rounded-xl border-4 border-[#8cc63f] bg-[#10202a]/95 p-4 text-white ${pixelFont}`}>
+          <div className="text-[11px] text-[#b8ff7a]">{room.id === 'oficina' ? 'MESA DE TROCAS · ESPERANDO UM COLEGA' : 'MESA LIVRE · ESPERANDO UM DESAFIANTE'}<span className="animate-pulse">...</span></div>
+          <div className="text-[8px] leading-5 text-white/80 mt-2">{room.id === 'oficina'
+            ? 'Quando um colega sentar na sua frente, vocês veem a coleção um do outro e podem pedir uma troca. (Liga quando o servidor da turma estiver pronto.)'
+            : 'Quando outro aluno entrar na Arena e sentar na sua frente, o duelo começa. (O jogo entre alunos liga quando o servidor da turma estiver pronto.)'}</div>
+          <button onClick={standUp} className="mt-3 px-3 py-2 rounded bg-[#4a4660] text-[9px]">LEVANTAR</button>
+        </div>
+      )}
+      {shopOf && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 p-3" onPointerDown={() => setShopOf(null)}>
+          <div onPointerDown={e => e.stopPropagation()} className={`w-[min(94vw,480px)] rounded-xl border-4 border-[#c8762a] bg-[#f4efe2] p-4 text-[#2e2a40] ${pixelFont}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[11px] text-[#c8762a]">{shopOf.name.toUpperCase()} · {shopOf.title.toUpperCase()}</div>
+              <span className="text-[10px] text-[#8a6a1a] inline-flex items-center gap-1 ml-auto mr-2"><Icon id="moeda" size={14} /> {progress.coins}</span>
+              <button onClick={() => setShopOf(null)} className="px-2 py-1 rounded bg-[#4a4660] text-white text-[10px]">SAIR</button>
+            </div>
+            <div className="text-[8px] leading-4 text-[#5a5470] mb-2">{shopOf.lines[0]} Doce enche um pouco a barriga.</div>
+            {shopOf.shop!.map(id => (
+              <div key={id} className="flex items-center gap-2 py-1.5 border-b border-[#e0d8c4]">
+                <Icon id={itemIcon(id)} size={30} />
+                <div className="flex-1 text-[9px]">{itemLabel(id)} <span className="text-[7px] text-[#5a5470]">· +{itemDef(id)?.food ?? 0} barriga · tem {progress.itens[id] ?? 0}</span></div>
+                <button onClick={() => {
+                  const r0 = buy(loadProgress(), id);
+                  if ('reason' in r0) { setShopMsg(r0.reason); return; }
+                  saveProgress(r0.progress); play('coin'); setShopMsg(`+1 ${itemLabel(id)} na mochila`);
+                }} className="px-2 py-1.5 rounded bg-[#c8762a] text-white text-[8px] inline-flex items-center gap-1">{buyPrice(id)} <Icon id="moeda" size={10} /></button>
+              </div>
+            ))}
+            {shopMsg && <div className="mt-2 text-[9px] text-[#3a9a5a]">{shopMsg}</div>}
+          </div>
+        </div>
+      )}
+      {lift && sala.kind === 'torre' && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 p-3" onPointerDown={() => setLift(false)}>
+          <div onPointerDown={e => e.stopPropagation()} className={`w-[min(94vw,560px)] max-h-[90vh] overflow-auto rounded-xl border-4 border-[#8a94a8] bg-[#1e2430] p-4 text-white ${pixelFont}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[12px] text-[#b8ff7a]">ELEVADOR</div>
+              <button onClick={() => setLift(false)} className="px-2 py-1 rounded bg-[#4a4660] text-[10px]">SAIR</button>
+            </div>
+            <div className="text-[9px] leading-5 text-white/80 mb-3">Para qual andar você quer ir? Os andares acima do {progress.towerMax} abrem quando você vence o chefe do andar de baixo.</div>
+            <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+              {Array.from({ length: 100 }, (_, i) => i + 1).map(n => {
+                const open = n <= progress.towerMax, here = n === sala.andar;
+                return (
+                  <button key={n} disabled={!open} onClick={() => goFloor(n)}
+                    className={`h-9 rounded border-2 text-[10px] ${here ? 'bg-[#8cc63f] border-white text-[#10202a]' : open ? 'bg-[#2e3a4e] border-[#6a7a94] hover:bg-[#3e4e66]' : 'bg-[#15181e] border-[#262a32] text-white/20'}`}>
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {room.id === 'casa' && (
         <button
