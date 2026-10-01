@@ -3,7 +3,9 @@
 // O entregador tem mais tempo e ganha mais. Funções puras.
 import type { Progress } from './progress';
 import { doWork } from './life';
-import { perkLevel } from './professions';
+import { perkLevel, type ProfId } from './professions';
+import { addItem } from './progress';
+import { itemLabel } from './items';
 
 export interface Destino { zona: 'cidade' | 'lago' | 'fazenda' | 'wit'; porta: string; nome: string }
 
@@ -51,10 +53,52 @@ export function takeDelivery(p: Progress, r: number, now: number): { progress: P
   return { progress: { ...p, entrega: { zona: dest.zona, porta: dest.porta, nome: dest.nome, ate: now + t.ms } }, what, dest };
 }
 
-/** Chegou na porta: paga (metade se atrasou) e conta para as missões. */
-export function finishDelivery(p: Progress, now: number): { progress: Progress; coins: number; late: boolean; levelUp?: number } | null {
+// ─── encomendas das profissões (andar pelo mapa levando o que você fez) ──────
+
+export interface OrderKind { prof: ProfId; item: string; what: string; lines: string[] }
+/** O que cada profissão leva: o músico, um disco; o padeiro, um pão; o pescador, um peixe; o fazendeiro, ovos. */
+export const ORDERS: OrderKind[] = [
+  { prof: 'musico', item: 'disco*', what: 'um disco seu', lines: ['Quero ouvir sua música! Me traz um disco?'] },
+  { prof: 'padeiro', item: 'pao*', what: 'um pão quentinho', lines: ['Cadê o pão do café da manhã?'] },
+  { prof: 'pescador', item: 'peixe:*', what: 'um peixe fresco', lines: ['Vou fazer peixe no almoço. Traz um?'] },
+  { prof: 'fazendeiro', item: 'ovo', what: 'ovos da fazenda', lines: ['Bolo sem ovo não dá! Traz uns ovos?'] },
+];
+export const orderOf = (prof: ProfId) => ORDERS.find(o => o.prof === prof);
+
+/** Itens da mochila que servem para a encomenda ("pao*" = pão, bisnaga, trança...). */
+export function orderItems(p: Progress, item: string): string[] {
+  const has = (k: string) => (p.itens[k] ?? 0) > 0 && !k.startsWith('semente:');
+  if (item.endsWith('*')) {
+    const pre = item.slice(0, -1);
+    return Object.keys(p.itens).filter(k => k.startsWith(pre) && has(k) && !(pre === 'peixe:' && /bota|lata/.test(k)));
+  }
+  return has(item) ? [item] : [];
+}
+
+export function takeOrder(p: Progress, prof: ProfId, r: number, now: number): { progress: Progress; dest: Destino; order: OrderKind } | { reason: string } {
+  const order = orderOf(prof);
+  if (!order) return { reason: 'Essa profissão não tem encomendas.' };
+  if (p.entrega) return { reason: `Termine a entrega para ${p.entrega.nome} primeiro.` };
+  const dest = DESTINOS[Math.floor(r * DESTINOS.length) % DESTINOS.length];
+  const far = dest.zona !== 'wit' && dest.zona !== 'cidade';
+  return {
+    order, dest,
+    progress: { ...p, entrega: { zona: dest.zona, porta: dest.porta, nome: dest.nome, ate: now + (far ? 360_000 : 240_000), item: order.item, prof, paga: far ? 30 : 20 } },
+  };
+}
+
+/** Chegou na porta: paga (metade se atrasou) e conta para as missões. Encomenda de profissão gasta o item. */
+export function finishDelivery(p: Progress, now: number): { progress: Progress; coins: number; late: boolean; levelUp?: number } | { reason: string } | null {
   const e = p.entrega;
   if (!e) return null;
+  if (e.item) {
+    const have = orderItems(p, e.item)[0];
+    if (!have) return { reason: `Falta ${itemLabel(e.item.replace('*', '')) || 'o item'} na mochila. Faça ou pegue um e volte!` };
+    const late = now > e.ate;
+    const coins = late ? Math.round((e.paga ?? 20) / 2) : e.paga ?? 20;
+    const w = doWork({ ...addItem(p, have, -1), entrega: undefined, coins: p.coins + coins }, e.prof ?? 'entregador', 'entregas', late ? 10 : 20);
+    return { progress: w.progress, coins, late, levelUp: w.levelUp };
+  }
   const t = deliveryTerms(p, e.zona === 'wit');
   const late = now > e.ate;
   const coins = late ? Math.round(t.coins / 2) : t.coins;

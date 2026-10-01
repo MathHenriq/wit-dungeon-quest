@@ -4,12 +4,13 @@ import { fishIconUrl } from '@/game/world/fish-art';
 import { saveProgress, sellItems, type Progress } from '@/game/progress';
 import { play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
+import { OrderBox } from '@/components/work/OrderBox';
 
 /**
  * Casa de Pesca: o QUADRO com o que os pescadores pegaram hoje, a VENDA dos
  * peixes da mochila e o ÁLBUM de peixes do lago (com o recorde de cada um).
  */
-type Tab = 'quadro' | 'vender' | 'album';
+type Tab = 'quadro' | 'vender' | 'album' | 'encomenda';
 
 export function FishHouse({ progress, onClose, start = 'quadro' }: { progress: Progress; onClose: () => void; start?: Tab }) {
   const [tab, setTab] = useState<Tab>(start);
@@ -38,12 +39,13 @@ export function FishHouse({ progress, onClose, start = 'quadro' }: { progress: P
           <button onClick={onClose} className="px-2 py-1 rounded bg-[#4a4660] text-white text-[10px]">SAIR</button>
         </div>
         <div className="flex gap-1 mb-3">
-          {([['quadro', 'QUADRO'], ['vender', `VENDER${bag.length ? ` (${bag.length})` : ''}`], ['album', `ÁLBUM ${caught}/${FISH.length}`]] as [Tab, string][]).map(([t, l]) => (
+          {([['quadro', 'QUADRO'], ['vender', `VENDER${bag.length ? ` (${bag.length})` : ''}`], ['album', `ÁLBUM ${caught}/${FISH.length}`], ['encomenda', 'ENCOMENDA']] as [Tab, string][]).map(([t, l]) => (
             <button key={t} onClick={() => { setTab(t); setMsg(null); play('click'); }}
               className={`px-2 py-1.5 rounded text-[9px] border-2 ${tab === t ? 'bg-[#27566e] text-white border-[#27566e]' : 'bg-white border-[#c8c0ac]'}`}>{l}</button>
           ))}
         </div>
 
+        {tab === 'encomenda' && <OrderBox prof="pescador" progress={progress} zone="lago" />}
         {tab === 'quadro' && (
           <div>
             <div className="text-[9px] leading-5 text-[#5a5470] mb-2">O que os pescadores do lago pegaram hoje:</div>

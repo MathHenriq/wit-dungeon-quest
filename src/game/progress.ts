@@ -49,7 +49,7 @@ export interface Progress {
   /** Mercado: quanto o aluno vendeu de cada item (baixa o preço; esquece 30% por dia). */
   mercado: { day: number; sat: Record<string, number> };
   /** Entrega em andamento (Central de Entregas). */
-  entrega?: { zona: string; porta: string; nome: string; ate: number };
+  entrega?: { zona: string; porta: string; nome: string; ate: number; /** encomenda de profissão: o item a levar ("peixe:*" = qualquer peixe) e quem ganha a experiência */ item?: string; prof?: ProfId; paga?: number };
   /** Pó da forja por raridade (desmanchar uma Rara dá pó raro...). */
   po: Partial<Record<Rarity, number>>;
   /** Pacotinhos seguidos sem Épica ou melhor (a garantia age no 10º). */
@@ -134,7 +134,12 @@ export function sanitizeProgress(raw: unknown): Progress {
     mercado: (() => { const m = (r.mercado ?? {}) as Record<string, unknown>; return { day: num(m.day, 0), sat: counts(m.sat, 1e4) }; })(),
     entrega: (() => {
       const e = r.entrega as Record<string, unknown> | undefined;
-      return e && typeof e.zona === 'string' && typeof e.porta === 'string' && typeof e.nome === 'string' ? { zona: e.zona, porta: e.porta, nome: e.nome, ate: num(e.ate, 0, 0, 1e14) } : undefined;
+      return e && typeof e.zona === 'string' && typeof e.porta === 'string' && typeof e.nome === 'string' ? {
+        zona: e.zona, porta: e.porta, nome: e.nome, ate: num(e.ate, 0, 0, 1e14),
+        ...(typeof e.item === 'string' ? { item: e.item.slice(0, 40) } : {}),
+        ...(typeof e.prof === 'string' && PROF_BY_ID.has(e.prof as ProfId) ? { prof: e.prof as ProfId } : {}),
+        ...(typeof e.paga === 'number' ? { paga: num(e.paga, 0, 0, 500) } : {}),
+      } : undefined;
     })(),
     po: (() => {
       const o: Partial<Record<Rarity, number>> = {};

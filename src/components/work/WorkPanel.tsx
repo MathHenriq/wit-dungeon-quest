@@ -10,6 +10,8 @@ import { play } from '@/game/sfx';
 import { GAMES, type GameResult } from './Minigames';
 import { LevelBar, Shell, Tabs } from './Shell';
 import { Icon } from '@/components/Icon';
+import { orderOf } from '@/game/deliveries';
+import { OrderBox } from './OrderBox';
 
 const COLOR: Record<MinigameId, string> = {
   compor: '#3a78c8', pao: '#c87a2a', forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', 'teste-jogo': '#c8a020',
@@ -26,7 +28,7 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   const prof = profOfMinigame(game);
   const color = COLOR[game];
   const [phase, setPhase] = useState<'intro' | 'play' | 'result'>('intro');
-  const [tab, setTab] = useState<'trabalhar' | 'comprar'>('trabalhar');
+  const [tab, setTab] = useState<'trabalhar' | 'comprar' | 'encomenda'>('trabalhar');
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e6));
   const [res, setRes] = useState<{ r: GameResult; reward: Reward | null; levelUp?: number; news?: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -34,6 +36,9 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   const perk = perkLevel(progress.profissao, prof.id, xp);
   const left = playsLeft(progress, game);
   const Game = GAMES[game];
+  const tabs: ['trabalhar' | 'comprar' | 'encomenda', string][] = [['trabalhar', 'TRABALHO']];
+  if (shop) tabs.push(['comprar', 'COMPRAR']);
+  if (orderOf(prof.id)) tabs.push(['encomenda', 'ENCOMENDA']);
 
   const start = () => {
     if (progress.fome < WORK_HUNGER) { setMsg('Você está com fome demais para trabalhar. Coma alguma coisa (MOCHILA)!'); play('lose'); return; }
@@ -63,7 +68,8 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
 
   return (
     <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={game === 'compor' || game === 'pao'}>
-      {phase === 'intro' && shop && <Tabs tabs={[['trabalhar', 'TRABALHO'], ['comprar', 'COMPRAR']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
+      {phase === 'intro' && tabs.length > 1 && <Tabs tabs={tabs} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
+      {phase === 'intro' && tab === 'encomenda' && <OrderBox prof={prof.id} progress={progress} />}
       {phase === 'intro' && tab === 'comprar' && shop && (
         <div className="grid gap-1.5">
           {shop.map(id => (

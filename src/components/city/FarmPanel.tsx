@@ -3,6 +3,7 @@ import { CROP_BY_ID, CROPS, isFarmItem, itemName, loadFarm, saveFarm, sellPrice,
 import { addItem, saveProgress, type Progress } from '@/game/progress';
 import { play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
+import { OrderBox } from '@/components/work/OrderBox';
 
 /** Id do ícone de um item da fazenda (planta sem prefixo vira a colheita). */
 export const iconOf = (item: string) => (CROP_BY_ID.has(item as CropId) ? `colheita:${item}` : item.startsWith('semente:') ? `colheita:${item.slice(8)}` : item);
@@ -72,6 +73,7 @@ export function FarmPanel({ mode, progress, onClose }: { mode: 'sementes' | 'env
             <div className="flex flex-wrap gap-2">
               {Object.entries(farm.bin).map(([id, n]) => <div key={id} className="px-2 py-1 rounded bg-[#e8f0e0] text-[8px] flex items-center gap-1"><Icon id={iconOf(id)} size={18} /> {itemName(id)} ×{n}</div>)}
             </div>
+            <div className="mt-4"><OrderBox prof="fazendeiro" progress={progress} zone="fazenda" /></div>
           </div>
         )}
         {msg && <div className="mt-3 text-[9px] text-[#3a9a5a]">{msg}</div>}

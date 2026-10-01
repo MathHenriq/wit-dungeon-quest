@@ -35,7 +35,7 @@ import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/
 import { canSize, doWork, fishLuck, FISH_XP, HUNGRY, irrigPlots, shipBonus, spendEnergy } from '@/game/life';
 import { buy } from '@/game/market';
 import { finishDelivery } from '@/game/deliveries';
-import { profTitle, type MinigameId } from '@/game/professions';
+import { PROF_BY_ID, profTitle, type MinigameId } from '@/game/professions';
 import { WorkPanel } from '@/components/work/WorkPanel';
 import { Backpack, DeliveryPanel, KitchenPanel, MarketPanel } from '@/components/work/LifePanels';
 import { HungerBar } from '@/components/work/Shell';
@@ -807,8 +807,10 @@ function CityView({ town, start, startHour, onTravel }: {
         const pe = loadProgress();
         if (pe.entrega && pe.entrega.zona === town.id && pe.entrega.porta === door.building) {
           const fin = finishDelivery(pe, Date.now())!;
+          if ('reason' in fin) { setDialog({ lines: [`${door.name}: ${fin.reason}`], i: 0 }); s.player.ty += 1; s.player.dir = 'south'; return; }
           saveProgress(fin.progress); play('coin');
-          setDialog({ lines: [`Entregue em ${door.name}! +${fin.coins} moedas${fin.late ? ' (atrasada: metade)' : ''}.`, ...(fin.levelUp ? [`Entregador subiu para o nível ${fin.levelUp}!`] : []), 'Pegue outra na Central de Entregas (Cidade WIT).'], i: 0 });
+          const who = pe.entrega.prof ? PROF_BY_ID.get(pe.entrega.prof)!.name : 'Entregador';
+          setDialog({ lines: [`Entregue em ${door.name}! +${fin.coins} moedas${fin.late ? ' (atrasada: metade)' : ''}.`, ...(fin.levelUp ? [`${who} subiu para o nível ${fin.levelUp}!`] : []), pe.entrega.prof ? 'Tem mais encomendas no seu local de trabalho.' : 'Pegue outra na Central de Entregas (Cidade WIT).'], i: 0 });
           s.player.ty += 1; s.player.dir = 'south';
           return;
         }
