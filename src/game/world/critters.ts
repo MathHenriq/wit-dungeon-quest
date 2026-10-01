@@ -4,7 +4,7 @@
 import type { Town } from './zone';
 import { hash } from './pixmap';
 
-export type CritterKind = 'pato' | 'galinha' | 'vaca' | 'ovelha' | 'robo';
+export type CritterKind = 'pato' | 'galinha' | 'vaca' | 'ovelha' | 'robo' | 'gari';
 
 export interface Critter {
   kind: CritterKind;
@@ -16,9 +16,15 @@ export interface Critter {
   seed: number;
   /** Onde pode andar (blocos). */
   home: { x0: number; y0: number; x1: number; y1: number };
+  /** Robô gari: lixos catados e o lixo que está indo buscar. */
+  picked?: number;
+  goal?: Litter | null;
 }
 
-const SPEED: Record<CritterKind, number> = { pato: 9, galinha: 14, vaca: 6, ovelha: 7, robo: 16 };
+/** Lixo no chão da Cidade WIT (o robô gari cata). `kind`: 0 lata, 1 papel, 2 garrafa. */
+export interface Litter { x: number; y: number; kind: number }
+
+const SPEED: Record<CritterKind, number> = { pato: 9, galinha: 14, vaca: 6, ovelha: 7, robo: 16, gari: 22 };
 
 /** Pode ficar neste bloco? Pato só na água funda o bastante; os outros no chão livre. */
 export function critterFloor(town: Town, kind: CritterKind, tx: number, ty: number): boolean {
@@ -47,6 +53,7 @@ export function spawnCritters(town: Town, kind: CritterKind, n: number, home: Cr
 export function stepCritters(list: Critter[], dt: number, town: Town, rnd: () => number): boolean {
   let moved = false;
   for (const c of list) {
+    if (c.kind === 'gari') continue;   // anda por stepGari
     const dx = c.gx - c.x, dy = c.gy - c.y, d = Math.hypot(dx, dy);
     if (d < 0.5) {
       c.wait -= dt;
@@ -76,4 +83,69 @@ export function stepCritters(list: Critter[], dt: number, town: Town, rnd: () =>
     moved = true;
   }
   return moved;
+}
+
+/** O caminho reto de (x0,y0) até (x1,y1) passa só por chão livre? */
+function clearLine(town: Town, kind: CritterKind, x0: number, y0: number, x1: number, y1: number): boolean {
+  const steps = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6);
+  for (let s = 1; s <= steps; s++) {
+    if (!critterFloor(town, kind, Math.floor((x0 + ((x1 - x0) * s) / steps) / 16), Math.floor((y0 + ((y1 - y0) * s) / steps) / 16))) return false;
+  }
+  return true;
+}
+
+/** Espalha `n` lixos em blocos livres da área (dentro de `home`). */
+export function spawnLitter(town: Town, home: Critter['home'], n: number, rnd: () => number): Litter[] {
+  const out: Litter[] = [];
+  for (let t = 0; out.length < n && t < 300; t++) {
+    const tx = Math.floor(home.x0 + rnd() * (home.x1 - home.x0)), ty = Math.floor(home.y0 + rnd() * (home.y1 - home.y0));
+    if (!critterFloor(town, 'gari', tx, ty) || out.some(l => Math.abs(l.x - (tx * 16 + 8)) < 20 && Math.abs(l.y - (ty * 16 + 10)) < 20)) continue;
+    out.push({ x: tx * 16 + 4 + Math.floor(rnd() * 8), y: ty * 16 + 8 + Math.floor(rnd() * 4), kind: Math.floor(rnd() * 3) });
+  }
+  return out;
+}
+
+/**
+ * O robô gari: vai até o lixo mais perto que dá para alcançar em linha reta,
+ * para um pouco para catar (o lixo some da lista) e procura o próximo. Sem
+ * lixo à vista, passeia. Devolve o lixo catado neste passo (para o brilho).
+ */
+export function stepGari(c: Critter, litter: Litter[], dt: number, town: Town, rnd: () => number): { moved: boolean; picked?: Litter } {
+  if (c.wait > 0) { c.wait -= dt; return { moved: false }; }
+  // chegou no lixo: cata
+  if (c.goal && Math.hypot(c.goal.x - c.x, c.goal.y + 2 - c.y) < 2) {
+    const i = litter.indexOf(c.goal);
+    const got = i >= 0 ? litter.splice(i, 1)[0] : undefined;
+    c.goal = null; c.wait = 1100;
+    if (got) c.picked = (c.picked ?? 0) + 1;
+    return { moved: false, picked: got };
+  }
+  // o lixo de antes sumiu (alguém catou): procura outro
+  if (c.goal && !litter.includes(c.goal)) c.goal = null;
+  if (!c.goal) {
+    const near = litter
+      .filter(l => l.x >= c.home.x0 * 16 && l.y >= c.home.y0 * 16 && l.x < c.home.x1 * 16 && l.y < c.home.y1 * 16)
+      .map(l => ({ l, d: Math.hypot(l.x - c.x, l.y - c.y) })).sort((a, b) => a.d - b.d)
+      .find(({ l }) => clearLine(town, 'gari', c.x, c.y, l.x, l.y + 2));
+    if (near) { c.goal = near.l; c.gx = near.l.x; c.gy = near.l.y + 2; }
+    else if (Math.hypot(c.gx - c.x, c.gy - c.y) < 0.5) {
+      // nada à vista: anda um pouco para procurar
+      for (let t = 0; t < 8; t++) {
+        const tx = Math.floor(c.x / 16 + (rnd() - 0.5) * 10), ty = Math.floor(c.y / 16 + (rnd() - 0.5) * 8);
+        if (tx < c.home.x0 || ty < c.home.y0 || tx >= c.home.x1 || ty >= c.home.y1) continue;
+        if (!clearLine(town, 'gari', c.x, c.y, tx * 16 + 8, ty * 16 + 10)) continue;
+        c.gx = tx * 16 + 8; c.gy = ty * 16 + 10;
+        break;
+      }
+      c.wait = 600;
+      return { moved: false };
+    }
+  }
+  const dx = c.gx - c.x, dy = c.gy - c.y, d = Math.hypot(dx, dy);
+  if (d < 0.5) return { moved: false };
+  const v = (SPEED.gari * dt) / 1000;
+  c.x += (dx / d) * Math.min(v, d);
+  c.y += (dy / d) * Math.min(v, d);
+  if (Math.abs(dx) > 0.5) c.face = dx > 0 ? 1 : -1;
+  return { moved: true };
 }

@@ -108,6 +108,7 @@ SHEETS = {
                     ('arvore-solar', {'h': 48}), ('poste-inteligente', {'h': 32}), ('semaforo', {'h': 32}), ('patinetes', {'w': 32}),
                     ('fliperama', {'h': 26}), ('totem-holo', {'h': 30}), ('banco-solar', {'w': 32}), ('reciclagem', {'w': 32})],
     'wit-objetos-2': [('quadra', {'w': 144}), ('cesta', {'h': 32}), ('canteiro-iot', {'w': 32}), ('estacao-tempo', {'h': 32})],
+    'robo-gari': [('robo-gari', {'h': 18}), ('lixo-lata', {'w': 7}), ('lixo-papel', {'w': 7}), ('lixo-garrafa', {'w': 7})],
     'casinhas-wit': [(n, {'w': 80}) for n in ['casa-coworking', 'estudio-musica', 'atelie', 'moradia-1', 'moradia-2', 'moradia-3', 'moradia-4']],
 }
 

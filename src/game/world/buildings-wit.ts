@@ -529,3 +529,56 @@ export function hologramFrames(): { pix: Pixmap; night?: Pixmap }[] {
     return { pix: withHd(a.pm), night: withHd(a.nt) };
   });
 }
+
+/**
+ * Robô gari (Cidade WIT): treinado pelos alunos de IA para catar lixo. Cabeça
+ * de visor, corpo de lixeira verde com o símbolo de reciclar, braço com pinça
+ * e esteiras. Quadro 0 andando, 1 andando (esteira), 2 catando (braço no chão).
+ */
+export function gariBotFrames(face: 1 | -1): Pixmap[] {
+  const gpt = worldArt('robo-gari');
+  if (gpt) { const p = face > 0 ? gpt.pix : mirrored(gpt.pix); return [p, p, p]; }
+  return [0, 1, 2].map(f => {
+    const a = new Art(30, 36);
+    const metal = hex('#e8eef4'), shade = hex('#b8c0cc'), bin = hex('#3aa85a'), binD = hex('#2a7a44');
+    const fx = (x: number, w = 1) => (face > 0 ? x : 30 - x - w);
+    // esteiras
+    a.rect(fx(6, 18), 30, 18, 5, hex('#2e3440')); a.hline(fx(7, 16), 31, 16, hex('#5a6270'));
+    for (let k = 0; k < 4; k++) a.rect(fx(8 + k * 4 + (f === 1 ? 2 : 0), 2), 33, 2, 1, hex('#8a92a0'));
+    // corpo: lixeira verde
+    a.rect(fx(7, 16), 15, 16, 15, bin); a.rect(fx(7, 16), 15, 16, 2, lighten(bin, 0.3)); a.vline(fx(22), 15, 15, binD);
+    a.rect(fx(6, 18), 14, 18, 2, binD);
+    // símbolo de reciclar (três setinhas em triângulo)
+    const rc = hex('#e8ffe8');
+    a.rect(fx(13, 4), 19, 4, 1, rc); a.rect(fx(12, 1), 20, 1, 3, rc); a.rect(fx(17, 1), 20, 1, 3, rc); a.rect(fx(13, 4), 23, 4, 1, rc);
+    a.px(fx(14), 18, rc); a.px(fx(16), 24, rc);
+    // cabeça com visor e olhos
+    a.rect(fx(8, 14), 3, 14, 11, metal); a.vline(fx(21), 3, 11, shade); a.hline(fx(8, 14), 3, 14, hex('#ffffff'));
+    a.rect(fx(10, 10), 5, 10, 6, hex('#16202a'));
+    const blink = f === 2 ? 1 : 2;
+    a.rect(fx(14, 2), 7, 2, blink, hex('#7aff9a')); a.rect(fx(17, 2), 7, 2, blink, hex('#7aff9a'));
+    a.glow(fx(14, 2), 7, 2, blink, hex('#7aff9a')); a.glow(fx(17, 2), 7, 2, blink, hex('#7aff9a'));
+    // antena
+    a.vline(fx(15), 0, 3, shade); a.rect(fx(14, 3), 0, 3, 1, hex('#8cc63f')); a.glow(fx(14, 3), 0, 3, 1, hex('#8cc63f'));
+    // braço com pinça (na frente): esticado ou descendo até o chão
+    const arm = hex('#9aa2b0');
+    if (f === 2) { a.rect(fx(23, 2), 18, 2, 12, arm); a.rect(fx(22, 5), 30, 5, 2, hex('#5a6270')); a.px(fx(22), 32, hex('#5a6270')); a.px(fx(26), 32, hex('#5a6270')); }
+    else { a.rect(fx(23, 4), 19, 4, 2, arm); a.rect(fx(26, 2), 19, 2, 6, arm); a.rect(fx(25, 4), 25, 4, 2, hex('#5a6270')); }
+    a.pm.outline(INK);
+    return withHd(a.pm);
+  });
+}
+
+/** Lixinhos do chão: lata, bolinha de papel, garrafa. */
+export function litterArt(): Pixmap[] {
+  return [0, 1, 2].map(k => {
+    const gpt = worldArt(['lixo-lata', 'lixo-papel', 'lixo-garrafa'][k]);
+    if (gpt) return gpt.pix;
+    const a = new Art(14, 12);
+    if (k === 0) { a.rect(3, 4, 8, 5, hex('#d84a4a')); a.rect(3, 4, 8, 1, hex('#ff8a8a')); a.rect(10, 4, 2, 5, hex('#c8ccd4')); a.rect(4, 6, 5, 1, hex('#ffffff')); }
+    else if (k === 1) { a.rect(4, 3, 7, 6, hex('#f4f4ee')); a.px(6, 5, hex('#c8c8c0')); a.px(8, 4, hex('#c8c8c0')); a.px(9, 7, hex('#c8c8c0')); a.hline(5, 8, 5, hex('#d8d8d0')); }
+    else { a.rect(2, 5, 8, 4, hex('#5ac88a')); a.rect(10, 6, 2, 2, hex('#3a9a6a')); a.hline(3, 5, 6, hex('#a8f0c8')); a.rect(12, 6, 1, 2, hex('#2a6a4a')); }
+    a.pm.outline(INK);
+    return withHd(a.pm);
+  });
+}

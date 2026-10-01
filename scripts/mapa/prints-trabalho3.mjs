@@ -1,5 +1,6 @@
-// Prints da Comunicação: câmera, foto no telão, escrever matéria e jornalzinho.
-//   node scripts/mapa/prints-comunicacao.mjs <pasta>   (com o vite rodando em 127.0.0.1:5199)
+// Prints da Comunicação (câmera, foto no telão, escrever matéria, jornalzinho)
+// e da IA (robô gari catando lixo, programar o robô com blocos).
+//   node scripts/mapa/prints-trabalho3.mjs <pasta> [ia]   (com o vite rodando em 127.0.0.1:5199)
 import { chromium } from 'playwright-core';
 const S = process.argv[2];
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -7,6 +8,33 @@ const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
 await ctx.addInitScript(() => { if (!localStorage.getItem('wit.progresso')) localStorage.setItem('wit.progresso', JSON.stringify({ coins: 100, fome: 90 })); });
 const page = await ctx.newPage();
 page.on('pageerror', e => console.log('ERRO', e.message));
+const onlyIa = process.argv[3] === 'ia';
+// robô gari na praça da Cidade WIT
+await page.goto('http://127.0.0.1:5199/cidade-demo?zona=wit&pos=43,28', { waitUntil: 'networkidle' });
+await page.waitForTimeout(2500);
+await page.screenshot({ path: `${S}/gari-1.png` });
+await page.waitForTimeout(5000);
+await page.screenshot({ path: `${S}/gari-2.png` });
+// programar o robô
+await page.goto('http://127.0.0.1:5199/cidade-demo?zona=wit&trabalho=lab-ia', { waitUntil: 'networkidle' });
+await page.waitForTimeout(1500);
+await page.getByRole('button', { name: 'TRABALHAR' }).click(); await page.waitForTimeout(400);
+await page.screenshot({ path: `${S}/robo-1.png` });
+const blk = n => page.locator('button', { hasText: n }).first();
+// fase 1 (o tabuleiro pode vir espelhado: lê a direção pela posição do robô)
+const mirrored = await page.evaluate(() => { const im = document.querySelector('img[alt="robô"]'); return parseFloat(im.style.left) > 100; });
+for (const b of ['ANDAR', 'ANDAR', 'PEGAR', mirrored ? 'DIR' : 'ESQ', 'ANDAR', 'ANDAR', 'PEGAR']) { await blk(b).click(); await page.waitForTimeout(60); }
+await page.screenshot({ path: `${S}/robo-2.png` });
+await page.getByRole('button', { name: 'RODAR' }).click(); await page.waitForTimeout(1300);
+await page.screenshot({ path: `${S}/robo-3.png` });
+await page.waitForTimeout(2500);
+await page.screenshot({ path: `${S}/robo-4.png` });
+await page.getByRole('button', { name: 'PRÓXIMA FASE' }).click(); await page.waitForTimeout(300);
+await blk('REPETIR').click(); for (const b of ['ANDAR', 'ANDAR', 'PEGAR']) { await blk(b).click(); await page.waitForTimeout(60); }
+await page.screenshot({ path: `${S}/robo-5.png` });
+await page.getByRole('button', { name: 'RODAR' }).click(); await page.waitForTimeout(2600);
+await page.screenshot({ path: `${S}/robo-6.png` });
+if (onlyIa) { await browser.close(); process.exit(0); }
 // fotos: perto do Estúdio e na praça
 for (const pos of ['42,13', '20,30', '35,21']) {
   await page.goto(`http://127.0.0.1:5199/cidade-demo?zona=wit&pos=${pos}`, { waitUntil: 'networkidle' });

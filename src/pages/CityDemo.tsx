@@ -10,11 +10,11 @@ import { HENYARD, PASTURE } from '@/game/world/zone-fazenda';
 import { actionAt, applyAction, CAN_SIZE, catchUp, CROP_BY_ID, CROPS, itemName, loadFarm, nextDay, saveFarm, type CropId, type FarmState } from '@/game/farm';
 import { FarmPanel, iconOf } from '@/components/city/FarmPanel';
 import { CoursesPanel } from '@/components/city/CoursesPanel';
-import { droneFrames, witBotFrames } from '@/game/world/buildings-wit';
+import { droneFrames, gariBotFrames, litterArt, witBotFrames } from '@/game/world/buildings-wit';
 import { PLAZA_WIT } from '@/game/world/zone-wit';
 import { BOT_TIPS, headlines } from '@/game/news';
 import { drawText, textWidth } from '@/game/world/font';
-import { spawnCritters, stepCritters, type Critter, type CritterKind } from '@/game/world/critters';
+import { spawnCritters, spawnLitter, stepCritters, stepGari, type Critter, type CritterKind, type Litter } from '@/game/world/critters';
 import { drawWaterAnim, makeWaterAnim, type WaterAnim } from '@/game/world/water-anim';
 import { drawAlert, drawHint, drawOars, drawRod } from '@/game/world/player-acts';
 import { fishIconUrl } from '@/game/world/fish-art';
@@ -64,7 +64,7 @@ const WORK_DOORS: Record<string, { game: MinigameId; also?: MinigameId[]; shop?:
   'npc-padaria': { game: 'pao', also: ['forno'], shop: ['pao', 'bolo'] },
   'npc-musico': { game: 'compor', also: ['ritmo'] }, 'estudio-musica': { game: 'compor', also: ['ritmo'] },
   'npc-artista': { game: 'pintura' }, atelie: { game: 'pintura' },
-  'lab-ia': { game: 'rotular' },
+  'lab-ia': { game: 'programar', also: ['rotular'] },
   'casa-iot': { game: 'circuito' },
   metaverso: { game: 'pares' },
   estudio: { game: 'materia', also: ['noticia'] },
@@ -281,6 +281,11 @@ function CityView({ town, start, startHour, onTravel }: {
     boatCanvases: null as Record<Dir, HTMLCanvasElement> | null,
     fish: null as Fishing | null,
     critters: [] as Critter[],
+    /** Lixo no chão da Cidade WIT e o brilho de quando alguém cata. */
+    litter: [] as Litter[],
+    litterCanvases: null as HTMLCanvasElement[] | null,
+    litterAt: 0,
+    pops: [] as { x: number; y: number; t: number }[],
     critterCanvases: {} as Partial<Record<CritterKind, { west: HTMLCanvasElement[]; east: HTMLCanvasElement[] }>>,
     /** Fazenda (guardada no navegador): campos, caixa de envio, regador. */
     farm: loadFarm(Date.now(), town.id === 'fazenda' ? (() => { const sp = town.spots.find(p => p.kind === 'campo'); return sp ? { x0: sp.tx, y0: sp.ty } : undefined; })() : undefined) as FarmState,
@@ -420,6 +425,12 @@ function CityView({ town, start, startHour, onTravel }: {
       const home = { x0: PLAZA_WIT.x0, y0: PLAZA_WIT.y0 + 5, x1: PLAZA_WIT.x1 + 1, y1: PLAZA_WIT.y1 + 1 };
       g.current.critters = spawnCritters(town, 'robo', 1, home, 13);
       cc.robo = { west: witBotFrames(-1).map(toCanvasHd), east: witBotFrames(1).map(toCanvasHd) };
+      // robô gari (treinado pelo Lab de IA): roda a praça e as ruas catando lixo
+      const street = { x0: Math.max(1, PLAZA_WIT.x0 - 8), y0: PLAZA_WIT.y0, x1: Math.min(town.solid[0].length - 1, PLAZA_WIT.x1 + 9), y1: Math.min(town.solid.length - 1, PLAZA_WIT.y1 + 10) };
+      g.current.critters.push(...spawnCritters(town, 'gari', 1, home, 29).map(c => ({ ...c, home: street, picked: 0, goal: null })));
+      cc.gari = { west: gariBotFrames(-1).map(toCanvasHd), east: gariBotFrames(1).map(toCanvasHd) };
+      g.current.litter = spawnLitter(town, street, 6, Math.random);
+      g.current.litterCanvases = litterArt().map(toCanvasHd);
       g.current.droneCanvases = droneFrames().map(toCanvasHd);
       const W = town.ground.w, H = town.ground.h;
       g.current.drones = [0, 1, 2, 3].map(k => ({ x: (k * 0.29 % 1) * W, y: (k * 0.53 % 1) * H, tx: ((k + 2) * 0.37 % 1) * W, ty: ((k + 1) * 0.61 % 1) * H, seed: k / 4 }));
@@ -580,6 +591,8 @@ function CityView({ town, start, startHour, onTravel }: {
     setFarmHud(n => n + 1);
   };
 
+  // para os scripts de print (só no vite de desenvolvimento)
+  if (import.meta.env.DEV) (window as unknown as { __city: unknown }).__city = g.current;
   /** Câmera do repórter: retrato da tela (sem os botões), guardado no álbum. */
   const [flash, setFlash] = useState(false);
   const takePhoto = () => {
@@ -712,6 +725,25 @@ function CityView({ town, start, startHour, onTravel }: {
     }
     // bicho na frente: tirar leite, tosar, fazer carinho (ou o WIT-Bot conversando)
     const critter = s.critters.find(c => Math.floor(c.x / TILE) === f.tx && Math.floor((c.y - 4) / TILE) === f.ty && c.kind !== 'pato');
+    if (critter?.kind === 'gari') {
+      critter.wait = 4000; critter.gx = critter.x; critter.gy = critter.y; critter.goal = null;
+      critter.face = p.tx * TILE + 8 > critter.x ? 1 : -1;
+      play('click');
+      setDialog({ lines: [
+        'Bip bop! Fui treinado pelos alunos de IA para ajudar o mundo!',
+        `Hoje já catei ${critter.picked ?? 0} ${critter.picked === 1 ? 'lixo' : 'lixos'}. Eu vejo o lixo, ando até ele e pego com a pinça.`,
+        'Quer me ensinar a andar? No Laboratório de IA tem o trabalho PROGRAMAR ROBÔ.',
+      ], i: 0 });
+      return;
+    }
+    // lixo na frente: o jogador também cata
+    const trash = s.litter.find(l => Math.floor(l.x / TILE) === f.tx && Math.floor(l.y / TILE) === f.ty);
+    if (trash) {
+      s.litter.splice(s.litter.indexOf(trash), 1);
+      s.pops.push({ x: trash.x, y: trash.y, t: performance.now() });
+      play('coin'); toast('Lixo no lixo! O robô gari agradece.');
+      return;
+    }
     if (critter?.kind === 'robo') {
       critter.wait = 5000; critter.gx = critter.x; critter.gy = critter.y;
       critter.face = p.tx * TILE + 8 > critter.x ? 1 : -1;
@@ -938,6 +970,14 @@ function CityView({ town, start, startHour, onTravel }: {
       }
       // bichos soltos (patos no lago)
       if (s.critters.length && stepCritters(s.critters, dt, town, Math.random)) s.dirty = true;
+      // robô gari e o lixo (alguém sempre joga mais um no chão...)
+      for (const c of s.critters) if (c.kind === 'gari') {
+        const r = stepGari(c, s.litter, dt, town, Math.random);
+        if (r.moved || r.picked) s.dirty = true;
+        if (r.picked) s.pops.push({ x: r.picked.x, y: r.picked.y, t: now });
+        if (s.litter.length < 6 && now - s.litterAt > 18000) { s.litterAt = now; s.litter.push(...spawnLitter(town, c.home, 1, Math.random)); s.dirty = true; }
+      }
+      if (s.pops.length) { s.pops = s.pops.filter(p => now - p.t < 600); s.dirty = true; }
       // drones: voam em linha reta até um ponto e escolhem outro
       for (const d of s.drones) {
         const dx = d.tx - d.x, dy = d.ty - d.y, dist = Math.hypot(dx, dy), v = (32 * dt) / 1000;
@@ -1259,7 +1299,8 @@ function CityView({ town, start, startHour, onTravel }: {
         if (!set || cx < -30 || cx > vw + 30 || cy < -30 || cy > vh + 30) continue;
         const frames = c.face > 0 ? set.east : set.west;
         const moving = Math.hypot(c.gx - c.x, c.gy - c.y) > 0.5;
-        const fc = frames[c.kind === 'pato' ? Math.floor(now / 450 + c.seed * 4) % frames.length : moving ? Math.floor(now / 220) % frames.length : c.kind === 'galinha' && Math.sin(now / 700 + c.seed * 20) > 0.6 ? 1 : 0];
+        const fc = frames[c.kind === 'gari' ? (moving ? Math.floor(now / 160) % 2 : c.wait > 300 && c.wait < 1000 ? 2 : 0)
+          : c.kind === 'pato' ? Math.floor(now / 450 + c.seed * 4) % frames.length : moving ? Math.floor(now / 220) % frames.length : c.kind === 'galinha' && Math.sin(now / 700 + c.seed * 20) > 0.6 ? 1 : 0];
         const bobY = c.kind === 'pato' ? Math.round(Math.sin(now / 500 + c.seed * 9) * 2) / 2 : 0;
         list.push({
           baseY: c.y,
@@ -1268,6 +1309,20 @@ function CityView({ town, start, startHour, onTravel }: {
             put(fc, Math.round(cx - fc.width / R / 2), Math.round(cy - fc.height / R + (c.kind === 'pato' ? 3 : 2) + bobY));
           },
         });
+      }
+      // lixo no chão e o brilho de quando é catado
+      if (s.litterCanvases) for (const l of s.litter) {
+        const lc = s.litterCanvases[l.kind], lx = l.x - camX, ly = l.y - camY;
+        if (lx < -10 || lx > vw + 10 || ly < -10 || ly > vh + 10) continue;
+        list.push({ baseY: l.y - 4, draw: () => put(lc, Math.round(lx - lc.width / R / 2), Math.round(ly - lc.height / R / 2)) });
+      }
+      for (const pp of s.pops) {
+        const k = (now - pp.t) / 600, px = pp.x - camX, py = pp.y - camY;
+        list.push({ baseY: pp.y + 20, draw: () => {
+          ctx.strokeStyle = `rgba(160,255,120,${1 - k})`; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(px, py, 2 + k * 7, 0, Math.PI * 2); ctx.stroke();
+          for (let a = 0; a < 4; a++) { const an = a * Math.PI / 2 + k; ctx.fillStyle = `rgba(230,255,200,${1 - k})`; ctx.fillRect(px + Math.cos(an) * (3 + k * 9) - 0.5, py + Math.sin(an) * (3 + k * 9) - 0.5 - k * 4, 1, 1); }
+        } });
       }
       // plantações da fazenda (as mais embaixo passam na frente)
       if (s.soil) for (const [k, pl] of Object.entries(s.farm.plots)) {
@@ -1475,6 +1530,7 @@ function CityView({ town, start, startHour, onTravel }: {
           || town.spots.some(sp => sp.tx === f.tx && sp.ty === f.ty && sp.kind !== 'cais' && sp.kind !== 'ponte' && sp.kind !== 'campo' && sp.kind !== 'barco')
           || (!!s.boat && s.boat.tx === f.tx && s.boat.ty === f.ty)
           || s.critters.some(c => c.kind !== 'pato' && Math.floor(c.x / TILE) === f.tx && Math.floor((c.y - 4) / TILE) === f.ty)
+          || s.litter.some(l => Math.floor(l.x / TILE) === f.tx && Math.floor(l.y / TILE) === f.ty)
           || (inF && !town.solid[f.ty]?.[f.tx])
           || (s.sailing ? !!town.terrain[f.ty] && !town.solid[f.ty]?.[f.tx] : openWater(f.tx, f.ty))
           || town.objects.some(o => o.id.startsWith('banco') && f.ty === Math.floor((o.baseY - 1) / TILE) && f.tx >= Math.floor(o.x / TILE) && f.tx < Math.ceil((o.x + o.pix.w) / TILE));

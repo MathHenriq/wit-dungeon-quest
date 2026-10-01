@@ -76,6 +76,7 @@ export const WORLD_ART: ArtPiece[] = [
     ['fliperama', 'fliperama'], ['totem-holo', 'totem do holograma'], ['banco-solar', 'banco com placa solar'], ['reciclagem', 'lixeiras de reciclagem'],
   ]),
   ...piece('wit', 'wit-objetos-2', [['quadra', 'quadra de esportes (chão)'], ['cesta', 'cesta de basquete'], ['canteiro-iot', 'canteiro com sensor'], ['estacao-tempo', 'estação do tempo']]),
+  ...piece('wit', 'robo-gari', [['robo-gari', 'robô gari (lixeira com pinça)'], ['lixo-lata', 'latinha amassada'], ['lixo-papel', 'bolinha de papel'], ['lixo-garrafa', 'garrafinha']]),
   ...piece('wit', 'casinhas-wit', [
     ['casa-coworking', 'Coworking WIT'], ['estudio-musica', 'Estúdio de Música'], ['atelie', 'Ateliê de Arte'],
     ['moradia-1', 'moradia 1'], ['moradia-2', 'moradia 2'], ['moradia-3', 'moradia 3'], ['moradia-4', 'moradia 4'],

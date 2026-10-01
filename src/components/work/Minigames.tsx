@@ -8,6 +8,7 @@ import type { MinigameId } from '@/game/professions';
 import { play } from '@/game/sfx';
 import { Composer } from './Composer';
 import { Materia } from './Materia';
+import { RobotCode } from './RobotCode';
 import { BreadMaker } from './BreadMaker';
 import { Icon, Symbol } from '@/components/Icon';
 
@@ -420,6 +421,6 @@ function TesteJogo({ perk, seed, onDone }: GameProps) {
 }
 
 export const GAMES: Record<MinigameId, (p: GameProps) => JSX.Element> = {
-  compor: Composer, pao: BreadMaker, materia: Materia,
+  compor: Composer, pao: BreadMaker, materia: Materia, programar: RobotCode,
   forno: Forno, ritmo: Ritmo, pintura: Pintura, rotular: Rotular, circuito: Circuito, pares: Pares, noticia: Noticia, 'teste-jogo': TesteJogo,
 };
