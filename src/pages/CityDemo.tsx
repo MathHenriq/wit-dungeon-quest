@@ -21,6 +21,7 @@ import { fishIconUrl } from '@/game/world/fish-art';
 import { FishHouse } from '@/components/city/FishHouse';
 import { WorldMap } from '@/components/city/WorldMap';
 import { play } from '@/game/sfx';
+import { addPhoto, loadPhotos, MAX_PHOTOS, savePhotos, snap } from '@/game/photos';
 import { lampPower, lightHalo, timeOfDay } from '@/game/world/light';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
@@ -66,7 +67,7 @@ const WORK_DOORS: Record<string, { game: MinigameId; also?: MinigameId[]; shop?:
   'lab-ia': { game: 'rotular' },
   'casa-iot': { game: 'circuito' },
   metaverso: { game: 'pares' },
-  estudio: { game: 'noticia' },
+  estudio: { game: 'materia', also: ['noticia'] },
   'oficina-games': { game: 'teste-jogo' },
 };
 /** Um dia inteiro do jogo dura 12 minutos (30 s por hora). */
@@ -288,6 +289,8 @@ function CityView({ town, start, startHour, onTravel }: {
     cropCanvas: new Map<string, HTMLCanvasElement>(),
     /** Jornal WIT: a faixa de manchetes (canvas) e o cabeçalho do telão. */
     news: null as { strip: HTMLCanvasElement; head: HTMLCanvasElement } | null,
+    /** Fotos do álbum que passam no telão, entre as manchetes. */
+    telaoPhotos: [] as { im: HTMLImageElement; lugar: string }[],
     /** Número do andar na telinha da Torre (refeito quando o andar muda). */
     floorSign: null as { n: number; c: HTMLCanvasElement } | null,
     /** Drones de entrega voando (Cidade WIT). */
@@ -434,6 +437,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const hp = new Pixmap(textWidth('JORNAL WIT') + 2, 9);
       drawText(hp, 'JORNAL WIT', 1, 1, { fill: [255, 255, 255], fillBottom: [220, 240, 255], shadow: [30, 60, 20] });
       g.current.news = { strip, head: toCanvas(hp) };
+      g.current.telaoPhotos = loadPhotos().slice(0, 4).map(ph => { const im = new Image(); im.src = ph.data; return { im, lugar: ph.lugar }; });
     }
     g.current.water = makeWaterAnim(town);
     const qs = new URLSearchParams(window.location.search);
@@ -574,6 +578,27 @@ function CityView({ town, start, startHour, onTravel }: {
     s.act = { kind: 'encher', t: performance.now(), tx: f.tx, ty: f.ty };
     play('draw'); toast(`Regador cheio! ${size}/${size}`);
     setFarmHud(n => n + 1);
+  };
+
+  /** Câmera do repórter: retrato da tela (sem os botões), guardado no álbum. */
+  const [flash, setFlash] = useState(false);
+  const takePhoto = () => {
+    const cv = canvasRef.current, s = g.current;
+    if (!cv || s.modal || s.inside) return;
+    const p = s.player;
+    let near: { name: string; d: number } | null = null;
+    for (const d of town.doors) {
+      const dd = Math.abs(d.tx - p.tx) + Math.abs(d.ty - p.ty);
+      if (dd <= 10 && (!near || dd < near.d)) near = { name: d.name, d: dd };
+    }
+    const ph = snap(cv, { zona: town.id, lugar: near ? `${near.name}, ${town.name}` : town.name, hora: Math.floor(s.hour) });
+    if (!ph) { toast('A câmera falhou.'); return; }
+    const list = addPhoto(loadPhotos(), ph);
+    if (!savePhotos(list)) { toast('Sem espaço para mais fotos.'); return; }
+    if (town.id === 'wit') g.current.telaoPhotos = list.slice(0, 4).map(x => { const im = new Image(); im.src = x.data; return { im, lugar: x.lugar }; });
+    setFlash(true); window.setTimeout(() => setFlash(false), 70);
+    play('click');
+    toast(list.length >= MAX_PHOTOS ? `Foto tirada! Álbum cheio (${MAX_PHOTOS}): a mais velha saiu.` : `Foto tirada! Álbum ${list.length}/${MAX_PHOTOS}. Ela passa no telão da Cidade WIT.`);
   };
 
   const interact = useCallback(() => {
@@ -746,6 +771,8 @@ function CityView({ town, start, startHour, onTravel }: {
   // teclado
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
+      // digitando (nome da música, apelido): as teclas são do campo de texto
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const d = KEY_DIR[e.key];
       if (d && g.current.seat) {
         // levanta e volta para onde estava
@@ -768,6 +795,8 @@ function CityView({ town, start, startHour, onTravel }: {
       // I: mochila
       if ((e.key === 'i' || e.key === 'I') && !g.current.inside && !g.current.modal) setBag('mochila');
       if ((e.key === 'm' || e.key === 'M') && !g.current.inside) setMapOpen(o => !o);
+      // F: foto
+      if ((e.key === 'f' || e.key === 'F') && !g.current.inside && !g.current.modal) takePhoto();
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
       // Q / E: troca a semente escolhida (fazenda)
@@ -1329,6 +1358,17 @@ function CityView({ town, start, startHour, onTravel }: {
             const sw = nw.strip.width / R, off = (now / 50) % sw;
             ctx.save();
             ctx.beginPath(); ctx.rect(x + 1, y + 7, sc.w - 2, sc.h - 8); ctx.clip();
+            // a cada 16 s, 6 s de foto do álbum (as fotos dos alunos no telão)
+            const pics = s.telaoPhotos.filter(t => t.im.complete && t.im.naturalWidth);
+            const pic = pics.length && now % 16000 > 10000 ? pics[Math.floor(now / 16000) % pics.length] : null;
+            if (pic) {
+              const bw = sc.w - 2, bh = sc.h - 8, sc2 = Math.max(bw / pic.im.naturalWidth, bh / pic.im.naturalHeight);
+              const iw = pic.im.naturalWidth * sc2, ih = pic.im.naturalHeight * sc2;
+              ctx.drawImage(pic.im, x + 1 + (bw - iw) / 2, y + 7 + (bh - ih) / 2, iw, ih);
+              ctx.fillStyle = 'rgba(10,20,30,0.7)'; ctx.fillRect(x + 1, y + sc.h - 6, sc.w - 2, 5);
+              ctx.fillStyle = '#e8ffd8'; ctx.font = '4px monospace'; ctx.textAlign = 'left';
+              ctx.fillText(`FOTO: ${pic.lugar}`.slice(0, 48), x + 3, y + sc.h - 2.2);
+            } else
             for (let k = -1; k <= Math.ceil(sc.w / sw); k++) ctx.drawImage(nw.strip, x - off + k * sw, y + 9 + (sc.h - 16) / 2 - 4.5, sw, nw.strip.height / R);
             // linhas de "tela" e o brilho de cima
             ctx.fillStyle = 'rgba(255,255,255,0.05)';
@@ -1507,7 +1547,7 @@ function CityView({ town, start, startHour, onTravel }: {
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
         {town.name.toUpperCase()} <span className="text-lime-300 hidden sm:inline">· protótipo</span>
         <span className="ml-2 text-white/90">{String(Math.floor(clock)).padStart(2, '0')}:00 · {clock >= 6 && clock < 18.5 ? 'dia' : 'noite'}</span>
-        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar{town.id === 'fazenda' ? '/plantar · Q E semente' : ''} · M mapa · T hora</div>}
+        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar{town.id === 'fazenda' ? '/plantar · Q E semente' : ''} · M mapa · F foto · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
 
@@ -1516,6 +1556,8 @@ function CityView({ town, start, startHour, onTravel }: {
         <span className={`px-2 py-2 rounded-md bg-black/55 text-yellow-200 text-[10px] flex items-center gap-1 ${pixelFont}`} title="Moedas"><Icon id="moeda" size={14} /> {progress.coins}</span>
         <button onClick={() => setBag('mochila')}
           className={`px-3 py-2 rounded-md bg-[#6a4a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MOCHILA</button>
+        <button onClick={takePhoto} title="Tirar foto (F)"
+          className={`px-3 py-2 rounded-md bg-[#c84a6a]/90 border-2 border-[#ffb0c4] text-white text-[10px] ${pixelFont}`}>FOTO</button>
         <button onClick={() => setMapOpen(true)}
           className={`px-3 py-2 rounded-md bg-[#8a5a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MAPA</button>
         <button onClick={() => setDeckOpen(true)}
@@ -1525,6 +1567,8 @@ function CityView({ town, start, startHour, onTravel }: {
           className={`px-3 py-2 rounded-md bg-[#2f6b1e]/90 border-2 border-[#8cc63f] text-white text-[10px] ${pixelFont}`}
         >VISUAL</button>
       </div>
+
+      <div className="absolute inset-0 bg-white pointer-events-none transition-opacity duration-300" style={{ opacity: flash ? 0.85 : 0 }} />
 
       {editing && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
 

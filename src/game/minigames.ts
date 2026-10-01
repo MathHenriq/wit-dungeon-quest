@@ -43,6 +43,9 @@ export function rewardOf(game: MinigameId, score: number, perk: number, hits = 0
       const n = s >= 0.5 ? (s >= 0.85 ? 2 : 1) + (perk > 0 ? 1 : 0) : 0;
       return { items: n ? { 'cubo-virtual': n } : {}, coins: 0, xp };
     }
+    case 'materia':
+      // 3 pautas × 4 partes do lide; a matéria certinha ainda sai no jornalzinho
+      return { items: {}, coins: Math.round(hits * 3 * (1 + perk * 0.4)), xp };
     case 'noticia':
       return { items: {}, coins: Math.round(hits * 4 * (1 + perk * 0.4)), xp };
     case 'compor': {

@@ -58,6 +58,10 @@ export interface Progress {
   musicas: Song[];
   /** Matéria do repórter que sai no telão (Jornal WIT) no dia em que foi feita. */
   jornal?: { day: number; text: string };
+  /** Matérias publicadas no Estúdio (vão para o jornalzinho); `foto` = id da foto do álbum. */
+  materias: { day: number; text: string; foto?: string }[];
+  /** Dia em que comprou o jornalzinho (1 moeda, lê o dia todo). */
+  jornalDia?: number;
 }
 
 export function newProgress(): Progress {
@@ -82,6 +86,7 @@ export function newProgress(): Progress {
     po: {},
     semEpica: 0,
     musicas: [],
+    materias: [],
   };
 }
 
@@ -153,6 +158,9 @@ export function sanitizeProgress(raw: unknown): Progress {
       const j = r.jornal as Record<string, unknown> | undefined;
       return j && typeof j.text === 'string' ? { day: num(j.day, 0), text: j.text.slice(0, 80) } : undefined;
     })(),
+    materias: Array.isArray(r.materias) ? (r.materias as Record<string, unknown>[]).filter(m => m && typeof m.text === 'string').slice(0, 12)
+      .map(m => ({ day: num(m.day, 0), text: (m.text as string).slice(0, 140), ...(typeof m.foto === 'string' ? { foto: m.foto.slice(0, 20) } : {}) })) : [],
+    jornalDia: r.jornalDia === undefined ? undefined : num(r.jornalDia, 0),
     coins: num(r.coins, 0),
     collection: col,
     decks,

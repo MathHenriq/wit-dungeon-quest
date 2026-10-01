@@ -6,13 +6,13 @@ import type { Progress } from './progress';
 import { today } from './life';
 
 const WIT_NEWS = [
-  'LAB DE IA: OS ALUNOS ESTAO TREINANDO O WIT-BOT',
-  'CASA IOT: OS POSTES DA CIDADE ACENDEM QUANDO ALGUEM PASSA',
-  'METAVERSO: A SALA VIRTUAL ABRE EM BREVE',
-  'OFICINA DE GAMES: FLIPERAMAS NA RUA DE BAIXO',
-  'ESTUDIO: A RADIO WIT VAI TOCAR OS DISCOS DOS MUSICOS',
-  'CENTRAL DE ENTREGAS: DRONES LEVANDO ENCOMENDAS',
-  'MERCADO CENTRAL: OS PRECOS MUDAM COM A OFERTA E A PROCURA',
+  'Lab de IA: os alunos estão treinando o WIT-Bot',
+  'Casa IoT: os postes da cidade acendem quando alguém passa',
+  'Metaverso: a sala virtual abre em breve',
+  'Oficina de Games: fliperamas na rua de baixo',
+  'Estúdio: a Rádio WIT vai tocar os discos dos músicos',
+  'Central de Entregas: drones levando encomendas',
+  'Mercado Central: os preços mudam com a oferta e a procura',
 ];
 
 /** Deixa só o que a fonte da cidade desenha (maiúsculas sem acento, números, . : ! -). */
@@ -20,23 +20,27 @@ export function plain(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9 .:!-]/g, '');
 }
 
-export function headlines(day: number, p: Progress): string[] {
+/** As manchetes do telão (só o que a fonte da cidade desenha). */
+export const headlines = (day: number, p: Progress): string[] => newsOfDay(day, p).map(plain);
+
+/** As manchetes com acento e maiúsculas certas (o jornalzinho de papel). */
+export function newsOfDay(day: number, p: Progress): string[] {
   const out: string[] = [];
   const board = boardOfDay(day);
   const best = [...board].sort((a, b) => b.fish.price - a.fish.price)[0];
-  if (best) out.push(`LAGO AZUL: ${best.who} PESCOU ${best.fish.name} DE ${best.cm} CM`);
+  if (best) out.push(`Lago Azul: ${best.who} pescou ${best.fish.name.toLowerCase()} de ${best.cm} cm`);
   const recs = Object.entries(p.recordes).map(([id, cm]) => ({ f: FISH_BY_ID.get(id), cm })).filter(r => r.f && r.f.price > 0);
   if (recs.length) {
     const top = recs.sort((a, b) => b.f!.price - a.f!.price)[0];
-    out.push(`RECORDE: VOCE JA PESCOU ${top.f!.name} DE ${top.cm} CM`);
+    out.push(`Recorde: você já pescou ${top.f!.name.toLowerCase()} de ${top.cm} cm`);
   }
   if (p.jornal && p.jornal.day === today()) out.unshift(p.jornal.text);
-  if (p.towerMax > 1) out.push(`TORRE: VOCE JA CHEGOU AO ANDAR ${p.towerMax}`);
-  out.push('FAZENDA DO VALE: ABOBORA VALE 28 MOEDAS NA CAIXA DE ENVIO');
+  if (p.towerMax > 1) out.push(`Torre: você já chegou ao andar ${p.towerMax}`);
+  out.push('Fazenda do Vale: abóbora vale 28 moedas na caixa de envio');
   // os avisos dos cursos mudam de ordem a cada dia
   const k = day % WIT_NEWS.length;
   out.push(...WIT_NEWS.slice(k), ...WIT_NEWS.slice(0, k));
-  return out.map(plain);
+  return out;
 }
 
 /** Dicas do WIT-Bot (o robô da praça, "treinado" pelo Lab de IA). */
