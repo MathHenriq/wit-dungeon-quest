@@ -14,7 +14,7 @@ export function setMuted(v: boolean): void {
   try { localStorage.setItem(KEY, v ? 'mudo' : 'som'); } catch { /* sem armazenamento */ }
 }
 
-function audio(): AudioContext | null {
+export function audio(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (!ctx) {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;

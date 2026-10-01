@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { play } from '@/game/sfx';
+import { PackShop } from '@/components/packs/PackShop';
+import { ForgePanel } from '@/components/packs/ForgePanel';
 import { buy, buyPrice } from '@/game/market';
 import { itemDef, itemIcon, itemLabel } from '@/game/items';
 import { Icon } from '@/components/Icon';
@@ -161,7 +163,7 @@ export function InteriorView({ sala, look, pet, onExit }: { sala: Sala; look: Lo
   return <Inside m={m} sala={sala} look={look} pet={pet} onExit={onExit} />;
 }
 
-interface Npc { def: RoomNpc; w: Walker; frames: Frames | null }
+interface Npc { def: RoomNpc; w: Walker; frames: Frames | null; /** quem passeia: caminho e espera até o próximo passeio */ path: Dir[]; wait: number }
 type Holding = { p: Placed; from: Placed | null };
 
 function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala; look: Look; pet: string; onExit: (from: Sala) => void }) {
@@ -184,6 +186,11 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   /** Balcão de quem vende (Dona Ana). */
   const [shopOf, setShopOf] = useState<RoomNpc | null>(null);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
+  /** Loja de pacotinhos ou forja abertas (?painel=pacotes|forja abre direto). */
+  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | null>(() => {
+    const q = new URLSearchParams(window.location.search).get('painel');
+    return q === 'pacotes' || q === 'forja' ? q : null;
+  });
   /** Faixa grande "ANDAR N" ao chegar num andar. */
   const [floorBanner, setFloorBanner] = useState<number | null>(sala0.kind === 'torre' ? sala0.andar : null);
   // ?duelo=3 (ou chefe) abre o convite da mesa 3 do andar (prints e testes)
@@ -224,7 +231,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   });
   const S = g.current;
   if (import.meta.env.DEV) (window as unknown as { __interior: unknown }).__interior = S;
-  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf;
+  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen;
   const standUp = () => {
     const st = S.sit;
     if (!st) return;
@@ -246,7 +253,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   // sala nova: NPCs, sprites e cena de fundo
   useEffect(() => {
     let alive = true;
-    S.npcs = room.npcs.map(def => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null }));
+    S.npcs = room.npcs.map((def, i) => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, path: [], wait: 600 + i * 900 }));
     const sprites = new Set<string>([room.piso, room.parede, ...(room.patches ?? []).map(p => p.piso), ...room.items.map(p => spriteOf(m, p).id)]);
     Promise.all([...sprites].map(id => sprite(m, id).then(img => [id, img] as const).catch(() => null))).then(list => {
       if (!alive) return;
@@ -284,7 +291,8 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
 
   const blocked = useCallback((tx: number, ty: number) => {
     if (tx < 0 || ty < 0 || tx >= room.w || ty >= room.h) return !room.exits.some(e => e.tx === tx && e.ty === ty && e.to === 'cidade');
-    return solid[ty][tx];
+    return solid[ty][tx] || S.npcs.some(n => n.def.wander && n.w.tx === tx && n.w.ty === ty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, solid]);
 
   // andar da Torre: guarda onde o aluno está (a Torre abre nele) e mostra a faixa grande
@@ -346,7 +354,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     }
     if (S.modal) return;
     const f = ahead(S.player);
-    const npc = S.npcs.find(n => n.def.talk.some(([x, y]) => x === f.tx && y === f.ty));
+    const npc = S.npcs.find(n => (n.def.wander ? n.w.tx === f.tx && n.w.ty === f.ty : n.def.talk.some(([x, y]) => x === f.tx && y === f.ty)));
     if (npc) {
       const back: Record<Dir, Dir> = { north: 'south', south: 'north', west: 'east', east: 'west' };
       if (Math.abs(npc.w.tx - S.player.tx) + Math.abs(npc.w.ty - S.player.ty) === 1) npc.w.dir = back[S.player.dir];
@@ -362,6 +370,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         return;
       }
       if (npc.def.shop) { S.held = []; setShopMsg(null); setShopOf(npc.def); return; }
+      if (npc.def.action) { S.held = []; setPanelOpen(npc.def.action); return; }
       setDialog({ lines: [`${npc.def.name}: ${npc.def.lines[0]}`, ...npc.def.lines.slice(1)], i: 0 });
       return;
     }
@@ -370,6 +379,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     // olhando para a escada ou o portal: usa (a conversa do portal fica para quem olha de lado)
     if (exit) { takeExit(exit); return; }
     if (talk?.action === 'elevador') { S.held = []; setLift(true); return; }
+    if (talk?.action === 'pacotes') { S.held = []; setPanelOpen('pacotes'); return; }
     if (talk?.action === 'sentar' && talk.seat) {
       // senta na cadeira da mesa vazia e espera um colega sentar na frente
       S.sit = { tx: talk.seat[0], ty: talk.seat[1], from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
@@ -449,6 +459,26 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         },
         onStep: () => { petQueue.shift(); },
       });
+      // clientes passeando (andam devagar até um bloco livre do retângulo deles e esperam)
+      for (const n of S.npcs) {
+        const wa = n.def.wander;
+        if (!wa) continue;
+        n.wait -= dt;
+        const occupied = (x: number, y: number) => blocked(x, y) && !(n.w.tx === x && n.w.ty === y) || (p.tx === x && p.ty === y);
+        tick(n.w, dt, {
+          msPerTile: WALK_MS * 1.6, blocked: occupied, fromPath: true,
+          want: () => {
+            if (S.modal) return null;
+            if (n.path.length) return n.path[0];
+            if (n.wait > 0) return null;
+            n.wait = 1800 + Math.random() * 3500;
+            const tx = wa[0] + Math.floor(Math.random() * (wa[2] - wa[0] + 1)), ty = wa[1] + Math.floor(Math.random() * (wa[3] - wa[1] + 1));
+            if (!occupied(tx, ty)) n.path = findPath(n.w.tx, n.w.ty, tx, ty, occupied).slice(0, 8);
+            return null;
+          },
+          onStep: () => { n.path.shift(); },
+        });
+      }
 
       // ── desenho ──
       const vw = cv.width / R, vh = cv.height / R;
@@ -732,6 +762,8 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           <button onClick={standUp} className="mt-3 px-3 py-2 rounded bg-[#4a4660] text-[9px]">LEVANTAR</button>
         </div>
       )}
+      {panelOpen === 'pacotes' && <PackShop progress={progress} onClose={() => setPanelOpen(null)} />}
+      {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {shopOf && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 p-3" onPointerDown={() => setShopOf(null)}>
           <div onPointerDown={e => e.stopPropagation()} className={`w-[min(94vw,480px)] rounded-xl border-4 border-[#c8762a] bg-[#f4efe2] p-4 text-[#2e2a40] ${pixelFont}`}>

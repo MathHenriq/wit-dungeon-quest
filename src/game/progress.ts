@@ -5,7 +5,10 @@
 // testadas; só `loadProgress`/`saveProgress` tocam no navegador.
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { maxCopies, rewardFor, starterCollection, starterDeck, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opponents';
-import type { CardDef } from '@/lib/tcg/types';
+import type { CardDef, Rarity } from '@/lib/tcg/types';
+import { sanitizeSong, type Song } from './music';
+
+const RARITIES: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'unknown'];
 import { DEFAULT_MAT, MAT_BY_ID } from './playmats';
 import { PROF_BY_ID, type ProfId } from './professions';
 
@@ -47,6 +50,12 @@ export interface Progress {
   mercado: { day: number; sat: Record<string, number> };
   /** Entrega em andamento (Central de Entregas). */
   entrega?: { zona: string; porta: string; nome: string; ate: number };
+  /** Pó da forja por raridade (desmanchar uma Rara dá pó raro...). */
+  po: Partial<Record<Rarity, number>>;
+  /** Pacotinhos seguidos sem Épica ou melhor (a garantia age no 10º). */
+  semEpica: number;
+  /** Músicas compostas no Estúdio de Música (viram discos). */
+  musicas: Song[];
   /** Matéria do repórter que sai no telão (Jornal WIT) no dia em que foi feita. */
   jornal?: { day: number; text: string };
 }
@@ -70,6 +79,9 @@ export function newProgress(): Progress {
     jogos: { day: 0, n: {} },
     missoes: { day: 0, base: {}, feitas: [] },
     mercado: { day: 0, sat: {} },
+    po: {},
+    semEpica: 0,
+    musicas: [],
   };
 }
 
@@ -124,6 +136,14 @@ export function sanitizeProgress(raw: unknown): Progress {
       const e = r.entrega as Record<string, unknown> | undefined;
       return e && typeof e.zona === 'string' && typeof e.porta === 'string' && typeof e.nome === 'string' ? { zona: e.zona, porta: e.porta, nome: e.nome, ate: num(e.ate, 0, 0, 1e14) } : undefined;
     })(),
+    po: (() => {
+      const o: Partial<Record<Rarity, number>> = {};
+      const raw = (r.po ?? {}) as Record<string, unknown>;
+      for (const k of RARITIES) if (raw[k] !== undefined) o[k] = num(raw[k], 0, 0, 1e7);
+      return o;
+    })(),
+    semEpica: num(r.semEpica, 0, 0, 1000),
+    musicas: Array.isArray(r.musicas) ? (r.musicas as unknown[]).map(sanitizeSong).filter((x): x is Song => !!x).slice(0, 30) : [],
     jornal: (() => {
       const j = r.jornal as Record<string, unknown> | undefined;
       return j && typeof j.text === 'string' ? { day: num(j.day, 0), text: j.text.slice(0, 80) } : undefined;

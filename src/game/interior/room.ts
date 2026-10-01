@@ -62,6 +62,10 @@ export interface RoomNpc {
   seated?: boolean;
   /** Vende alguma coisa (ids dos itens, src/game/items.ts). */
   shop?: string[];
+  /** Abre uma tela própria ao conversar: loja de pacotinhos, forja. */
+  action?: 'pacotes' | 'forja';
+  /** Anda à toa dentro deste retângulo [x0, y0, x1, y1] (clientes do shopping). */
+  wander?: [number, number, number, number];
   /** Aceita duelo: qual adversário da Torre ele é (ver src/lib/tcg/opponents.ts). */
   duel?: { kind: 'mesa'; andar: number; mesa: number; table: string } | { kind: 'chefe'; andar: number }
     /** Mesa da Arena: o nível acompanha o andar do aluno na Torre; não conta para a Torre. */
@@ -80,7 +84,7 @@ export interface Exit { tx: number; ty: number; to: ExitKind }
 export interface Talk {
   tiles: [number, number][]; lines: string[];
   /** Abre uma tela em vez de só falar: o elevador da Torre, sentar numa mesa vazia (PvP). */
-  action?: 'elevador' | 'sentar';
+  action?: 'elevador' | 'sentar' | 'pacotes';
   /** Mesa vazia: o bloco da cadeira (onde o aluno senta). */
   seat?: [number, number];
 }
@@ -507,38 +511,54 @@ export function trainingRoom(): Room {
 
 /** Loja de Pacotinhos: um shopping com 8 lojas, cada uma com o que vende bem claro. */
 export function shopRoom(): Room {
-  const stores: [string, string, string][] = [
-    ['loja-pacotinhos', 'Pacotinhos de cartas', 'Pacotinhos: a única forma de ganhar cartas fora dos chefes. Comum, Rara, Épica... a raridade é sorte!'],
-    ['loja-pets', 'Pet Shop', 'Ovos de pet: choque e ganhe um companheiro que te segue pela cidade.'],
-    ['loja-roupas', 'Boutique', 'Roupas e acessórios para o seu visual.'],
-    ['loja-moveis', 'Loja de Móveis', 'Móveis, tapetes e papéis de parede para a Sua Casa.'],
-    ['loja-acessorios', 'Acessórios de Carta', 'Capinhas, fichários e tapetes de jogo para o seu deck.'],
-    ['loja-eventos', 'Eventos', 'Pacotinhos especiais de evento aparecem aqui na época certa.'],
-    ['loja-premios', 'Troca de Prêmios', 'Recompensas da Sala: troque pontos por tempo de tablet, VR ou música na Alexa.'],
-    ['loja-informacoes', 'Informações', 'Perdido? Cada loja tem um ícone grande em cima. As moedas vêm das aulas e dos duelos.'],
+  // shopping: a loja de pacotinhos fica bem na frente de quem entra, com tapete,
+  // pacotinhos gigantes e torres de pacotes; as outras lojas nas paredes, com
+  // corredores largos; clientes passeando.
+  const W = 32, H = 24;
+  const stores: [string, number, number, string][] = [
+    ['loja-pets', 1, 3, 'Ovos de pet: choque e ganhe um companheiro que te segue pela cidade.'],
+    ['loja-roupas', 9, 3, 'Roupas e acessórios para o seu visual.'],
+    ['loja-moveis', 17, 3, 'Móveis, tapetes e papéis de parede para a Sua Casa.'],
+    ['loja-acessorios', 25, 3, 'Capinhas, fichários e tapetes de jogo para o seu deck.'],
+    ['loja-eventos', 1, 11, 'Pacotinhos especiais de evento aparecem aqui na época certa.'],
+    ['loja-premios', 25, 11, 'Recompensas da Sala: troque moedas por tempo de tablet, VR ou música na Alexa.'],
+    ['loja-informacoes', 1, 18, 'Perdido? A loja de pacotinhos é a do meio, com o tapete. As moedas vêm das aulas e dos duelos.'],
   ];
   const items: Placed[] = [];
   const talks: Talk[] = [];
-  stores.forEach(([id, , text], i) => {
-    const tx = 1 + (i % 4) * 6, ty = i < 4 ? 3 : 11;
+  for (const [id, tx, ty, text] of stores) {
     items.push({ id, tx, ty });
-    talks.push({ tiles: area(tx, ty, 6, 3), lines: [text, 'A loja abre em breve.'] });
-  });
+    talks.push({ tiles: area(tx, ty, 6, 3), lines: [text, 'Esta loja abre em breve.'] });
+  }
+  // a estrela: a loja de pacotinhos no meio, de frente para a porta
+  items.push({ id: 'loja-pacotinhos', tx: 13, ty: 12 });
+  talks.push({ tiles: area(13, 12, 6, 3), lines: ['Loja de Pacotinhos'], action: 'pacotes' });
   items.push(
-    { id: 'fonte-loja', tx: 12, ty: 7 }, { id: 'baloes', tx: 1, ty: 7 }, { id: 'baloes', tx: 24, ty: 7 },
-    { id: 'palmeira-loja', tx: 4, ty: 7 }, { id: 'palmeira-loja', tx: 21, ty: 7 },
-    { id: 'banco-loja', tx: 7, ty: 8 }, { id: 'banco-loja', tx: 17, ty: 8 },
-    { id: 'torre-pacotinhos', tx: 10, ty: 7 }, { id: 'torre-pacotinhos', tx: 15, ty: 7 },
-    { id: 'pacotinho-gigante', tx: 0, ty: 15 }, { id: 'mapa-loja', tx: 10, ty: 15 }, { id: 'vitrine-rara', tx: 15, ty: 15 },
-    { id: 'pacotinho-gigante', tx: 23, ty: 15 },
+    { id: 'tapete-pacotinho', tx: 15, ty: 15 }, { id: 'tapete-pacotinho', tx: 15, ty: 18 },
+    { id: 'pacotinho-gigante', tx: 10, ty: 13 }, { id: 'pacotinho-gigante', tx: 20, ty: 13 },
+    { id: 'torre-pacotinhos', tx: 12, ty: 16 }, { id: 'torre-pacotinhos', tx: 19, ty: 16 },
+    { id: 'vitrine-lendaria', tx: 10, ty: 10 }, { id: 'vitrine-rara', tx: 21, ty: 10 },
+    { id: 'fonte-loja', tx: 15, ty: 7 }, { id: 'banco-loja', tx: 11, ty: 7 }, { id: 'banco-loja', tx: 19, ty: 7 },
+    { id: 'palmeira-loja', tx: 8, ty: 9 }, { id: 'palmeira-loja', tx: 23, ty: 9 },
+    { id: 'baloes', tx: 9, ty: 15 }, { id: 'baloes', tx: 22, ty: 15 },
+    { id: 'mapa-loja', tx: 25, ty: 18 }, { id: 'banco-loja', tx: 27, ty: 21 }, { id: 'palmeira-loja', tx: 31, ty: 21 },
+    { id: 'cesto-pacotinhos', tx: 8, ty: 20 }, { id: 'cesto-pacotinhos', tx: 22, ty: 20 },
   );
-  talks.push({ tiles: [[10, 15]], lines: ['Mapa do shopping: em cima, pacotinhos, pets, roupas e móveis; embaixo, acessórios, eventos, prêmios e informações.'] });
-  talks.push({ tiles: [[15, 15]], lines: ['Uma carta rara girando na vitrine... quem sabe no próximo pacotinho?'] });
+  talks.push({ tiles: [[25, 18]], lines: ['Mapa do shopping: no meio, os pacotinhos; em cima, pets, roupas, móveis e acessórios; dos lados, eventos e prêmios.'] });
+  talks.push({ tiles: area(10, 10, 2, 1), lines: ['Uma carta Lendária girando na vitrine... quem sabe no próximo pacotinho?'] });
+  talks.push({ tiles: area(12, 16, 1, 1), lines: ['Torre de pacotinhos: Comum, Incomum, Rara, Épica, Lendária e Mítica.'], action: 'pacotes' });
+  talks.push({ tiles: area(19, 16, 1, 1), lines: ['Torre de pacotinhos.'], action: 'pacotes' });
+  const npcs: RoomNpc[] = [
+    npc('cliente-1', 'npc-desafiante-02', 6, 9, 'Lia', 'Fazendo compras', ['Juntei moedas a semana inteira para um Pacotinho Raro!'], { wander: [3, 7, 12, 10] }),
+    npc('cliente-2', 'npc-desafiante-07', 24, 16, 'Duda', 'Fazendo compras', ['Saiu uma Épica no meu último pacotinho!!'], { wander: [21, 15, 30, 21] }),
+    npc('cliente-3', 'npc-desafiante-05', 16, 9, 'Theo', 'Olhando as vitrines', ['Será que hoje sai uma Mítica?'], { wander: [12, 6, 21, 10] }),
+    npc('cliente-4', 'npc-desafiante-12', 4, 21, 'Rafa', 'Passeando', ['Esse shopping é enorme!'], { wander: [2, 21, 11, 22] }),
+  ];
   return {
-    id: 'loja', title: 'Loja de Pacotinhos', w: 26, h: 17, wallRows: 3,
-    piso: 'piso-loja-piso', parede: 'parede-loja-parede', items, npcs: [], talks,
-    spawn: { tx: 12, ty: 15, dir: 'north' },
-    exits: [{ tx: 12, ty: 16, to: 'cidade' }, { tx: 13, ty: 16, to: 'cidade' }],
+    id: 'loja', title: 'Loja de Pacotinhos', w: W, h: H, wallRows: 3,
+    piso: 'piso-loja-piso', parede: 'parede-loja-parede', items, npcs, talks,
+    spawn: { tx: 15, ty: 22, dir: 'north' },
+    exits: [{ tx: 15, ty: 23, to: 'cidade' }, { tx: 16, ty: 23, to: 'cidade' }],
   };
 }
 
@@ -564,9 +584,8 @@ export function workshopRoom(): Room {
         'Um docinho para pensar melhor nas trocas? Tudo fresquinho!',
       ], { talk: [[4, 3], ...area(3, 4, 3, 1), ...area(6, 5, 2, 1)], seated: true, shop: ['rosquinha', 'cupcake', 'chocolate', 'sorvete', 'picole', 'pirulito'] }),
       npc('ferreiro', 'npc-desafiante-03', 17, 3, 'Prof. Ian', 'Forja de Cartas', [
-        'Junte pó de carta desmanchando duplicatas e forje a carta que falta no seu álbum.',
-        'A forja acende em breve!',
-      ], { talk: [[17, 3], ...area(15, 3, 4, 2), ...area(15, 6, 2, 1)] }),
+        'Carta repetida vira pó da raridade dela; com o pó, eu forjo a carta que falta no seu álbum.',
+      ], { talk: [[17, 3], ...area(15, 3, 4, 2), ...area(15, 6, 2, 1)], action: 'forja' }),
       seatedAt('troca-1', 'npc-desafiante-02', 1, 8, 'Lia', 'Trocando cartas', ['Tenho duas repetidas de Fogo. Troca por uma de Água?']),
       seatedAt('troca-2', 'npc-desafiante-10', 7, 12, 'Duda', 'Montando o deck', ['Deck de 20 cartas... escolher é a parte mais difícil!']),
     ],
