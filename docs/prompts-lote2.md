@@ -166,3 +166,19 @@ em 6 passos). Além das cenas da seção H, precisam:
 ```
 A sprite sheet of bakery mini-game props, 4 columns by 2 rows, each item centered in its own cell, cute pixel art with clean outlines: row 1: an empty clear glass measuring cup with marks, a big empty mixing bowl (blue ceramic), a wooden spoon, a sack of flour; row 2: a jar of yeast, a pitcher of warm water, a milk bottle, a baker's peel (wooden paddle). No text, no numbers. Flat solid magenta background (#FF00FF).
 ```
+
+## M. Comunicação e IA (câmera, jornal, programar o robô) — 01/10
+
+Já funciona: câmera (tecla F / botão FOTO) com álbum de 8 fotos, fotos no
+telão, escrever matéria (lide: quem, o quê, onde, quando), jornalzinho de 1
+moeda, programar o robô com blocos e o robô gari na Cidade WIT. O robô gari e
+os lixinhos estão em `docs/prompts-mundo.md` (folha **robo-gari.png**). Falta:
+- **Ícones** (folha **icones-3**, 32 × 32, nesta ordem): `camera` (câmera fotográfica), `microfone` (microfone de repórter), `foto` (foto polaroide), `robo-gari` (rosto do robô gari), `bloco-andar` (seta para a frente num bloquinho azul), `bloco-virar` (seta curva num bloquinho roxo), `bloco-pegar` (pinça num bloquinho verde), `bloco-repetir` (seta circular num bloquinho laranja).
+```
+A sprite sheet of 8 game icons, 4 columns by 2 rows, each icon centered in its own cell, cute pixel art 32x32 style with clean dark outlines: 1) a compact photo camera, 2) a handheld reporter microphone, 3) an instant polaroid photo, 4) the face of a friendly green cleaning robot with a dark visor and green eyes, 5) a blue puzzle block with a white forward arrow, 6) a purple puzzle block with a white curved turn arrow, 7) a green puzzle block with a white grabber claw, 8) an orange puzzle block with a white circular repeat arrow. No text, no numbers. Flat solid magenta background (#FF00FF).
+```
+- **Testemunhas da matéria** (bustos 64 × 64, roupa completa, nada de anime), folha `public/Novos assets/minijogos/testemunhas.png` (4 × 2), nesta ordem: Seu Tião (pescador idoso de chapéu), recepcionista da Torre (uniforme azul), WIT-Bot (robô branco de tela), morador (rapaz de moletom), dona da padaria (avental e touca), entregador (boné e colete laranja), vizinha da fazenda (chapéu de palha), moça da Central de Entregas (headset).
+```
+A sprite sheet of 8 bust portraits (head and shoulders), 4 columns by 2 rows, each centered in its own cell, friendly original characters for a children's game, fully clothed, cute pixel art with clean outlines, facing the viewer and smiling: 1) an old fisherman with a bucket hat, 2) a receptionist in a blue uniform, 3) a white robot with a screen face, 4) a young man in a hoodie, 5) a baker woman with an apron and a cap, 6) a delivery man with a cap and an orange vest, 7) a farm woman with a straw hat, 8) a young woman with a headset. No text. Flat solid magenta background (#FF00FF).
+```
+- **Tabuleiro do robô** (opcional): o chão de rua e o canteiro do minijogo usam as texturas da Cidade WIT quando a arte do mundo chegar.

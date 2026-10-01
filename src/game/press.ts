@@ -83,7 +83,7 @@ export interface Edition { numero: number; manchete: string; materias: { text: s
 
 /** A edição do dia: matérias do aluno primeiro (com foto), depois as manchetes do jogo. */
 /** Nº 1 = 01/10/2026, o dia em que o jornalzinho começou. */
-export function edition(day: number, p: Progress, startDay = 20_361): Edition {
+export function edition(day: number, p: Progress, startDay = 20_726): Edition {
   const sentences = newsOfDay(day, p);
   const mine = p.materias.filter(m => m.day >= day - 6).map(m => ({ text: m.text, foto: m.foto, minha: true }));
   return {

@@ -40,7 +40,7 @@ describe('jornalzinho', () => {
     expect(ed.manchete).toBe('O robô catou o lixo.');
     expect(ed.materias[0]).toMatchObject({ foto: 'f1', minha: true });
     expect(ed.numero).toBe(10);
-    expect(edition(20_362, p).numero).toBe(1);
+    expect(edition(20_727, p).numero).toBe(1);
     // sobrevive ao salvar
     const back = sanitizeProgress(JSON.parse(JSON.stringify(p)));
     expect(back.materias[0].text).toBe('O robô catou o lixo.');
