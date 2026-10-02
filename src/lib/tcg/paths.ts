@@ -84,7 +84,7 @@ export const PATHS: PathDef[] = [
   { id: 'alquimista', name: 'O Alquimista', style: 'Dano que corrói aos poucos', about: 'Queimadura, veneno e sangramento: o dano continua turno após turno.',
     wants: { status: 4 }, attackShare: 0.5, maxComplexity: 3, fromClass: ['alquimista', 'druida'], color: '#8a5ae8' },
   { id: 'ceifador', name: 'O Ceifador', style: 'O cemitério é a arma', about: 'Manda cartas para o cemitério e bate mais forte a cada uma que está lá.',
-    wants: { moer: 3, cemiterio: 3.5, banir: 2 }, attackShare: 0.5, maxComplexity: 4, rares: 4, fromClass: ['necromante'], color: '#4a4660' },
+    wants: { moer: 3, cemiterio: 3.5, banir: 2 }, attackShare: 0.5, maxComplexity: 4, rares: 4, fromClass: ['necromante'], color: '#9a8ac8' },
   { id: 'trapaceiro', name: 'O Trapaceiro', style: 'Pega o oponente desprevenido', about: 'Armadilhas viradas, travas e roubo: o oponente nunca sabe o que vem.',
     wants: { armadilha: 3.5, trava: 3, roubo: 2.5 }, attackShare: 0.4, maxComplexity: 4, fromClass: ['espiao', 'ladino', 'assassino'], color: '#c84a6a' },
   { id: 'forjador', name: 'O Forjador', style: 'Monta o arsenal', about: 'Equipa arma, armadura e campo, e cada ataque sai mais forte.',

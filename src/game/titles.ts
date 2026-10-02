@@ -7,7 +7,7 @@ import type { Progress } from './progress';
 import { GRIMOIRE } from './grimoire';
 import { PATH_BY_ID } from '@/lib/tcg/paths';
 
-export interface TitleDef { id: string; name: string; how: string; has: (p: Progress) => boolean; progress?: (p: Progress) => [number, number] }
+export interface TitleDef { id: string; name: string; how: string; has: (p: Progress) => boolean; progress?: (p: Progress) => [number, number]; /** Só do WIT 1: aparece só para quem tem. */ legacy?: boolean }
 
 const unique = (p: Progress) => Object.values(p.collection).filter(n => n > 0).length;
 const realFish = FISH.filter(f => f.rarity !== 'lixo');
@@ -34,15 +34,17 @@ export const TITLES_LIST: TitleDef[] = [
   { id: 'reporter', name: 'Repórter Estrela', how: 'Publicar 5 matérias no jornalzinho.', ...at(5, p => p.materias.length) },
   { id: 'entregador', name: 'Sempre no Prazo', how: 'Fazer 20 entregas.', ...at(20, p => stat(p, 'entregas')) },
   // do WIT 1 (migration.ts): aparecem só para quem tinha
-  { id: 'veterano', name: 'Veterano WIT 1', how: 'Jogou o WIT Dungeon 1.', has: p => !!p.legado?.titulos.includes('veterano') },
-  { id: 'ajudante-semana', name: 'Ajudante da Semana', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('ajudante-semana') },
-  { id: 'guardiao-presenca', name: 'Guardião da Presença', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('guardiao-presenca') },
-  { id: 'exemplo-atitude', name: 'Exemplo de Atitude', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('exemplo-atitude') },
+  { id: 'veterano', legacy: true, name: 'Veterano WIT 1', how: 'Jogou o WIT Dungeon 1.', has: p => !!p.legado?.titulos.includes('veterano') },
+  { id: 'ajudante-semana', legacy: true, name: 'Ajudante da Semana', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('ajudante-semana') },
+  { id: 'guardiao-presenca', legacy: true, name: 'Guardião da Presença', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('guardiao-presenca') },
+  { id: 'exemplo-atitude', legacy: true, name: 'Exemplo de Atitude', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('exemplo-atitude') },
   { id: 'sabio-grimorio', name: 'Leitor do Grimório', how: 'Aprender todos os talentos do Grimório.', ...at(GRIMOIRE.length, p => p.grimorio.length) },
 ];
 export const TITLE_BY_ID = new Map(TITLES_LIST.map(t => [t.id, t]));
 
 export const earnedTitles = (p: Progress) => TITLES_LIST.filter(t => t.has(p));
+/** Os que aparecem na lista (os do WIT 1 só para quem tem). */
+export const visibleTitles = (p: Progress) => TITLES_LIST.filter(t => !t.legacy || t.has(p));
 
 /** O título que aparece na plaquinha: o escolhido (se ganhou), senão o do Caminho ou o da profissão, senão Novato. */
 export function shownTitle(p: Progress, profTitle?: string): string {
