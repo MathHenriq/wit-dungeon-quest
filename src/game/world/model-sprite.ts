@@ -82,6 +82,28 @@ export function paintModel(img: HTMLImageElement, look: Look, acc?: AccAssets | 
   }));
 }
 
+const waists = new Map<string, Promise<number[]>>();
+/**
+ * Cintura de cada direção do modelo (px do mundo, do topo do quadro): a
+ * última linha da camisa (cor-molde) mais 1, medida no quadro parado.
+ */
+export function modelWaists(modelo: string): Promise<number[]> {
+  let p = waists.get(modelo);
+  if (!p) {
+    p = loadModelSheet(modelo).then(img => {
+      const { w, h } = MODEL_CELL;
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      const x = c.getContext('2d', { willReadFrequently: true })!;
+      x.drawImage(img, 0, 0);
+      const bodies = measureFrames(x.getImageData(0, 0, c.width, c.height).data, c.width, w, h);
+      return MODEL_ROWS.map((_, r) => Math.round(bodies[r * 4].torsoBottom / 2) + 1);
+    });
+    waists.set(modelo, p);
+  }
+  return p;
+}
+
 export async function modelFrames(look: Look): Promise<HTMLCanvasElement[][]> {
   const [img, acc] = await Promise.all([
     loadModelSheet(look.modelo),

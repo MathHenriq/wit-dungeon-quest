@@ -2,7 +2,7 @@
 // interiores. Toda arte em canvas está em hd (R pixels por pixel do mundo).
 import type { Dir } from './movement';
 import { MODEL_CELL, type Look } from './outfit';
-import { MODEL_ROWS, modelFrames } from './model-sprite';
+import { MODEL_ROWS, modelFrames, modelWaists } from './model-sprite';
 import { nameplate, type PlateStyle } from './nameplate';
 import type { Pixmap } from './pixmap';
 
@@ -10,7 +10,24 @@ export const R = 2;
 export const DIRS: Dir[] = ['south', 'west', 'east', 'north'];
 
 /** Quadros de caminhada por direção, a linha dos pés e a largura (px do mundo). */
-export type Frames = { walk: Record<Dir, HTMLCanvasElement[]>; foot: Record<Dir, number>; w: number };
+export type Frames = {
+  walk: Record<Dir, HTMLCanvasElement[]>; foot: Record<Dir, number>; w: number;
+  /** Cintura (px do mundo, do topo do quadro): até onde aparece quem está sentado atrás de uma mesa. */
+  waist: Record<Dir, number>;
+};
+
+/** Cintura padrão dos NPCs do GPT (cabeça até ~27, tronco até ~33). */
+export const NPC_WAIST = 33;
+
+/**
+ * Sentado atrás de uma mesa (ou no barco): o quadro de andar só até a
+ * cintura, com a cintura na linha `cutY` (o tampo da mesa, a borda do casco).
+ * Tudo em px da tela; `x` é a esquerda do quadro.
+ */
+export function drawSeated(ctx: CanvasRenderingContext2D, img: HTMLCanvasElement, x: number, cutY: number, waist: number) {
+  const top = cutY - waist, h = img.height / R;
+  ctx.drawImage(img, 0, 0, img.width, waist * R, x, top, img.width / R, Math.min(waist, h));
+}
 
 export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => {
@@ -30,11 +47,12 @@ export function toCanvas(pm: Pixmap): HTMLCanvasElement {
 
 /** Personagem a partir de um modelo-base pintado com o visual. */
 export async function loadLookFrames(look: Look): Promise<Frames> {
-  const rows = await modelFrames(look);
+  const [rows, waists] = await Promise.all([modelFrames(look), modelWaists(look.modelo).catch(() => null)]);
   const walk = {} as Record<Dir, HTMLCanvasElement[]>;
   const foot = {} as Record<Dir, number>;
-  MODEL_ROWS.forEach((d, i) => { walk[d] = rows[i]; foot[d] = MODEL_CELL.foot; });
-  return { walk, foot, w: MODEL_CELL.w / R };
+  const waist = {} as Record<Dir, number>;
+  MODEL_ROWS.forEach((d, i) => { walk[d] = rows[i]; foot[d] = MODEL_CELL.foot; waist[d] = waists?.[i] ?? NPC_WAIST; });
+  return { walk, foot, w: MODEL_CELL.w / R, waist };
 }
 
 /**
@@ -45,7 +63,9 @@ export async function loadSheetFrames(url: string, cw: number, ch: number, footH
   const img = await loadImage(url);
   const walk = {} as Record<Dir, HTMLCanvasElement[]>;
   const foot = {} as Record<Dir, number>;
+  const waist = {} as Record<Dir, number>;
   MODEL_ROWS.forEach((d, r) => {
+    waist[d] = Math.round((NPC_WAIST / 40) * (ch / R));
     walk[d] = [0, 1, 2, 3].map(c => {
       const cv = document.createElement('canvas');
       cv.width = cw; cv.height = ch;
@@ -54,7 +74,7 @@ export async function loadSheetFrames(url: string, cw: number, ch: number, footH
     });
     foot[d] = footHd / R;
   });
-  return { walk, foot, w: cw / R };
+  return { walk, foot, w: cw / R, waist };
 }
 
 const base = () => `${import.meta.env.BASE_URL}game/sprites`;

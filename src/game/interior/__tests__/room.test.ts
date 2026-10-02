@@ -4,12 +4,37 @@ import { describe, expect, it } from 'vitest';
 import { findPath } from '@/game/world/movement';
 import {
   canPlace, catalogOf, ROOMS, footprint, HOUSE_CATS, HOUSE_START, houseRoom, nextFacing, sanitizeHouse, solidGrid,
-  spriteOf, towerRoom, type Manifest,
+  hiddenBehind, seatLine, spriteOf, tableBelow, towerRoom, wanderTiles, type Manifest,
 } from '../room';
 
 const m: Manifest = JSON.parse(readFileSync(resolve(__dirname, '../../../../public/game/interior/manifest.json'), 'utf8'));
 
 describe('interiores', () => {
+  it('quem passeia começa à vista e tem vários lugares para onde ir sem sumir atrás dos móveis', () => {
+    for (const r of Object.values(ROOMS).map(f => f())) {
+      for (const n of r.npcs.filter(x => x.wander)) {
+        expect(hiddenBehind(m, r, n.tx, n.ty), `${r.id}: ${n.id} começa escondido`).toBeLessThanOrEqual(0.3);
+        expect(wanderTiles(m, r, n).length, `${r.id}: ${n.id}`).toBeGreaterThanOrEqual(6);
+      }
+    }
+  });
+
+  it('quem senta numa mesa (desafiante ou jogador) tem a linha do tampo medida', () => {
+    const rooms = [...Object.values(ROOMS).map(f => f()), ...[1, 2, 3, 4, 5, 6, 31, 45, 71, 90].map(towerRoom)];
+    for (const r of rooms) {
+      const seats: [number, number, string][] = [
+        ...r.npcs.filter(n => n.seated).map(n => [n.tx, n.ty, n.id] as [number, number, string]),
+        ...(r.talks ?? []).filter(t => t.action === 'sentar' && t.seat).map(t => [t.seat![0], t.seat![1], 'livre'] as [number, number, string]),
+      ];
+      for (const [tx, ty, who] of seats) {
+        const q = tableBelow(m, r, tx, ty);
+        // atrás de balcão (café, recepção) fica de pé: não precisa da linha
+        if (!q || /balcao|recepcao/.test(q.id)) continue;
+        expect(seatLine(m, r, tx, ty), `${r.id}: ${who} na ${q.id}`).not.toBeNull();
+      }
+    }
+  });
+
   it('todo item usado nas salas existe no manifest', () => {
     const rooms = [houseRoom(), towerRoom(1), towerRoom(45), towerRoom(100)];
     for (const r of rooms) {

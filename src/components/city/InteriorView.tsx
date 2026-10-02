@@ -10,7 +10,7 @@ import { itemDef, itemIcon, itemLabel } from '@/game/items';
 import { Icon } from '@/components/Icon';
 import {
   canPlace, catalogOf, footprint, HOUSE_CATS, HOUSE_FLOORS, HOUSE_START, HOUSE_WALLS, houseRoom, layerOf, nextFacing,
-  ROOMS, sanitizeHouse, solidGrid, spriteOf, spriteRect, TILE, towerRoom, type Exit, type Manifest, type Placed, type Room, type RoomNpc,
+  ROOMS, sanitizeHouse, seatLine, solidGrid, wanderTiles, spriteOf, spriteRect, TILE, towerRoom, type Exit, type Manifest, type Placed, type Room, type RoomNpc,
 } from '@/game/interior/room';
 import { ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker } from '@/game/world/movement';
 import { drawExitMark, drawHint } from '@/game/world/player-acts';
@@ -27,7 +27,7 @@ import {
   activeDeckCards, applyDuel, bossUnlocked, canGoUp, loadProgress, saveProgress, tablesWon, winsOf, type DuelResult, type Progress,
 } from '@/game/progress';
 import {
-  loadImage, loadLookFrames, loadNpcFrames, loadPetFrames, plateCanvas, R, type Frames,
+  drawSeated, loadImage, loadLookFrames, loadNpcFrames, loadPetFrames, plateCanvas, R, type Frames,
 } from '@/game/world/sprites';
 
 /**
@@ -166,7 +166,11 @@ export function InteriorView({ sala, look, pet, onExit }: { sala: Sala; look: Lo
   return <Inside m={m} sala={sala} look={look} pet={pet} onExit={onExit} />;
 }
 
-interface Npc { def: RoomNpc; w: Walker; frames: Frames | null; /** quem passeia: caminho e espera até o próximo passeio */ path: Dir[]; wait: number }
+interface Npc {
+  def: RoomNpc; w: Walker; frames: Frames | null;
+  /** quem passeia: caminho, espera até o próximo passeio e os blocos em que pode parar */
+  path: Dir[]; wait: number; spots?: [number, number][];
+}
 type Holding = { p: Placed; from: Placed | null };
 
 function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala; look: Look; pet: string; onExit: (from: Sala) => void }) {
@@ -242,6 +246,15 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     S.player = newWalker(st.from.tx, st.from.ty, st.from.dir);
   };
   S.progress = progress;
+  // ?sentar=1 (prints e testes): senta na 1ª mesa livre da sala ao abrir
+  useEffect(() => {
+    const k = Number(new URLSearchParams(window.location.search).get('sentar'));
+    const t = k ? (room.talks ?? []).filter(x => x.action === 'sentar' && x.seat)[k - 1] : undefined;
+    if (!t?.seat) return;
+    S.sit = { tx: t.seat[0], ty: t.seat[1], from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
+    S.player = newWalker(t.seat[0], t.seat[1], 'south');
+    setWaiting(true);
+  }, [room, S]);
 
   // personagens
   useEffect(() => {
@@ -464,8 +477,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
       });
       // clientes passeando (andam devagar até um bloco livre do retângulo deles e esperam)
       for (const n of S.npcs) {
-        const wa = n.def.wander;
-        if (!wa) continue;
+        if (!n.def.wander) continue;
         n.wait -= dt;
         const occupied = (x: number, y: number) => blocked(x, y) && !(n.w.tx === x && n.w.ty === y) || (p.tx === x && p.ty === y);
         tick(n.w, dt, {
@@ -475,8 +487,10 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
             if (n.path.length) return n.path[0];
             if (n.wait > 0) return null;
             n.wait = 1800 + Math.random() * 3500;
-            const tx = wa[0] + Math.floor(Math.random() * (wa[2] - wa[0] + 1)), ty = wa[1] + Math.floor(Math.random() * (wa[3] - wa[1] + 1));
-            if (!occupied(tx, ty)) n.path = findPath(n.w.tx, n.w.ty, tx, ty, occupied).slice(0, 8);
+            // só para onde dá para ver (não atrás de vitrine ou planta)
+            const spots = n.spots ??= wanderTiles(m, room, n.def);
+            const goal = spots[Math.floor(Math.random() * spots.length)];
+            if (goal && !occupied(goal[0], goal[1])) n.path = findPath(n.w.tx, n.w.ty, goal[0], goal[1], occupied).slice(0, 8);
             return null;
           },
           onStep: () => { n.path.shift(); },
@@ -521,37 +535,31 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         if (layerOf(m, q.id) !== 'm') continue;
         list.push({ baseY: spriteRect(m, room, q).baseY, draw: () => drawItem(q) });
       }
-      const person = (w: Walker, fr: Frames | null, clipY: number | null = null) => {
-        const seated = clipY !== null;
+      // seat: a linha do tampo da mesa à frente (quem senta aparece até a cintura, por cima da mesa)
+      const person = (w: Walker, fr: Frames | null, seat: { cut: number; baseY: number } | null = null) => {
         if (!fr) return;
         const pos = pixelPos(w, TILE);
         const n = fr.walk[w.dir].length;
         const frameMs = (w === p && S.run ? RUN_MS : WALK_MS) / (n / 2);
-        const img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % n : 0];
-        // sentado: um pouco mais baixo (na cadeira) e por cima da mesa que está na frente
-        const sit = seated ? 3 : 0;
-        const x = Math.round(pos.x + 8 - fr.w / 2) - camX, y = Math.round(pos.y + 15 - fr.foot[w.dir]) - camY + sit;
+        const img = fr.walk[w.dir][seat ? 0 : w.anim > 0 ? Math.floor(w.anim / frameMs) % n : 0];
+        const x = Math.round(pos.x + 8 - fr.w / 2) - camX, y = Math.round(pos.y + 15 - fr.foot[w.dir]) - camY;
+        if (seat) {
+          list.push({ baseY: seat.baseY + 0.5, draw: () => drawSeated(ctx, img, x, Math.round(seat.cut) - camY, fr.waist[w.dir]) });
+          return;
+        }
         list.push({
-          baseY: pos.y + 16 - 0.5 + (seated ? 2 * TILE + 1 : 0),
+          baseY: pos.y + 16 - 0.5,
           draw: () => {
-            if (!seated) {
-              ctx.fillStyle = 'rgba(20,14,20,0.3)';
-              ctx.beginPath(); ctx.ellipse(x + fr.w / 2, y + fr.foot[w.dir], Math.min(7, fr.w / 3), 2.5, 0, 0, Math.PI * 2); ctx.fill();
-            }
-            if (seated) {
-              // só do tampo da mesa para cima (as pernas ficam atrás dela)
-              ctx.save();
-              ctx.beginPath(); ctx.rect(x - 4, y - 8, fr.w + 8, clipY! - camY - (y - 8)); ctx.clip();
-              ctx.drawImage(img, x, y, img.width / R, img.height / R);
-              ctx.restore();
-            } else ctx.drawImage(img, x, y, img.width / R, img.height / R);
+            ctx.fillStyle = 'rgba(20,14,20,0.3)';
+            ctx.beginPath(); ctx.ellipse(x + fr.w / 2, y + fr.foot[w.dir], Math.min(7, fr.w / 3), 2.5, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.drawImage(img, x, y, img.width / R, img.height / R);
           },
         });
       };
       if (!decor) {
         if (!S.sit) person(pt, S.petFrames);
-        // sentado na mesa vazia: igual aos desafiantes, cortado no tampo da mesa
-        person(p, S.playerFrames, S.sit ? (S.sit.ty + 1) * TILE - 8 : null);
+        // sentado na mesa vazia: igual aos desafiantes, até a cintura atrás do tampo
+        person(p, S.playerFrames, S.sit ? seatLine(m, room, S.sit.tx, S.sit.ty) : null);
       }
       // mesas vazias: plaquinha LIVRE em cima da cadeira
       for (const t of room.talks ?? []) if (t.action === 'sentar' && t.seat && !(S.sit && S.sit.tx === t.seat[0] && S.sit.ty === t.seat[1])) {
@@ -559,19 +567,9 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         if (cx > -30 && cx < vw + 30 && y > -10 && y < vh + 10) list.push({ baseY: 1e9, draw: () => drawExitMark(ctx, cx, y, 'LIVRE', now) });
       }
       for (const n of S.npcs) {
-        let clip: number | null = null;
-        if (n.def.seated && n.w.tx === n.def.tx && n.w.ty === n.def.ty) {
-          // a mesa logo abaixo dele: corta no começo do tampo
-          const mesa = room.items.find(q => {
-            if (layerOf(m, q.id) !== 'm') return false;
-            const [fw, fd] = footprint(m, q);
-            return n.def.tx >= q.tx && n.def.tx < q.tx + fw && n.def.ty + 1 >= q.ty && n.def.ty + 1 < q.ty + fd;
-          });
-          // mesa com cadeira alta atrás (Torre): na frente dela, cortado no tampo;
-          // mesa baixa: atrás dela, como qualquer um (o tampo já cobre as pernas)
-          if (mesa && spriteRect(m, room, mesa).y < mesa.ty * TILE - 12) clip = mesa.ty * TILE - 8;
-        }
-        person(n.w, n.frames, clip);
+        // sentado no lugar dele com uma mesa à frente: até a cintura; atrás de balcão: de pé
+        const seat = n.def.seated && n.w.tx === n.def.tx && n.w.ty === n.def.ty ? seatLine(m, room, n.def.tx, n.def.ty) : null;
+        person(n.w, n.frames, seat);
       }
       list.sort((a, b) => a.baseY - b.baseY);
       for (const d of list) d.draw();
@@ -589,6 +587,9 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
 
       // plaquinhas
       if (!decor) {
+        // sentado, o boneco sobe ou desce até o tampo: a plaquinha acompanha
+        const seatDy = (w: Walker, fr: Frames | null, seat: { cut: number } | null) =>
+          seat && fr ? Math.round(seat.cut) - fr.waist[w.dir] - (pixelPos(w, TILE).y + 15 - fr.foot[w.dir]) : 0;
         const plate = (w: Walker, c: HTMLCanvasElement, dy = 0) => {
           const pos = pixelPos(w, TILE);
           const pw = c.width / R, ph = c.height / R;
@@ -598,10 +599,12 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) {
             const d = n.def.duel;
             const won = d ? winsOf(S.progress, foeIdOf(d)) > 0 : false;
-            plate(n.w, plateCanvas(n.def.name, won ? `${n.def.title} - VENCIDO` : n.def.title, PLATE_NPC));
+            const seat = n.def.seated && n.w.tx === n.def.tx && n.w.ty === n.def.ty ? seatLine(m, room, n.def.tx, n.def.ty) : null;
+            plate(n.w, plateCanvas(n.def.name, won ? `${n.def.title} - VENCIDO` : n.def.title, PLATE_NPC), seatDy(n.w, n.frames, seat));
           }
         }
-        plate(p, plateCanvas(look.apelido || 'Você', shownTitle(loadProgress()), PLATE_PLAYER));
+        plate(p, plateCanvas(look.apelido || 'Você', shownTitle(loadProgress()), PLATE_PLAYER),
+          seatDy(p, S.playerFrames, S.sit ? seatLine(m, room, S.sit.tx, S.sit.ty) : null));
         // portas e passagens: placa piscando (uma por grupo)
         const groups = new Map<string, { x0: number; x1: number; ty: number }>();
         for (const e of room.exits) {
@@ -623,7 +626,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
         // tem algo para usar na frente: aviso do botão em cima da cabeça
         if (!p.from && !S.modal && !S.sit) {
           const f = ahead(p);
-          const can = S.npcs.some(n => n.def.talk.some(([x, y]) => x === f.tx && y === f.ty))
+          const can = S.npcs.some(n => (n.def.wander ? n.w.tx === f.tx && n.w.ty === f.ty : n.def.talk.some(([x, y]) => x === f.tx && y === f.ty)))
             || room.talks?.some(t => t.tiles.some(([x, y]) => x === f.tx && y === f.ty))
             || room.exits.some(e => e.tx === f.tx && e.ty === f.ty && solid[e.ty]?.[e.tx]);
           if (can) { const pos = pixelPos(p, TILE); drawHint(ctx, pos.x + 25 - camX, pos.y - 6 - camY, touch ? 'A' : 'ESPAÇO', now); }

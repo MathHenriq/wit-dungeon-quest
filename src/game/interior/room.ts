@@ -171,6 +171,44 @@ export function spriteRect(m: Manifest, room: Pick<Room, 'wallRows'>, p: Placed)
   return { x, y: baseY - h, w, h, baseY };
 }
 
+/**
+ * Mesas em que se senta atrás: a linha do tampo (px do mundo, do topo do
+ * sprite). Quem senta aparece até a cintura, com a cintura nessa linha
+ * (o resto fica "atrás" do tampo). Medido na folha `scripts/mapa/folha-sentar.ts`.
+ * Balcões (café, recepção) não entram: quem está atrás deles fica de pé.
+ */
+const SEAT_CUT: [RegExp, number][] = [
+  [/^mesa-duelo-/, 12],
+  [/^mesa-(fogo|agua|eletrico|planta|gelo|terra)$/, 12],
+  [/^mesa-(metal|fantasma|voador|sombrio)$/, 9],
+  [/^mesa-(luta|veneno)$/, 8],
+  [/^mesa-chefe$/, 17],
+  [/^mesa-feltro-verde$/, 8],
+  [/^mesa-feltro-vermelho$/, 3],
+  [/^mesa-troca-longa$/, 8],
+  [/^mesa-troca-redonda$/, 4],
+  [/^mesa-runas$/, 11],
+];
+export const seatCutOf = (id: string): number | undefined => SEAT_CUT.find(([re]) => re.test(id))?.[1];
+
+/** A mesa logo abaixo de um assento (o bloco à frente de quem senta virado para baixo). */
+export function tableBelow(m: Manifest, room: Room, tx: number, ty: number): Placed | undefined {
+  return room.items.find(q => {
+    if (layerOf(m, q.id) !== 'm') return false;
+    const [fw, fd] = footprint(m, q);
+    return tx >= q.tx && tx < q.tx + fw && ty + 1 >= q.ty && ty + 1 < q.ty + fd;
+  });
+}
+
+/** Linha (px do mundo) em que a cintura de quem senta no bloco fica: o tampo da mesa à frente. */
+export function seatLine(m: Manifest, room: Room, tx: number, ty: number): { cut: number; baseY: number } | null {
+  const q = tableBelow(m, room, tx, ty);
+  const cut = q && seatCutOf(spriteOf(m, q).id);
+  if (!q || cut === undefined) return null;
+  const r = spriteRect(m, room, q);
+  return { cut: r.y + cut, baseY: r.baseY };
+}
+
 /** Blocos ocupados: parede, bordas e móveis do chão. */
 export function solidGrid(m: Manifest, room: Room): boolean[][] {
   const g = Array.from({ length: room.h }, (_, y) => Array.from({ length: room.w }, () => y < room.wallRows));
@@ -179,8 +217,39 @@ export function solidGrid(m: Manifest, room: Room): boolean[][] {
     const [fw, fd] = footprint(m, p);
     for (let y = p.ty; y < p.ty + fd; y++) for (let x = p.tx; x < p.tx + fw; x++) if (g[y]?.[x] !== undefined) g[y][x] = true;
   }
-  for (const n of room.npcs) if (g[n.ty]?.[n.tx] !== undefined) g[n.ty][n.tx] = true;
+  // quem passeia não trava o bloco de onde saiu (a tela bloqueia onde ele está agora)
+  for (const n of room.npcs) if (!n.wander && g[n.ty]?.[n.tx] !== undefined) g[n.ty][n.tx] = true;
   return g;
+}
+
+/**
+ * Quanto de um boneco em pé no bloco fica escondido atrás de móveis que são
+ * desenhados na frente dele (0 a 1, pela caixa dos sprites).
+ */
+export function hiddenBehind(m: Manifest, room: Room, tx: number, ty: number): number {
+  const px = tx * TILE + 8 - 16, py = ty * TILE + 15 - 38, pw = 32, ph = 38, base = ty * TILE + 15.5;
+  // marca as colunas×linhas cobertas numa grade de 2 px (sem contar duas vezes a sobreposição)
+  const cols = pw / 2, rows = Math.ceil(ph / 2), hid = new Uint8Array(cols * rows);
+  for (const q of room.items) {
+    if (layerOf(m, q.id) !== 'm') continue;
+    const r = spriteRect(m, room, q);
+    if (r.baseY <= base) continue;
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      const x = px + i * 2 + 1, y = py + j * 2 + 1;
+      if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) hid[j * cols + i] = 1;
+    }
+  }
+  return hid.reduce((a, b) => a + b, 0) / hid.length;
+}
+
+/** Blocos em que um morador que passeia pode parar: livres e sem ficar escondido atrás de móvel. */
+export function wanderTiles(m: Manifest, room: Room, n: RoomNpc): [number, number][] {
+  if (!n.wander) return [];
+  const solid = solidGrid(m, room), [x0, y0, x1, y1] = n.wander, out: [number, number][] = [];
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (!solid[y]?.[x] && hiddenBehind(m, room, x, y) <= 0.3) out.push([x, y]);
+  }
+  return out;
 }
 
 /**

@@ -35,7 +35,7 @@ import {
   ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker,
 } from '@/game/world/movement';
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
-import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
+import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
 import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
@@ -1312,8 +1312,9 @@ function CityView({ town, start, startHour, onTravel }: {
               const half = Math.round(bc.height / 2);
               ctx.drawImage(bc, 0, 0, bc.width, half, bx0, by0, bw, half / R);
               drawOars(ctx, bxc, byc, w.dir, !!w.from, now);
-              const SHOW = 31, src = white ? img : tinted(img, tintKey, tintCss);
-              ctx.drawImage(src, 0, 0, src.width, SHOW * R, Math.round(bxc - fr.w / 2), Math.round(byc + 2 - SHOW), src.width / R, SHOW);
+              // cintura logo abaixo da borda da frente do casco (que vem por cima)
+              const src = white ? img : tinted(img, tintKey, tintCss);
+              drawSeated(ctx, src, Math.round(bxc - fr.w / 2), Math.round(byc + 1), fr.waist[w.dir]);
               ctx.drawImage(bc, 0, half, bc.width, bc.height - half, bx0, by0 + half / R, bw, (bc.height - half) / R);
               return;
             }
@@ -1334,12 +1335,12 @@ function CityView({ town, start, startHour, onTravel }: {
               }
             }
             if (w === s.player && s.seat) {
-              // sentado (até o GPT fazer o quadro de sentar): o corpo desce até o
-              // assento e as pernas encolhem para a frente (dobradas), sem cortar
-              const LEGS = 12, SQ = 6, src = white ? img : tinted(img, tintKey, tintCss);
-              const top = src.height / R - LEGS, sx = x + s.seat.dx, sy = y + LEGS - SQ - 1;
-              ctx.drawImage(src, 0, 0, src.width, top * R, sx, sy, src.width / R, top);
-              ctx.drawImage(src, 0, top * R, src.width, LEGS * R, sx, sy + top, src.width / R, SQ);
+              // sentado (até o GPT fazer o quadro de sentar): o tronco inteiro, o quadril
+              // desce 2 px até o assento e só as pernas encolhem para a frente
+              const src = white ? img : tinted(img, tintKey, tintCss), wst = fr.waist[w.dir];
+              const sx = x + s.seat.dx, legs = src.height / R - wst, LEG = 3, sy = y + 2;
+              ctx.drawImage(src, 0, 0, src.width, wst * R, sx, sy, src.width / R, wst);
+              ctx.drawImage(src, 0, wst * R, src.width, legs * R, sx, sy + wst, src.width / R, LEG);
             } else put(img, x, y);
             // capim alto: a parte de baixo do bloco (o mato) é desenhada de novo por cima das pernas
             if (inGrass) {
