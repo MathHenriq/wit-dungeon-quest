@@ -20,9 +20,10 @@ export const GRIMOIRE: Talent[] = [
 export const TALENT_BY_ID = new Map(GRIMOIRE.map(t => [t.id, t]));
 
 /** Pontos ganhos: 1 a cada 2 andares da Torre (o andar 1 não conta). */
-export const grimoirePoints = (p: Pick<Progress, 'towerMax'>) => Math.floor((p.towerMax - 1) / 2);
+/** Pontos: 1 a cada 2 andares da Torre + os pontos de talento que vieram do WIT 1. */
+export const grimoirePoints = (p: Pick<Progress, 'towerMax'> & Partial<Pick<Progress, 'legado'>>) => Math.floor((p.towerMax - 1) / 2) + (p.legado?.pontos ?? 0);
 export const spentPoints = (p: Pick<Progress, 'grimorio'>) => p.grimorio.reduce((s, id) => s + (TALENT_BY_ID.get(id)?.cost ?? 0), 0);
-export const freePoints = (p: Pick<Progress, 'towerMax' | 'grimorio'>) => grimoirePoints(p) - spentPoints(p);
+export const freePoints = (p: Pick<Progress, 'towerMax' | 'grimorio'> & Partial<Pick<Progress, 'legado'>>) => grimoirePoints(p) - spentPoints(p);
 export const hasTalent = (p: Pick<Progress, 'grimorio'>, id: GrimId) => p.grimorio.includes(id);
 
 export function learn(p: Progress, id: GrimId): { progress: Progress } | { reason: string } {

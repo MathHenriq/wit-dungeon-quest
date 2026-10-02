@@ -73,6 +73,12 @@ export interface Progress {
   /** Talentos do Grimório (grimoire.ts) e o verso de carta escolhido. */
   grimorio: GrimId[];
   verso?: 'classico' | 'dourado' | 'noite';
+  /** Pacotes ganhos e ainda fechados (do professor, do legado do WIT 1): abre na Loja quando quiser. */
+  pacotes: Record<string, number>;
+  /** O que veio do WIT 1 (migration.ts): nível e XP antigos, títulos antigos, pontos de talento. */
+  legado?: { nivel: number; xp: number; titulos: string[]; pontos: number };
+  /** Caminho sugerido pela classe do WIT 1 (aparece marcado na escolha). */
+  caminhoSugerido?: PathId;
   /** Título escolhido para a plaquinha (titles.ts); só aparece se foi ganho. */
   titulo?: string;
   /** Caminho escolhido no primeiro acesso (paths.ts); sem ele, o jogo pergunta. */
@@ -106,6 +112,7 @@ export function newProgress(): Progress {
     materias: [],
     diario: [],
     grimorio: [],
+    pacotes: {},
   };
 }
 
@@ -184,6 +191,19 @@ export function sanitizeProgress(raw: unknown): Progress {
     diarioDia: r.diarioDia === undefined ? undefined : num(r.diarioDia, 0),
     grimorio: Array.isArray(r.grimorio) ? [...new Set((r.grimorio as unknown[]).filter((x): x is GrimId => typeof x === 'string' && TALENT_BY_ID.has(x as GrimId)))] : [],
     verso: r.verso === 'dourado' || r.verso === 'noite' || r.verso === 'classico' ? r.verso : undefined,
+    pacotes: (() => {
+      const o: Record<string, number> = {};
+      const raw = (r.pacotes ?? {}) as Record<string, unknown>;
+      for (const k of ['comum', 'incomum', 'raro', 'epico', 'lendario', 'mitico']) if (raw[k] !== undefined) { const n = num(raw[k], 0, 0, 999); if (n) o[k] = n; }
+      return o;
+    })(),
+    legado: (() => {
+      const l = r.legado as Record<string, unknown> | undefined;
+      if (!l || typeof l !== 'object') return undefined;
+      return { nivel: num(l.nivel, 1, 1, 999), xp: num(l.xp, 0, 0, 1e9), pontos: num(l.pontos, 0, 0, 50),
+        titulos: Array.isArray(l.titulos) ? (l.titulos as unknown[]).filter((t): t is string => typeof t === 'string' && /^[a-z0-9-]{1,30}$/.test(t)).slice(0, 20) : [] };
+    })(),
+    caminhoSugerido: typeof r.caminhoSugerido === 'string' && PATH_BY_ID.has(r.caminhoSugerido as PathId) ? (r.caminhoSugerido as PathId) : undefined,
     titulo: typeof r.titulo === 'string' && /^[a-z-]{1,24}$/.test(r.titulo) ? r.titulo : undefined,
     caminho: typeof r.caminho === 'string' && PATH_BY_ID.has(r.caminho as PathId) ? (r.caminho as PathId) : undefined,
     campo: (() => {

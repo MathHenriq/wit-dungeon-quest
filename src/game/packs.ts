@@ -105,3 +105,14 @@ export function openPack(p: Progress, id: PackId, rnd: () => number): { ok: true
   const stats = { ...p.stats, pacotes: (p.stats.pacotes ?? 0) + 1 };
   return { ok: true, progress: { ...p, collection, semEpica: result.dry, stats }, result, fresh };
 }
+
+/** Abre um pacote guardado (ganho do professor ou do legado do WIT 1). */
+export function openSaved(p: Progress, id: PackId, rnd: () => number): ReturnType<typeof openPack> {
+  if (!(p.pacotes[id] > 0)) return { ok: false, reason: 'Você não tem esse pacote guardado.' };
+  const left = { ...p.pacotes, [id]: p.pacotes[id] - 1 };
+  if (!left[id]) delete left[id];
+  return openPack({ ...p, pacotes: left }, id, rnd);
+}
+
+/** Guarda pacotes fechados (o professor dá, a migração dá). */
+export const givePacks = (p: Progress, id: PackId, n = 1): Progress => ({ ...p, pacotes: { ...p.pacotes, [id]: (p.pacotes[id] ?? 0) + n } });

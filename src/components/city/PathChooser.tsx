@@ -11,6 +11,7 @@ const font = "font-['Press_Start_2P',monospace]";
 
 export function PathChooser({ onDone }: { onDone: () => void }) {
   const [sel, setSel] = useState<PathId | null>(null);
+  const suggested = useMemo(() => loadProgress().caminhoSugerido, []);
   const decks = useMemo(() => Object.fromEntries(PATHS.map(p => [p.id, pathDeck(p.id)])), []);
   const p = sel ? PATHS.find(x => x.id === sel)! : null;
   // amostra: as 3 cartas mais "do Caminho" que não são repetidas
@@ -33,6 +34,7 @@ export function PathChooser({ onDone }: { onDone: () => void }) {
                 <button key={x.id} onClick={() => { setSel(x.id); play('click'); }}
                   className="text-left rounded-xl border-4 p-3 bg-[#1e1832] hover:-translate-y-1 transition-transform" style={{ borderColor: x.color }}>
                   <div className="text-[11px]" style={{ color: x.color }}>{x.name.toUpperCase()}</div>
+                  {suggested === x.id && <div className="inline-block mt-1 px-1.5 py-0.5 rounded bg-[#ffd84a] text-[#141022] text-[7px]">PARECIDO COM A SUA CLASSE DO WIT 1</div>}
                   <div className="text-[8px] leading-4 text-white/85 mt-1 min-h-[32px]">{x.style}</div>
                   <div className="grid grid-cols-3 gap-1 mt-2">
                     {sample(x.id).map(c => <div key={c.id} className="pointer-events-none"><TcgCard card={c} /></div>)}

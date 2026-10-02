@@ -33,6 +33,11 @@ export const TITLES_LIST: TitleDef[] = [
   { id: 'mestre-oficio', name: 'Mestre de Ofício', how: 'Chegar ao nível 5 numa profissão.', ...at(5, bestProf) },
   { id: 'reporter', name: 'Repórter Estrela', how: 'Publicar 5 matérias no jornalzinho.', ...at(5, p => p.materias.length) },
   { id: 'entregador', name: 'Sempre no Prazo', how: 'Fazer 20 entregas.', ...at(20, p => stat(p, 'entregas')) },
+  // do WIT 1 (migration.ts): aparecem só para quem tinha
+  { id: 'veterano', name: 'Veterano WIT 1', how: 'Jogou o WIT Dungeon 1.', has: p => !!p.legado?.titulos.includes('veterano') },
+  { id: 'ajudante-semana', name: 'Ajudante da Semana', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('ajudante-semana') },
+  { id: 'guardiao-presenca', name: 'Guardião da Presença', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('guardiao-presenca') },
+  { id: 'exemplo-atitude', name: 'Exemplo de Atitude', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('exemplo-atitude') },
   { id: 'sabio-grimorio', name: 'Leitor do Grimório', how: 'Aprender todos os talentos do Grimório.', ...at(GRIMOIRE.length, p => p.grimorio.length) },
 ];
 export const TITLE_BY_ID = new Map(TITLES_LIST.map(t => [t.id, t]));
