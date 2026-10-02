@@ -67,6 +67,8 @@ export interface Progress {
   diario: LogEntry[];
   /** Dia em que respondeu a pergunta do diário (1 prêmio por dia). */
   diarioDia?: number;
+  /** Trabalho de campo em andamento (fieldwork.ts): qual, semente, pontos feitos e quando começou. */
+  campo?: { job: string; seed: number; feitos: number[]; ini: number };
 }
 
 export function newProgress(): Progress {
@@ -169,6 +171,12 @@ export function sanitizeProgress(raw: unknown): Progress {
     jornalDia: r.jornalDia === undefined ? undefined : num(r.jornalDia, 0),
     diario: sanitizeLog(r.diario),
     diarioDia: r.diarioDia === undefined ? undefined : num(r.diarioDia, 0),
+    campo: (() => {
+      const c = r.campo as Record<string, unknown> | undefined;
+      if (!c || typeof c.job !== 'string') return undefined;
+      return { job: c.job.slice(0, 20), seed: num(c.seed, 0, 0, 1e9), ini: num(c.ini, 0, 0, 1e14),
+        feitos: Array.isArray(c.feitos) ? [...new Set((c.feitos as unknown[]).map(x => num(x, 0, 0, 9)))].slice(0, 10) : [] };
+    })(),
     coins: num(r.coins, 0),
     collection: col,
     decks,

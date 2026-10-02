@@ -13,6 +13,8 @@ import { Icon } from '@/components/Icon';
 import { orderOf } from '@/game/deliveries';
 import { OrderBox } from './OrderBox';
 import { Jornalzinho } from './Jornalzinho';
+import { FieldBox } from './FieldBox';
+import { fieldOf } from '@/game/fieldwork';
 
 const COLOR: Record<MinigameId, string> = {
   compor: '#3a78c8', pao: '#c87a2a', forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', materia: '#c84a6a', programar: '#2a9ac8', grafico: '#c8762a', afinar: '#3a78c8', cores: '#b0487a', regras: '#2a9a5a', rota: '#e8762a', coordenadas: '#7a4ac8', acuracia: '#2a9ac8', 'teste-jogo': '#c8a020',
@@ -29,7 +31,7 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   const prof = profOfMinigame(game);
   const color = COLOR[game];
   const [phase, setPhase] = useState<'intro' | 'play' | 'result'>('intro');
-  const [tab, setTab] = useState<'trabalhar' | 'comprar' | 'encomenda' | 'jornal'>('trabalhar');
+  const [tab, setTab] = useState<'trabalhar' | 'comprar' | 'encomenda' | 'jornal' | 'campo'>('trabalhar');
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e6));
   const [res, setRes] = useState<{ r: GameResult; reward: Reward | null; levelUp?: number; news?: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -37,9 +39,10 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   const perk = perkLevel(progress.profissao, prof.id, xp);
   const left = playsLeft(progress, game);
   const Game = GAMES[game];
-  const tabs: ['trabalhar' | 'comprar' | 'encomenda' | 'jornal', string][] = [['trabalhar', 'TRABALHO']];
+  const tabs: ['trabalhar' | 'comprar' | 'encomenda' | 'jornal' | 'campo', string][] = [['trabalhar', 'TRABALHO']];
   if (shop) tabs.push(['comprar', 'COMPRAR']);
   if (orderOf(prof.id)) tabs.push(['encomenda', 'ENCOMENDA']);
+  if (fieldOf(prof.id)) tabs.push(['campo', 'NO MAPA']);
   if (prof.id === 'reporter') tabs.push(['jornal', 'JORNALZINHO']);
 
   const start = () => {
@@ -71,6 +74,7 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   return (
     <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={game === 'compor' || game === 'pao' || game === 'materia' || game === 'programar' || game === 'grafico' || game === 'rota' || game === 'coordenadas' || game === 'acuracia' || game === 'regras' || tab === 'jornal'}>
       {phase === 'intro' && tabs.length > 1 && <Tabs tabs={tabs} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
+      {phase === 'intro' && tab === 'campo' && <FieldBox prof={prof.id} progress={progress} />}
       {phase === 'intro' && tab === 'jornal' && <Jornalzinho progress={progress} />}
       {phase === 'intro' && tab === 'encomenda' && <OrderBox prof={prof.id} progress={progress} />}
       {phase === 'intro' && tab === 'comprar' && shop && (

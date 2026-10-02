@@ -22,6 +22,8 @@ import { FishHouse } from '@/components/city/FishHouse';
 import { WorldMap } from '@/components/city/WorldMap';
 import { play } from '@/game/sfx';
 import { addPhoto, loadPhotos, MAX_PHOTOS, savePhotos, snap } from '@/game/photos';
+import { cancelField, completeTarget, FIELD_BY_ID, fieldLeft, interviewLine, pendingByZone, targetsIn, type FieldTarget } from '@/game/fieldwork';
+import { publish } from '@/game/press';
 import { lampPower, lightHalo, timeOfDay } from '@/game/world/light';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
@@ -294,6 +296,8 @@ function CityView({ town, start, startHour, onTravel }: {
     litterCanvases: null as HTMLCanvasElement[] | null,
     litterAt: 0,
     pops: [] as { x: number; y: number; t: number }[],
+    /** Trabalho de campo: os pontos que faltam nesta área (refeitos quando o progresso muda). */
+    field: { key: '', targets: [] as FieldTarget[] },
     critterCanvases: {} as Partial<Record<CritterKind, { west: HTMLCanvasElement[]; east: HTMLCanvasElement[] }>>,
     /** Fazenda (guardada no navegador): campos, caixa de envio, regador. */
     farm: loadFarm(Date.now(), town.id === 'fazenda' ? (() => { const sp = town.spots.find(p => p.kind === 'campo'); return sp ? { x0: sp.tx, y0: sp.ty } : undefined; })() : undefined) as FarmState,
@@ -601,6 +605,32 @@ function CityView({ town, start, startHour, onTravel }: {
 
   // para os scripts de print (só no vite de desenvolvimento)
   if (import.meta.env.DEV) (window as unknown as { __city: unknown }).__city = g.current;
+  /** Pontos do trabalho de campo que faltam nesta área. */
+  const fieldNow = (): FieldTarget[] => {
+    const s = g.current, c = loadProgressCached().campo;
+    const key = c ? `${c.job}|${c.seed}|${c.feitos.join(',')}` : '';
+    if (key !== s.field.key) s.field = { key, targets: c ? targetsIn(town, c).filter(t => !c.feitos.includes(t.i)) : [] };
+    return s.field.targets;
+  };
+  /** Cumpre um ponto do trabalho de campo; devolve o que mostrar (null = nada aconteceu). */
+  const doTarget = (t: FieldTarget, x: number, y: number): string[] | null => {
+    const pr = loadProgress(), c = pr.campo, job = c && FIELD_BY_ID.get(c.job);
+    if (!c || !job) return null;
+    const r = completeTarget(pr, t.i, Date.now());
+    if ('reason' in r) {
+      if (fieldLeft(pr, Date.now()) !== null && fieldLeft(pr, Date.now())! <= 0) saveProgress(cancelField(pr));
+      return [r.reason];
+    }
+    let next = r.progress;
+    // a entrevista vira matéria do jornalzinho quando a última pessoa responde
+    if (r.done && job.id === 'entrevista') next = publish(next, Math.floor((Date.now() - new Date().getTimezoneOffset() * 60_000) / 86_400_000), `Entrevista: moradores do Centro, do Lago e da Fazenda contam o que pensam da cidade. "${interviewLine(c.seed, t.i)}"`);
+    saveProgress(next);
+    g.current.pops.push({ x, y, t: performance.now() }); g.current.dirty = true;
+    play(r.done ? 'win' : 'coin');
+    if (!r.done) return [`${r.line} (${c.feitos.length + 1}/${job.zones.length})`];
+    return [r.line, `${job.name.toUpperCase()}: TRABALHO COMPLETO! +${r.done.coins} moedas`, ...(r.done.levelUp ? [`${PROF_BY_ID.get(job.prof)!.name} subiu para o nível ${r.done.levelUp}!`] : []), ...(job.id === 'entrevista' ? ['A matéria com as entrevistas saiu no jornalzinho do Estúdio.'] : [])];
+  };
+
   /** Câmera do repórter: retrato da tela (sem os botões), guardado no álbum. */
   const [flash, setFlash] = useState(false);
   const takePhoto = () => {
@@ -639,6 +669,14 @@ function CityView({ town, start, startHour, onTravel }: {
     if (npc) {
       const back: Record<Dir, Dir> = { north: 'south', south: 'north', west: 'east', east: 'west' };
       npc.w.dir = back[p.dir];
+      // entrevista do trabalho de campo
+      const ft = fieldNow().find(t => t.npc === npc.def.id);
+      const c = loadProgress().campo;
+      if (ft && c) {
+        const lines = doTarget(ft, npc.w.tx * TILE + 8, npc.w.ty * TILE);
+        setDialog({ lines: [`${npc.def.name}: "${interviewLine(c.seed, ft.i)}"`, ...(lines ?? [])], i: 0 });
+        return;
+      }
       setDialog({ lines: npc.def.lines, i: 0 });
       return;
     }
@@ -1057,7 +1095,7 @@ function CityView({ town, start, startHour, onTravel }: {
       }
       // quadros de animação dos objetos
       // (só o relógio de cada ritmo: com a fase, cada objeto troca de quadro junto com o seu ritmo)
-      const animKey = s.animRates.map(ms => Math.floor(now / ms)).join(',');
+      const animKey = s.animRates.map(ms => Math.floor(now / ms)).join(',') + (s.field.targets.length ? `|${Math.floor(now / 90)}` : '');
       if (animKey !== lastAnimKey) { lastAnimKey = animKey; s.dirty = true; }
       // relógio do jogo: a luz muda aos poucos; à noite os pulsos correm nos circuitos
       s.hour = (s.hour + (dt * s.clockSpeed) / MS_PER_HOUR) % 24;
@@ -1071,6 +1109,12 @@ function CityView({ town, start, startHour, onTravel }: {
       // nome do lugar quando o jogador chega perto de uma porta
       if (p.tx !== lastNearTile.x || p.ty !== lastNearTile.y) {
         lastNearTile = { x: p.tx, y: p.ty };
+        // pisou num ponto do trabalho de campo
+        const ft = fieldNow().find(t => !t.npc && t.tx === p.tx && t.ty === p.ty);
+        if (ft) {
+          const lines = doTarget(ft, p.tx * TILE + 8, p.ty * TILE + 8);
+          if (lines) { if (lines.length > 1) setDialog({ lines, i: 0 }); else toast(lines[0]); }
+        }
         const d = town.doors.find(dd => Math.abs(dd.tx - p.tx) <= 2 && p.ty - dd.ty >= 0 && p.ty - dd.ty <= 3);
         const title = d ? (BUILDING_INFO[d.building]?.title ?? houseInfo(d.building, d.name).title) : null;
         if (title !== lastNear) { lastNear = title; setNear(title); }
@@ -1323,6 +1367,33 @@ function CityView({ town, start, startHour, onTravel }: {
         const lc = s.litterCanvases[l.kind], lx = l.x - camX, ly = l.y - camY;
         if (lx < -10 || lx > vw + 10 || ly < -10 || ly > vh + 10) continue;
         list.push({ baseY: l.y - 4, draw: () => put(lc, Math.round(lx - lc.width / R / 2), Math.round(ly - lc.height / R / 2)) });
+      }
+      // pontos do trabalho de campo: losango pulando (ou o bug piscando, só de perto)
+      const fjob = s.field.targets.length ? FIELD_BY_ID.get(loadProgressCached().campo?.job ?? '') : undefined;
+      if (fjob) for (const t of s.field.targets) {
+        let wx = t.tx * TILE + 8, wy = t.ty * TILE + 8;
+        if (t.npc) { const n = s.npcs.find(nn => nn.def.id === t.npc); if (!n) continue; const np = pixelPos(n.w, TILE); wx = np.x + 8; wy = np.y + 8; }
+        if (fjob.hidden && Math.abs(t.tx - p.tx) + Math.abs(t.ty - p.ty) > 6) continue;
+        const mx = wx - camX, my = wy - camY;
+        if (mx < -20 || mx > vw + 20 || my < -40 || my > vh + 20) continue;
+        list.push({ baseY: wy + 30, draw: () => {
+          if (fjob.hidden) {
+            // bug: blocos coloridos fora do lugar, piscando
+            const jit = Math.floor(now / 110);
+            if (jit % 7 !== 0) { ctx.strokeStyle = '#ff3ad0'; ctx.lineWidth = 1; ctx.strokeRect(mx - 8 + (jit % 3) - 1, my - 8, 16, 16); }
+            for (let k = 0; k < 9; k++) {
+              if (Math.sin(now / 70 + k * 2.1) < -0.3) continue;
+              ctx.fillStyle = ['#ff3ad0', '#3affd8', '#fff23a'][k % 3];
+              ctx.fillRect(mx - 8 + ((k * 5 + jit) % 13), my - 8 + ((k * 7 + jit * 3) % 13), 4 + (k % 2) * 2, 2 + (k % 3));
+            }
+            return;
+          }
+          const bob = Math.sin(now / 220) * 2.5, top = my - (t.npc ? 34 : 18) + bob;
+          if (!t.npc) { ctx.strokeStyle = fjob.color; ctx.globalAlpha = 0.5 + 0.3 * Math.sin(now / 300); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(mx, my + 4, 7, 3.5, 0, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+          ctx.fillStyle = fjob.color; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(mx, top - 6); ctx.lineTo(mx + 5, top); ctx.lineTo(mx, top + 6); ctx.lineTo(mx - 5, top); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.fillRect(mx - 1, top - 1, 2, 2);
+        } });
       }
       for (const pp of s.pops) {
         const k = (now - pp.t) / 600, px = pp.x - camX, py = pp.y - camY;
@@ -1669,6 +1740,18 @@ function CityView({ town, start, startHour, onTravel }: {
       {fishUi?.kind === 'toast' && (
         <div className={`absolute left-1/2 -translate-x-1/2 bottom-[22%] px-4 py-2 rounded-lg bg-black/70 text-white text-[10px] pointer-events-none ${pixelFont}`}>{fishUi.text}</div>
       )}
+      {progress.campo && !inside && (() => {
+        const job = FIELD_BY_ID.get(progress.campo.job);
+        if (!job) return null;
+        const left = fieldLeft(progress, Date.now());
+        const here = pendingByZone(progress.campo)[town.id];
+        return (
+          <div className={`absolute ${progress.entrega ? 'top-40 sm:top-28' : 'top-24 sm:top-14'} right-2 px-3 py-2 rounded-md border-2 border-white/50 text-white text-[9px] leading-4 max-w-[240px] ${pixelFont}`} style={{ background: `${job.color}e6` }}>
+            {job.name.toUpperCase()} {progress.campo.feitos.length}/{job.zones.length}{left !== null && ` · ${left > 0 ? `${Math.floor(left / 60000)}:${String(Math.floor((left % 60000) / 1000)).padStart(2, '0')}` : 'PRAZO!'}`}<br />
+            <span className="text-white/85">{here ? `Aqui: ${here} ${job.hidden ? '(procure!)' : '(marcados)'}` : 'Aqui: nenhum'} · {Object.entries(pendingByZone(progress.campo)).filter(([z]) => z !== town.id).map(([z, n]) => `${ZONE_NAMES[z as ZoneId]} ${n}`).join(', ') || 'só aqui'}</span>
+          </div>
+        );
+      })()}
       {progress.entrega && !inside && (
         <div className={`absolute top-24 sm:top-14 right-2 px-3 py-2 rounded-md bg-[#2a8a8a]/90 border-2 border-white/50 text-white text-[9px] leading-4 ${pixelFont}`}>
           <Icon id="pacote" size={14} /> {progress.entrega.nome}<br />

@@ -102,4 +102,34 @@ if (want('acuracia')) {
   for (let k = 0; k < 4; k++) await cards.nth(k).click();
   await page.screenshot({ path: `${S}/acuracia-1.png` });
 }
+if (want('campo')) {
+  // pega "Instalar sensores" no trabalho da Casa Inteligente
+  await work('casa-iot', 'REGRA SE/ENTÃO').catch(() => {});
+  await go('zona=wit&trabalho=casa-iot');
+  await page.getByRole('button', { name: 'NO MAPA', exact: true }).click(); await page.waitForTimeout(200);
+  await page.getByRole('button', { name: 'PEGAR O TRABALHO' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/campo-1.png` });
+  // vai para perto do ponto marcado desta área e anda até ele
+  await go('zona=wit');
+  const t = await page.evaluate(() => window.__city.field.targets[0]);
+  await go(`zona=wit&pos=${t.tx},${t.ty + 2}`);
+  await page.screenshot({ path: `${S}/campo-2.png` });
+  await page.keyboard.down('ArrowUp'); await page.waitForTimeout(520); await page.keyboard.up('ArrowUp');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${S}/campo-3.png` });
+  // bugs: aparece só de perto
+  await page.evaluate(() => { const p = JSON.parse(localStorage.getItem('wit.progresso')); p.campo = { job: 'bugs', seed: 4242, feitos: [], ini: Date.now() }; localStorage.setItem('wit.progresso', JSON.stringify(p)); });
+  await go('zona=cidade');
+  const b = await page.evaluate(() => window.__city.field.targets[0]);
+  await go(`zona=cidade&pos=${b.tx + 2},${b.ty + 1}`);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/campo-4-bug.png` });
+  // entrevista: o morador marcado
+  await page.evaluate(() => { const p = JSON.parse(localStorage.getItem('wit.progresso')); p.campo = { job: 'entrevista', seed: 77, feitos: [], ini: Date.now() }; localStorage.setItem('wit.progresso', JSON.stringify(p)); });
+  await go('zona=cidade');
+  const n = await page.evaluate(() => window.__city.field.targets[0]);
+  await go(`zona=cidade&pos=${n.tx},${n.ty + 2}`);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/campo-5-entrevista.png` });
+}
 await browser.close();
