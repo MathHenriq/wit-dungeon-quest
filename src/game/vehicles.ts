@@ -16,8 +16,8 @@ export interface Vehicle { id: VehicleId; name: string; price: number; msPerTile
 export const WALK_MS = 230, RUN_MS = 125;
 
 export const VEHICLES: Vehicle[] = [
-  { id: 'patinete', name: 'Patinete elétrico', price: 600, msPerTile: 140, hunger: 0.5, about: 'Da estação de patinetes da Cidade WIT. Leve e silencioso.' },
-  { id: 'bicicleta', name: 'Bicicleta', price: 1200, msPerTile: 115, hunger: 1.2, about: 'Pedalar dá fome, mas é bem mais rápido que correr.' },
+  { id: 'patinete', name: 'Patinete elétrico', price: 600, msPerTile: 118, hunger: 0.5, about: 'Da estação de patinetes da Cidade WIT. Leve e silencioso.' },
+  { id: 'bicicleta', name: 'Bicicleta', price: 1200, msPerTile: 105, hunger: 1.2, about: 'Pedalar dá fome, mas é bem mais rápido que correr.' },
   { id: 'moto', name: 'Moto elétrica', price: 4000, msPerTile: 90, hunger: 0.6, about: 'Rápida e econômica. Só nas ruas.' },
   { id: 'carro', name: 'Carro elétrico', price: 9000, msPerTile: 75, hunger: 0.4, about: 'O mais rápido do chão. Cabe o pet no banco de trás.' },
   { id: 'aviao', name: 'Aviãozinho', price: 20000, msPerTile: 0, hunger: 2, flies: true, about: 'Voa entre as pistas das áreas (viagem rápida). Não anda pela rua.' },
