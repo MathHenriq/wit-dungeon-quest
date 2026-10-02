@@ -48,6 +48,9 @@ export function rewardOf(game: MinigameId, score: number, perk: number, hits = 0
       const coins = Math.round(s * 24 * (1 + perk * 0.3));
       return { items: s >= 0.9 ? { 'modelo-ia': 1 } : {}, coins, xp };
     }
+    case 'grafico':
+      // 5 perguntas sobre os preços do Mercado
+      return { items: {}, coins: Math.round(hits * 4 * (1 + perk * 0.4)), xp };
     case 'materia':
       // 3 pautas × 4 partes do lide; a matéria certinha ainda sai no jornalzinho
       return { items: {}, coins: Math.round(hits * 3 * (1 + perk * 0.4)), xp };

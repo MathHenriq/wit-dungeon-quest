@@ -13,6 +13,8 @@ import { today } from '@/game/life';
 import { play } from '@/game/sfx';
 import { HungerBar, LevelBar, Shell, Tabs } from './Shell';
 import { Icon } from '@/components/Icon';
+import { LineChart } from './Charts';
+import { CHART_ITEMS, dayLabel, priceSeries } from '@/game/charts';
 
 const KIND_ORDER: [ItemKind, string][] = [['comida', 'COMIDA'], ['produto', 'FEITO NO TRABALHO'], ['peixe', 'PEIXES'], ['colheita', 'COLHEITA'], ['fazenda', 'DA FAZENDA'], ['semente', 'SEMENTES']];
 const Msg = ({ msg }: { msg: string | null }) => (msg ? <div className="mt-3 text-[9px] text-[#3a9a5a]">{msg}</div> : null);
@@ -150,8 +152,9 @@ export function Backpack({ progress, onClose, start = 'mochila' }: { progress: P
 
 const ARROW = { sobe: <span className="text-[#3a9a5a]">▲</span>, desce: <span className="text-[#e8485a]">▼</span>, igual: <span className="text-[#8a8a94]">●</span> };
 
-export function MarketPanel({ progress, onClose }: { progress: Progress; onClose: () => void }) {
-  const [tab, setTab] = useState<'vender' | 'comprar'>('vender');
+export function MarketPanel({ progress, onClose, onWork }: { progress: Progress; onClose: () => void; onWork?: () => void }) {
+  const [tab, setTab] = useState<'vender' | 'comprar' | 'grafico'>('vender');
+  const [chartItem, setChartItem] = useState<string>(() => sellable(progress).find(i => CHART_ITEMS.includes(i)) ?? 'pao');
   const [msg, setMsg] = useState<string | null>(null);
   const items = sellable(progress).sort((a, b) => marketPrice(progress, b) - marketPrice(progress, a));
   const doSell = (id: string, n: number) => {
@@ -168,7 +171,23 @@ export function MarketPanel({ progress, onClose }: { progress: Progress; onClose
   return (
     <Shell title="MERCADO CENTRAL" color="#c8762a" coins={progress.coins} onClose={onClose}>
       <div className="text-[8px] leading-4 text-[#5a5470] mb-2">Os preços mudam todo dia (▲ subiu, ▼ caiu). Vender muito da mesma coisa enche o mercado e o preço cai; ele esvazia aos poucos.</div>
-      <Tabs tabs={[['vender', 'VENDER'], ['comprar', 'COMPRAR']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color="#c8762a" />
+      <Tabs tabs={[['vender', 'VENDER'], ['comprar', 'COMPRAR'], ['grafico', 'GRÁFICOS']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color="#c8762a" />
+      {tab === 'grafico' && (
+        <div>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {[...new Set([...sellable(progress).filter(i => (itemDef(i)?.price ?? 0) > 0), ...CHART_ITEMS])].slice(0, 14).map(id => (
+              <button key={id} onClick={() => setChartItem(id)} title={itemLabel(id)}
+                className={`p-1 rounded border-2 ${chartItem === id ? 'border-[#c8762a] bg-[#fff1dc]' : 'border-[#e0d8c4] bg-white'}`}><Icon id={itemIcon(id)} size={24} /></button>
+            ))}
+          </div>
+          <div className="rounded-lg bg-white border-2 border-[#e0d8c4] p-2">
+            <div className="text-[8px] mb-1">{itemLabel(chartItem)} · preço normal nos últimos 10 dias</div>
+            <LineChart series={priceSeries(chartItem, today())} labels={Array.from({ length: 10 }, (_, k) => dayLabel(k, 10))} />
+          </div>
+          <div className="text-[8px] leading-4 text-[#5a5470] mt-2">Venda quando a linha estiver no alto. O preço muito acima do normal costuma voltar para o meio.</div>
+          {onWork && <button onClick={onWork} className="mt-2 w-full py-2.5 rounded-lg bg-[#c8762a] text-white text-[10px] border-b-4 border-[#8a4a10]">TRABALHAR: LER O GRÁFICO (Comerciante)</button>}
+        </div>
+      )}
       {tab === 'vender' && (
         <div>
           {!items.length && <div className="text-[8px] text-[#5a5470]">Nada para vender. Peixes, colheitas, ovos, discos, quadros, sensores... tudo vende aqui.</div>}

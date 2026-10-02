@@ -69,6 +69,8 @@ const WORK_DOORS: Record<string, { game: MinigameId; also?: MinigameId[]; shop?:
   metaverso: { game: 'pares' },
   estudio: { game: 'materia', also: ['noticia'] },
   'oficina-games': { game: 'teste-jogo' },
+  // sem porta própria: abre pela aba GRÁFICOS do Mercado (e por ?trabalho=analista)
+  analista: { game: 'grafico' },
 };
 /** Um dia inteiro do jogo dura 12 minutos (30 s por hora). */
 const MS_PER_HOUR = 30_000;
@@ -1672,7 +1674,7 @@ function CityView({ town, start, startHour, onTravel }: {
       )}
       {work && <WorkPanel game={work.game} also={work.also} shop={work.shop} progress={progress} nick={look.apelido || 'Você'} onClose={() => setWork(null)} />}
       {bag && <Backpack progress={progress} start={bag} onClose={() => { setBag(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
-      {shopUi === 'mercado' && <MarketPanel progress={progress} onClose={() => setShopUi(null)} />}
+      {shopUi === 'mercado' && <MarketPanel progress={progress} onClose={() => setShopUi(null)} onWork={() => { setShopUi(null); setWork({ game: 'grafico' }); }} />}
       {shopUi === 'cozinha' && <KitchenPanel progress={progress} onClose={() => setShopUi(null)} />}
       {shopUi === 'entregas' && <DeliveryPanel progress={progress} zone={town.id} onClose={() => setShopUi(null)} />}
       {fishHouse && <FishHouse progress={progress} start={fishHouse} onClose={() => setFishHouse(null)} />}
