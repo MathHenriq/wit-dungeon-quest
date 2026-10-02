@@ -46,11 +46,15 @@ export function deliveryTerms(p: Progress, sameZone: boolean): { ms: number; coi
 }
 
 /** Pega uma encomenda nova (a Central fica na Cidade WIT). */
-export function takeDelivery(p: Progress, r: number, now: number): { progress: Progress; what: string; dest: Destino } {
+/** Entrega expressa: menos da metade do tempo e o dobro das moedas. */
+export const EXPRESS = { time: 0.45, pay: 2 };
+
+export function takeDelivery(p: Progress, r: number, now: number, express = false): { progress: Progress; what: string; dest: Destino } {
   const dest = DESTINOS[Math.floor(r * DESTINOS.length) % DESTINOS.length];
   const what = PACOTES[Math.floor(r * 997) % PACOTES.length];
   const t = deliveryTerms(p, dest.zona === 'wit');
-  return { progress: { ...p, entrega: { zona: dest.zona, porta: dest.porta, nome: dest.nome, ate: now + t.ms } }, what, dest };
+  const ate = now + Math.round(t.ms * (express ? EXPRESS.time : 1));
+  return { progress: { ...p, entrega: { zona: dest.zona, porta: dest.porta, nome: dest.nome, ate, ...(express ? { paga: t.coins * EXPRESS.pay } : {}) } }, what, dest };
 }
 
 // ─── encomendas das profissões (andar pelo mapa levando o que você fez) ──────
@@ -101,7 +105,8 @@ export function finishDelivery(p: Progress, now: number): { progress: Progress; 
   }
   const t = deliveryTerms(p, e.zona === 'wit');
   const late = now > e.ate;
-  const coins = late ? Math.round(t.coins / 2) : t.coins;
+  const base = e.paga ?? t.coins;   // expressa paga o dobro
+  const coins = late ? Math.round(base / 2) : base;
   const w = doWork({ ...p, entrega: undefined, coins: p.coins + coins }, 'entregador', 'entregas', late ? Math.round(t.xp / 2) : t.xp);
   return { progress: w.progress, coins, late, levelUp: w.levelUp };
 }

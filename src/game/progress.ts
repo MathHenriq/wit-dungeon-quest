@@ -73,6 +73,10 @@ export interface Progress {
   /** Talentos do Grimório (grimoire.ts) e o verso de carta escolhido. */
   grimorio: GrimId[];
   verso?: 'classico' | 'dourado' | 'noite';
+  /** Limpeza do lago: lixos pescados hoje (3 deixam o lago com mais peixe raro). */
+  limpeza?: { day: number; n: number };
+  /** Desenhos de pixel art (lessons2.ts `encodeArt`), os 12 mais novos. */
+  desenhos: string[];
   /** Pacotes ganhos e ainda fechados (do professor, do legado do WIT 1): abre na Loja quando quiser. */
   pacotes: Record<string, number>;
   /** O que veio do WIT 1 (migration.ts): nível e XP antigos, títulos antigos, pontos de talento. */
@@ -113,6 +117,7 @@ export function newProgress(): Progress {
     diario: [],
     grimorio: [],
     pacotes: {},
+    desenhos: [],
   };
 }
 
@@ -191,6 +196,8 @@ export function sanitizeProgress(raw: unknown): Progress {
     diarioDia: r.diarioDia === undefined ? undefined : num(r.diarioDia, 0),
     grimorio: Array.isArray(r.grimorio) ? [...new Set((r.grimorio as unknown[]).filter((x): x is GrimId => typeof x === 'string' && TALENT_BY_ID.has(x as GrimId)))] : [],
     verso: r.verso === 'dourado' || r.verso === 'noite' || r.verso === 'classico' ? r.verso : undefined,
+    limpeza: (() => { const l = r.limpeza as Record<string, unknown> | undefined; return l && typeof l === 'object' ? { day: num(l.day, 0), n: num(l.n, 0, 0, 999) } : undefined; })(),
+    desenhos: Array.isArray(r.desenhos) ? (r.desenhos as unknown[]).filter((d): d is string => typeof d === 'string' && /^[0-9a-f]{256}$/.test(d)).slice(0, 12) : [],
     pacotes: (() => {
       const o: Record<string, number> = {};
       const raw = (r.pacotes ?? {}) as Record<string, unknown>;

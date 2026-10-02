@@ -17,7 +17,7 @@ import { FieldBox } from './FieldBox';
 import { fieldOf } from '@/game/fieldwork';
 
 const COLOR: Record<MinigameId, string> = {
-  compor: '#3a78c8', pao: '#c87a2a', forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', materia: '#c84a6a', programar: '#2a9ac8', grafico: '#c8762a', afinar: '#3a78c8', cores: '#b0487a', regras: '#2a9a5a', rota: '#e8762a', coordenadas: '#7a4ac8', acuracia: '#2a9ac8', 'teste-jogo': '#c8a020',
+  compor: '#3a78c8', pao: '#c87a2a', forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', materia: '#c84a6a', programar: '#2a9ac8', grafico: '#c8762a', afinar: '#3a78c8', cores: '#b0487a', regras: '#2a9a5a', rota: '#e8762a', coordenadas: '#7a4ac8', acuracia: '#2a9ac8', calendario: '#5a9a3a', fermento: '#c87a2a', barraca: '#c8762a', boato: '#c84a6a', logica: '#c8a020', pixelart: '#b0487a', 'teste-jogo': '#c8a020',
 };
 
 /**
@@ -72,7 +72,7 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   };
 
   return (
-    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={game === 'compor' || game === 'pao' || game === 'materia' || game === 'programar' || game === 'grafico' || game === 'rota' || game === 'coordenadas' || game === 'acuracia' || game === 'regras' || tab === 'jornal'}>
+    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={game === 'compor' || game === 'pao' || game === 'materia' || game === 'programar' || game === 'grafico' || game === 'rota' || game === 'coordenadas' || game === 'acuracia' || game === 'regras' || game === 'calendario' || game === 'fermento' || game === 'barraca' || game === 'boato' || game === 'logica' || game === 'pixelart' || tab === 'jornal'}>
       {phase === 'intro' && tabs.length > 1 && <Tabs tabs={tabs} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
       {phase === 'intro' && tab === 'campo' && <FieldBox prof={prof.id} progress={progress} />}
       {phase === 'intro' && tab === 'jornal' && <Jornalzinho progress={progress} />}

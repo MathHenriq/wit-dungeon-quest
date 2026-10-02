@@ -13,7 +13,7 @@ export const iconOf = (item: string) => (CROP_BY_ID.has(item as CropId) ? `colhe
  * Barraca de sementes (comprar) e caixa de envio (deixar o que colheu para
  * vender; paga quando o dia vira, às 6h).
  */
-export function FarmPanel({ mode, progress, onClose }: { mode: 'sementes' | 'envio'; progress: Progress; onClose: () => void }) {
+export function FarmPanel({ mode, progress, onClose, onWork }: { mode: 'sementes' | 'envio'; progress: Progress; onClose: () => void; onWork?: () => void }) {
   const font = "font-['Press_Start_2P',monospace]";
   const [msg, setMsg] = useState<string | null>(null);
   const [farm, setFarm] = useState(() => loadFarm());
@@ -58,6 +58,7 @@ export function FarmPanel({ mode, progress, onClose }: { mode: 'sementes' | 'env
               </div>
             ))}
             <div className="text-[8px] leading-4 text-[#5a5470] mt-2">Escolha a semente embaixo da tela (◀ ▶ ou Q/E) e aperte ESPAÇO de frente para a terra arada.</div>
+            {onWork && <button onClick={onWork} className="mt-3 w-full py-2.5 rounded-lg bg-[#5a9a3a] text-white text-[10px] border-b-4 border-[#3a6a1a]">TRABALHAR: CALENDÁRIO DA HORTA (Fazendeiro)</button>}
           </div>
         )}
         {mode === 'envio' && (

@@ -48,6 +48,9 @@ export function rewardOf(game: MinigameId, score: number, perk: number, hits = 0
       const coins = Math.round(s * 24 * (1 + perk * 0.3));
       return { items: s >= 0.9 ? { 'modelo-ia': 1 } : {}, coins, xp };
     }
+    case 'pixelart':
+      return { items: s >= 0.6 ? { quadro: 1 } : {}, coins: 0, xp };
+    case 'calendario': case 'fermento': case 'barraca': case 'boato': case 'logica':
     case 'afinar': case 'cores': case 'regras': case 'rota': case 'coordenadas': case 'acuracia':
       // tarefas que ensinam: moedas pela nota (o bônus do cargo rende mais)
       return { items: {}, coins: Math.round(s * 20 * (1 + perk * 0.3)), xp };

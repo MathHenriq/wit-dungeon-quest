@@ -132,4 +132,15 @@ if (want('campo')) {
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${S}/campo-5-entrevista.png` });
 }
+for (const [k, door, tab] of [['calendario', 'horta', null], ['fermento', 'npc-padaria', 'POR QUE A MASSA CRESCE?'], ['barraca', 'analista', 'MINHA BARRACA'], ['boato', 'estudio', 'FATO OU BOATO'], ['logica', 'oficina-games', null], ['pixelart', 'atelie', null]]) {
+  if (!want(k)) continue;
+  await work(door, tab);
+  if (k === 'fermento') { await page.getByRole('button', { name: 'MAIS', exact: true }).first().click(); await page.getByRole('button', { name: 'MENOS', exact: true }).last().click(); await page.getByRole('button', { name: 'ESPERAR 1 HORA' }).click(); await page.waitForTimeout(2800); }
+  if (k === 'barraca') for (const d of [0, 3, 3, 2]) { for (let j = 0; j < d; j++) await page.getByRole('button', { name: '+', exact: true }).click(); await page.getByRole('button', { name: 'ABRIR A BARRACA' }).click(); }
+  if (k === 'boato') { const b = page.getByRole('button', { name: 'FATO', exact: true }); for (let j = 0; j < 6; j++) await b.nth(j).click(); await page.getByRole('button', { name: 'CONFERIR' }).click(); }
+  if (k === 'logica') { const sel = page.locator('select'); for (let j = 0; j < 4; j++) await sel.nth(j).selectOption({ index: j + 1 }); await page.getByRole('button', { name: 'TESTAR O JOGO' }).click(); }
+  if (k === 'pixelart') { const cells = page.locator('div[style*="width: 18px"]'); for (let j = 0; j < 60; j++) await cells.nth(17 * 4 + j * 3).dispatchEvent('pointerdown'); }
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/${k}.png` });
+}
 await browser.close();

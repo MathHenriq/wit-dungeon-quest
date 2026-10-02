@@ -29,3 +29,25 @@ describe('diário do lago', () => {
     }
   });
 });
+
+import { cleanLake, CLEAN_PAY, lakeLuck } from '../fishlog';
+import { finishDelivery, takeDelivery, deliveryTerms } from '../deliveries';
+
+describe('limpeza do lago e entrega expressa', () => {
+  it('lixo pescado paga e o 3º do dia deixa o lago com mais peixe raro', () => {
+    let p = { ...newProgress(), coins: 0 };
+    for (let k = 1; k <= 3; k++) { const r = cleanLake(p, 50); p = r.progress; expect(r.n).toBe(k); expect(r.luckNow).toBe(k === 3); }
+    expect(p.coins).toBe(3 * CLEAN_PAY);
+    expect(lakeLuck(p, 50)).toBe(1);
+    expect(lakeLuck(p, 51)).toBe(0);
+    expect(cleanLake(p, 51).n).toBe(1);
+  });
+  it('expressa: menos tempo e o dobro das moedas', () => {
+    const p = newProgress();
+    const n = takeDelivery(p, 0.3, 0).progress.entrega!, x = takeDelivery(p, 0.3, 0, true).progress.entrega!;
+    expect(x.ate).toBeLessThan(n.ate);
+    const t = deliveryTerms(p, x.zona === 'wit');
+    const done = finishDelivery({ ...p, coins: 0, entrega: x }, 1) as { coins: number };
+    expect(done.coins).toBe(t.coins * 2);
+  });
+});

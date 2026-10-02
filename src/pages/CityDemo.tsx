@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { cleanLake, CLEAN_PAY, lakeLuck } from '@/game/fishlog';
 import { shownTitle } from '@/game/titles';
 import { versoOf } from '@/game/grimoire';
 import { addGlowSpots, type Placed, type Town } from '@/game/world/town';
@@ -66,16 +67,18 @@ const TOUR: [number, number][] = [[31, 23], [16, 21], [16, 19], [10, 27], [16, 3
 const WALK_MS = 230, RUN_MS = 125, BOAT_MS = 190;
 /** Portas onde se trabalha (minijogo da profissão); `?trabalho=<porta>` abre direto. */
 const WORK_DOORS: Record<string, { game: MinigameId; also?: MinigameId[]; shop?: string[] }> = {
-  'npc-padaria': { game: 'pao', also: ['forno'], shop: ['pao', 'bolo'] },
+  'npc-padaria': { game: 'pao', also: ['fermento', 'forno'], shop: ['pao', 'bolo'] },
   'npc-musico': { game: 'compor', also: ['afinar', 'ritmo'] }, 'estudio-musica': { game: 'compor', also: ['afinar', 'ritmo'] },
-  'npc-artista': { game: 'cores', also: ['pintura'] }, atelie: { game: 'cores', also: ['pintura'] },
+  'npc-artista': { game: 'pixelart', also: ['cores', 'pintura'] }, atelie: { game: 'pixelart', also: ['cores', 'pintura'] },
   'lab-ia': { game: 'programar', also: ['acuracia', 'rotular'] },
   'casa-iot': { game: 'regras', also: ['circuito'] },
   metaverso: { game: 'coordenadas', also: ['pares'] },
-  estudio: { game: 'materia', also: ['noticia'] },
-  'oficina-games': { game: 'teste-jogo' },
+  estudio: { game: 'materia', also: ['boato', 'noticia'] },
+  'oficina-games': { game: 'logica', also: ['teste-jogo'] },
   // sem porta própria: abre pela aba GRÁFICOS do Mercado (e por ?trabalho=analista)
-  analista: { game: 'grafico' },
+  analista: { game: 'grafico', also: ['barraca'] },
+  // calendário da horta: botão na barraca de sementes da Fazenda
+  horta: { game: 'calendario' },
   // idem: botão MELHOR ROTA na Central de Entregas
   rota: { game: 'rota' },
 };
@@ -572,7 +575,7 @@ function CityView({ town, start, startHour, onTravel }: {
     if (f.phase === 'cast' || f.phase === 'wait') { s.fish = null; toast('Puxou cedo demais... Espere a boia afundar!'); return; }
     if (f.phase === 'bite') {
       const night = s.hour >= 19 || s.hour < 5;
-      const c = rollFish({ deep: f.deep, night, boat: s.sailing, luck: fishLuck(loadProgress()) }, Math.random(), Math.random());
+      const c = rollFish({ deep: f.deep, night, boat: s.sailing, luck: fishLuck(loadProgress()) + lakeLuck(loadProgress(), today()) }, Math.random(), Math.random());
       f.catch = c; f.meter = meterFor(c.fish, Math.random()); f.phase = 'meter'; f.t = now;
       setFishUi({ kind: 'meter', meter: f.meter, t0: now });
       play('flip');
@@ -583,7 +586,13 @@ function CityView({ town, start, startHour, onTravel }: {
       s.fish = null;
       if (!hit) { play('lose'); toast('Escapou! Aperte quando a agulha estiver no verde.'); return; }
       const r = addCatch(loadProgress(), f.catch.fish.id, f.catch.cm, { h: Math.floor(s.hour), w: s.sailing ? 'barco' : f.deep ? 'funda' : 'margem', d: today() });
-      const w = doWork(r.progress, 'pescador', 'peixes', FISH_XP[f.catch.fish.rarity] ?? 1);
+      let w = doWork(r.progress, 'pescador', 'peixes', FISH_XP[f.catch.fish.rarity] ?? 1);
+      // limpeza do lago: a prefeitura paga pelo lixo tirado da água; 3 no dia deixam o lago com mais peixe raro
+      if (f.catch.fish.rarity === 'lixo') {
+        const cl = cleanLake(w.progress, today());
+        w = { ...w, progress: cl.progress };
+        window.setTimeout(() => toast(cl.luckNow ? `Lago limpo! +${CLEAN_PAY} moedas da prefeitura. Hoje sai mais peixe raro.` : `+${CLEAN_PAY} moedas da prefeitura pelo lixo tirado do lago (${cl.n}/3 hoje).`), 1800);
+      }
       saveProgress(w.progress);
       if (w.levelUp) window.setTimeout(() => toast(`Pescador subiu para o nível ${w.levelUp}!`), 2500);
       play(f.catch.fish.rarity === 'lendario' || f.catch.fish.rarity === 'epico' ? 'win' : 'coin');
@@ -1776,7 +1785,7 @@ function CityView({ town, start, startHour, onTravel }: {
       {shopUi === 'entregas' && <DeliveryPanel progress={progress} zone={town.id} onClose={() => setShopUi(null)} onWork={() => { setShopUi(null); setWork({ game: 'rota' }); }} />}
       {fishHouse && <FishHouse progress={progress} start={fishHouse} onClose={() => setFishHouse(null)} />}
       {courses && <CoursesPanel progress={progress} onClose={() => setCourses(false)} />}
-      {farmPanel && <FarmPanel mode={farmPanel} progress={progress} onClose={() => { setFarmPanel(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
+      {farmPanel && <FarmPanel mode={farmPanel} progress={progress} onWork={() => { setFarmPanel(null); setWork({ game: 'calendario' }); }} onClose={() => { setFarmPanel(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
       {town.id === 'fazenda' && !inside && (() => {
         const s = g.current;
         const owned = CROPS.filter(c => (progress.itens[`semente:${c.id}`] ?? 0) > 0);

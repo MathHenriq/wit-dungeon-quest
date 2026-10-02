@@ -2,6 +2,7 @@
 // lugar, tamanho). A Casa de Pesca mostra os gráficos dos dados do próprio
 // aluno e faz uma pergunta por dia que só se responde olhando para eles.
 import { FISH_BY_ID } from './fishing';
+import type { Progress } from './progress';
 
 export type Spot = 'margem' | 'funda' | 'barco';
 export interface LogEntry { f: string; cm: number; h: number; w: Spot; d: number }
@@ -50,3 +51,16 @@ export function sanitizeLog(raw: unknown): LogEntry[] {
     w: SPOTS.includes(e.w) ? e.w : 'margem', d: Math.max(0, Number(e.d) || 0),
   }));
 }
+
+// ─── Limpeza do lago (pescador) ─────────────────────────────────────────────
+
+/** Moedas que a prefeitura paga por lixo tirado do lago. */
+export const CLEAN_PAY = 3;
+export const CLEAN_GOAL = 3;
+
+/** Pescou lixo: paga, conta no dia; no 3º do dia, o lago fica com mais peixe raro até o fim do dia. */
+export function cleanLake(p: Progress, day: number): { progress: Progress; n: number; luckNow: boolean } {
+  const n = (p.limpeza?.day === day ? p.limpeza.n : 0) + 1;
+  return { progress: { ...p, coins: p.coins + CLEAN_PAY, limpeza: { day, n }, stats: { ...p.stats, 'lixo-lago': (p.stats['lixo-lago'] ?? 0) + 1 } }, n, luckNow: n === CLEAN_GOAL };
+}
+export const lakeLuck = (p: Pick<Progress, 'limpeza'>, day: number) => (p.limpeza?.day === day && p.limpeza.n >= CLEAN_GOAL ? 1 : 0);

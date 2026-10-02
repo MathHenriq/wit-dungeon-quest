@@ -292,6 +292,13 @@ export function DeliveryPanel({ progress, zone, onClose, onWork }: { progress: P
           setMsg(`Você pegou ${t.what}. Leve até: ${t.dest.nome}.${t.dest.zona !== zone ? ' Fica em outra área: use as saídas ou o MAPA.' : ''}`);
         }} className="w-full py-3 rounded-lg bg-[#2a8a8a] text-white text-[11px] border-b-4 border-black/30">PEGAR ENCOMENDA</button>
       )}
+      {!e && (
+        <button onClick={() => {
+          const t = takeDelivery(progress, Math.random(), Date.now(), true);
+          saveProgress(t.progress); play('drop');
+          setMsg(`EXPRESSA! ${t.what} para ${t.dest.nome}. Pouco tempo e o dobro de moedas: corra (SHIFT)!`);
+        }} className="mt-2 w-full py-2.5 rounded-lg bg-[#e8485a] text-white text-[10px] border-b-4 border-black/30">ENTREGA EXPRESSA (metade do tempo, dobro das moedas)</button>
+      )}
       <Msg msg={msg} />
       {onWork && <button onClick={onWork} className="mt-3 w-full py-2.5 rounded-lg bg-[#e8762a] text-white text-[10px] border-b-4 border-[#a84a10]">TRABALHAR: MELHOR ROTA (Entregador)</button>}
     </Shell>
