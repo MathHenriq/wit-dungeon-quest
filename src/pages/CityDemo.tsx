@@ -645,7 +645,7 @@ function CityView({ town, start, startHour, onTravel }: {
     g.current.pops.push({ x, y, t: performance.now() }); g.current.dirty = true;
     play(r.done ? 'win' : 'coin');
     if (!r.done) return [`${r.line} (${c.feitos.length + 1}/${job.zones.length})`];
-    return [r.line, `${job.name.toUpperCase()}: TRABALHO COMPLETO! +${r.done.coins} moedas`, ...(r.done.levelUp ? [`${PROF_BY_ID.get(job.prof)!.name} subiu para o nível ${r.done.levelUp}!`] : []), ...(job.id === 'entrevista' ? ['A matéria com as entrevistas saiu no jornalzinho do Estúdio.'] : [])];
+    return [r.line, r.done.coins ? `${job.name.toUpperCase()}: TRABALHO COMPLETO! +${r.done.coins} moedas` : `${job.name.toUpperCase()}: TRABALHO COMPLETO! Hoje os trabalhos de campo já renderam 2 vezes: este valeu experiência.`, ...(r.done.levelUp ? [`${PROF_BY_ID.get(job.prof)!.name} subiu para o nível ${r.done.levelUp}!`] : []), ...(job.id === 'entrevista' ? ['A matéria com as entrevistas saiu no jornalzinho do Estúdio.'] : [])];
   };
 
   /** Câmera do repórter: retrato da tela (sem os botões), guardado no álbum. */
@@ -934,7 +934,7 @@ function CityView({ town, start, startHour, onTravel }: {
           if ('reason' in fin) { setDialog({ lines: [`${door.name}: ${fin.reason}`], i: 0 }); s.player.ty += 1; s.player.dir = 'south'; return; }
           saveProgress(fin.progress); play('coin');
           const who = pe.entrega.prof ? PROF_BY_ID.get(pe.entrega.prof)!.name : 'Entregador';
-          setDialog({ lines: [`Entregue em ${door.name}! +${fin.coins} moedas${fin.late ? ' (atrasada: metade)' : ''}.`, ...(fin.levelUp ? [`${who} subiu para o nível ${fin.levelUp}!`] : []), pe.entrega.prof ? 'Tem mais encomendas no seu local de trabalho.' : 'Pegue outra na Central de Entregas (Cidade WIT).'], i: 0 });
+          setDialog({ lines: [fin.unpaid ? `Entregue em ${door.name}! Hoje as entregas já renderam o máximo: esta valeu só experiência.` : `Entregue em ${door.name}! +${fin.coins} moedas${fin.late ? ' (atrasada: metade)' : ''}.`, ...(fin.levelUp ? [`${who} subiu para o nível ${fin.levelUp}!`] : []), pe.entrega.prof ? 'Tem mais encomendas no seu local de trabalho.' : 'Pegue outra na Central de Entregas (Cidade WIT).'], i: 0 });
           s.player.ty += 1; s.player.dir = 'south';
           return;
         }

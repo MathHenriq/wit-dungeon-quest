@@ -182,3 +182,18 @@ A sprite sheet of 8 game icons, 4 columns by 2 rows, each icon centered in its o
 A sprite sheet of 8 bust portraits (head and shoulders), 4 columns by 2 rows, each centered in its own cell, friendly original characters for a children's game, fully clothed, cute pixel art with clean outlines, facing the viewer and smiling: 1) an old fisherman with a bucket hat, 2) a receptionist in a blue uniform, 3) a white robot with a screen face, 4) a young man in a hoodie, 5) a baker woman with an apron and a cap, 6) a delivery man with a cap and an orange vest, 7) a farm woman with a straw hat, 8) a young woman with a headset. No text. Flat solid magenta background (#FF00FF).
 ```
 - **Tabuleiro do robô** (opcional): o chão de rua e o canteiro do minijogo usam as texturas da Cidade WIT quando a arte do mundo chegar.
+
+## N. Veículos (patinete, bicicleta, moto, carro, aviãozinho) — 02/10
+
+As regras e a simulação já estão prontas (`src/game/vehicles.ts`,
+`npx vite-node scripts/veiculos.ts`): o veículo só economiza tempo (as
+entregas pagas têm limite por dia), então o preço é de cosmético. Falta a
+arte para o boneco aparecer montado. Uma folha por veículo, **4 linhas
+(baixo, esquerda, direita, cima) × 4 quadros** de movimento, o personagem
+base (modelo 01, cores-molde) montado, no mesmo tamanho dos quadros do
+personagem (32 × 40 por quadro, a folha maior pode ser em 2×):
+
+```
+A pixel art sprite sheet of a kid character riding a small electric scooter, 4 rows (facing down, left, right, up) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, no text, no logos. Flat solid magenta background (#FF00FF).
+```
+Trocar "a small electric scooter" por: "a bicycle", "a small electric motorbike with a helmet on", "a small round electric car (the kid visible through the open roof)" e, para o avião, uma folha só de "a small cute propeller plane seen from above, 4 directions" (sem o boneco).

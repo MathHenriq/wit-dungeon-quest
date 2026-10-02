@@ -2,7 +2,7 @@
 // certa (em qualquer área) antes do tempo acabar. Atrasou, ganha metade.
 // O entregador tem mais tempo e ganha mais. Funções puras.
 import type { Progress } from './progress';
-import { doWork } from './life';
+import { doWork, PAID_PER_DAY, playsLeft, spendPlay, today } from './life';
 import { perkLevel, type ProfId } from './professions';
 import { addItem } from './progress';
 import { itemLabel } from './items';
@@ -92,23 +92,25 @@ export function takeOrder(p: Progress, prof: ProfId, r: number, now: number): { 
 }
 
 /** Chegou na porta: paga (metade se atrasou) e conta para as missões. Encomenda de profissão gasta o item. */
-export function finishDelivery(p: Progress, now: number): { progress: Progress; coins: number; late: boolean; levelUp?: number } | { reason: string } | null {
+export function finishDelivery(p: Progress, now: number): { progress: Progress; coins: number; late: boolean; levelUp?: number; unpaid?: boolean } | { reason: string } | null {
   const e = p.entrega;
   if (!e) return null;
   if (e.item) {
     const have = orderItems(p, e.item)[0];
     if (!have) return { reason: `Falta ${itemLabel(e.item.replace('*', '')) || 'o item'} na mochila. Faça ou pegue um e volte!` };
     const late = now > e.ate;
-    const coins = late ? Math.round((e.paga ?? 20) / 2) : e.paga ?? 20;
-    const w = doWork({ ...addItem(p, have, -1), entrega: undefined, coins: p.coins + coins }, e.prof ?? 'entregador', 'entregas', late ? 10 : 20);
-    return { progress: w.progress, coins, late, levelUp: w.levelUp };
+    const day = today(now), paid = playsLeft(p, 'encomenda', day, PAID_PER_DAY.encomenda) > 0;
+    const coins = !paid ? 0 : late ? Math.round((e.paga ?? 20) / 2) : e.paga ?? 20;
+    const w = doWork(spendPlay({ ...addItem(p, have, -1), entrega: undefined, coins: p.coins + coins }, 'encomenda', day), e.prof ?? 'entregador', 'entregas', late ? 10 : 20);
+    return { progress: w.progress, coins, late, levelUp: w.levelUp, unpaid: !paid };
   }
   const t = deliveryTerms(p, e.zona === 'wit');
   const late = now > e.ate;
   const base = e.paga ?? t.coins;   // expressa paga o dobro
-  const coins = late ? Math.round(base / 2) : base;
-  const w = doWork({ ...p, entrega: undefined, coins: p.coins + coins }, 'entregador', 'entregas', late ? Math.round(t.xp / 2) : t.xp);
-  return { progress: w.progress, coins, late, levelUp: w.levelUp };
+  const day = today(now), paid = playsLeft(p, 'entrega', day, PAID_PER_DAY.entrega) > 0;
+  const coins = !paid ? 0 : late ? Math.round(base / 2) : base;
+  const w = doWork(spendPlay({ ...p, entrega: undefined, coins: p.coins + coins }, 'entrega', day), 'entregador', 'entregas', late ? Math.round(t.xp / 2) : t.xp);
+  return { progress: w.progress, coins, late, levelUp: w.levelUp, unpaid: !paid };
 }
 
 export const cancelDelivery = (p: Progress): Progress => ({ ...p, entrega: undefined });

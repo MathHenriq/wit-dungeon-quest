@@ -51,3 +51,17 @@ describe('limpeza do lago e entrega expressa', () => {
     expect(done.coins).toBe(t.coins * 2);
   });
 });
+
+describe('limite diário pago das tarefas de andar', () => {
+  it('a 6ª entrega do dia não paga moedas', () => {
+    let p = newProgress();
+    const now = Date.UTC(2026, 9, 2, 12);
+    for (let k = 0; k < 6; k++) {
+      p = takeDelivery(p, 0.3, now).progress;
+      const f = finishDelivery(p, now) as { progress: typeof p; coins: number; unpaid?: boolean };
+      expect(f.unpaid).toBe(k >= 5);
+      expect(f.coins > 0).toBe(k < 5);
+      p = f.progress;
+    }
+  });
+});

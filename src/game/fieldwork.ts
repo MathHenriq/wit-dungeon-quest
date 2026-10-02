@@ -7,7 +7,7 @@
 import type { ProfId } from './professions';
 import type { Progress } from './progress';
 import { addItem } from './progress';
-import { gainXp } from './life';
+import { gainXp, PAID_PER_DAY, playsLeft, spendPlay, today } from './life';
 import { NPCS } from './world/content';
 import type { Town, ZoneId } from './world/zone';
 
@@ -144,8 +144,11 @@ export function completeTarget(p: Progress, i: number, now: number): { progress:
   }
   const feitos = [...c.feitos, i];
   if (feitos.length < job.zones.length) return { progress: { ...next, campo: { ...c, feitos } }, line: job.line };
-  const g = gainXp({ ...next, campo: undefined, coins: next.coins + job.coins }, job.prof, job.xp);
-  return { progress: g.progress, line: job.line, done: { coins: job.coins, levelUp: g.levelUp } };
+  // 2 trabalhos de campo pagos por dia; depois, só experiência
+  const day = today(now), paid = playsLeft(next, 'campo', day, PAID_PER_DAY.campo) > 0;
+  const coins = paid ? job.coins : 0;
+  const g = gainXp(spendPlay({ ...next, campo: undefined, coins: next.coins + coins }, 'campo', day), job.prof, job.xp);
+  return { progress: g.progress, line: job.line, done: { coins, levelUp: g.levelUp } };
 }
 
 /** Quantos faltam em cada área (para a placa da tela e o mapa). */

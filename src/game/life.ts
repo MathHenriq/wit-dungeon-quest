@@ -96,9 +96,17 @@ export function cook(p: Progress, r: Recipe): { ok: true; progress: Progress } |
 
 export const PLAYS_PER_DAY = 5;
 
-export function playsLeft(p: Progress, game: string, day = today()): number {
-  return PLAYS_PER_DAY - (p.jogos.day === day ? p.jogos.n[game] ?? 0 : 0);
+export function playsLeft(p: Progress, game: string, day = today(), perDay = PLAYS_PER_DAY): number {
+  return perDay - (p.jogos.day === day ? p.jogos.n[game] ?? 0 : 0);
 }
+
+/**
+ * Quantas vezes por dia rendem moedas as tarefas de andar (a simulação de
+ * scripts/veiculos.ts mostrou que, sem limite, entregas davam ~1.800 moedas
+ * por hora: 6 vezes o que a Torre dá). Depois do limite, ainda valem
+ * experiência, sem moedas.
+ */
+export const PAID_PER_DAY = { entrega: 5, encomenda: 5, campo: 2 } as const;
 
 export function spendPlay(p: Progress, game: string, day = today()): Progress {
   const n = p.jogos.day === day ? { ...p.jogos.n } : {};
