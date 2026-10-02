@@ -5,12 +5,13 @@ import { saveProgress, sellItems, type Progress } from '@/game/progress';
 import { play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
 import { OrderBox } from '@/components/work/OrderBox';
+import { FishLog } from './FishLog';
 
 /**
  * Casa de Pesca: o QUADRO com o que os pescadores pegaram hoje, a VENDA dos
  * peixes da mochila e o ÁLBUM de peixes do lago (com o recorde de cada um).
  */
-type Tab = 'quadro' | 'vender' | 'album' | 'encomenda';
+type Tab = 'quadro' | 'vender' | 'album' | 'diario' | 'encomenda';
 
 export function FishHouse({ progress, onClose, start = 'quadro' }: { progress: Progress; onClose: () => void; start?: Tab }) {
   const [tab, setTab] = useState<Tab>(start);
@@ -38,13 +39,14 @@ export function FishHouse({ progress, onClose, start = 'quadro' }: { progress: P
           <span className="text-[10px] text-[#8a6a1a] flex items-center gap-1"><Icon id="moeda" size={14} /> {progress.coins}</span>
           <button onClick={onClose} className="px-2 py-1 rounded bg-[#4a4660] text-white text-[10px]">SAIR</button>
         </div>
-        <div className="flex gap-1 mb-3">
-          {([['quadro', 'QUADRO'], ['vender', `VENDER${bag.length ? ` (${bag.length})` : ''}`], ['album', `ÁLBUM ${caught}/${FISH.length}`], ['encomenda', 'ENCOMENDA']] as [Tab, string][]).map(([t, l]) => (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {([['quadro', 'QUADRO'], ['vender', `VENDER${bag.length ? ` (${bag.length})` : ''}`], ['album', `ÁLBUM ${caught}/${FISH.length}`], ['diario', 'DIÁRIO'], ['encomenda', 'ENCOMENDA']] as [Tab, string][]).map(([t, l]) => (
             <button key={t} onClick={() => { setTab(t); setMsg(null); play('click'); }}
               className={`px-2 py-1.5 rounded text-[9px] border-2 ${tab === t ? 'bg-[#27566e] text-white border-[#27566e]' : 'bg-white border-[#c8c0ac]'}`}>{l}</button>
           ))}
         </div>
 
+        {tab === 'diario' && <FishLog progress={progress} />}
         {tab === 'encomenda' && <OrderBox prof="pescador" progress={progress} zone="lago" />}
         {tab === 'quadro' && (
           <div>

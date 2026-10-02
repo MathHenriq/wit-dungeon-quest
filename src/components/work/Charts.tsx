@@ -38,7 +38,10 @@ export function LineChart({ series, labels, color = '#c8762a', width = 300, heig
 }
 
 /** Barras verticais com rótulo embaixo e valor em cima. */
-export function BarChart({ values, labels, colors, width = 300, height = 140, highlight }: { values: number[]; labels: string[]; colors?: string[]; width?: number; height?: number; highlight?: number | null }) {
+export function BarChart({ values, labels, colors, width = 300, height = 140, highlight, inner, innerColor = '#a84ae8' }: {
+  values: number[]; labels: string[]; colors?: string[]; width?: number; height?: number; highlight?: number | null;
+  /** Uma parte de cada barra (ex.: os raros dentro do total), desenhada por dentro, de baixo para cima. */ inner?: number[]; innerColor?: string;
+}) {
   const L = 8, R = 8, T = 14, B = 22, w = width - L - R, h = height - T - B;
   const hi = Math.max(1, ...values), bw = w / values.length;
   return (
@@ -49,6 +52,10 @@ export function BarChart({ values, labels, colors, width = 300, height = 140, hi
         return (
           <g key={i}>
             <rect x={L + i * bw + bw * 0.15} y={T + h - bh} width={bw * 0.7} height={bh} rx={2} fill={c} stroke={highlight === i ? INK : 'none'} strokeWidth={2} />
+            {inner && inner[i] > 0 && <g>
+              <rect x={L + i * bw + bw * 0.3} y={T + h - (inner[i] / hi) * h} width={bw * 0.4} height={(inner[i] / hi) * h} rx={2} fill={innerColor} stroke="#fff" strokeWidth={1} />
+              <text x={L + i * bw + bw / 2} y={T + h - 3} fontSize={8} textAnchor="middle" fill="#fff" fontWeight={700}>{inner[i]}</text>
+            </g>}
             <text x={L + i * bw + bw / 2} y={T + h - bh - 3} fontSize={9} textAnchor="middle" fill={INK} fontWeight={700}>{v}</text>
             <text x={L + i * bw + bw / 2} y={height - 7} fontSize={7.5} textAnchor="middle" fill={SUB}>{labels[i]}</text>
           </g>

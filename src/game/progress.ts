@@ -11,6 +11,7 @@ import { sanitizeSong, type Song } from './music';
 const RARITIES: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'unknown'];
 import { DEFAULT_MAT, MAT_BY_ID } from './playmats';
 import { PROF_BY_ID, type ProfId } from './professions';
+import { addLog, sanitizeLog, type LogEntry, type Spot } from './fishlog';
 
 export const DECK_SIZE = 20;
 export const DECK_SLOTS = 3;
@@ -62,6 +63,10 @@ export interface Progress {
   materias: { day: number; text: string; foto?: string }[];
   /** Dia em que comprou o jornalzinho (1 moeda, lê o dia todo). */
   jornalDia?: number;
+  /** Diário do lago: cada peixe pescado (o mais novo primeiro). */
+  diario: LogEntry[];
+  /** Dia em que respondeu a pergunta do diário (1 prêmio por dia). */
+  diarioDia?: number;
 }
 
 export function newProgress(): Progress {
@@ -87,6 +92,7 @@ export function newProgress(): Progress {
     semEpica: 0,
     musicas: [],
     materias: [],
+    diario: [],
   };
 }
 
@@ -161,6 +167,8 @@ export function sanitizeProgress(raw: unknown): Progress {
     materias: Array.isArray(r.materias) ? (r.materias as Record<string, unknown>[]).filter(m => m && typeof m.text === 'string').slice(0, 12)
       .map(m => ({ day: num(m.day, 0), text: (m.text as string).slice(0, 140), ...(typeof m.foto === 'string' ? { foto: m.foto.slice(0, 20) } : {}) })) : [],
     jornalDia: r.jornalDia === undefined ? undefined : num(r.jornalDia, 0),
+    diario: sanitizeLog(r.diario),
+    diarioDia: r.diarioDia === undefined ? undefined : num(r.diarioDia, 0),
     coins: num(r.coins, 0),
     collection: col,
     decks,
@@ -309,9 +317,9 @@ export function addItem(p: Progress, id: string, n = 1): Progress {
 }
 
 /** Guarda o peixe pescado e o recorde de tamanho. Diz se é a primeira vez e se bateu o recorde. */
-export function addCatch(p: Progress, fishId: string, cm: number): { progress: Progress; first: boolean; record: boolean } {
+export function addCatch(p: Progress, fishId: string, cm: number, where?: { h: number; w: Spot; d: number }): { progress: Progress; first: boolean; record: boolean } {
   const before = p.recordes[fishId] ?? 0;
-  const next = addItem(p, `peixe:${fishId}`, 1);
+  const next = addItem(where ? { ...p, diario: addLog(p.diario, { f: fishId, cm, ...where }) } : p, `peixe:${fishId}`, 1);
   const record = cm > before;
   if (record) next.recordes = { ...p.recordes, [fishId]: cm };
   return { progress: next, first: before === 0, record: record && before > 0 };

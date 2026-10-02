@@ -33,4 +33,21 @@ if (want('grafico')) {
   await page.locator('button.flex-1').first().click(); await page.waitForTimeout(300);
   await page.screenshot({ path: `${S}/grafico-6.png` });
 }
+if (want('diario')) {
+  // um diário de mentira com 20 pescas (o jogo grava sozinho quando pesca)
+  await go('zona=lago');
+  await page.evaluate(() => {
+    const p = JSON.parse(localStorage.getItem('wit.progresso'));
+    const fish = ['lambari', 'tilapia', 'bagre', 'traira', 'dourado', 'bota'];
+    const where = ['margem', 'funda', 'barco'];
+    const day = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
+    p.diario = Array.from({ length: 20 }, (_, k) => ({ f: fish[(k * 7) % 6], cm: 15 + (k * 13) % 50, h: [6, 9, 14, 15, 16, 20, 22][k % 7], w: where[(k * 5) % 3], d: day - (k % 3) }));
+    delete p.diarioDia;
+    localStorage.setItem('wit.progresso', JSON.stringify(p));
+  });
+  await go('zona=lago&pesca=diario');
+  await page.screenshot({ path: `${S}/diario-1.png` });
+  await page.locator('button', { hasText: /tarde|margem|barco|funda|manhã/ }).first().click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/diario-2.png`, fullPage: true });
+}
 await browser.close();

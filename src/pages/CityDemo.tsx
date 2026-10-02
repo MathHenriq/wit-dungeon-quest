@@ -33,7 +33,7 @@ import { DIRS, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Fra
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
 import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
-import { canSize, doWork, fishLuck, FISH_XP, HUNGRY, irrigPlots, shipBonus, spendEnergy } from '@/game/life';
+import { canSize, doWork, fishLuck, FISH_XP, HUNGRY, irrigPlots, shipBonus, spendEnergy, today } from '@/game/life';
 import { buy } from '@/game/market';
 import { finishDelivery } from '@/game/deliveries';
 import { PROF_BY_ID, profTitle, type MinigameId } from '@/game/professions';
@@ -230,7 +230,11 @@ function CityView({ town, start, startHour, onTravel }: {
   const [clock, setClock] = useState(startHour);
   const [banner, setBanner] = useState<string | null>(town.name);
   const [mapOpen, setMapOpen] = useState(false);
-  const [fishHouse, setFishHouse] = useState<'quadro' | 'vender' | null>(null);
+  // ?pesca=diario abre a Casa de Pesca numa aba (prints e testes)
+  const [fishHouse, setFishHouse] = useState<'quadro' | 'vender' | 'diario' | null>(() => {
+    const q = new URLSearchParams(window.location.search).get('pesca');
+    return q === 'quadro' || q === 'vender' || q === 'diario' ? q : null;
+  });
   const [fishUi, setFishUi] = useState<FishUi | null>(null);
   const [farmPanel, setFarmPanel] = useState<'sementes' | 'envio' | null>(null);
   const [courses, setCourses] = useState(false);
@@ -564,7 +568,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const hit = meterHit(f.meter, now - f.t);
       s.fish = null;
       if (!hit) { play('lose'); toast('Escapou! Aperte quando a agulha estiver no verde.'); return; }
-      const r = addCatch(loadProgress(), f.catch.fish.id, f.catch.cm);
+      const r = addCatch(loadProgress(), f.catch.fish.id, f.catch.cm, { h: Math.floor(s.hour), w: s.sailing ? 'barco' : f.deep ? 'funda' : 'margem', d: today() });
       const w = doWork(r.progress, 'pescador', 'peixes', FISH_XP[f.catch.fish.rarity] ?? 1);
       saveProgress(w.progress);
       if (w.levelUp) window.setTimeout(() => toast(`Pescador subiu para o nível ${w.levelUp}!`), 2500);
