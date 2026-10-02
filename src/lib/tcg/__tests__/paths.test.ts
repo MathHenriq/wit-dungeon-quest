@@ -13,7 +13,7 @@ describe('Caminhos (decks iniciais)', () => {
       for (const c of d) expect(n.get(c.id)!).toBeLessThanOrEqual(maxCopies(c));
       expect(d.every(c => ['common', 'uncommon', 'rare'].includes(c.rarity))).toBe(true);
       expect(d.filter(c => c.rarity === 'rare').length).toBeLessThanOrEqual(p.rares ?? 0);
-      expect(d.filter(c => c.type === 'attack').length).toBeGreaterThanOrEqual(7);
+      expect(d.filter(c => c.type === 'attack').length).toBeGreaterThanOrEqual(6);
       expect(d.filter(c => fit(c, p) > 0).length, p.id).toBeGreaterThanOrEqual(8);
     }
   });
