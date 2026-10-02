@@ -68,7 +68,8 @@ export function floorProfile(andar: number, kind: FoeKind): FloorProfile {
   return {
     // (sem fraqueza de elemento desde 30/09: vidas menores que antes, curva refeita na simulação)
     life: big ? Math.min(150, 75 + Math.round(a * 1.5)) : boss ? Math.min(150, 55 + Math.round(a * 1.25)) : Math.min(150, 50 + Math.round(a * 0.8)),
-    deckSize: big ? 20 : boss ? Math.min(20, 16 + Math.floor(a / 20)) : Math.min(20, 12 + Math.floor(a / 8)),
+    // chefe: deck de 20, como o do aluno (plano §5.3)
+    deckSize: boss ? 20 : Math.min(20, 12 + Math.floor(a / 8)),
     ai: (boss ? Math.min(4, ai + 1) : ai) as AiLevel,
     maxRarity: RARITY_ORDER[rar],
     maxComplexity: a <= 5 ? 1 : a <= 15 ? 2 : a <= 30 ? 3 : a <= 50 ? 4 : 99,
@@ -97,13 +98,15 @@ export function seeded(seed: number) {
 export function themedDeck(opts: {
   size: number; element: Element; second?: Element; maxRarity: Rarity; maxComplexity: number;
   attackShare: number; seed: number; pool?: readonly CardDef[]; rareBias?: number;
+  /** Peso extra por carta (o estilo do chefe). */
+  bias?: (c: CardDef) => number;
 }): CardDef[] {
   const r = seeded(opts.seed);
   const pool = (opts.pool ?? CATALOG).filter(c => RANK(c.rarity) <= RANK(opts.maxRarity) && complexity(c) <= opts.maxComplexity);
   const weight = (c: CardDef) => {
     let w = c.element === opts.element ? 6 : c.element === opts.second ? 2.5 : 0.6;
     w *= 1 + (opts.rareBias ?? 0) * RANK(c.rarity);
-    return w;
+    return opts.bias ? w * opts.bias(c) : w;
   };
   const deck: CardDef[] = [];
   const copies = new Map<string, number>();
@@ -173,12 +176,13 @@ export function tableFoe(andar: number, mesa: number, table: string, name: strin
   };
 }
 
-export function bossFoe(andar: number, name: string): Foe {
+/** O chefe do andar. `bias` dá o estilo do deck (bosses.ts usa o do Caminho do chefe). */
+export function bossFoe(andar: number, name: string, bias?: (c: CardDef) => number): Foe {
   const p = floorProfile(andar, 'chefe');
   const element = bossElement(andar);
   return {
     id: `torre-${andar}-chefe`, name, kind: 'chefe', andar, element, life: p.life, ai: p.ai,
-    deck: themedDeck({ size: p.deckSize, element, second: ELEMENTS[(andar * 7) % 12], maxRarity: p.maxRarity, maxComplexity: p.maxComplexity + 1, attackShare: p.attackShare, seed: andar * 7919 + 1, rareBias: 0.4 + andar / 50 }),
+    deck: themedDeck({ size: p.deckSize, element, second: ELEMENTS[(andar * 7) % 12], maxRarity: p.maxRarity, maxComplexity: p.maxComplexity + 1, attackShare: p.attackShare, seed: andar * 7919 + 1, rareBias: 0.4 + andar / 50, bias }),
     coins: coinsFor(andar, 'chefe'),
   };
 }

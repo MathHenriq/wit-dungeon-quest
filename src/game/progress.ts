@@ -3,6 +3,7 @@
 // banco do WIT 2 existir, estas mesmas funções passam a ler e gravar lá.
 // As regras (quanto rende uma vitória, quando o chefe libera) são puras e
 // testadas; só `loadProgress`/`saveProgress` tocam no navegador.
+import { deckSlots, TALENT_BY_ID, type GrimId } from './grimoire';
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { maxCopies, rewardFor, starterCollection, starterDeck, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opponents';
 import type { CardDef, Rarity } from '@/lib/tcg/types';
@@ -12,9 +13,11 @@ const RARITIES: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', '
 import { DEFAULT_MAT, MAT_BY_ID } from './playmats';
 import { PROF_BY_ID, type ProfId } from './professions';
 import { addLog, sanitizeLog, type LogEntry, type Spot } from './fishlog';
+import { PATH_BY_ID, pathDeck, type PathId } from '@/lib/tcg/paths';
 
 export const DECK_SIZE = 20;
-export const DECK_SLOTS = 3;
+/** Espaços de deck guardados (o 4º só abre com o talento Estojo Extra do Grimório). */
+export const DECK_SLOTS = 4;
 
 export interface Progress {
   coins: number;
@@ -67,6 +70,13 @@ export interface Progress {
   diario: LogEntry[];
   /** Dia em que respondeu a pergunta do diário (1 prêmio por dia). */
   diarioDia?: number;
+  /** Talentos do Grimório (grimoire.ts) e o verso de carta escolhido. */
+  grimorio: GrimId[];
+  verso?: 'classico' | 'dourado' | 'noite';
+  /** Título escolhido para a plaquinha (titles.ts); só aparece se foi ganho. */
+  titulo?: string;
+  /** Caminho escolhido no primeiro acesso (paths.ts); sem ele, o jogo pergunta. */
+  caminho?: PathId;
   /** Trabalho de campo em andamento (fieldwork.ts): qual, semente, pontos feitos e quando começou. */
   campo?: { job: string; seed: number; feitos: number[]; ini: number };
 }
@@ -75,7 +85,7 @@ export function newProgress(): Progress {
   return {
     coins: 0,
     collection: starterCollection(),
-    decks: [starterDeck().map(c => c.id), [], []],
+    decks: [starterDeck().map(c => c.id), [], [], []],
     activeDeck: 0,
     towerMax: 1,
     andar: 1,
@@ -95,6 +105,7 @@ export function newProgress(): Progress {
     musicas: [],
     materias: [],
     diario: [],
+    grimorio: [],
   };
 }
 
@@ -171,6 +182,10 @@ export function sanitizeProgress(raw: unknown): Progress {
     jornalDia: r.jornalDia === undefined ? undefined : num(r.jornalDia, 0),
     diario: sanitizeLog(r.diario),
     diarioDia: r.diarioDia === undefined ? undefined : num(r.diarioDia, 0),
+    grimorio: Array.isArray(r.grimorio) ? [...new Set((r.grimorio as unknown[]).filter((x): x is GrimId => typeof x === 'string' && TALENT_BY_ID.has(x as GrimId)))] : [],
+    verso: r.verso === 'dourado' || r.verso === 'noite' || r.verso === 'classico' ? r.verso : undefined,
+    titulo: typeof r.titulo === 'string' && /^[a-z-]{1,24}$/.test(r.titulo) ? r.titulo : undefined,
+    caminho: typeof r.caminho === 'string' && PATH_BY_ID.has(r.caminho as PathId) ? (r.caminho as PathId) : undefined,
     campo: (() => {
       const c = r.campo as Record<string, unknown> | undefined;
       if (!c || typeof c.job !== 'string') return undefined;
@@ -356,4 +371,26 @@ export function loadProgress(): Progress {
 export function saveProgress(p: Progress): void {
   try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* sem armazenamento */ }
   window.dispatchEvent(new CustomEvent('wit-progresso', { detail: p }));
+}
+
+// ─── Caminho (primeiro acesso) ──────────────────────────────────────────────
+
+/**
+ * Escolhe o Caminho: as cartas do deck dele entram na coleção e ele vira um
+ * deck salvo (no lugar do deck inicial, se o aluno não mexeu nele; senão no
+ * primeiro espaço vazio, ou no último). Só vale uma vez.
+ */
+export function choosePath(p: Progress, id: PathId): Progress {
+  if (p.caminho || !PATH_BY_ID.has(id)) return p;
+  const deck = pathDeck(id).map(c => c.id);
+  const collection = { ...p.collection };
+  const need = new Map<string, number>();
+  for (const c of deck) need.set(c, (need.get(c) ?? 0) + 1);
+  for (const [c, n] of need) collection[c] = Math.max(collection[c] ?? 0, n);
+  const starter = starterDeck().map(c => c.id).join(',');
+  const open = p.decks.slice(0, deckSlots(p));
+  const empty = open.findIndex(d => !d.length);
+  const slot = p.decks[0].join(',') === starter || !p.decks[0].length ? 0 : empty >= 0 ? empty : open.length - 1;
+  const decks = p.decks.map((d, i) => (i === slot ? deck : d));
+  return { ...p, caminho: id, collection, decks, activeDeck: slot };
 }

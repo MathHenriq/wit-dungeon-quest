@@ -10,7 +10,8 @@
  */
 import { playAiTurn, type AiLevel } from '../src/lib/tcg/ai';
 import { createGame } from '../src/lib/tcg/engine';
-import { bossFoe, coinsFor, floorProfile, starterDeck, tableFoe, TABLE_ELEMENT, TABLES_FOR_BOSS } from '../src/lib/tcg/opponents';
+import { coinsFor, floorProfile, starterDeck, tableFoe, TABLE_ELEMENT, TABLES_FOR_BOSS } from '../src/lib/tcg/opponents';
+import { towerBoss } from '../src/lib/tcg/bosses';
 import type { CardDef } from '../src/lib/tcg/types';
 
 const N = Number(process.argv[2] ?? 40);
@@ -40,7 +41,7 @@ for (const andar of [1, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100]) {
   for (let k = 0; k < N; k++) {
     const t = duel(deck, tableFoe(andar, (k % 8) + 1, tables[k % tables.length], 'Mesa'), andar * 1000 + k);
     m.won += +t.won; m.rounds += t.rounds; m.secs += t.secs;
-    const c = duel(deck, bossFoe(andar, 'Chefe'), andar * 5000 + k);
+    const c = duel(deck, towerBoss(andar), andar * 5000 + k);
     b.won += +c.won; b.secs += c.secs;
   }
   const mw = m.won / N, bw = b.won / N;

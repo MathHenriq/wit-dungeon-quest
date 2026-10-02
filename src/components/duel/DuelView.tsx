@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TcgCard, TcgCardBack, ELEMENT_STYLE } from '@/components/tcg/TcgCard';
 import { AI_NAMES, planTurn } from '@/lib/tcg/ai';
-import { canPlay, createGame, endTurn, IllegalPlay, playCard } from '@/lib/tcg/engine';
+import { canMulligan, canPlay, createGame, endTurn, IllegalPlay, mulligan, playCard } from '@/lib/tcg/engine';
 import { ELEMENT_PT, STATUS_PT, TYPE_PT_PLURAL } from '@/lib/tcg/labels';
 import type { Foe } from '@/lib/tcg/opponents';
 import type { CardDef, CardInstance, DamageCalc, Element, GameState, PlayerState } from '@/lib/tcg/types';
@@ -37,6 +37,8 @@ interface Props {
   result?: React.ReactNode;
   /** Tapete do aluno (src/game/playmats.ts); sem ele, o Clássico. */
   mat?: string;
+  /** Talentos de duelo do Grimório: trocar a mão inicial e espiar o topo do deck (uma vez cada). */
+  talents?: { novaMao?: boolean; espiar?: boolean };
 }
 
 
@@ -276,7 +278,8 @@ function CalcPanel({ c }: { c: DamageCalc }) {
   );
 }
 
-export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result, mat }: Props) {
+export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result, mat, talents }: Props) {
+  const [peek, setPeek] = useState<'pronto' | 'aberto' | 'usado'>('pronto');
   const [state, setState] = useState<GameState>(() => {
     // ?mao=id1,id2 põe essas cartas na mão e ?comeca=eu|ele escolhe quem começa (prints e testes)
     const q = new URLSearchParams(window.location.search);
@@ -770,6 +773,8 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         </div>
 
         <div className="dv-tools dv-px">
+          {talents?.novaMao && canMulligan(state, 0) && <button title="Grimório: Embaralhar de Novo" onClick={() => { setState(mulligan(state, 0)); play('draw'); }}>NOVA MÃO</button>}
+          {talents?.espiar && peek === 'pronto' && myTurn && state.players[0].deck.length > 0 && <button title="Grimório: Olho do Oráculo" onClick={() => { setPeek('aberto'); play('flip'); }}>ESPIAR</button>}
           <button onClick={() => setShowLog(v => !v)}>LOG</button>
           <button onClick={() => { setMuted(!muted); setMutedState(!muted); if (muted) play('click'); }} aria-label={muted ? 'Ligar o som' : 'Desligar o som'}>{muted ? 'MUDO' : 'SOM'}</button>
           <button onClick={onQuit}>SAIR</button>
@@ -779,6 +784,17 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
             {lastLog.map((l, i) => (
               <div key={i} style={{ color: l.player === 0 ? '#d9f99d' : l.player === 1 ? '#fecaca' : '#fef08a' }}>{l.text}</div>
             ))}
+          </div>
+        )}
+
+        {/* Olho do Oráculo: a carta do topo do seu deck */}
+        {peek === 'aberto' && state.players[0].deck[0] && (
+          <div className="dv-modal" onClick={() => setPeek('usado')}>
+            <div className="box" onClick={e => e.stopPropagation()}>
+              <div className="dv-px text-center text-[10px] mb-2" style={{ color: '#d9f99d' }}>A PRÓXIMA CARTA DO SEU DECK</div>
+              <div className="card"><TcgCard card={state.players[0].deck[0].def} /></div>
+              <div className="btns dv-px"><button onClick={() => setPeek('usado')}>OK</button></div>
+            </div>
           </div>
         )}
 

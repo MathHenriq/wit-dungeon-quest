@@ -2,6 +2,7 @@
 // repetida dá pó DA RARIDADE DELA (Comum vira pó comum, Rara vira pó raro...);
 // forjar uma carta gasta pó da mesma raridade. Nada vira pó sozinho: só a
 // cópia extra que o aluno escolhe desmanchar (a carta usada no deck fica).
+import { hasTalent } from './grimoire';
 import type { CardDef, Rarity } from '@/lib/tcg/types';
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import type { Progress } from './progress';
@@ -27,7 +28,8 @@ export function disenchant(p: Progress, id: string, n = 1): { ok: true; progress
   if (!card) return { ok: false, reason: 'Carta não existe.' };
   const k = Math.min(n, spare(p, id));
   if (k <= 0) return { ok: false, reason: 'Só dá para desmanchar cartas repetidas (a primeira fica no álbum).' };
-  const dust = DUST[card.rarity].gives * k;
+  // talento do Grimório: +25% de pó
+  const dust = Math.round(DUST[card.rarity].gives * k * (hasTalent(p, 'po-extra') ? 1.25 : 1));
   return {
     ok: true, dust, rarity: card.rarity,
     progress: { ...p, collection: { ...p.collection, [id]: p.collection[id] - k }, po: { ...p.po, [card.rarity]: dustOf(p, card.rarity) + dust } },

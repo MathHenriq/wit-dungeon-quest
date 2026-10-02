@@ -255,6 +255,8 @@ export interface PlayerState {
   attacksThisTurn: number;
   /** Cartas jogadas neste turno, para condições do tipo "se jogou Vento neste turno". */
   playedThisTurn: CardDef[];
+  /** Já usou o talento "Embaralhar de Novo" nesta partida. */
+  mulliganed?: boolean;
 }
 
 /** A conta de um golpe, peça por peça (a tela mostra em fichas). */

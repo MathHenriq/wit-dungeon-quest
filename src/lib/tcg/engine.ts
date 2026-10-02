@@ -715,6 +715,30 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
 
 // ─── Jogar uma carta ─────────────────────────────────────────────────────────
 
+/**
+ * Talento do Grimório "Embaralhar de Novo": no primeiro turno do jogador,
+ * antes de ele jogar qualquer carta, a mão volta para o deck, que é
+ * embaralhado, e ele compra o mesmo número de cartas. Uma vez por partida.
+ */
+export function canMulligan(state: GameState, who: 0 | 1): boolean {
+  const p = state.players[who];
+  const myFirstTurn = state.turn === (who === state.firstPlayer ? 1 : 2);
+  return state.winner === null && state.active === who && myFirstTurn && !p.mulliganed && p.playedThisTurn.length === 0 && p.hand.length > 0;
+}
+
+export function mulligan(stateIn: GameState, who: 0 | 1): GameState {
+  if (!canMulligan(stateIn, who)) return stateIn;
+  const state = structuredClone(stateIn);
+  const p = state.players[who];
+  const n = p.hand.length;
+  p.deck.push(...p.hand.splice(0));
+  shuffleInPlace(state, p.deck);
+  drawCards(state, who, n);
+  p.mulliganed = true;
+  log(state, who, `${p.name} embaralha a mão de volta e compra ${n} cartas novas.`);
+  return state;
+}
+
 export function playCard(stateIn: GameState, uid: string, choices: PlayChoices = {}): GameState {
   const state = structuredClone(stateIn);
   const check = canPlay(state, uid);

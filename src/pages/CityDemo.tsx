@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { shownTitle } from '@/game/titles';
+import { versoOf } from '@/game/grimoire';
 import { addGlowSpots, type Placed, type Town } from '@/game/world/town';
 import { hdOf, loadPrebuiltGround, loadWorldAssets, type WorldAssets } from '@/game/world/assets';
 import { buildZone, ZONES } from '@/game/world/world';
@@ -24,6 +26,7 @@ import { play } from '@/game/sfx';
 import { addPhoto, loadPhotos, MAX_PHOTOS, savePhotos, snap } from '@/game/photos';
 import { cancelField, completeTarget, FIELD_BY_ID, fieldLeft, interviewLine, pendingByZone, targetsIn, type FieldTarget } from '@/game/fieldwork';
 import { publish } from '@/game/press';
+import { PathChooser } from '@/components/city/PathChooser';
 import { lampPower, lightHalo, timeOfDay } from '@/game/world/light';
 import { TILE } from '@/game/world/buildings';
 import { Pixmap } from '@/game/world/pixmap';
@@ -247,7 +250,7 @@ function CityView({ town, start, startHour, onTravel }: {
     const w = new URLSearchParams(window.location.search).get('trabalho');
     return w && WORK_DOORS[w] ? WORK_DOORS[w] : null;
   });
-  const [bag, setBag] = useState<'mochila' | 'cargos' | 'missoes' | null>(() => (new URLSearchParams(window.location.search).has('mochila') ? 'mochila' : null));
+  const [bag, setBag] = useState<'mochila' | 'cargos' | 'missoes' | 'titulos' | null>(() => (new URLSearchParams(window.location.search).has('mochila') ? 'mochila' : null));
   const [shopUi, setShopUi] = useState<'mercado' | 'cozinha' | 'entregas' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('loja');
     return q === 'mercado' || q === 'cozinha' || q === 'entregas' ? q : null;
@@ -260,8 +263,13 @@ function CityView({ town, start, startHour, onTravel }: {
   const [look, setLook] = useState<Look>(savedLook);
   const [editing, setEditing] = useState(() => new URLSearchParams(window.location.search).has('visual'));
   // ?sala=torre&andar=5 ou ?sala=casa começa dentro (prints e testes)
-  const [deckOpen, setDeckOpen] = useState(false);
+  const [deckOpen, setDeckOpen] = useState(() => { const q = new URLSearchParams(window.location.search); return q.has('tapetes') || q.has('grimorio') || q.has('deck'); });
   const [progress, setProgress] = useState<Progress>(loadProgress);
+  // verso das cartas (Grimório): vale para todas as cartas viradas do jogo
+  useEffect(() => { document.documentElement.dataset.verso = versoOf(progress); }, [progress]);
+  // primeiro acesso: escolher o Caminho. ?caminho força a tela; em navegador
+  // automatizado (prints e testes) ela só abre com ?caminho, para não tapar a cidade
+  const [pathOpen, setPathOpen] = useState(() => new URLSearchParams(window.location.search).has('caminho') || (!loadProgress().caminho && !navigator.webdriver));
   useEffect(() => {
     const on = (e: Event) => setProgress((e as CustomEvent<Progress>).detail);
     window.addEventListener('wit-progresso', on);
@@ -359,13 +367,13 @@ function CityView({ town, start, startHour, onTravel }: {
   });
 
   useEffect(() => {
-    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses || !!work || !!bag || !!shopUi;
+    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses || !!work || !!bag || !!shopUi || pathOpen;
     g.current.inside = !!inside; g.current.dirty = true;
   }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel, courses, work, bag, shopUi]);
 
   // título do cargo na plaquinha; com fome não corre
   useEffect(() => {
-    g.current.playerTitle = progress.profissao ? profTitle(progress.profissao, progress.xp[progress.profissao] ?? 0) : 'Novato';
+    g.current.playerTitle = shownTitle(progress, progress.profissao ? profTitle(progress.profissao, progress.xp[progress.profissao] ?? 0) : undefined);
     g.current.starving = progress.fome <= 0;
     g.current.dirty = true;
   }, [progress]);
@@ -1835,6 +1843,7 @@ function CityView({ town, start, startHour, onTravel }: {
           >A</button>
         </>
       )}
+      {pathOpen && <PathChooser onDone={() => setPathOpen(false)} />}
       {deckOpen && <DeckBuilder progress={progress} onClose={() => setDeckOpen(false)} />}
       {inside && <InteriorView sala={inside} look={look} pet={look.pet ?? DEFAULT_PET} onExit={exitInterior} />}
     </div>

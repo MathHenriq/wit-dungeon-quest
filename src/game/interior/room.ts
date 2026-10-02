@@ -4,6 +4,7 @@
 //
 // Os móveis vêm de public/game/interior/manifest.json (gerado por
 // scripts/arte/importar-interiores.py): tamanho, camada, nome e pegada.
+import { bossIdentity } from '@/lib/tcg/bosses';
 import type { Dir } from '@/game/world/movement';
 
 export const TILE = 16;
@@ -265,8 +266,8 @@ export function towerRoom(andar: number): Room {
   items.push({ id: 'mesa-chefe', tx: 8, ty: 5 });
   npcs.push({
     id: 'chefe', sprite: andar % 10 === 0 ? 'npc-desafiante-12' : 'npc-desafiante-11', tx: 10, ty: 4, dir: 'south',
-    name: andar % 10 === 0 ? 'Campeão' : 'Mestre', title: `Chefe do Andar ${andar}`,
-    lines: [`Andar ${andar}. Quem me vence ganha uma carta do meu deck e sobe para o próximo andar.`],
+    name: bossIdentity(andar).name, title: `Chefe do Andar ${andar}`,
+    lines: [`Andar ${andar}. ${bossIdentity(andar).line}`, 'Quem me vence ganha uma carta do meu deck e sobe para o próximo andar.'],
     talk: [[10, 4], [8, 5], [9, 5], [10, 5], [11, 5], [8, 6], [9, 6], [10, 6], [11, 6]],
     seated: true,
     duel: { kind: 'chefe', andar },

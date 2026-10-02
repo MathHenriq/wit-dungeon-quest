@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { shownTitle } from '@/game/titles';
+import { hasTalent } from '@/game/grimoire';
+import { towerBoss } from '@/lib/tcg/bosses';
 import { play } from '@/game/sfx';
 import { PackShop } from '@/components/packs/PackShop';
 import { ForgePanel } from '@/components/packs/ForgePanel';
@@ -19,7 +22,7 @@ import { DuelResult as DuelResultPanel } from '@/components/duel/DuelResult';
 import { TcgCard } from '@/components/tcg/TcgCard';
 import { AI_NAMES } from '@/lib/tcg/ai';
 import { ELEMENT_PT } from '@/lib/tcg/labels';
-import { bossFoe, REPLAY_SHARE, tableFoe, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opponents';
+import { REPLAY_SHARE, tableFoe, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opponents';
 import {
   activeDeckCards, applyDuel, bossUnlocked, canGoUp, loadProgress, saveProgress, tablesWon, winsOf, type DuelResult, type Progress,
 } from '@/game/progress';
@@ -139,7 +142,7 @@ function savedHouse(m: Manifest): { items: Placed[]; piso: string; parede: strin
 type DuelSpec = NonNullable<RoomNpc['duel']>;
 /** O adversário de uma mesa (Torre ou Arena). Na Arena o nível acompanha o andar do aluno e a vitória não conta para a Torre. */
 function foeFor(d: DuelSpec, name: string, p: Progress): Foe {
-  if (d.kind === 'chefe') return bossFoe(d.andar, name);
+  if (d.kind === 'chefe') return towerBoss(d.andar);
   if (d.kind === 'arena') return { ...tableFoe(Math.max(1, p.towerMax), d.mesa + 100, d.table, name), id: foeIdOf(d) };
   return tableFoe(d.andar, d.mesa, d.table, name);
 }
@@ -598,7 +601,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
             plate(n.w, plateCanvas(n.def.name, won ? `${n.def.title} - VENCIDO` : n.def.title, PLATE_NPC));
           }
         }
-        plate(p, plateCanvas(look.apelido || 'Você', 'Novato', PLATE_PLAYER));
+        plate(p, plateCanvas(look.apelido || 'Você', shownTitle(loadProgress()), PLATE_PLAYER));
         // portas e passagens: placa piscando (uma por grupo)
         const groups = new Map<string, { x0: number; x1: number; ty: number }>();
         for (const e of room.exits) {
@@ -852,6 +855,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           deck={activeDeckCards(progress)}
           look={look}
           mat={progress.mat}
+          talents={{ novaMao: hasTalent(progress, 'nova-mao'), espiar: hasTalent(progress, 'espiar') }}
           nick={look.apelido || 'Você'}
           onQuit={() => setDuel(null)}
           onEnd={won => {

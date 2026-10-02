@@ -258,3 +258,25 @@
   text-shadow: 0 0 4cqw rgba(244, 213, 141, 0.7);
   box-shadow: 0 0 8cqw rgba(244, 213, 141, 0.35);
 }
+
+/* Versos do Grimório (o aluno escolhe; vale em todo o jogo) */
+:root[data-verso="dourado"] .tcg-card--back {
+  border-color: #8a6a10;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 248, 200, 0.55), transparent 36%),
+    repeating-conic-gradient(from 0deg at 50% 50%, #c8961e 0 10deg, #9a6e10 10deg 20deg);
+}
+:root[data-verso="noite"] .tcg-card--back {
+  border-color: #1e2a5a;
+  background:
+    radial-gradient(1.2cqw 1.2cqw at 20% 30%, #fff 50%, transparent 51%),
+    radial-gradient(0.9cqw 0.9cqw at 70% 18%, #fff 50%, transparent 51%),
+    radial-gradient(1.4cqw 1.4cqw at 80% 70%, #ffe9a8 50%, transparent 51%),
+    radial-gradient(0.8cqw 0.8cqw at 35% 80%, #fff 50%, transparent 51%),
+    radial-gradient(1cqw 1cqw at 55% 55%, #cfe0ff 50%, transparent 51%),
+    radial-gradient(circle at 50% 120%, #3a2a7a, #0c1030 70%);
+}
+/* amostras na escolha do verso (não dependem do verso atual) */
+[data-verso-preview="dourado"] .tcg-card--back { border-color: #8a6a10; background: radial-gradient(circle at 50% 50%, rgba(255, 248, 200, 0.55), transparent 36%), repeating-conic-gradient(from 0deg at 50% 50%, #c8961e 0 10deg, #9a6e10 10deg 20deg) !important; }
+[data-verso-preview="noite"] .tcg-card--back { border-color: #1e2a5a; background: radial-gradient(1.4cqw 1.4cqw at 80% 70%, #ffe9a8 50%, transparent 51%), radial-gradient(1.2cqw 1.2cqw at 20% 30%, #fff 50%, transparent 51%), radial-gradient(circle at 50% 120%, #3a2a7a, #0c1030 70%) !important; }
+[data-verso-preview="classico"] .tcg-card--back { border-color: #6b4f1d; background: radial-gradient(circle at 50% 50%, rgba(244, 213, 141, 0.35), transparent 34%), repeating-conic-gradient(from 0deg at 50% 50%, #2a1450 0 10deg, #1b0c36 10deg 20deg) !important; }

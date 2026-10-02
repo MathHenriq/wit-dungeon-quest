@@ -1,5 +1,6 @@
 // Telas do dia a dia: mochila (comer, irrigador), profissões, missões do dia,
 // Mercado Central, cozinha da Casa da Fazenda e Central de Entregas.
+import { earnedTitles, TITLES_LIST } from '@/game/titles';
 import { useState } from 'react';
 import { canCook, chooseProfession, cook, craftIrrigator, eat, gainXp, RECIPES, SENSORS_PER_IRRIG } from '@/game/life';
 import { buy, buyPrice, MARKET_SELLS, marketPrice, sell, sellable, trend } from '@/game/market';
@@ -78,7 +79,7 @@ export function MissionsList({ progress, onMsg }: { progress: Progress; onMsg: (
 
 // ─── Mochila ────────────────────────────────────────────────────────────────
 
-export function Backpack({ progress, onClose, start = 'mochila' }: { progress: Progress; onClose: () => void; start?: 'mochila' | 'cargos' | 'missoes' }) {
+export function Backpack({ progress, onClose, start = 'mochila' }: { progress: Progress; onClose: () => void; start?: 'mochila' | 'cargos' | 'missoes' | 'titulos' }) {
   const [tab, setTab] = useState(start);
   const [msg, setMsg] = useState<string | null>(null);
   const ids = Object.keys(progress.itens).filter(k => progress.itens[k] > 0 && itemDef(k));
@@ -111,7 +112,7 @@ export function Backpack({ progress, onClose, start = 'mochila' }: { progress: P
         <span>{Math.round(progress.fome)}/100</span>
         <span className="ml-auto flex items-center gap-1">{prof ? <><Icon id={prof.icon} size={16} /> {prof.name} · {TITLES[levelOf(progress.xp[prof.id] ?? 0).level - 1]}</> : 'Sem cargo: escolha no Núcleo WIT'}</span>
       </div>
-      <Tabs tabs={[['mochila', 'ITENS'], ['cargos', 'PROFISSÕES'], ['missoes', `MISSÕES${ready ? ` (${ready}!)` : ''}`]]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color="#8a5a2e" />
+      <Tabs tabs={[['mochila', 'ITENS'], ['cargos', 'PROFISSÕES'], ['missoes', `MISSÕES${ready ? ` (${ready}!)` : ''}`], ['titulos', `TÍTULOS ${earnedTitles(progress).length}/${TITLES_LIST.length}`]]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color="#8a5a2e" />
       {tab === 'mochila' && (
         <div>
           {!ids.length && <div className="text-[8px] leading-4 text-[#5a5470]">A mochila está vazia. Pesque, plante, trabalhe nos prédios da Cidade WIT ou compre comida na Padaria e no Mercado.</div>}
@@ -143,6 +144,23 @@ export function Backpack({ progress, onClose, start = 'mochila' }: { progress: P
       )}
       {tab === 'cargos' && <ProfessionsList progress={progress} onMsg={setMsg} />}
       {tab === 'missoes' && <MissionsList progress={progress} onMsg={setMsg} />}
+      {tab === 'titulos' && (
+        <div>
+          <div className="text-[8px] leading-4 text-[#5a5470] mb-2">O título aparece na plaquinha em cima do seu personagem. Toque num que você já ganhou para usar.</div>
+          <div className="grid sm:grid-cols-2 gap-1.5">
+            {TITLES_LIST.map(t => {
+              const got = t.has(progress), on = progress.titulo === t.id && got, pr = t.progress?.(progress);
+              return (
+                <button key={t.id} disabled={!got} onClick={() => { saveProgress({ ...progress, titulo: t.id }); play('click'); setMsg(`Título: ${t.name}`); }}
+                  className={`text-left px-2 py-1.5 rounded border-2 ${on ? 'border-[#e8a020] bg-[#fff4dc]' : got ? 'border-[#d8d0c0] bg-white' : 'border-dashed border-[#d8d0c0] bg-[#f6f2e8] opacity-70'}`}>
+                  <div className="text-[9px]">{t.name}{on && <span className="text-[#e8a020]"> · EM USO</span>}</div>
+                  <div className="text-[7px] leading-4 text-[#5a5470]">{t.how}{!got && pr ? ` (${pr[0]}/${pr[1]})` : ''}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <Msg msg={msg} />
     </Shell>
   );

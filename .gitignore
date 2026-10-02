@@ -43,3 +43,4 @@ botoes-*.png
 /arte/
 __pycache__/
 dist-demo
+scripts/out/
