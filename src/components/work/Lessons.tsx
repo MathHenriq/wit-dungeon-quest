@@ -266,7 +266,7 @@ export function Rota({ seed, onDone }: GameProps) {
 
 const TW = 40, TH = 20, TZ = 22;
 /** Tela isométrica: x vai para a direita-baixo, y para a esquerda-baixo, z para cima. */
-const iso = (x: number, y: number, z: number) => ({ sx: 130 + (x - y) * (TW / 2), sy: 60 + (x + y) * (TH / 2) - z * TZ });
+const iso = (x: number, y: number, z: number) => ({ sx: 130 + (x - y) * (TW / 2), sy: 108 + (x + y) * (TH / 2) - z * TZ });
 function Cube({ p, color, ghost }: { p: P3; color: string; ghost?: boolean }) {
   const a = iso(p.x, p.y, p.z + 1), b = iso(p.x + 1, p.y, p.z + 1), c = iso(p.x + 1, p.y + 1, p.z + 1), d = iso(p.x, p.y + 1, p.z + 1);
   const c0 = iso(p.x + 1, p.y + 1, p.z), b0 = iso(p.x + 1, p.y, p.z), d0 = iso(p.x, p.y + 1, p.z);
@@ -308,7 +308,7 @@ export function Coordenadas({ seed, onDone }: GameProps) {
       <Head step={i + 1} total={rounds.length}>No 3D, cada ponto tem 3 números: X (para um lado), Y (para o outro) e Z (a altura).</Head>
       <div className="text-[10px] mb-1">{q.kind === 'por' ? <>Coloque o bloco em <b className="text-[#7a4ac8]">{fmt(q.p)}</b></> : 'Qual é a coordenada do bloco roxo?'}</div>
       <div className="flex justify-center">
-        <svg viewBox="0 0 260 190" className="w-full h-auto" style={{ maxWidth: 440 }}>
+        <svg viewBox="0 0 260 222" className="w-full h-auto" style={{ maxWidth: 420 }}>
           {tiles}
           {/* eixos com os números */}
           <line x1={o.sx} y1={o.sy} x2={ax.sx + 8} y2={ax.sy + 4} stroke="#e8485a" strokeWidth={2} /><text x={ax.sx + 12} y={ax.sy + 10} fontSize={11} fill="#e8485a" fontWeight={700}>X</text>
