@@ -50,4 +50,56 @@ if (want('diario')) {
   await page.locator('button', { hasText: /tarde|margem|barco|funda|manhã/ }).first().click(); await page.waitForTimeout(300);
   await page.screenshot({ path: `${S}/diario-2.png`, fullPage: true });
 }
+// as seis tarefas que ensinam: abre a porta, escolhe o trabalho e joga um pouco
+const work = async (door, tab) => {
+  await go(`zona=wit&trabalho=${door}`);
+  if (tab) { await page.getByRole('button', { name: tab, exact: true }).click(); await page.waitForTimeout(150); }
+  await page.getByRole('button', { name: 'TRABALHAR', exact: true }).click(); await page.waitForTimeout(400);
+};
+if (want('afinar')) {
+  await work('estudio-musica', 'AFINAR');
+  await page.screenshot({ path: `${S}/afinar-1.png` });
+  await page.getByRole('button', { name: /NOTA 2/ }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/afinar-2.png` });
+  for (let k = 0; k < 3; k++) { await page.getByRole('button', { name: 'PRÓXIMA' }).click(); await page.getByRole('button', { name: /NOTA 1/ }).click(); await page.waitForTimeout(150); }
+  await page.getByRole('button', { name: 'PRÓXIMA' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/afinar-3.png` });
+}
+if (want('cores')) {
+  await work('atelie', 'MISTURAR CORES');
+  await page.getByRole('button', { name: /VERMELHO/ }).click(); await page.getByRole('button', { name: /AMARELO/ }).click(); await page.waitForTimeout(400);
+  await page.screenshot({ path: `${S}/cores-1.png` });
+  await page.getByRole('button', { name: 'PRONTO' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/cores-2.png` });
+}
+if (want('regras')) {
+  await work('casa-iot', 'REGRA SE/ENTÃO');
+  await page.screenshot({ path: `${S}/regras-1.png` });
+  const sel = page.locator('select');
+  await sel.nth(0).selectOption({ index: 1 }); await page.waitForTimeout(100);
+  await sel.nth(1).selectOption({ index: 1 }); await sel.nth(2).selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'TESTAR A REGRA' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/regras-2.png` });
+}
+if (want('rota')) {
+  await work('rota');
+  const houses = page.locator('svg g[style*="pointer"]');
+  const n = await houses.count();
+  for (let k = 0; k < n; k++) { await page.locator('svg g[style*="pointer"]').first().click(); await page.waitForTimeout(100); }
+  await page.screenshot({ path: `${S}/rota-1.png` });
+}
+if (want('coordenadas')) {
+  await work('metaverso', 'COORDENADAS 3D');
+  await page.locator('svg polygon').nth(7).click(); await page.getByRole('button', { name: '+', exact: true }).click();
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: `${S}/coord-1.png` });
+  await page.getByRole('button', { name: 'COLOCAR' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/coord-2.png` });
+}
+if (want('acuracia')) {
+  await work('lab-ia', 'TESTAR O MODELO');
+  const cards = page.locator('button:has(img)');
+  for (let k = 0; k < 4; k++) await cards.nth(k).click();
+  await page.screenshot({ path: `${S}/acuracia-1.png` });
+}
 await browser.close();

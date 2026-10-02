@@ -253,7 +253,7 @@ export function KitchenPanel({ progress, onClose }: { progress: Progress; onClos
 
 // ─── Central de Entregas ────────────────────────────────────────────────────
 
-export function DeliveryPanel({ progress, zone, onClose }: { progress: Progress; zone: string; onClose: () => void }) {
+export function DeliveryPanel({ progress, zone, onClose, onWork }: { progress: Progress; zone: string; onClose: () => void; onWork?: () => void }) {
   const [msg, setMsg] = useState<string | null>(null);
   const e = progress.entrega;
   const near = deliveryTerms(progress, true), far = deliveryTerms(progress, false);
@@ -275,6 +275,7 @@ export function DeliveryPanel({ progress, zone, onClose }: { progress: Progress;
         }} className="w-full py-3 rounded-lg bg-[#2a8a8a] text-white text-[11px] border-b-4 border-black/30">PEGAR ENCOMENDA</button>
       )}
       <Msg msg={msg} />
+      {onWork && <button onClick={onWork} className="mt-3 w-full py-2.5 rounded-lg bg-[#e8762a] text-white text-[10px] border-b-4 border-[#a84a10]">TRABALHAR: MELHOR ROTA (Entregador)</button>}
     </Shell>
   );
 }

@@ -62,15 +62,17 @@ const WALK_MS = 230, RUN_MS = 125, BOAT_MS = 190;
 /** Portas onde se trabalha (minijogo da profissão); `?trabalho=<porta>` abre direto. */
 const WORK_DOORS: Record<string, { game: MinigameId; also?: MinigameId[]; shop?: string[] }> = {
   'npc-padaria': { game: 'pao', also: ['forno'], shop: ['pao', 'bolo'] },
-  'npc-musico': { game: 'compor', also: ['ritmo'] }, 'estudio-musica': { game: 'compor', also: ['ritmo'] },
-  'npc-artista': { game: 'pintura' }, atelie: { game: 'pintura' },
-  'lab-ia': { game: 'programar', also: ['rotular'] },
-  'casa-iot': { game: 'circuito' },
-  metaverso: { game: 'pares' },
+  'npc-musico': { game: 'compor', also: ['afinar', 'ritmo'] }, 'estudio-musica': { game: 'compor', also: ['afinar', 'ritmo'] },
+  'npc-artista': { game: 'cores', also: ['pintura'] }, atelie: { game: 'cores', also: ['pintura'] },
+  'lab-ia': { game: 'programar', also: ['acuracia', 'rotular'] },
+  'casa-iot': { game: 'regras', also: ['circuito'] },
+  metaverso: { game: 'coordenadas', also: ['pares'] },
   estudio: { game: 'materia', also: ['noticia'] },
   'oficina-games': { game: 'teste-jogo' },
   // sem porta própria: abre pela aba GRÁFICOS do Mercado (e por ?trabalho=analista)
   analista: { game: 'grafico' },
+  // idem: botão MELHOR ROTA na Central de Entregas
+  rota: { game: 'rota' },
 };
 /** Um dia inteiro do jogo dura 12 minutos (30 s por hora). */
 const MS_PER_HOUR = 30_000;
@@ -1680,7 +1682,7 @@ function CityView({ town, start, startHour, onTravel }: {
       {bag && <Backpack progress={progress} start={bag} onClose={() => { setBag(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
       {shopUi === 'mercado' && <MarketPanel progress={progress} onClose={() => setShopUi(null)} onWork={() => { setShopUi(null); setWork({ game: 'grafico' }); }} />}
       {shopUi === 'cozinha' && <KitchenPanel progress={progress} onClose={() => setShopUi(null)} />}
-      {shopUi === 'entregas' && <DeliveryPanel progress={progress} zone={town.id} onClose={() => setShopUi(null)} />}
+      {shopUi === 'entregas' && <DeliveryPanel progress={progress} zone={town.id} onClose={() => setShopUi(null)} onWork={() => { setShopUi(null); setWork({ game: 'rota' }); }} />}
       {fishHouse && <FishHouse progress={progress} start={fishHouse} onClose={() => setFishHouse(null)} />}
       {courses && <CoursesPanel progress={progress} onClose={() => setCourses(false)} />}
       {farmPanel && <FarmPanel mode={farmPanel} progress={progress} onClose={() => { setFarmPanel(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
