@@ -2,7 +2,7 @@
 // no mesmo jeito dos sprites do GPT: contorno escuro, luz de cima à esquerda,
 // textura (tábuas, telhas, pedra, vidro) e a camada da noite (janelas acesas).
 // Os prédios do Lago, da Fazenda e da Cidade WIT saem daqui até a arte do
-// GPT chegar (docs/prompts-mundo.md).
+// GPT chegar (docs/PROMPTS-GPT.md).
 import { TILE, type Building } from './buildings';
 import { drawText, textWidth } from './font';
 import { hash, hex, mix, Pixmap, type RGB } from './pixmap';

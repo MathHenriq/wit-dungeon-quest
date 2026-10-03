@@ -6,7 +6,7 @@ Aceita os arquivos soltos (comum.png, incomum.png, ...) ou uma folha só
 borda rosada), corta no pacote, encaixa em 5:7 centrado e salva com 300 px de
 altura (o jogo amplia nítido). O selo de cima tem de ficar no 1/7 de cima: é a
 tira que sai voando ao abrir (PACK_TEAR/PACK_H em src/game/world/packs-art.ts).
-Prompts: docs/prompts-lote2.md §J. Revise a folha antes de subir as imagens.
+Prompts: docs/PROMPTS-GPT.md §J. Revise a folha antes de subir as imagens.
 
     python3 scripts/arte/importar-pacotes.py [--folha revisao.png] [ids...]
 """
@@ -98,7 +98,7 @@ def main() -> None:
         rev.save(folha_rev)
         print(f'folha de revisão: {folha_rev}')
     if not feitos:
-        print(f'nada em {SRC} (salve os pacotes lá: veja docs/prompts-lote2.md §J)')
+        print(f'nada em {SRC} (salve os pacotes lá: veja docs/PROMPTS-GPT.md §J)')
 
 
 if __name__ == '__main__':

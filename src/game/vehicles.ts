@@ -1,5 +1,5 @@
 // Veículos (plano §3.6): andar mais rápido pela cidade. Só as REGRAS e a
-// economia; o boneco montado precisa de arte (prompts em docs/prompts-lote2.md
+// economia; o boneco montado precisa de arte (prompts em docs/PROMPTS-GPT.md
 // §N) e entra quando a imagem chegar. Simulação: `scripts/veiculos.ts`.
 //
 //  - cada veículo tem um ritmo (ms por bloco), preço e quanto gasta de barriga;

@@ -2,7 +2,7 @@
 // medidor), misturar (girar o dedo na tigela), sovar (arrastar para lá e para
 // cá), modelar (escolher o formato), crescer e assar (tirar na hora). A nota
 // junta a medida e o ponto do forno; o pão sai no formato escolhido.
-// A cena e as fases da massa vêm do GPT (docs/prompts-lote2.md §H); até lá,
+// A cena e as fases da massa vêm do GPT (docs/PROMPTS-GPT.md §H); até lá,
 // tigela e massa desenhadas de forma simples.
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/components/Icon';

@@ -1,7 +1,7 @@
 // Tapetes do duelo (cosméticos): o aluno compra com moedas e escolhe qual usa.
 // Não mudam nada nas regras. Os feitos em código são só CSS; os de imagem
 // (anime, cartas, monstrinhos) usam uma arte em public/game/tapetes/<id>.webp,
-// gerada pelo GPT com os prompts de docs/prompts-tapetes.md e revisada antes.
+// gerada pelo GPT com os prompts de docs/PROMPTS-GPT.md e revisada antes.
 import type { CSSProperties } from 'react';
 
 export type MatTheme = 'Básico' | 'WIT' | 'Natureza' | 'Elementos' | 'Anime' | 'Cartas' | 'Monstrinhos';
@@ -78,7 +78,7 @@ export const PLAYMATS: Playmat[] = [
       repeating-linear-gradient(35deg, transparent 0 3.5cqw, rgba(255,160,40,.35) 3.5cqw 3.6cqw, transparent 3.6cqw 7cqw),
       radial-gradient(ellipse at center, #3a1510, #160806 80%)`,
   },
-  // arte em imagem (prompts em docs/prompts-tapetes.md): entram quando a arte for aprovada
+  // arte em imagem (prompts em docs/PROMPTS-GPT.md): entram quando a arte for aprovada
   { id: 'arena-heroi', nome: 'Arena dos Heróis', tema: 'Anime', preco: 1500, borda: '#ffd45c', arte: true, emBreve: true, descricao: 'Estádio de torneio shōnen com a plateia em volta.' },
   { id: 'espiritos', nome: 'Floresta dos Espíritos', tema: 'Anime', preco: 1500, borda: '#7ee06a', arte: true, emBreve: true, descricao: 'Floresta mágica com espíritos brilhando, estilo filme de anime.' },
   { id: 'cidade-neon', nome: 'Cidade Neon', tema: 'Anime', preco: 1500, borda: '#ff4fd8', arte: true, emBreve: true, descricao: 'Telhados de uma cidade futurista à noite.' },

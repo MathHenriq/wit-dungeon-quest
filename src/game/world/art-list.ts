@@ -1,5 +1,5 @@
 // Lista da arte do mundo novo (Lago, Fazenda, Cidade WIT) que ainda é feita
-// por código e deve virar arte do GPT (docs/prompts-mundo.md). Cada nome é o
+// por código e deve virar arte do GPT (docs/PROMPTS-GPT.md). Cada nome é o
 // sprite que o jogo procura: quando `scripts/arte/importar-gpt.py` gera um
 // sprite com esse nome, ele entra sozinho no lugar da arte por código.
 // `npx vite-node scripts/arte/falta-arte.ts` mostra o que ainda falta.

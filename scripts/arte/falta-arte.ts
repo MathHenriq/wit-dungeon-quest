@@ -1,6 +1,6 @@
 // Lista a arte do mundo novo que ainda é feita por código (falta a imagem do GPT).
 //   npx vite-node scripts/arte/falta-arte.ts
-// Prompts em docs/prompts-mundo.md; salvar em public/Novos assets/mundo/<área>/
+// Prompts em docs/PROMPTS-GPT.md; salvar em public/Novos assets/mundo/<área>/
 // e rodar python3 scripts/arte/importar-gpt.py --folha revisao.png.
 import { readFileSync } from 'node:fs';
 import { missingArt, WORLD_ART } from '../../src/game/world/art-list';
