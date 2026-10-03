@@ -14,6 +14,9 @@ import { Acuracia, Afinar, Coordenadas, Cores, Regras, Rota } from './Lessons';
 import { Barraca, Boato, Calendario, Fermento, Logica, PixelArt } from './Lessons2';
 import { BreadMaker } from './BreadMaker';
 import { Icon, Symbol } from '@/components/Icon';
+import { PxButton } from '@/components/pixel/Pixel';
+import { Prop } from './Scene';
+import './minigames.css';
 
 export interface GameResult { score: number; hits: number; headline?: string; /** item que sai (o formato do pão) */ item?: string }
 export interface GameProps { perk: number; seed: number; onDone: (r: GameResult) => void; towerMax?: number; day?: number }
@@ -80,21 +83,34 @@ function Forno({ perk, onDone }: GameProps) {
   const press = () => { if (!shownRes && now >= t0) finish(v); };
   useKey(k => { if (k === ' ' || k === 'Enter') press(); });
   const brown = Math.min(1, v / 100);
+  const look = (x: number) => (x >= 1 ? 'ok' : x > 0.5 ? 'meh' : 'bad');
   return (
-    <div className="text-center">
-      <div className="text-[9px] mb-2">FORNADA {Math.min(round + 1, ROUNDS)} DE {ROUNDS} · tire quando a agulha estiver no verde</div>
-      <div className="mx-auto w-[220px] h-[120px] rounded-t-[60px] bg-[#8a4a2a] border-4 border-[#4a2a1a] flex items-center justify-center relative">
-        <div className="w-[170px] h-[70px] mt-6 rounded-lg bg-[#2a1a12] flex items-center justify-center" style={{ boxShadow: `inset 0 0 ${10 + brown * 30}px #ff8a20` }}>
-          <span style={{ filter: `brightness(${1.15 - brown * 0.6})` }}><Icon id="pao" size={64} /></span>
+    <div className="fn">
+      <div className="fn-oven">
+        <Prop id="fogao" scale={4} />
+        {/* o pão na janela do forno: doura com o calor; vapor quando está perto */}
+        <div className="fn-window" style={{ boxShadow: `inset 0 0 ${8 + brown * 34}px rgba(255,${150 - brown * 80},40,${0.35 + brown * 0.5})` }}>
+          <span style={{ filter: `brightness(${1.2 - brown * 0.75}) saturate(${1 + brown})` }}><Icon id="pao" size={48} /></span>
+        </div>
+        {v > 55 && v < 100 && <div className="fn-steam"><i /><i /><i /></div>}
+      </div>
+      <div className="fn-side">
+        <div className="fn-label">FORNADA {Math.min(round + 1, ROUNDS)}/{ROUNDS}</div>
+        {/* termômetro: verde = no ponto, vermelho = queima */}
+        <div className="fn-thermo">
+          <div className="zone ok" style={{ bottom: `${TARGET - WIN}%`, height: `${WIN * 2}%` }} />
+          <div className="zone burn" style={{ bottom: '92%', top: 0 }} />
+          <div className="fill" style={{ height: `${Math.min(100, v)}%` }} />
+          <span className="t t1">QUEIMA</span><span className="t t2">NO PONTO</span><span className="t t3">CRU</span>
+        </div>
+        <div className="fn-loaves">
+          {Array.from({ length: ROUNDS }, (_, i) => (
+            <span key={i} className={`fn-loaf ${i < marks.length ? look(marks[i]) : ''}`}><Icon id="pao" size={26} /></span>
+          ))}
         </div>
       </div>
-      <div className="relative mx-auto mt-3 w-[min(80vw,320px)] h-5 rounded bg-[#e8d8c0] border-2 border-[#4a2a1a] overflow-hidden">
-        <div className="absolute inset-y-0 bg-[#3ac46a]" style={{ left: `${TARGET - WIN}%`, width: `${WIN * 2}%` }} />
-        <div className="absolute inset-y-0 bg-[#e8485a]/60" style={{ left: '92%', right: 0 }} />
-        <div className="absolute inset-y-[-2px] w-1.5 bg-[#2e2a40]" style={{ left: `calc(${Math.min(100, v)}% - 3px)` }} />
-      </div>
-      <div className="h-6 mt-2 text-[11px] text-[#b0487a]">{shownRes ?? (now < t0 ? 'PREPARAR...' : '')}</div>
-      <button onPointerDown={press} className={`${btn} mt-1 px-6 py-3 bg-[#e8a020] border-[#a86a10] text-white text-[11px]`}>TIRAR DO FORNO</button>
+      <div className="fn-msg">{shownRes ?? (now < t0 ? 'PREPARAR...' : 'Aperte quando o termômetro estiver no verde')}</div>
+      <PxButton big color="#d8901a" onPointerDown={press} className="fn-btn">TIRAR DO FORNO</PxButton>
     </div>
   );
 }
@@ -124,31 +140,51 @@ function Ritmo({ perk, seed, onDone }: GameProps) {
       window.setTimeout(() => onDone({ score: hits / N, hits }), 500);
     }
   });
+  const [streak, setStreak] = useState(0);
+  const [judge, setJudge] = useState<{ text: string; t: number; ok: boolean } | null>(null);
   const hit = (lane: number) => {
     const i = notes.findIndex((n, k) => n.lane === lane && !judged.current.has(k) && Math.abs(el - n.at) <= WIN);
-    if (i >= 0) { judged.current.set(i, true); play('click'); }
+    if (i >= 0) {
+      judged.current.set(i, true); play('click');
+      const d = Math.abs(el - notes[i].at);
+      setStreak(s => s + 1);
+      setJudge({ text: d < WIN * 0.35 ? 'PERFEITO!' : 'BOM!', t: now, ok: true });
+    } else { setStreak(0); setJudge({ text: 'ERROU', t: now, ok: false }); }
     setFlash({ lane, ok: i >= 0, t: now });
   };
   useKey(k => { if (k in LANE_KEYS) hit(LANE_KEYS[k]); });
-  const H = 240, LINE = H - 30;
+  const H = 250, LINE = H - 34;
   const hits = [...judged.current.values()].filter(Boolean).length;
+  const missed = [...judged.current.values()].filter(x => !x).length;
+  const crowd = Math.max(0, Math.min(1, 0.4 + (hits - missed * 1.2) / N));
+  const pulse = flash && flash.ok && now - flash.t < 160;
   return (
-    <div className="text-center">
-      <div className="text-[9px] mb-2">Toque a cor quando a nota chegar na linha · {hits}/{N} {!('ontouchstart' in window) && '· ← ↓ ↑ →'}</div>
-      <div className="relative mx-auto w-[240px] rounded-lg bg-[#1e1a30] border-4 border-[#4a4660] overflow-hidden" style={{ height: H }}>
-        {LANES.map((c, l) => <div key={l} className="absolute top-0 bottom-0 border-r border-white/10" style={{ left: l * 60, width: 60 }} />)}
-        <div className="absolute left-0 right-0 h-1 bg-white/70" style={{ top: LINE }} />
-        {notes.map((n, i) => {
-          if (judged.current.get(i) === true) return null;
-          const y = LINE - ((n.at - el) / TRAVEL) * LINE;
-          if (y < -20 || y > H + 10) return null;
-          return <div key={i} className="absolute w-11 h-4 rounded-full border-2 border-white/80" style={{ left: n.lane * 60 + 8, top: y - 8, background: LANES[n.lane], opacity: judged.current.get(i) === false ? 0.3 : 1 }} />;
-        })}
-        {flash && now - flash.t < 180 && <div className="absolute bottom-0 h-8" style={{ left: flash.lane * 60, width: 60, background: flash.ok ? '#ffffff55' : '#e8485a55' }} />}
+    <div className="rt">
+      <div className={`rt-spk ${pulse ? 'boom' : ''}`}><Prop id="caixa-som" scale={3} /></div>
+      <div className="rt-mid">
+        <div className="rt-top"><span>{hits}/{N}</span><span className="rt-crowd">PÚBLICO <b><i style={{ width: `${crowd * 100}%` }} /></b></span></div>
+        <div className="rt-road" style={{ height: H }}>
+          {LANES.map((c, l) => <div key={l} className="rt-lane" style={{ left: l * 60, ['--lc' as string]: c }} />)}
+          <div className="rt-line" style={{ top: LINE }} />
+          {notes.map((n, i) => {
+            if (judged.current.get(i) === true) return null;
+            const y = LINE - ((n.at - el) / TRAVEL) * LINE;
+            if (y < -20 || y > H + 10) return null;
+            return <div key={i} className={`rt-note ${judged.current.get(i) === false ? 'miss' : ''}`} style={{ left: n.lane * 60 + 10, top: y - 10, ['--lc' as string]: LANES[n.lane] }} />;
+          })}
+          {flash && now - flash.t < 200 && <div className={`rt-hit ${flash.ok ? 'ok' : 'bad'}`} style={{ left: flash.lane * 60, top: LINE - 22 }} />}
+          {judge && now - judge.t < 600 && <div key={judge.t} className={`rt-judge ${judge.ok ? 'ok' : 'bad'}`}>{judge.text}{judge.ok && streak >= 4 ? ` ×${streak}` : ''}</div>}
+        </div>
+        <div className="rt-pads">
+          {LANES.map((c, l) => (
+            <button key={l} onPointerDown={e => { e.preventDefault(); hit(l); }} className={`rt-pad ${flash && flash.lane === l && now - flash.t < 120 ? 'down' : ''}`} style={{ ['--lc' as string]: c }}>
+              <i className={`ar a${l}`} />
+            </button>
+          ))}
+        </div>
+        <div className="text-[7px] mt-1 text-[#7a5a34]">{!('ontouchstart' in window) ? 'Setas ← ↓ ↑ → (ou D F J K) quando a nota chegar na linha' : 'Toque a cor quando a nota chegar na linha'}</div>
       </div>
-      <div className="flex justify-center gap-1 mt-2">
-        {LANES.map((c, l) => <button key={l} onPointerDown={e => { e.preventDefault(); hit(l); }} className={`${btn} w-[58px] h-12 border-black/30 text-white text-[14px]`} style={{ background: c }}>{['◀', '▼', '▲', '▶'][l]}</button>)}
-      </div>
+      <div className={`rt-spk ${pulse ? 'boom' : ''}`}><Prop id="caixa-som" scale={3} /></div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { loadProgress, saveProgress, type Progress } from '@/game/progress';
 import { itemIcon, itemLabel } from '@/game/items';
 import { play } from '@/game/sfx';
 import { GAMES, type GameResult } from './Minigames';
+import { GameStage } from './GameStage';
 import { LevelBar, Shell, Tabs } from './Shell';
 import { Icon } from '@/components/Icon';
 import { frame, PxBox, PxButton } from '@/components/pixel/Pixel';
@@ -128,7 +129,11 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
           <div className="text-[7px] mt-2 text-[#7a5a34]">Cada tarefa rende {PLAYS_PER_DAY} vezes por dia; depois é treino, sem prêmio. Trabalhar gasta um pouco da barriga.</div>
         </div>
       )}
-      {phase === 'play' && <Game perk={perk} seed={seed} onDone={done} towerMax={progress.towerMax} day={Math.floor(Date.now() / 86_400_000)} />}
+      {phase === 'play' && (
+        <GameStage key={seed} prof={prof.id} title={MINIGAME_NAME[game].toUpperCase()} color={color}>
+          <Game perk={perk} seed={seed} onDone={done} towerMax={progress.towerMax} day={Math.floor(Date.now() / 86_400_000)} />
+        </GameStage>
+      )}
       {phase === 'result' && res && (
         <div className="wk-result">
           <div className="big" style={{ color }}>{res.r.score >= 0.9 ? 'EXCELENTE!' : res.r.score >= 0.6 ? 'BOM TRABALHO!' : res.r.score >= 0.3 ? 'DÁ PARA MELHORAR' : 'NÃO FOI DESSA VEZ'}</div>

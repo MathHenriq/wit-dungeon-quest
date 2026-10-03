@@ -54,6 +54,8 @@ function noise(a: AudioContext, t: number, dur: number, vol: number, from: numbe
 }
 
 export function play(s: Sfx): void {
+  // avisa quem quer reagir ao som (o palco dos minijogos solta faíscas no acerto)
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('wit-sfx', { detail: s }));
   if (muted) return;
   const a = audio();
   if (!a) return;

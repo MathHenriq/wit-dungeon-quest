@@ -33,7 +33,7 @@ export function PxPanel({ title, color = '#3c56b0', coins, onClose, wide, width,
 
 export function Ribbon({ color, children }: { color: string; children: ReactNode }) {
   return (
-    <div className="px-ribbon" style={{ ...frame(buttonColors(color), 8, true), ['--rb-lo' as string]: shade(color, -0.45) }}>{children}</div>
+    <div className="px-ribbon" style={{ ...frame(buttonColors(color), 8, true), ['--rb-lo' as string]: shade(color, -0.45) }}><span>{children}</span></div>
   );
 }
 

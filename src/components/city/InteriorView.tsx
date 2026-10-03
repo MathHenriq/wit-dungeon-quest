@@ -16,6 +16,7 @@ import { ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walke
 import { drawExitMark, drawHint } from '@/game/world/player-acts';
 import { BOOK_TIPS, canSleep, houseActAt, STARS, TV_SHOWS, type HouseAct } from '@/game/interior/house-acts';
 import { HousePanels, type HousePanel } from './HousePanels';
+import { cut, loadAtlas, loadInteriorManifest, sprite } from './interior-atlas';
 import { loopSong } from '@/components/work/synth';
 import { CLOTH, MOLDE, type Look } from '@/game/world/outfit';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
@@ -46,43 +47,9 @@ const KEY_DIR: Record<string, Dir> = {
   ArrowUp: 'north', ArrowDown: 'south', ArrowLeft: 'west', ArrowRight: 'east',
   w: 'north', s: 'south', a: 'west', d: 'east', W: 'north', S: 'south', A: 'west', D: 'east',
 };
-const BASE = () => `${import.meta.env.BASE_URL}game/interior`;
 const HOUSE_KEY = 'wit.casa';
 const pixelFont = "font-['Press_Start_2P',monospace]";
-
-let manifestP: Promise<Manifest> | null = null;
-export function loadInteriorManifest(): Promise<Manifest> {
-  if (!manifestP) {
-    manifestP = fetch(`${BASE()}/manifest.json`).then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); });
-    manifestP.catch(() => { manifestP = null; });
-  }
-  return manifestP;
-}
-
-/** Todos os sprites dos interiores numa folha só (public/game/interior/atlas.png). */
-let atlasP: Promise<HTMLImageElement> | null = null;
-function loadAtlas(): Promise<HTMLImageElement> {
-  if (!atlasP) { atlasP = loadImage(`${BASE()}/atlas.png`); atlasP.catch(() => { atlasP = null; }); }
-  return atlasP;
-}
-const cuts = new Map<string, HTMLCanvasElement>();
-/** Recorte do atlas (um canvas por sprite, guardado). */
-function cut(m: Manifest, atlas: HTMLImageElement, id: string): HTMLCanvasElement | null {
-  let c = cuts.get(id);
-  if (c) return c;
-  const a = m[id]?.a;
-  if (!a) return null;
-  c = document.createElement('canvas');
-  c.width = a[2]; c.height = a[3];
-  c.getContext('2d')!.drawImage(atlas, a[0], a[1], a[2], a[3], 0, 0, a[2], a[3]);
-  cuts.set(id, c);
-  return c;
-}
-async function sprite(m: Manifest, id: string): Promise<HTMLCanvasElement> {
-  const c = cut(m, await loadAtlas(), id);
-  if (!c) throw new Error(`sprite ${id}`);
-  return c;
-}
+export { loadInteriorManifest } from './interior-atlas';
 
 /** Miniatura de um sprite (catálogo do modo DECORAR). */
 function Thumb({ m, id, fill }: { m: Manifest; id: string; fill?: boolean }) {

@@ -1,0 +1,20 @@
+/* Palco dos minijogos: cenário, contagem e reações. */
+.gs { position: relative; }
+.gs-top { position: relative; margin: -6px -2px 8px; box-shadow: 0 0 0 3px #3a2414, 0 4px 0 3px rgba(0, 0, 0, .25); }
+.gs-scene { display: block; width: 100%; object-fit: cover; }
+.gs-title { position: absolute; left: 8px; bottom: 6px; font-size: 9px; color: #fff; padding: 3px 6px; background: var(--gc); box-shadow: 2px 2px 0 rgba(0, 0, 0, .45), inset 0 -2px 0 rgba(0, 0, 0, .25); text-shadow: 1px 1px 0 rgba(0, 0, 0, .5); }
+.gs-combo { position: absolute; right: 8px; bottom: 6px; font-size: 10px; color: #ffd84a; text-shadow: 2px 2px 0 #3a1a00; animation: gspop .35s cubic-bezier(.2, 2, .4, 1); }
+.gs-body { position: relative; min-height: 200px; }
+.gs-count { display: grid; place-items: center; height: 220px; font-size: 64px; color: var(--gc); text-shadow: 4px 4px 0 #3a2414; animation: gscount .52s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes gscount { from { transform: scale(2.4); opacity: 0; } 60% { transform: scale(.95); opacity: 1; } }
+@keyframes gspop { from { transform: scale(0) rotate(-12deg); } }
+.gs-burst { position: absolute; top: 34%; z-index: 20; pointer-events: none; transform: translate(-50%, -50%); }
+.gs-burst .txt { display: block; font-size: 16px; white-space: nowrap; animation: gsstamp .9s cubic-bezier(.2, 1.8, .4, 1) forwards; text-shadow: 3px 3px 0 #3a2414; }
+.gs-burst.good .txt { color: #ffd84a; }
+.gs-burst.bad .txt { color: #ff7a6a; }
+@keyframes gsstamp { 0% { transform: scale(2.2) rotate(-8deg); opacity: 0; } 20% { transform: scale(1) rotate(-4deg); opacity: 1; } 70% { opacity: 1; } 100% { transform: translateY(-26px) rotate(-4deg); opacity: 0; } }
+.gs-burst i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; background: #ffd84a; box-shadow: 0 0 0 2px #c87a10;
+  animation: gsspark .7s ease-out forwards; }
+.gs-burst i:nth-child(even) { background: #fff; box-shadow: 0 0 0 2px var(--gc); }
+@keyframes gsspark { from { transform: rotate(var(--a)) translateX(0); opacity: 1; } to { transform: rotate(var(--a)) translateX(var(--d)); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .gs * { animation-duration: .01ms !important; } }
