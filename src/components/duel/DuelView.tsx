@@ -22,7 +22,11 @@ import './DuelView.css';
  * animados, conta do dano, animações do boneco, abertura e fim, som.
  */
 
-const AI_STEP_MS = 950;
+/** Quanto tempo a carta jogada fica no meio da mesa (dá para ler) e o passo do inimigo. */
+const PLAYED_MS = 2100, AI_STEP_MS = 2400;
+/** Abertura: VS, moeda girando e "X COMEÇA!" na tela (o CSS lê os mesmos valores). */
+const INTRO_VS_MS = 2400, INTRO_COIN_MS = 1800, INTRO_TAG_MS = 1500;
+const INTRO_MS = INTRO_VS_MS + INTRO_COIN_MS + INTRO_TAG_MS;
 
 interface Props {
   foe: Foe;
@@ -212,13 +216,14 @@ function Flight({ f, onDone }: { f: FlightSpec; onDone: (f: FlightSpec) => void 
         { opacity: 0, transform: 'scale(1.35) rotate(6deg)', filter: 'brightness(2.6) saturate(0)' },
       ], { duration: reduce ? 1 : 700, delay: f.delay, easing: 'ease-in', fill: 'both' });
     } else {
-      const dx = from.x - to.x, dy = from.y - to.y, sx = from.w / to.w, sy = from.h / to.h;
-      const dur = reduce ? 1 : 480;
+      // escala igual nos dois eixos (a carta nunca estica); antes de sair, fica escondida
+      const dx = from.x - to.x, dy = from.y - to.y, sc = from.w / to.w;
+      const dur = reduce ? 1 : 520;
       a = el.animate([
-        { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})` },
-        { transform: `translate(${dx * 0.4}px, ${dy * 0.4 - to.h * 0.35}px) scale(${(sx + 1) / 2 * 1.08}) rotate(${dx > 0 ? -8 : 8}deg)`, offset: 0.55 },
-        { transform: 'none' },
-      ], { duration: dur, delay: f.delay, easing: 'cubic-bezier(.3,.7,.35,1)', fill: 'both' });
+        { opacity: 1, transform: `translate(${dx}px, ${dy}px) scale(${sc})` },
+        { opacity: 1, transform: `translate(${dx * 0.4}px, ${dy * 0.4 - to.h * 0.35}px) scale(${(sc + 1) / 2 * 1.08}) rotate(${dx > 0 ? -8 : 8}deg)`, offset: 0.55 },
+        { opacity: 1, transform: 'none' },
+      ], { duration: dur, delay: f.delay, easing: 'cubic-bezier(.3,.7,.35,1)', fill: 'forwards' });
       if (f.flip && inner.current) {
         // vira no meio do caminho: estreita com o verso, alarga já de frente
         const t = { duration: dur, delay: f.delay, fill: 'both' as const };
@@ -233,7 +238,7 @@ function Flight({ f, onDone }: { f: FlightSpec; onDone: (f: FlightSpec) => void 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <div ref={ref} className={`dv-flight ${f.kind}`} style={{ left: f.to.x, top: f.to.y, width: f.to.w, height: f.to.h }}>
+    <div ref={ref} className={`dv-flight ${f.kind}`} style={{ left: f.to.x, top: f.to.y, width: f.to.w, height: f.to.h, opacity: f.kind === 'fly' ? 0 : undefined }}>
       <div ref={inner} className="dv-flip">
         {f.back ? <div className="face"><TcgCardBack /></div> : <>
           <div ref={frontFace} className="face"><TcgCard card={f.card} /></div>
@@ -296,7 +301,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   const [preview, setPreview] = useState<{ card: CardDef; uid?: string } | null>(null);
   const [focus, setFocus] = useState<CardDef | null>(null);
   const [picking, setPicking] = useState<{ uid: string; need: number; picked: string[]; filter: (c: CardInstance) => boolean } | null>(null);
-  const [shown, setShown] = useState<{ card: CardDef; by: 0 | 1; key: number; uid: string } | null>(null);
+  const [shown, setShown] = useState<{ card: CardDef; by: 0 | 1; key: number; uid: string; secret?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hits, setHits] = useState<{ side: 0 | 1; v: number; key: number }[]>([]);
   const [frames, setFrames] = useState<[HTMLCanvasElement[] | null, HTMLCanvasElement[] | null]>([null, null]);
@@ -341,7 +346,14 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     if (!stage || prev === state) return;
     const sr = stageBox();
     const W = sr.width, H = sr.height;
-    const center: Rect = { x: W * 0.44, y: H * 0.27 + W * 0.012, w: W * 0.12, h: W * 0.12 * 1.4 };
+    // a carta no meio da mesa: medida no elemento (sem a animação de chegada), ou o lugar padrão
+    const center: Rect = (() => {
+      const pl = stage.querySelector<HTMLElement>('.dv-played'), c = pl?.querySelector<HTMLElement>('.tcg');
+      if (pl && c) return { x: pl.offsetLeft + c.offsetLeft, y: pl.offsetTop + c.offsetTop, w: c.offsetWidth, h: c.offsetHeight };
+      return { x: W * 0.44, y: H * 0.27 + W * 0.02, w: W * 0.12, h: W * 0.12 * 1.4 };
+    })();
+    // vaga vista na mesa inclinada fica achatada: a carta voa numa caixa 5:7 centrada nela
+    const card57 = (r: Rect): Rect => ({ x: r.x, y: r.y + r.h / 2 - r.w * 0.7, w: r.w, h: r.w * 1.4 });
     const opHand = (() => { const el = stage.querySelector('.dv-ophand'); const r = el ? rel(el.getBoundingClientRect()) : { x: W * 0.02, y: H * 0.19, w: W * 0.06, h: W * 0.03 }; return { x: r.x, y: r.y, w: W * 0.04, h: W * 0.056 }; })();
     const nowHand = new Map<string, Rect>();
     stage.querySelectorAll<HTMLElement>('.dv-hand .c[data-uid]').forEach(el => nowHand.set(el.dataset.uid!, rel(el.getBoundingClientRect())));
@@ -358,16 +370,17 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
       };
       // a carta jogada que vai para a vaga dela (arma, armadilha, campo) já aparece lá
       if (m.from === 'center' && m.to !== 'grave') continue;
-      const from = where(m.from, false), to = where(m.to, true);
-      if (!from || !to) continue;
+      const f0 = where(m.from, false), t0 = where(m.to, true);
+      if (!f0 || !t0) continue;
+      const from = card57(f0), to = card57(t0);
       let delay = 0, kind: FlightSpec['kind'] = 'fly', flip = false, back = false;
       if (m.to === 'banish') { kind = 'dissolve'; delay = 120 + count.ban++ * 110; }
-      else if (m.from === 'center') delay = 900;
+      else if (m.from === 'center') delay = PLAYED_MS;
       else if (m.from === 'deck' && m.to === 'hand') { delay = 200 + count.draw++ * 170; flip = m.side === 0; back = m.side === 1; }
       else if (m.from === 'deck') { delay = 180 + count.mill++ * 120; flip = true; }
       else delay = count.cost++ * 100;
       add.push({ id: `${m.uid}-${Date.now()}`, side: m.side, uid: m.uid, card: m.card, from, to, delay, kind, flip, back, toGrave: m.to === 'grave', toHand: m.to === 'hand' && m.side === 0 });
-      if (m.from === 'center') window.setTimeout(() => setShown(s0 => (s0?.uid === m.uid ? null : s0)), 900);
+      if (m.from === 'center') window.setTimeout(() => setShown(s0 => (s0?.uid === m.uid ? null : s0)), PLAYED_MS + 30);
     }
     handRects.current = nowHand;
     if (!add.length) return;
@@ -474,9 +487,9 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
 
   // abertura: VS, depois a moeda de quem começa, depois as cartas chegam na mão
   useEffect(() => {
-    const t1 = window.setTimeout(() => { setIntro('coin'); play('flip'); }, 1500);
-    const t2 = window.setTimeout(() => { setIntro(null); setDealing(true); play('draw'); }, 3100);
-    const t3 = window.setTimeout(() => setDealing(false), 4200);
+    const t1 = window.setTimeout(() => { setIntro('coin'); play('flip'); }, INTRO_VS_MS);
+    const t2 = window.setTimeout(() => { setIntro(null); setDealing(true); play('draw'); }, INTRO_MS);
+    const t3 = window.setTimeout(() => setDealing(false), INTRO_MS + 1100);
     return () => { [t1, t2, t3].forEach(t => window.clearTimeout(t)); };
   }, []);
 
@@ -514,7 +527,9 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
           if (!alive) return;
           try {
             const next = playCard(s, uid);
-            if (card) { setShown({ card: card.def, by: 1, key: Date.now(), uid }); setFocus(card.def); playedUid.current = uid; play('card'); }
+            // armadilha do inimigo entra virada: mostra só o verso
+            const secret = card?.def.type === 'trap';
+            if (card) { setShown({ card: card.def, by: 1, key: Date.now(), uid, secret }); if (!secret) setFocus(card.def); playedUid.current = uid; play('card'); }
             s = next;
             setState(s);
           } catch (e) { if (!(e instanceof IllegalPlay)) throw e; }
@@ -544,7 +559,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
       const next = playCard(state, uid, discard ? { discard } : {});
       if (card) { setShown({ card: card.def, by: 0, key: Date.now(), uid }); play('card'); }
       playedUid.current = uid;
-      window.setTimeout(() => setShown(s => (s?.uid === uid ? null : s)), 1400);
+      window.setTimeout(() => setShown(s => (s?.uid === uid ? null : s)), PLAYED_MS + 400);
       setState(next);
       setError(null);
     } catch (e) {
@@ -623,9 +638,11 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
 
         {/* carta jogada */}
         {shown && (
-          <div key={shown.key} className={`dv-played ${shown.by === 1 ? 'from-foe' : ''}`} onClick={() => setPreview({ card: shown.card })}>
-            <div className="who dv-px" style={{ color: shown.by === 0 ? '#bef264' : '#fca5a5' }}>{shown.by === 0 ? 'VOCÊ JOGOU' : `${foe.name.toUpperCase()} JOGOU`}</div>
-            <TcgCard card={shown.card} />
+          <div key={shown.key} className={`dv-played ${shown.by === 1 ? 'from-foe' : ''}`} onClick={() => { if (!shown.secret) setPreview({ card: shown.card }); }}>
+            <div className="who dv-px" style={{ color: shown.by === 0 ? '#bef264' : '#fca5a5' }}>
+              {shown.by === 0 ? 'VOCÊ JOGOU' : shown.secret ? 'ARMADILHA PREPARADA' : `${foe.name.toUpperCase()} JOGOU`}
+            </div>
+            {shown.secret ? <TcgCardBack /> : <TcgCard card={shown.card} />}
           </div>
         )}
 
@@ -831,7 +848,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         )}
 
         {intro && (
-          <div className={`dv-intro ${intro}`}>
+          <div className={`dv-intro ${intro}`} style={{ ['--intro' as string]: `${INTRO_MS}ms`, ['--coin' as string]: `${INTRO_COIN_MS}ms` }}>
             <div className="side me"><div className="por"><Face frame={frames[0]?.[0] ?? null} /></div><div className="nm dv-px">{nick.toUpperCase()}</div><div className="tt dv-px">DESAFIANTE</div></div>
             <div className="vs dv-px">VS</div>
             <div className="side op" style={{ ['--tone' as string]: el.el }}><div className="por"><Face frame={frames[1]?.[0] ?? null} /></div><div className="nm dv-px">{foe.name.toUpperCase()}</div>
