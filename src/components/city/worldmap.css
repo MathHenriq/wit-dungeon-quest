@@ -1,0 +1,20 @@
+/* Mapa-múndi: a imagem do mundo numa moldura, áreas clicáveis, "você" piscando. */
+.wm-frame { border-style: solid; }
+.wm-map { position: relative; width: 100%; overflow: hidden; background: #1e4a26; }
+.wm-map img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+/* leve tom de mapa antigo nas bordas */
+.wm-map::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 40px rgba(60, 30, 0, .45); }
+.wm-area { position: absolute; border: 0; padding: 0; background: transparent; cursor: pointer; outline: 3px solid transparent; outline-offset: -3px; transition: background .12s, outline-color .12s; }
+.wm-area.hov { background: rgba(255, 255, 255, .14); outline-color: #fff8d8; }
+.wm-area.here { outline-color: color-mix(in srgb, var(--c) 80%, #fff); cursor: default; }
+.wm-name { position: absolute; left: 50%; top: 58%; transform: translate(-50%, -50%) scale(.82); pointer-events: none; }
+.wm-name .px-ribbon { position: relative; left: 0; top: 0; transform: none; }
+.wm-job { position: absolute; right: 6%; top: 8%; display: flex; align-items: center; gap: 3px; font-size: 8px; color: #fff; background: #c84a6a; padding: 2px 4px; box-shadow: 2px 2px 0 rgba(0, 0, 0, .4); animation: wmbob 1s ease-in-out infinite; }
+.wm-me { position: absolute; transform: translate(-50%, -100%); pointer-events: none; display: flex; flex-direction: column; align-items: center; z-index: 2; }
+.wm-me b { order: -1; font-size: 7px; color: #fff; background: #e8485a; padding: 2px 3px; box-shadow: 2px 2px 0 rgba(0, 0, 0, .45); animation: wmbob 1s ease-in-out infinite; }
+.wm-me i { width: 10px; height: 10px; background: #e8485a; border: 2px solid #fff; box-shadow: 0 0 0 2px #3a0a10; transform: rotate(45deg); margin-top: 2px; animation: wmpulse 1s steps(2) infinite; }
+@keyframes wmbob { 50% { transform: translateY(-3px); } }
+@keyframes wmpulse { 50% { background: #ffd84a; } }
+.wm-rose { position: absolute; right: 2%; bottom: 3%; width: 6%; min-width: 34px; filter: drop-shadow(2px 2px 0 rgba(255, 248, 216, .8)); pointer-events: none; }
+.wm-info { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.wm-info .ic { width: 48px; height: 48px; display: grid; place-items: center; border-style: solid; }

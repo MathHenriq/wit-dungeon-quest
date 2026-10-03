@@ -239,7 +239,7 @@ function CityView({ town, start, startHour, onTravel }: {
   const [view, setView] = useState({ w: 320, h: 208, scale: 3 });
   const [clock, setClock] = useState(startHour);
   const [banner, setBanner] = useState<string | null>(town.name);
-  const [mapOpen, setMapOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(() => new URLSearchParams(window.location.search).has('mapa'));
   // ?pesca=diario abre a Casa de Pesca numa aba (prints e testes)
   const [fishHouse, setFishHouse] = useState<'quadro' | 'vender' | 'diario' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('pesca');
@@ -1805,7 +1805,7 @@ function CityView({ town, start, startHour, onTravel }: {
       })()}
       {mapOpen && (
         <WorldMap zone={town.id} pos={{ tx: g.current.player.tx, ty: g.current.player.ty }} size={{ w: town.solid[0].length, h: town.solid.length }}
-          ready={ZONES} onClose={() => setMapOpen(false)}
+          ready={ZONES} pending={progress.campo ? pendingByZone(progress.campo) : undefined} onClose={() => setMapOpen(false)}
           onTravel={to => { setMapOpen(false); g.current.leaving = true; onTravel(to, undefined, g.current.hour); }} />
       )}
 
