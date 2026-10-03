@@ -130,23 +130,42 @@ entrada, com destaque e movimento. Precisa de:
 The front of a card pack shop inside a small shopping mall, top-down RPG interior style (Pokémon HeartGold/SoulSilver), wide storefront: a glowing counter, a huge decorative card pack display behind it with packs in 7 rarity colors (grey, green, blue, purple, gold, iridescent pink, black with stars), shelves with packs, spotlights, a small rotating pedestal with a giant golden pack on top. Bright, eye-catching, magical sparkle. Crisp pixel art, clean outlines, no text, no logos, no people. Flat solid magenta background (#FF00FF).
 ```
 
-## J. Pacotinhos (abrir pacote) — 01/10
+## J. Pacotinhos (abrir pacote) — refeito em 03/10
 
-A loja e a animação de abrir já funcionam com um pacote desenhado em código
-(provisório). Com a arte, cada pacote vira a imagem do GPT (o jogo troca
-sozinho pelo nome). Uma imagem por pacote, em pé, sem fundo:
-`public/Novos assets/pacotes/comum.png`, `incomum.png`, `raro.png`,
-`epico.png`, `lendario.png`, `mitico.png` (e `desconhecido.png`, para o futuro).
+Hoje o pacote é desenhado em código (`src/game/world/packs-art.ts`) e ficou "mais ou menos".
+Com a imagem do GPT, o jogo troca sozinho (procura `public/game/packs/<id>.png` antes).
 
-```
-A sealed trading card booster pack standing upright, front view, for a cheerful kids card game called WIT: shiny foil wrapper with crimped top and bottom edges, a big glowing gem emblem in the center, sparkles, and the color theme [COR]. No text, no letters, no logos, no characters on it. Crisp pixel art with clean dark outlines, slight 3D shading, no anti-aliasing. Flat solid magenta background (#FF00FF).
-```
-Cores: comum = silver grey; incomum = emerald green; raro = sapphire blue; épico = royal purple with violet sparkles; lendário = shiny gold with orange glow; mítico = iridescent pink and cyan holographic; desconhecido = black with tiny white stars and a purple glow.
+**Onde salvar:** `public/Novos assets/pacotes/` com os nomes da tabela, **ou** uma folha só
+`public/Novos assets/pacotes/folha.png` com os 7 lado a lado, na ordem da tabela (melhor: o
+estilo fica igual nos 7). Depois: `python3 scripts/arte/importar-pacotes.py --folha revisao.png`.
 
-Também para a abertura (opcional, deixa mais bonito):
-`public/Novos assets/pacotes/rasgado.png`
+| Arquivo | Cor | Emblema no medalhão |
+|---|---|---|
+| `comum.png` | silver grey | a simple round coin |
+| `incomum.png` | emerald green | a diamond shape (rhombus) |
+| `raro.png` | sapphire blue | a cut gemstone |
+| `epico.png` | royal purple, violet sparkles | a five-pointed star |
+| `lendario.png` | shiny gold, orange glow, holographic shine | a crown |
+| `mitico.png` | iridescent pink and cyan holographic | an eight-pointed starburst |
+| `desconhecido.png` | black with tiny white stars, purple glow | a glowing eye (no letters) |
+
+**O que o jogo espera** (para a animação de abrir funcionar): pacote em pé, de frente, inteiro
+na imagem, proporção 5:7; o **selo de cima ocupa o 1/7 de cima** (é a tira que sai voando quando
+o aluno rasga); nada de texto.
+
+Um pacote:
 ```
-The same kind of booster pack seen from the front but with the top strip torn open, bright light rays shining out of the opening, a few small sparkles flying out. Silver grey color (the game recolors it). No text. Crisp pixel art, clean outlines. Flat solid magenta background (#FF00FF).
+A single sealed trading card booster pack standing upright, seen straight from the front, filling the image, proportion 5 wide by 7 tall, for a cheerful kids card game. Shiny [COR] foil wrapper puffed like a pillow, with a crimped silver seal strip across the top (exactly the top seventh of the pack, with a dotted tear line just below it) and another crimped silver seal at the bottom. In the center a round medallion with [EMBLEMA] in white and gold. Soft diagonal shine on the foil, a few small sparkles. No text, no letters, no numbers, no logos, no characters. Crisp pixel art in the style of a 16-bit game, clean dark outline around the pack, gentle 3D shading, no anti-aliasing, no drop shadow. Flat solid magenta background (#FF00FF).
+```
+
+Os 7 numa folha (recomendado):
+```
+A sprite sheet of 7 sealed trading card booster packs side by side in one row, evenly spaced, all the same size and the same style, standing upright, seen from the front, proportion 5 wide by 7 tall each, for a cheerful kids card game. Each has a crimped silver seal strip across the top seventh with a dotted tear line below it, a crimped silver seal at the bottom, and a round medallion in the center. From left to right: 1) silver grey foil with a round coin emblem; 2) emerald green foil with a rhombus emblem; 3) sapphire blue foil with a cut gemstone emblem; 4) royal purple foil with violet sparkles and a five-pointed star emblem; 5) shiny gold foil with orange glow and a crown emblem; 6) iridescent pink and cyan holographic foil with an eight-pointed starburst emblem; 7) black foil with tiny white stars, purple glow and a glowing eye emblem. No text, no letters, no numbers, no logos, no characters. Crisp 16-bit pixel art, clean dark outlines, gentle 3D shading, no anti-aliasing, no drop shadows. Flat solid magenta background (#FF00FF) between and around the packs.
+```
+
+Opcional (deixa a abertura mais bonita): `public/Novos assets/pacotes/rasgado.png`
+```
+The same kind of booster pack seen from the front but with the top seal torn off and missing, bright white-gold light rays shining out of the open top, a few small sparkles flying out. Silver grey foil (the game recolors it). No text. Crisp 16-bit pixel art, clean dark outlines. Flat solid magenta background (#FF00FF).
 ```
 
 ## K. Forja do Prof. Ian (Oficina) — 01/10
