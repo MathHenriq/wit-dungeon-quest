@@ -9,6 +9,8 @@ import { RARITY_PT } from '@/lib/tcg/labels';
 import type { CardDef, Rarity } from '@/lib/tcg/types';
 import { rarityRank, type PackDef } from '@/game/packs';
 import { play } from '@/game/sfx';
+import { drawPack, PACK_H, PACK_TEAR } from '@/game/world/packs-art';
+import { toCanvas } from '@/game/world/sprites';
 import './packs.css';
 
 export const RARITY_COLOR: Record<Rarity, string> = {
@@ -16,23 +18,29 @@ export const RARITY_COLOR: Record<Rarity, string> = {
   legendary: '#f2b632', mythic: '#ff6ad5', unknown: '#7c5cff',
 };
 
-/** O pacote: a imagem do GPT (public/game/packs/<id>.png) quando existir; até lá, o pacote desenhado. */
+/** Pacote desenhado em pixel art (uma vez por raridade), como imagem. */
+const packUrls = new Map<string, string>();
+function packUrl(pack: PackDef): string {
+  let u = packUrls.get(pack.id);
+  if (!u) { u = toCanvas(drawPack(pack.rarity, RARITY_PT[pack.rarity].toUpperCase())).toDataURL(); packUrls.set(pack.id, u); }
+  return u;
+}
+
+/**
+ * O pacote: a imagem do GPT (public/game/packs/<id>.png) quando existir; até
+ * lá, o pacote em pixel art. Duas camadas da mesma imagem: a tira de cima
+ * (sai voando ao rasgar) e o resto.
+ */
 export function PackArt({ pack, className = '' }: { pack: PackDef; className?: string }) {
-  const [img, setImg] = useState(true);
+  const [gpt, setGpt] = useState(true);
   const c = RARITY_COLOR[pack.rarity];
+  const src = gpt ? `${import.meta.env.BASE_URL}game/packs/${pack.id}.png` : packUrl(pack);
+  const cut = `${(PACK_TEAR / PACK_H) * 100}%`;
   return (
-    <div className={`pk-pack ${className}`} style={{ ['--pc' as string]: c }}>
-      {img
-        ? <img src={`${import.meta.env.BASE_URL}game/packs/${pack.id}.png`} alt="" draggable={false} onError={() => setImg(false)} />
-        : (
-          <div className="pk-foil">
-            <div className="pk-crimp top" /><div className="pk-crimp bottom" />
-            <div className="pk-logo">WIT</div>
-            <div className="pk-gem" />
-            <div className="pk-name">{RARITY_PT[pack.rarity].toUpperCase()}</div>
-            <div className="pk-shine" />
-          </div>
-        )}
+    <div className={`pk-pack ${className}`} style={{ ['--pc' as string]: c, ['--cut' as string]: cut }}>
+      <img className="pk-body" src={src} alt="" draggable={false} onError={() => setGpt(false)} />
+      <img className="pk-strip" src={src} alt="" draggable={false} onError={() => setGpt(false)} />
+      <div className="pk-shine" />
     </div>
   );
 }
