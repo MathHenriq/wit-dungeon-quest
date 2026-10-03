@@ -146,6 +146,17 @@ tem um menu rápido que leva direto a qualquer lugar.
 - Pode comprar uma casa maior.
 - Pode convidar amigos para visitar.
 - Espaço para minigames no futuro.
+- **Móveis que funcionam (03/10, `src/game/interior/house-acts.ts`):** cama (dorme de noite e vira o dia
+  da fazenda), sofá/poltrona (senta), fogão (cozinha), geladeira e mesa (come da mochila), computador
+  (deck, missões, mercado, títulos, desenhar), TV (programação + Jornal WIT), toca-discos (toca as
+  músicas compostas), violão (afinar), fliperama (pegar bugs), cavalete (pixel art), quadros (galeria
+  dos desenhos), estante (dicas de cartas), troféus (títulos), aquário (os peixes pescados nadando),
+  telescópio (constelações à noite), guarda-roupa (VISUAL), pet (caminha e comida), luzes (acender e
+  apagar), relógio, mural (missões), banho, brinquedos, plantas e janela.
+- **Ideias para depois (dependem de servidor ou arte):** receber visita de colega e mostrar a casa;
+  festa com música e comida para amigos; plantas que crescem de verdade no vaso; pet que reage a
+  carinho e fica feliz; quadro do aluno que outro aluno pode comprar; álbum de fotos na parede;
+  troféu de verdade ao vencer chefe de 10 em 10 andares; despertador que dá bônus de manhã.
 
 ### 3.4 Amizades e conversa
 - Pedido de amizade e visita à casa.

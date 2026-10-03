@@ -1723,7 +1723,7 @@ function CityView({ town, start, startHour, onTravel }: {
 
       <div className="absolute inset-0 bg-white pointer-events-none transition-opacity duration-300" style={{ opacity: flash ? 0.85 : 0 }} />
 
-      {editing && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
+      {editing && !inside && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
 
       {banner && (
         <div className={`absolute top-[22%] left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg border-4 border-[#e8c690] bg-[#2e2a40]/90 text-[#fff4d0] text-[14px] tracking-wider pointer-events-none ${pixelFont}`}>
@@ -1855,7 +1855,16 @@ function CityView({ town, start, startHour, onTravel }: {
       )}
       {pathOpen && <PathChooser onDone={() => setPathOpen(false)} />}
       {deckOpen && <DeckBuilder progress={progress} onClose={() => setDeckOpen(false)} />}
-      {inside && <InteriorView sala={inside} look={look} pet={look.pet ?? DEFAULT_PET} onExit={exitInterior} />}
+      {inside && (
+        <InteriorView sala={inside} look={look} pet={look.pet ?? DEFAULT_PET} onExit={exitInterior}
+          house={{
+            hour: () => g.current.hour,
+            // dormir: o relógio passa para as 6h (o dia da fazenda vira no laço)
+            onSleep: () => { g.current.hour = 5.995; g.current.hourSeen = 5.99; setClock(5.995); },
+            onVisual: () => setEditing(true),
+          }} />
+      )}
+      {inside && editing && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
     </div>
   );
 }

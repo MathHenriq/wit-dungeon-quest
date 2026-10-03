@@ -14,6 +14,9 @@ import {
 } from '@/game/interior/room';
 import { ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker } from '@/game/world/movement';
 import { drawExitMark, drawHint } from '@/game/world/player-acts';
+import { BOOK_TIPS, canSleep, houseActAt, STARS, TV_SHOWS, type HouseAct } from '@/game/interior/house-acts';
+import { HousePanels, type HousePanel } from './HousePanels';
+import { loopSong } from '@/components/work/synth';
 import { CLOTH, MOLDE, type Look } from '@/game/world/outfit';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
 import { DuelView } from '@/components/duel/DuelView';
@@ -155,7 +158,10 @@ function buildRoom(m: Manifest, sala: Sala): Room {
   return { ...houseRoom(h.items), piso: h.piso, parede: h.parede };
 }
 
-export function InteriorView({ sala, look, pet, onExit }: { sala: Sala; look: Look; pet: string; onExit: (from: Sala) => void }) {
+/** O que a casa pede para a cidade fazer (o relógio e o visual moram lá). */
+export interface HouseHooks { hour: () => number; onSleep: () => void; onVisual: () => void }
+
+export function InteriorView({ sala, look, pet, onExit, house }: { sala: Sala; look: Look; pet: string; onExit: (from: Sala) => void; house?: HouseHooks }) {
   const [m, setM] = useState<Manifest | null>(null);
   useEffect(() => {
     let alive = true;
@@ -163,7 +169,7 @@ export function InteriorView({ sala, look, pet, onExit }: { sala: Sala; look: Lo
     return () => { alive = false; };
   }, []);
   if (!m) return <div className={`absolute inset-0 bg-[#1a1420] flex items-center justify-center text-white/80 text-xs ${pixelFont}`}>entrando...</div>;
-  return <Inside m={m} sala={sala} look={look} pet={pet} onExit={onExit} />;
+  return <Inside m={m} sala={sala} look={look} pet={pet} onExit={onExit} house={house} />;
 }
 
 interface Npc {
@@ -173,7 +179,7 @@ interface Npc {
 }
 type Holding = { p: Placed; from: Placed | null };
 
-function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala; look: Look; pet: string; onExit: (from: Sala) => void }) {
+function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sala: Sala; look: Look; pet: string; onExit: (from: Sala) => void; house?: HouseHooks }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [sala, setSala] = useState(sala0);
   const [room, setRoom] = useState<Room>(() => buildRoom(m, sala0));
@@ -198,6 +204,12 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     const q = new URLSearchParams(window.location.search).get('painel');
     return q === 'pacotes' || q === 'forja' ? q : null;
   });
+  /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
+  const [housePanel, setHousePanel] = useState<HousePanel | null>(null);
+  /** Luzes da casa apagadas (a sala escurece). */
+  const [lightsOff, setLightsOff] = useState(false);
+  const music = useRef<{ stop: () => void; k: number } | null>(null);
+  const book = useRef(0);
   /** Faixa grande "ANDAR N" ao chegar num andar. */
   const [floorBanner, setFloorBanner] = useState<number | null>(sala0.kind === 'torre' ? sala0.andar : null);
   // ?duelo=3 (ou chefe) abre o convite da mesa 3 do andar (prints e testes)
@@ -238,7 +250,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
   });
   const S = g.current;
   if (import.meta.env.DEV) (window as unknown as { __interior: unknown }).__interior = S;
-  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen;
+  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen || !!housePanel;
   const standUp = () => {
     const st = S.sit;
     if (!st) return;
@@ -362,6 +374,63 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     if (ROOMS[id]) enter({ kind: 'sala', id }, ROOMS[id](), room.id);
   }, [sala, room, S, enter, onExit, progress]);
 
+  // um móvel da casa em uso (house-acts.ts)
+  const furniture = (act: HouseAct, item: Placed) => {
+    S.held = [];
+    const say = (...lines: string[]) => setDialog({ lines, i: 0 });
+    const hour = house?.hour() ?? 12;
+    play('click');
+    switch (act) {
+      case 'dormir':
+        if (!canSleep(hour)) { say('Ainda não está com sono. Dá para dormir de noite (depois das 19h).'); return; }
+        house?.onSleep(); setLightsOff(false); play('win');
+        say('Zzz... Você dormiu a noite toda.', 'Bom dia! São 6h. As plantas regadas da fazenda cresceram.'); return;
+      case 'sentar': {
+        // senta no móvel: vai para o bloco dele (a frente do sofá cobre as pernas)
+        S.sit = { tx: item.tx, ty: item.ty, from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
+        S.player = newWalker(item.tx, item.ty, 'south'); S.path = [];
+        play('drop'); return;
+      }
+      case 'cozinhar': setHousePanel({ kind: 'cozinha' }); return;
+      case 'comer': setHousePanel({ kind: 'mochila', start: 'mochila' }); return;
+      case 'computador': setHousePanel({ kind: 'pc' }); return;
+      case 'tv': {
+        const j = loadProgress().jornal;
+        say('Você liga a TV...', TV_SHOWS[Math.floor(Date.now() / 60_000) % TV_SHOWS.length], j?.text ? `Jornal WIT: ${j.text}` : 'Jornal WIT: hoje ainda não tem matéria de aluno. Que tal escrever uma no Estúdio?');
+        return;
+      }
+      case 'musica': {
+        const songs = loadProgress().musicas;
+        music.current?.stop();
+        if (!songs.length) { music.current = null; say('Nenhum disco ainda. Componha uma música no Estúdio de Música (Cidade WIT) e ela toca aqui!'); return; }
+        const k = ((music.current?.k ?? -1) + 1) % songs.length, song = songs[k];
+        music.current = { stop: loopSong(() => song, () => undefined), k };
+        say(`Tocando "${song.nome}"...`, 'Use o toca-discos de novo para trocar de música (ESC ou sair da casa para parar).');
+        return;
+      }
+      case 'violao': setHousePanel({ kind: 'work', game: 'afinar' }); return;
+      case 'fliperama': setHousePanel({ kind: 'work', game: 'teste-jogo' }); return;
+      case 'pintar': setHousePanel({ kind: 'work', game: 'pixelart' }); return;
+      case 'quadros': setHousePanel({ kind: 'quadros' }); return;
+      case 'livros': say(BOOK_TIPS[book.current++ % BOOK_TIPS.length]); return;
+      case 'trofeus': setHousePanel({ kind: 'mochila', start: 'titulos' }); return;
+      case 'aquario': setHousePanel({ kind: 'aquario' }); return;
+      case 'telescopio':
+        say(canSleep(hour) ? `Você olha pelo telescópio... ${STARS[Math.floor(hour) % STARS.length]}` : 'De dia não dá para ver estrelas. Volte à noite!'); return;
+      case 'visual': house?.onVisual(); return;
+      case 'pet-cama': S.pet = newWalker(item.tx, item.ty, 'south'); say('Seu pet deita na caminha e se enrola, feliz.'); return;
+      case 'pet-comida': play('coin'); say('Nhac, nhac! Seu pet comeu tudo e abanou o rabo.'); return;
+      case 'luz': setLightsOff(o => !o); return;
+      case 'relogio': say(`O relógio marca ${String(Math.floor(hour)).padStart(2, '0')}:${String(Math.floor((hour % 1) * 60)).padStart(2, '0')}.`); return;
+      case 'mural': setHousePanel({ kind: 'mochila', start: 'missoes' }); return;
+      case 'banho': say('Banho tomado! Cheirosinho e pronto para a aula.'); return;
+      case 'brinquedos': say(['Você monta uma torre de blocos... e ela cai. De novo!', 'Abraço apertado na pelúcia preferida.', 'Achou uma carta perdida no fundo do baú! (Era só uma figurinha.)'][book.current++ % 3]); return;
+      case 'planta': say('Você regou a planta. Ela parece mais verdinha!'); return;
+      case 'janela': say(canSleep(hour) ? 'Lá fora, as luzes da cidade piscam e os vaga-lumes passeiam.' : 'Lá fora, a cidade está cheia de gente indo trabalhar.'); return;
+    }
+  };
+  useEffect(() => () => music.current?.stop(), []);
+
   const interact = useCallback(() => {
     if (dialog) {
       if (dialog.i + 1 < dialog.lines.length) setDialog({ ...dialog, i: dialog.i + 1 });
@@ -394,6 +463,10 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
     const exit = room.exits.find(e => e.tx === f.tx && e.ty === f.ty && solid[e.ty]?.[e.tx]);
     // olhando para a escada ou o portal: usa (a conversa do portal fica para quem olha de lado)
     if (exit) { takeExit(exit); return; }
+    if (sala.kind === 'casa') {
+      const h = houseActAt(m, room, f.tx, f.ty);
+      if (h) { furniture(h.act, h.item); return; }
+    }
     if (talk?.action === 'elevador') { S.held = []; setLift(true); return; }
     if (talk?.action === 'pacotes') { S.held = []; setPanelOpen('pacotes'); return; }
     if (talk?.action === 'sentar' && talk.seat) {
@@ -405,7 +478,7 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
       return;
     }
     if (talk) setDialog({ lines: talk.lines, i: 0 });
-  }, [dialog, room, S, solid, takeExit, progress]);
+  }, [dialog, room, S, solid, takeExit, progress, sala, m]);
 
   // teclado
   useEffect(() => {
@@ -629,7 +702,8 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
           const can = S.npcs.some(n => (n.def.wander ? n.w.tx === f.tx && n.w.ty === f.ty : n.def.talk.some(([x, y]) => x === f.tx && y === f.ty)))
             || room.talks?.some(t => t.tiles.some(([x, y]) => x === f.tx && y === f.ty))
             || room.exits.some(e => e.tx === f.tx && e.ty === f.ty && solid[e.ty]?.[e.tx]);
-          if (can) { const pos = pixelPos(p, TILE); drawHint(ctx, pos.x + 25 - camX, pos.y - 6 - camY, touch ? 'A' : 'ESPAÇO', now); }
+          const ha = !can && sala.kind === 'casa' && !decor ? houseActAt(m, room, f.tx, f.ty) : null;
+          if (can || ha) { const pos = pixelPos(p, TILE); drawHint(ctx, pos.x + 25 - camX, pos.y - 6 - camY, `${touch ? 'A' : 'ESPAÇO'}${ha ? ` ${ha.label}` : ''}`, now); }
         }
       }
       raf = requestAnimationFrame(loop);
@@ -767,6 +841,11 @@ function Inside({ m, sala: sala0, look, pet, onExit }: { m: Manifest; sala: Sala
             : 'Quando outro aluno entrar na Arena e sentar na sua frente, o duelo começa. (O jogo entre alunos liga quando o servidor da turma estiver pronto.)'}</div>
           <button onClick={standUp} className="mt-3 px-3 py-2 rounded bg-[#4a4660] text-[9px]">LEVANTAR</button>
         </div>
+      )}
+      {lightsOff && <div className="hs-dark" />}
+      {housePanel && (
+        <HousePanels panel={housePanel} progress={progress} nick={look.apelido || 'Você'} onClose={() => setHousePanel(null)}
+          onOpen={setHousePanel} onDeck={() => { setHousePanel(null); setDeckOpen(true); }} />
       )}
       {panelOpen === 'pacotes' && <PackShop progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
