@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PxPanel } from '@/components/pixel/Pixel';
 import type { Progress } from '@/game/progress';
 import { MissionsList, ProfessionsList } from '@/components/work/LifePanels';
 import { Tabs } from '@/components/work/Shell';
@@ -21,12 +22,7 @@ export function CoursesPanel({ progress, onClose }: { progress: Progress; onClos
   const [msg, setMsg] = useState<string | null>(null);
   const font = "font-['Press_Start_2P',monospace]";
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/55" onPointerDown={onClose}>
-      <div className={`w-[min(94vw,640px)] max-h-[92vh] overflow-auto rounded-xl border-4 border-[#8cc63f] bg-[#10202a] p-4 text-white ${font}`} onPointerDown={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-[13px] text-[#b8ff7a]">NÚCLEO WIT</div>
-          <button onClick={onClose} className="px-2 py-1 rounded bg-[#8cc63f] text-[#10202a] text-[10px]">SAIR</button>
-        </div>
+    <PxPanel title="NÚCLEO WIT" color="#5a8a2a" onClose={onClose} width={660} dark>
         <Tabs tabs={[['cargos', 'PROFISSÕES'], ['missoes', 'MISSÕES'], ['cursos', 'CURSOS']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color="#5a8a2a" />
         {tab !== 'cursos' && (
           <div className="rounded-lg bg-[#f4efe2] p-2 text-[#2e2a40]">
@@ -44,7 +40,6 @@ export function CoursesPanel({ progress, onClose }: { progress: Progress; onClos
             </div>
           ))}
         </div>}
-      </div>
-    </div>
+    </PxPanel>
   );
 }

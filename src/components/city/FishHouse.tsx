@@ -4,6 +4,7 @@ import { fishIconUrl } from '@/game/world/fish-art';
 import { saveProgress, sellItems, type Progress } from '@/game/progress';
 import { play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
+import { PxPanel } from '@/components/pixel/Pixel';
 import { OrderBox } from '@/components/work/OrderBox';
 import { FishLog } from './FishLog';
 
@@ -32,13 +33,7 @@ export function FishHouse({ progress, onClose, start = 'quadro' }: { progress: P
   };
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50" onPointerDown={onClose}>
-      <div className={`w-[min(94vw,640px)] max-h-[92vh] overflow-auto rounded-xl border-4 border-[#27566e] bg-[#f4efe2] p-4 text-[#2e2a40] ${font}`} onPointerDown={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-3 gap-2">
-          <div className="text-[13px] text-[#27566e]">CASA DE PESCA</div>
-          <span className="text-[10px] text-[#8a6a1a] flex items-center gap-1"><Icon id="moeda" size={14} /> {progress.coins}</span>
-          <button onClick={onClose} className="px-2 py-1 rounded bg-[#4a4660] text-white text-[10px]">SAIR</button>
-        </div>
+    <PxPanel title="CASA DE PESCA" color="#27566e" coins={progress.coins} onClose={onClose} width={660}>
         <div className="flex flex-wrap gap-1 mb-3">
           {([['quadro', 'QUADRO'], ['vender', `VENDER${bag.length ? ` (${bag.length})` : ''}`], ['album', `ÁLBUM ${caught}/${FISH.length}`], ['diario', 'DIÁRIO'], ['encomenda', 'ENCOMENDA']] as [Tab, string][]).map(([t, l]) => (
             <button key={t} onClick={() => { setTab(t); setMsg(null); play('click'); }}
@@ -100,7 +95,6 @@ export function FishHouse({ progress, onClose, start = 'quadro' }: { progress: P
             })}
           </div>
         )}
-      </div>
-    </div>
+    </PxPanel>
   );
 }

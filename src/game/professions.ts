@@ -53,6 +53,35 @@ export const MINIGAME_NAME: Record<MinigameId, string> = {
   rotular: 'Ensinar a IA', circuito: 'Circuito', pares: 'Pares 3D', noticia: 'Checar a notícia', materia: 'Escrever matéria', programar: 'Programar robô', grafico: 'Ler o gráfico', afinar: 'Afinar', cores: 'Misturar cores', regras: 'Regra SE/ENTÃO', rota: 'Melhor rota', coordenadas: 'Coordenadas 3D', acuracia: 'Testar o modelo', calendario: 'Calendário da horta', fermento: 'Por que a massa cresce?', barraca: 'Minha barraca', boato: 'Fato ou boato', logica: 'Lógica do jogo', pixelart: 'Pixel art', 'teste-jogo': 'Pegar bugs',
 };
 
+/** O que cada tarefa faz (uma linha, aparece no cartão do trabalho) e o ícone dela. */
+export const MINIGAME_ABOUT: Record<MinigameId, [string, string]> = {
+  forno: ['Tire cada fornada na hora certa: nem cru, nem queimado.', 'pao'],
+  pao: ['Meça com frações, misture, sove, modele, deixe crescer e asse.', 'pao-tranca'],
+  fermento: ['Experimento: qual massa cresce mais? Fermento e temperatura.', 'fermento'],
+  ritmo: ['Toque as notas no tempo da música.', 'disco'],
+  compor: ['Monte sua música numa grade de notas e grave um disco.', 'disco-ouro'],
+  afinar: ['Ouça e afine as cordas até a nota certa.', 'disco'],
+  pintura: ['Olhe o desenho, guarde na memória e pinte igual.', 'quadro'],
+  cores: ['Misture as tintas para chegar na cor pedida.', 'tinta'],
+  pixelart: ['Desenhe em 16×16 e pendure o quadro na sua casa.', 'quadro'],
+  rotular: ['Mostre exemplos certos para a IA aprender.', 'modelo-ia'],
+  programar: ['Monte os blocos para o robô pegar as peças.', 'modelo-ia'],
+  acuracia: ['Teste o modelo e conserte o treino até acertar 90%.', 'modelo-ia'],
+  circuito: ['Gire as peças e ligue o sensor à central.', 'sensor'],
+  regras: ['Escreva regras SE/ENTÃO para a casa inteligente.', 'sensor'],
+  pares: ['Ache os pares de objetos 3D.', 'cubo-virtual'],
+  coordenadas: ['Ponha cada cubo no lugar certo (X, Y, Z).', 'cubo-virtual'],
+  noticia: ['Separe o que é fato do que é opinião.', 'jornal'],
+  materia: ['Ouça a testemunha e monte o lide da matéria.', 'jornal'],
+  boato: ['Cheque as manchetes com as pistas do próprio jogo.', 'jornal'],
+  grafico: ['Leia o gráfico dos preços do Mercado e responda.', 'moeda'],
+  barraca: ['Escolha o preço que dá mais lucro na sua barraca.', 'moeda'],
+  calendario: ['Conte os dias para colher bem no dia da feira.', 'semente'],
+  rota: ['Ache o caminho mais curto passando por todas as casas.', 'pacote'],
+  logica: ['Transforme o documento do jogo em regras SE/ENTÃO.', 'tiquete'],
+  'teste-jogo': ['Teste o jogo: pegue os bugs e fuja das bombas.', 'bug'],
+};
+
 /** XP para chegar em cada nível (nível 1 começa em 0). */
 export const LEVELS = [0, 40, 120, 260, 480, 800];
 export const MAX_LEVEL = LEVELS.length;

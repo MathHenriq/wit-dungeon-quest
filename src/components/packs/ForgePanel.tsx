@@ -1,6 +1,7 @@
 // Forja do Prof. Ian (Oficina de Cartas): desmanchar cartas repetidas em pó da
 // raridade delas e forjar, com esse pó, a carta que falta no álbum.
 import { useMemo, useState } from 'react';
+import { PxPanel } from '@/components/pixel/Pixel';
 import { CATALOG } from '@/lib/tcg/cards/catalog';
 import { RARITY_PT } from '@/lib/tcg/labels';
 import type { CardDef, Rarity } from '@/lib/tcg/types';
@@ -37,12 +38,7 @@ export function ForgePanel({ progress, onClose }: { progress: Progress; onClose:
   };
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/55 p-3" onPointerDown={onClose}>
-      <div onPointerDown={e => e.stopPropagation()} className={`relative w-[min(96vw,860px)] max-h-[94vh] overflow-auto rounded-xl border-4 border-[#e86a2a] bg-[#21160f] p-4 text-white ${font}`}>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="text-[12px] text-[#ffb070]">FORJA DO PROF. IAN</div>
-          <button onClick={onClose} className="ml-auto px-2 py-1 rounded bg-[#4a4660] text-[10px]">SAIR</button>
-        </div>
+    <PxPanel title="FORJA DO PROF. IAN" color="#c85a1a" onClose={onClose} width={880} dark>
         {/* pó de cada raridade */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {RARITY_ORDER.map(r => (
@@ -104,7 +100,6 @@ export function ForgePanel({ progress, onClose }: { progress: Progress; onClose:
           </div>
         )}
         <style>{`.forge-pop > div { animation: forgein .6s cubic-bezier(.2,1.5,.4,1) both; } @keyframes forgein { from { transform: scale(.2) rotate(-25deg); opacity: 0; filter: brightness(4); } }`}</style>
-      </div>
-    </div>
+    </PxPanel>
   );
 }

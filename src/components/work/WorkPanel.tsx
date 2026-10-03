@@ -3,13 +3,15 @@ import { applyReward, chooseProfession, playsLeft, today, spendPlay, WORK_HUNGER
 import { buy, buyPrice } from '@/game/market';
 import { rewardOf } from '@/game/minigames';
 import { plain } from '@/game/news';
-import { MINIGAME_NAME, perkLevel, profOfMinigame, TITLES, type MinigameId } from '@/game/professions';
+import { MINIGAME_ABOUT, MINIGAME_NAME, perkLevel, profOfMinigame, TITLES, type MinigameId } from '@/game/professions';
 import { loadProgress, saveProgress, type Progress } from '@/game/progress';
 import { itemIcon, itemLabel } from '@/game/items';
 import { play } from '@/game/sfx';
 import { GAMES, type GameResult } from './Minigames';
 import { LevelBar, Shell, Tabs } from './Shell';
 import { Icon } from '@/components/Icon';
+import { frame, PxBox, PxButton } from '@/components/pixel/Pixel';
+import { buttonColors, PAPER } from '@/components/pixel/pixel';
 import { orderOf } from '@/game/deliveries';
 import { OrderBox } from './OrderBox';
 import { Jornalzinho } from './Jornalzinho';
@@ -39,14 +41,15 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   const perk = perkLevel(progress.profissao, prof.id, xp);
   const left = playsLeft(progress, game);
   const Game = GAMES[game];
-  const tabs: ['trabalhar' | 'comprar' | 'encomenda' | 'jornal' | 'campo', string][] = [['trabalhar', 'TRABALHO']];
-  if (shop) tabs.push(['comprar', 'COMPRAR']);
-  if (orderOf(prof.id)) tabs.push(['encomenda', 'ENCOMENDA']);
-  if (fieldOf(prof.id)) tabs.push(['campo', 'NO MAPA']);
-  if (prof.id === 'reporter') tabs.push(['jornal', 'JORNALZINHO']);
+  const tabs: ['trabalhar' | 'comprar' | 'encomenda' | 'jornal' | 'campo', string, string][] = [['trabalhar', 'TRABALHO', prof.icon]];
+  if (shop) tabs.push(['comprar', 'COMPRAR', 'moeda']);
+  if (orderOf(prof.id)) tabs.push(['encomenda', 'ENCOMENDA', 'pacote']);
+  if (fieldOf(prof.id)) tabs.push(['campo', 'NO MAPA', 'mapa']);
+  if (prof.id === 'reporter') tabs.push(['jornal', 'JORNALZINHO', 'jornal']);
 
-  const start = () => {
+  const start = (g: MinigameId = game) => {
     if (progress.fome < WORK_HUNGER) { setMsg('Você está com fome demais para trabalhar. Coma alguma coisa (MOCHILA)!'); play('lose'); return; }
+    setGame(g);
     setSeed(Math.floor(Math.random() * 1e6)); setMsg(null); setPhase('play'); play('click');
   };
   const done = (r: GameResult) => {
@@ -72,7 +75,7 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   };
 
   return (
-    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={game === 'compor' || game === 'pao' || game === 'materia' || game === 'programar' || game === 'grafico' || game === 'rota' || game === 'coordenadas' || game === 'acuracia' || game === 'regras' || game === 'calendario' || game === 'fermento' || game === 'barraca' || game === 'boato' || game === 'logica' || game === 'pixelart' || tab === 'jornal'}>
+    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={phase === 'intro' || game === 'compor' || game === 'pao' || game === 'materia' || game === 'programar' || game === 'grafico' || game === 'rota' || game === 'coordenadas' || game === 'acuracia' || game === 'regras' || game === 'calendario' || game === 'fermento' || game === 'barraca' || game === 'boato' || game === 'logica' || game === 'pixelart' || tab === 'jornal'}>
       {phase === 'intro' && tabs.length > 1 && <Tabs tabs={tabs} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
       {phase === 'intro' && tab === 'campo' && <FieldBox prof={prof.id} progress={progress} />}
       {phase === 'intro' && tab === 'jornal' && <Jornalzinho progress={progress} />}
@@ -80,61 +83,74 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
       {phase === 'intro' && tab === 'comprar' && shop && (
         <div className="grid gap-1.5">
           {shop.map(id => (
-            <div key={id} className="flex items-center gap-2 py-1 border-b border-[#e0d8c4]">
+            <div key={id} className="flex items-center gap-2 py-1 border-b-2 border-dashed border-[#d8bf8a]">
               <Icon id={itemIcon(id)} size={32} />
               <span className="flex-1 text-[9px]">{itemLabel(id)} <span className="text-[#5a5470]">· tem {progress.itens[id] ?? 0}</span></span>
-              <button onClick={() => buyOne(id)} className="px-2 py-1.5 rounded bg-[#3a9a5a] text-white text-[8px]">{buyPrice(id)} <Icon id="moeda" size={10} /></button>
+              <PxButton color="#3a9a5a" onClick={() => buyOne(id)}>{buyPrice(id)} <Icon id="moeda" size={10} /></PxButton>
             </div>
           ))}
         </div>
       )}
       {phase === 'intro' && tab === 'trabalhar' && (
         <div>
-          {games.length > 1 && (
-            <div className="flex flex-wrap gap-1 mb-2">
-              {games.map(g => (
-                <button key={g} onClick={() => { setGame(g); setMsg(null); }}
-                  className={`px-2 py-1.5 rounded text-[8px] border-2 ${g === game ? 'text-white' : 'bg-white border-[#c8c0ac]'}`}
-                  style={g === game ? { background: COLOR[g], borderColor: COLOR[g] } : undefined}>{MINIGAME_NAME[g].toUpperCase()}</button>
-              ))}
+          <div className="wk-head">
+            <div className="wk-medal" style={frame(buttonColors(color), 8, true)}><Icon id={prof.icon} size={40} /></div>
+            <div>
+              <div className="wk-name flex items-center gap-2">{prof.name.toUpperCase()}
+                {progress.profissao === prof.id && <span className="wk-stamp" style={frame(buttonColors('#3a9a5a'), 4, true)}>SEU CARGO</span>}
+              </div>
+              <LevelBar xp={xp} />
+              <div className="wk-sub mt-1">{prof.how}</div>
             </div>
-          )}
-        <div>
-          <div className="text-[10px] mb-1">{prof.name}</div>
-          <div className="text-[8px] leading-4 text-[#5a5470] mb-2">{prof.how}</div>
-          <LevelBar xp={xp} />
-          <div className="mt-2 rounded-lg bg-white border-2 p-2 text-[8px] leading-4" style={{ borderColor: color }}>
-            {progress.profissao === prof.id
-              ? <>SEU CARGO · bônus: {prof.perk}</>
-              : <>Bônus de quem tem o cargo: {prof.perk}<br /><button onClick={choose} className="mt-1 px-2 py-1 rounded text-white text-[8px]" style={{ background: color }}>ESCOLHER ESTE CARGO</button></>}
           </div>
-          <div className="text-[8px] mt-2 text-[#5a5470]">Hoje ainda rende: {left}/{PLAYS_PER_DAY} {left <= 0 && '(agora é só treino, sem prêmio)'} · gasta um pouco da barriga</div>
-          <button onClick={start} className="mt-3 w-full py-3 rounded-lg text-white text-[11px] border-b-4 border-black/30" style={{ background: color }}>TRABALHAR</button>
-        </div>
+          <div className="wk-tasks">
+            {games.map(g => {
+              const lf = playsLeft(progress, g);
+              return (
+                <button key={g} className="wk-task" style={frame(g === game ? { ...PAPER, ink: COLOR[g], inner: COLOR[g] } : PAPER, 8, true)}
+                  onClick={() => { setGame(g); start(g); }}>
+                  <span className="ic" style={frame(buttonColors(COLOR[g]), 4, true)}><Icon id={MINIGAME_ABOUT[g][1]} size={28} /></span>
+                  <span className="nm">{MINIGAME_NAME[g].toUpperCase()}</span>
+                  <span className="ab">{MINIGAME_ABOUT[g][0]}</span>
+                  <span className="ft">
+                    {lf > 0 ? <>RENDE <span className="wk-pips">{Array.from({ length: PLAYS_PER_DAY }, (_, i) => <i key={i} className={i < lf ? 'on' : ''} />)}</span></> : <>SÓ TREINO HOJE</>}
+                    <span className="wk-play px-btn" style={frame(buttonColors(COLOR[g]), 8, true)}>JOGAR</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <PxBox className="wk-perk" style={{ marginTop: 10 }}>
+            <Icon id="diamante" size={20} />
+            <span className="flex-1">{progress.profissao === prof.id ? <>Seu bônus: {prof.perk}</> : <>Bônus de quem escolhe este cargo: {prof.perk}</>}</span>
+            {progress.profissao !== prof.id && <PxButton color={color} onClick={choose}>ESCOLHER CARGO</PxButton>}
+          </PxBox>
+          <div className="text-[7px] mt-2 text-[#7a5a34]">Cada tarefa rende {PLAYS_PER_DAY} vezes por dia; depois é treino, sem prêmio. Trabalhar gasta um pouco da barriga.</div>
         </div>
       )}
       {phase === 'play' && <Game perk={perk} seed={seed} onDone={done} towerMax={progress.towerMax} day={Math.floor(Date.now() / 86_400_000)} />}
       {phase === 'result' && res && (
-        <div className="text-center">
-          <div className="text-[13px] mb-1" style={{ color }}>{res.r.score >= 0.9 ? 'EXCELENTE!' : res.r.score >= 0.6 ? 'BOM TRABALHO!' : res.r.score >= 0.3 ? 'DÁ PARA MELHORAR' : 'NÃO FOI DESSA VEZ'}</div>
-          <div className="text-[9px] text-[#5a5470] mb-3">Nota: {Math.round(res.r.score * 100)}%</div>
+        <div className="wk-result">
+          <div className="big" style={{ color }}>{res.r.score >= 0.9 ? 'EXCELENTE!' : res.r.score >= 0.6 ? 'BOM TRABALHO!' : res.r.score >= 0.3 ? 'DÁ PARA MELHORAR' : 'NÃO FOI DESSA VEZ'}</div>
+          <div className="wk-stars">{[0.3, 0.6, 0.9].map((t, i) => <span key={t} className={res.r.score >= t ? 'on' : ''} style={{ animationDelay: `${0.15 + i * 0.2}s` }} />)}</div>
+          <div className="text-[8px] text-[#7a5a34] mb-3">Nota: {Math.round(res.r.score * 100)}%</div>
           {res.reward ? (
-            <div className="flex flex-wrap justify-center gap-2 mb-2">
-              {Object.entries(res.reward.items).map(([id, n]) => <span key={id} className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px] flex items-center gap-1"><Icon id={itemIcon(id)} size={20} /> {itemLabel(id)} ×{n}</span>)}
-              {res.reward.coins > 0 && <span className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px] flex items-center gap-1"><Icon id="moeda" size={16} /> +{res.reward.coins}</span>}
-              <span className="px-2 py-1 rounded bg-white border-2 border-[#d8d0c0] text-[9px]">+{res.reward.xp} XP</span>
-              {!Object.keys(res.reward.items).length && !res.reward.coins && <div className="w-full text-[8px] text-[#5a5470]">Nenhum item desta vez: capriche mais na próxima!</div>}
+            <div className="wk-loot">
+              {Object.entries(res.reward.items).map(([id, n]) => <PxBox key={id}><Icon id={itemIcon(id)} size={22} /> {itemLabel(id)} ×{n}</PxBox>)}
+              {res.reward.coins > 0 && <PxBox><Icon id="moeda" size={18} /> +{res.reward.coins}</PxBox>}
+              <PxBox>+{res.reward.xp} XP</PxBox>
+              {!Object.keys(res.reward.items).length && !res.reward.coins && <div className="w-full text-[8px] text-[#7a5a34]">Nenhum item desta vez: capriche mais na próxima!</div>}
             </div>
-          ) : <div className="text-[8px] text-[#5a5470] mb-2">Treino: este trabalho já rendeu {PLAYS_PER_DAY} vezes hoje. Amanhã rende de novo.</div>}
-          {res.levelUp && <div className="text-[10px] text-[#e8a020] my-2">SUBIU DE NÍVEL! {prof.name} · {TITLES[res.levelUp - 1]}</div>}
+          ) : <div className="text-[8px] text-[#7a5a34] mb-2">Treino: esta tarefa já rendeu {PLAYS_PER_DAY} vezes hoje. Amanhã rende de novo.</div>}
+          {res.levelUp && <div className="text-[10px] text-[#c87a10] my-2">SUBIU DE NÍVEL! {prof.name} · {TITLES[res.levelUp - 1]}</div>}
           {res.news && <div className="text-[8px] text-[#c84a6a] my-2">Sua matéria saiu no telão do Jornal WIT!</div>}
           <div className="flex gap-2 justify-center mt-3">
-            <button onClick={() => setPhase('intro')} className="px-3 py-2 rounded bg-[#4a4660] text-white text-[9px]">VOLTAR</button>
-            <button onClick={start} className="px-3 py-2 rounded text-white text-[9px]" style={{ background: color }}>DE NOVO</button>
+            <PxButton color="#6a5a8a" onClick={() => setPhase('intro')}>VOLTAR</PxButton>
+            <PxButton color={color} onClick={() => start()}>DE NOVO</PxButton>
           </div>
         </div>
       )}
-      {msg && <div className="mt-3 text-[9px] text-[#3a9a5a]">{msg}</div>}
+      {msg && <div className="mt-3 text-[9px] text-[#2a7a4a]">{msg}</div>}
     </Shell>
   );
 }

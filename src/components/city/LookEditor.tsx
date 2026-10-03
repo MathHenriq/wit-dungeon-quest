@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { PxPanel } from '@/components/pixel/Pixel';
 import { CLOTH, DEFAULT_PET, HAIR, MODEL_CELL, MODELOS, SKIN, type Look, type Ramp } from '@/game/world/outfit';
 import { loadModelSheet, paintModel } from '@/game/world/model-sprite';
 import {
@@ -128,15 +129,7 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
   const set = (patch: Partial<Look>) => onChange({ ...value, ...patch });
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/50 p-3" onPointerDown={onClose}>
-      <div
-        onPointerDown={e => e.stopPropagation()}
-        className={`w-[min(94vw,720px)] max-h-[92vh] overflow-y-auto rounded-xl border-4 border-[#2f6b1e] bg-[#f4f8ef] p-4 text-[#1f2a1c] ${pixelFont}`}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[12px] text-[#2f6b1e]">SEU VISUAL</div>
-          <button onClick={onClose} className="px-3 py-2 rounded-md bg-[#2f6b1e] text-white text-[10px]">PRONTO</button>
-        </div>
+    <PxPanel title="SEU VISUAL" color="#2f6b1e" onClose={onClose} width={740}>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex sm:flex-col items-center justify-center gap-2 rounded-lg bg-[#9fd67a] border-2 border-[#5aa33a] p-3 sm:w-[190px] sm:h-[220px] sm:sticky sm:top-0 sm:self-start shrink-0">
             <Sprite frame={preview} scale={2} />
@@ -229,7 +222,6 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </PxPanel>
   );
 }

@@ -1,0 +1,75 @@
+/* Kit pixel dos painéis (moldura de madeira, pergaminho, faixa de título,
+   abas, botões com relevo). As molduras vêm de pixel.ts (border-image). */
+.px { font-family: 'Press Start 2P', monospace; color: #3a2414; }
+.px-overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(12, 8, 20, .55); }
+.px-panel { position: relative; border-style: solid; border-width: 16px; max-height: 94vh; display: flex; flex-direction: column;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, .35); animation: pxpop .22s cubic-bezier(.2, 1.5, .4, 1); }
+@keyframes pxpop { from { transform: scale(.92) translateY(8px); opacity: 0; } }
+.px-panel > .px-body { overflow: auto; padding: 26px 10px 8px; min-height: 0;
+  /* pergaminho com fibras leves */
+  background-image: repeating-linear-gradient(0deg, rgba(150, 110, 50, .05) 0 2px, transparent 2px 6px); }
+.px-panel.dark { color: #efe6ff; }
+.px-panel.dark > .px-body { background-image: none; }
+
+.px-ribbon { position: absolute; left: 50%; top: -6px; transform: translate(-50%, -50%); z-index: 2; white-space: nowrap;
+  border-style: solid; border-width: 8px; padding: 2px 10px; font-size: 11px; color: #fff; text-shadow: 2px 2px 0 rgba(0, 0, 0, .55); letter-spacing: .04em; }
+.px-ribbon::before, .px-ribbon::after { content: ''; position: absolute; top: 4px; width: 14px; height: calc(100% + 0px); background: var(--rb-lo); z-index: -1;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 40% 50%); }
+.px-ribbon::before { left: -26px; }
+.px-ribbon::after { right: -26px; transform: scaleX(-1); }
+
+.px-top { position: absolute; right: -8px; top: -26px; display: flex; gap: 6px; z-index: 3; }
+.px-chip { display: flex; align-items: center; gap: 4px; border-style: solid; border-width: 8px; padding: 0 4px; font-size: 9px; color: #6b4a08; }
+
+.px-btn { position: relative; border-style: solid; border-width: 8px; padding: 2px 8px; font: inherit; font-size: 9px; color: #fff; cursor: pointer;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, .5); line-height: 1.5; transition: transform .05s; }
+.px-btn:hover { filter: brightness(1.08); }
+.px-btn:active { transform: translateY(2px); filter: brightness(.95); }
+.px-btn:disabled { filter: grayscale(.7) brightness(.9); cursor: default; transform: none; }
+.px-btn.big { font-size: 12px; padding: 6px 14px; }
+.px-btn.ink { color: #3a2414; text-shadow: none; }
+
+.px-box { border-style: solid; border-width: 8px; padding: 4px 6px; }
+
+.px-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.px-tab { border-style: solid; border-width: 8px; padding: 0 6px; font: inherit; font-size: 8px; cursor: pointer; color: #5a3a1c; display: flex; align-items: center; gap: 4px; }
+.px-tab.on { color: #fff; text-shadow: 1px 1px 0 rgba(0, 0, 0, .5); transform: translateY(-2px); }
+
+.px-bar { position: relative; height: 12px; border-style: solid; border-width: 4px; }
+.px-bar > i { position: absolute; left: 0; top: 0; bottom: 0; background: repeating-linear-gradient(90deg, var(--bar) 0 6px, color-mix(in srgb, var(--bar) 75%, #000) 6px 8px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .45); }
+
+.px-hr { height: 4px; margin: 10px 0; background: repeating-linear-gradient(90deg, #c8a86e 0 4px, transparent 4px 8px); }
+
+/* painel de trabalho */
+.wk-head { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; margin-bottom: 10px; }
+.wk-medal { width: 64px; height: 64px; display: grid; place-items: center; border-style: solid; border-width: 8px; }
+.wk-medal img { width: 40px; height: 40px; }
+.wk-name { font-size: 12px; margin-bottom: 6px; }
+.wk-sub { font-size: 7px; color: #7a5a34; line-height: 1.6; }
+.wk-tasks { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.wk-task { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; text-align: left; border-style: solid; border-width: 8px; padding: 2px 4px; cursor: pointer; font: inherit; color: inherit; transition: transform .08s; }
+.wk-task:hover { transform: translateY(-2px); }
+.wk-task .ic { width: 36px; height: 36px; display: grid; place-items: center; border-style: solid; border-width: 4px; }
+.wk-task .nm { font-size: 9px; line-height: 1.4; }
+.wk-task .ab { grid-column: 1 / -1; font-size: 7px; line-height: 1.7; color: #6a4a2a; min-height: 24px; }
+.wk-task .ft { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-size: 7px; color: #6a4a2a; }
+.wk-pips { display: flex; gap: 2px; }
+.wk-pips i { width: 6px; height: 6px; background: #c8a86e; box-shadow: inset -1px -1px 0 rgba(0, 0, 0, .25); }
+.wk-pips i.on { background: #e8a020; }
+.wk-play { margin-left: auto; }
+.wk-perk { display: flex; gap: 8px; align-items: center; font-size: 8px; line-height: 1.7; margin-top: 10px; }
+.wk-stamp { font-size: 8px; color: #fff; padding: 2px 6px; transform: rotate(-3deg); border-style: solid; border-width: 4px; white-space: nowrap; }
+.wk-result { text-align: center; padding: 6px 0; }
+.wk-result .big { font-size: 16px; margin-bottom: 6px; animation: pxpop .4s cubic-bezier(.2, 2, .4, 1); }
+.wk-stars { display: flex; justify-content: center; gap: 8px; margin: 8px 0 12px; }
+.wk-stars span { width: 28px; height: 28px; clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 100%, 50% 78%, 20% 100%, 30% 60%, 0 38%, 38% 35%); background: #c8a86e; }
+.wk-stars span.on { background: #f0c030; animation: pxpop .35s cubic-bezier(.2, 2.2, .4, 1) both; }
+.wk-loot { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 8px; }
+.wk-loot > div { display: flex; align-items: center; gap: 4px; font-size: 8px; }
+
+/* o que ainda vem com classes antigas dentro do painel ganha cara de pixel */
+.px-panel :where(.rounded, .rounded-md, .rounded-lg, .rounded-xl, .rounded-full) { border-radius: 0 !important; }
+.px-panel .bg-white { background: #fbf1d6 !important; }
+.px-panel :where(button.rounded, button.rounded-lg, button.rounded-md) { box-shadow: inset -2px -2px 0 rgba(0, 0, 0, .28), inset 2px 2px 0 rgba(255, 255, 255, .3); }
+.px-panel :where(button.rounded, button.rounded-lg, button.rounded-md):active { transform: translateY(1px); }

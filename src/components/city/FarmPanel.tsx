@@ -3,6 +3,7 @@ import { CROP_BY_ID, CROPS, isFarmItem, itemName, loadFarm, saveFarm, sellPrice,
 import { addItem, saveProgress, type Progress } from '@/game/progress';
 import { play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
+import { PxPanel } from '@/components/pixel/Pixel';
 import { OrderBox } from '@/components/work/OrderBox';
 import { FieldBox } from '@/components/work/FieldBox';
 
@@ -37,13 +38,7 @@ export function FarmPanel({ mode, progress, onClose, onWork }: { mode: 'sementes
   const binTotal = Object.entries(farm.bin).reduce((s, [id, n]) => s + sellPrice(id) * n, 0);
 
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50" onPointerDown={onClose}>
-      <div className={`w-[min(94vw,560px)] max-h-[92vh] overflow-auto rounded-xl border-4 border-[#3a7a3a] bg-[#f4efe2] p-4 text-[#2e2a40] ${font}`} onPointerDown={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-3 gap-2">
-          <div className="text-[12px] text-[#3a7a3a]">{mode === 'sementes' ? 'BARRACA DE SEMENTES' : 'CAIXA DE ENVIO'}</div>
-          <span className="text-[10px] text-[#8a6a1a] flex items-center gap-1"><Icon id="moeda" size={14} /> {progress.coins}</span>
-          <button onClick={onClose} className="px-2 py-1 rounded bg-[#4a4660] text-white text-[10px]">SAIR</button>
-        </div>
+    <PxPanel title={mode === 'sementes' ? 'BARRACA DE SEMENTES' : 'CAIXA DE ENVIO'} color="#3a7a3a" coins={progress.coins} onClose={onClose}>
         {mode === 'sementes' && (
           <div>
             {CROPS.map(c => (
@@ -80,7 +75,6 @@ export function FarmPanel({ mode, progress, onClose, onWork }: { mode: 'sementes
           </div>
         )}
         {msg && <div className="mt-3 text-[9px] text-[#3a9a5a]">{msg}</div>}
-      </div>
-    </div>
+    </PxPanel>
   );
 }
