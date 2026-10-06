@@ -334,18 +334,29 @@ A sprite sheet of 16 separate futuristic city props for a cheerful kids tech cit
 ### G. Ícones do jogo (no lugar dos provisórios)
 
 Hoje os ícones vêm de pacotes pixel art gratuitos (CC0); servem, mas não têm a
-cara do jogo. Três folhas 6 × 6 (36 ícones cada), **na ordem da lista** (o
-nome do arquivo final é o da lista; o importador corta em ordem).
-`public/Novos assets/icones/icones-1.png`, `-2`, `-3`.
+cara do jogo. Quatro folhas, cada prompt já com a lista completa (cole como
+está). Salve em `public/Novos assets/icones/` com o nome do título. A ordem
+importa: o importador corta na ordem de leitura.
 
+**icones-1.png** (comida e fazenda, 36 ícones, 6 × 6)
 ```
-A sprite sheet of 36 separate item icons for a cute pixel-art life-sim game, in a 6 by 6 grid, each icon centered in its own square cell with empty space around it, all the same size and style, bright colors, crisp pixel art with clean dark outlines, no anti-aliasing, no text, no numbers. Flat solid magenta background (#FF00FF). Icons in reading order: [LISTA]
+A sprite sheet of 36 separate item icons for a cute pixel-art life-sim game, in a 6 by 6 grid (6 columns, 6 rows), each icon centered in its own square cell with empty space around it, all the same size and style, bright colors, crisp pixel art with clean dark outlines, no anti-aliasing, no text, no numbers, no logos, no existing game or anime characters. Flat solid magenta background (#FF00FF). Icons in reading order (left to right, top to bottom): 1) a French bread roll, 2) a baguette, 3) a round loaf of bread, 4) a loaf of sliced sandwich bread, 5) a braided bread, 6) a slice of chocolate cake, 7) an omelette in a frying pan, 8) a salad bowl, 9) a paper bag of popcorn, 10) a baked fish on a plate, 11) a glass of fruit smoothie, 12) a carrot cake with icing, 13) a pumpkin pie, 14) a juice box with a straw, 15) a donut, 16) an ice cream cone, 17) a lollipop, 18) a popsicle, 19) a chocolate bar, 20) a cupcake, 21) a carrot, 22) a head of lettuce, 23) a strawberry, 24) a tomato, 25) a corn cob, 26) a sunflower, 27) a pumpkin, 28) an egg, 29) a milk bottle, 30) a ball of wool yarn, 31) an apple, 32) an orange, 33) a peach, 34) a lemon, 35) a seed packet, 36) a raw fish.
 ```
-(As folhas passam de 36 se precisar: faça uma folha a mais com o que sobrar, na mesma ordem.)
 
-- **icones-1** (comida): pão francês, bisnaga, pão redondo, pão de forma, pão trançado, bolo de chocolate (fatia), omelete na frigideira, salada na tigela, pipoca no saquinho, peixe assado no prato, copo de vitamina de fruta, bolo de cenoura com cobertura, torta de abóbora, caixinha de suco, rosquinha, sorvete de casquinha, pirulito, picolé, barra de chocolate, cupcake, cenoura, alface, morango, tomate, espiga de milho, girassol, abóbora, ovo, garrafa de leite, novelo de lã, maçã, laranja, pêssego, limão, saquinho de sementes, peixe cru, isca de minhoca, coxinha de frango (ícone de fome), gota d'água, moeda dourada.
-- **icones-2** (profissões e produtos): disco de vinil, disco de ouro, quadro emoldurado, chip de IA brilhante, sensor IoT pequeno, irrigador automático, cubo holográfico, tíquete de fliperama, jornalzinho dobrado, câmera fotográfica, microfone, controle de videogame, pacote de entrega, drone pequeno, robozinho gari, prancheta com gráfico, cesta de pão, regador, enxada, vara de pesca, pincel com tinta, teclado musical, violão, tambor, flauta, xilofone, chave de fenda, lâmpada inteligente, notebook, óculos de realidade virtual, lupa, troféu, medalha, estrela, coração, cadeado.
-- **icones-3** (pacotinhos e cartas): pacotinho de cartas comum (cinza), incomum (verde), raro (azul), épico (roxo), lendário (dourado), mítico (rosa iridescente), desconhecido (preto com estrelas); carta virada (verso), carta brilhando, pó de carta, bigorna, martelo, baú, chave dourada, mapa, bandeira de guilda, escudo de guilda, espada cruzada, coroa, sino, envelope, presente, balão de fala, mão acenando, coração partido, joinha, nota musical, raio, floco de neve, chama, folha, gota, caveira fofa, lua, fantasma fofo, tornado.
+**icones-2.png** (profissões e produtos, 36 ícones, 6 × 6)
+```
+A sprite sheet of 36 separate item icons for a cute pixel-art life-sim game, in a 6 by 6 grid (6 columns, 6 rows), each icon centered in its own square cell with empty space around it, all the same size and style, bright colors, crisp pixel art with clean dark outlines, no anti-aliasing, no text, no numbers, no logos, no existing game or anime characters. Flat solid magenta background (#FF00FF). Icons in reading order (left to right, top to bottom): 1) a vinyl record, 2) a golden record, 3) a framed painting, 4) a glowing AI chip, 5) a small IoT sensor, 6) an automatic sprinkler, 7) a holographic cube, 8) an arcade ticket, 9) a folded small newspaper, 10) a photo camera, 11) a microphone, 12) a game controller, 13) a delivery package, 14) a small drone, 15) a small green cleaning robot, 16) a clipboard with a bar chart, 17) a basket of bread, 18) a watering can, 19) a garden hoe, 20) a fishing rod, 21) a paintbrush with paint, 22) a small music keyboard, 23) an acoustic guitar, 24) a drum, 25) a flute, 26) a xylophone, 27) a screwdriver, 28) a smart light bulb, 29) a laptop, 30) VR goggles, 31) a magnifying glass, 32) a trophy, 33) a medal, 34) a star, 35) a heart, 36) a padlock.
+```
+
+**icones-3.png** (pacotinhos, cartas e símbolos, 36 ícones, 6 × 6)
+```
+A sprite sheet of 36 separate item icons for a cute pixel-art life-sim game, in a 6 by 6 grid (6 columns, 6 rows), each icon centered in its own square cell with empty space around it, all the same size and style, bright colors, crisp pixel art with clean dark outlines, no anti-aliasing, no text, no numbers, no logos, no existing game or anime characters. Flat solid magenta background (#FF00FF). Icons in reading order (left to right, top to bottom): 1) a grey card pack, 2) a green card pack, 3) a blue card pack, 4) a purple card pack, 5) a golden card pack, 6) an iridescent pink card pack, 7) a black card pack with little stars, 8) a face-down playing card (card back), 9) a glowing playing card, 10) a small pile of sparkling card dust, 11) an anvil, 12) a hammer, 13) a treasure chest, 14) a golden key, 15) a folded map, 16) a guild flag, 17) a guild shield, 18) two crossed swords, 19) a crown, 20) a bell, 21) an envelope, 22) a gift box, 23) a speech bubble, 24) a waving hand, 25) a broken heart, 26) a thumbs up hand, 27) a music note, 28) a lightning bolt, 29) a snowflake, 30) a flame, 31) a green leaf, 32) a water drop, 33) a cute cartoon skull, 34) a crescent moon, 35) a cute little ghost, 36) a small tornado.
+```
+
+**icones-4.png** (sobras, potes de pó da forja e os 8 de Comunicação e IA da seção M, 19 ícones, 5 × 4)
+```
+A sprite sheet of 19 separate item icons for a cute pixel-art life-sim game, in a 5 by 4 grid (5 columns, 4 rows), each icon centered in its own square cell with empty space around it, all the same size and style, bright colors, crisp pixel art with clean dark outlines, no anti-aliasing, no text, no numbers, no logos, no existing game or anime characters. Flat solid magenta background (#FF00FF). Icons in reading order (left to right, top to bottom): 1) an earthworm bait, 2) a chicken drumstick, 3) a blue water drop, 4) a gold coin, 5) a glass jar of grey glitter dust, 6) a glass jar of green glitter dust, 7) a glass jar of blue glitter dust, 8) a glass jar of purple glitter dust, 9) a glass jar of golden glitter dust, 10) a glass jar of iridescent pink glitter dust, 11) a glass jar of black glitter dust with little stars, 12) a compact photo camera, 13) a handheld reporter microphone, 14) an instant polaroid photo, 15) the face of a friendly green cleaning robot with a dark visor and green eyes, 16) a blue puzzle block with a white forward arrow, 17) a purple puzzle block with a white curved turn arrow, 18) a green puzzle block with a white grabber claw, 19) an orange puzzle block with a white circular repeat arrow. The remaining cells are left empty.
+```
 
 ### H. Cenas dos minijogos (Padeiro e Músico primeiro)
 
@@ -385,7 +396,7 @@ A tela da forja funciona; falta a cara dela. `public/Novos assets/interiores/for
 ```
 A cozy fantasy card forge workshop seen from the front, wide horizontal scene for a menu background: a glowing brick furnace with orange fire, an anvil with a hammer, shelves with seven glass jars of glittering dust in seven colors (grey, green, blue, purple, gold, pink, black with stars), a playing card floating above the anvil surrounded by sparkles, warm light. Cute pixel art, clean outlines, no people, no text. Flat solid magenta background (#FF00FF) outside the scene.
 ```
-E os 7 potes de pó como ícones (entram na folha **icones-3**, depois do último): pote de pó comum (cinza), incomum (verde), raro (azul), épico (roxo), lendário (dourado), mítico (rosa iridescente), desconhecido (preto com estrelas).
+Os 7 potes de pó como ícones já estão na folha **icones-4** da seção G.
 
 ### L. Estúdio de Música e Padaria (complementos) — 01/10
 
@@ -403,10 +414,7 @@ Já funciona: câmera (tecla F / botão FOTO) com álbum de 8 fotos, fotos no
 telão, escrever matéria (lide: quem, o quê, onde, quando), jornalzinho de 1
 moeda, programar o robô com blocos e o robô gari na Cidade WIT. O robô gari e
 os lixinhos estão em `docs/prompts-mundo.md` (folha **robo-gari.png**). Falta:
-- **Ícones** (folha **icones-3**, 32 × 32, nesta ordem): `camera` (câmera fotográfica), `microfone` (microfone de repórter), `foto` (foto polaroide), `robo-gari` (rosto do robô gari), `bloco-andar` (seta para a frente num bloquinho azul), `bloco-virar` (seta curva num bloquinho roxo), `bloco-pegar` (pinça num bloquinho verde), `bloco-repetir` (seta circular num bloquinho laranja).
-```
-A sprite sheet of 8 game icons, 4 columns by 2 rows, each icon centered in its own cell, cute pixel art 32x32 style with clean dark outlines: 1) a compact photo camera, 2) a handheld reporter microphone, 3) an instant polaroid photo, 4) the face of a friendly green cleaning robot with a dark visor and green eyes, 5) a blue puzzle block with a white forward arrow, 6) a purple puzzle block with a white curved turn arrow, 7) a green puzzle block with a white grabber claw, 8) an orange puzzle block with a white circular repeat arrow. No text, no numbers. Flat solid magenta background (#FF00FF).
-```
+- **Ícones** (câmera, microfone, foto, robô gari e os 4 blocos de programar): já estão na folha **icones-4** da seção G. Não precisa de folha separada.
 - **Testemunhas da matéria** (bustos 64 × 64, roupa completa, nada de anime), folha `public/Novos assets/minijogos/testemunhas.png` (4 × 2), nesta ordem: Seu Tião (pescador idoso de chapéu), recepcionista da Torre (uniforme azul), WIT-Bot (robô branco de tela), morador (rapaz de moletom), dona da padaria (avental e touca), entregador (boné e colete laranja), vizinha da fazenda (chapéu de palha), moça da Central de Entregas (headset).
 ```
 A sprite sheet of 8 bust portraits (head and shoulders), 4 columns by 2 rows, each centered in its own cell, friendly original characters for a children's game, fully clothed, cute pixel art with clean outlines, facing the viewer and smiling: 1) an old fisherman with a bucket hat, 2) a receptionist in a blue uniform, 3) a white robot with a screen face, 4) a young man in a hoodie, 5) a baker woman with an apron and a cap, 6) a delivery man with a cap and an orange vest, 7) a farm woman with a straw hat, 8) a young woman with a headset. No text. Flat solid magenta background (#FF00FF).
@@ -423,11 +431,32 @@ arte para o boneco aparecer montado. Uma folha por veículo, **4 linhas
 base (modelo 01, cores-molde) montado, no mesmo tamanho dos quadros do
 personagem (32 × 40 por quadro, a folha maior pode ser em 2×):
 
-```
-A pixel art sprite sheet of a kid character riding a small electric scooter, 4 rows (facing down, left, right, up) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, no text, no logos. Flat solid magenta background (#FF00FF).
-```
-Trocar "a small electric scooter" por: "a bicycle", "a small electric motorbike with a helmet on", "a small round electric car (the kid visible through the open roof)" e, para o avião, uma folha só de "a small cute propeller plane seen from above, 4 directions" (sem o boneco).
+Salve em `public/Novos assets/veiculos/` com o nome do título (o mesmo id de `src/game/vehicles.ts`).
 
+**veiculo-patinete.png**
+```
+A pixel art sprite sheet of a kid character riding a small electric scooter, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+```
+
+**veiculo-bicicleta.png**
+```
+A pixel art sprite sheet of a kid character riding a bicycle, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+```
+
+**veiculo-moto.png**
+```
+A pixel art sprite sheet of a kid character riding a small electric motorbike, wearing a helmet, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+```
+
+**veiculo-carro.png**
+```
+A pixel art sprite sheet of a kid character riding a small round electric car, the kid visible through the open roof, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+```
+
+**veiculo-aviao.png** (sem o boneco)
+```
+A pixel art sprite sheet of a small cute propeller plane seen from above, 4 rows (flying down, left, right, up) by 4 animation frames (propeller spinning), top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, clean dark outlines, limited palette, no anti-aliasing, no people, no text, no logos. Flat solid magenta background (#FF00FF).
+```
 
 ---
 
