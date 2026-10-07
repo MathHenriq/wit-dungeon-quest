@@ -37,6 +37,7 @@ import {
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
 import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
+import { cloudEnabled, pullProgress } from '@/game/cloud';
 import { Radio } from '@/components/city/Radio';
 import { VehicleShop } from '@/components/city/VehicleShop';
 import { poseFrames } from '@/game/world/model-sprite';
@@ -420,6 +421,12 @@ function CityView({ town, start, startHour, onTravel }: {
     loadPetFrames(look.pet ?? DEFAULT_PET).then(f => { if (alive) { g.current.petFrames = f; g.current.dirty = true; } }).catch(err => console.error('pet', err));
     return () => { alive = false; };
   }, [look]);
+
+  // banco do WIT 2 (só com VITE_WIT2_DB=1): ao abrir, traz moedas, cartas e Torre do servidor
+  useEffect(() => {
+    if (!cloudEnabled()) return;
+    pullProgress(loadProgress()).then(p => { saveProgress(p); setProgress(p); }).catch(err => console.error('banco', err));
+  }, []);
 
   // emotes (só os modelos que já têm a folha do GPT)
   useEffect(() => {

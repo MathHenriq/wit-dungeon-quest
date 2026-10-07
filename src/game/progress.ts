@@ -4,6 +4,7 @@
 // As regras (quanto rende uma vitória, quando o chefe libera) são puras e
 // testadas; só `loadProgress`/`saveProgress` tocam no navegador.
 import { VEHICLE_BY_ID, type VehicleId } from './vehicles';
+import { schedulePush } from './cloud';
 import type { Ticket } from './room-rewards';
 import { prizeFor } from './boss-prizes';
 import { deckSlots, TALENT_BY_ID, type GrimId } from './grimoire';
@@ -422,6 +423,8 @@ export function loadProgress(): Progress {
 }
 export function saveProgress(p: Progress): void {
   try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* sem armazenamento */ }
+  // banco (desligado por padrão: VITE_WIT2_DB=1); conflito de aparelho → fica o do servidor
+  schedulePush(p, server => { try { localStorage.setItem(KEY, JSON.stringify(sanitizeProgress({ ...p, ...server }))); } catch { /* idem */ } });
   window.dispatchEvent(new CustomEvent('wit-progresso', { detail: p }));
 }
 
