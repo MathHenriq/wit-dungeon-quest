@@ -431,26 +431,26 @@ arte para o boneco aparecer montado. Uma folha por veículo, **4 linhas
 base (modelo 01, cores-molde) montado, no mesmo tamanho dos quadros do
 personagem (32 × 40 por quadro, a folha maior pode ser em 2×):
 
-Salve em `public/Novos assets/veiculos/` com o nome do título (o mesmo id de `src/game/vehicles.ts`).
+Anexe **`modelo-01.png`** em cada um (o boneco tem de sair nas cores-molde, o jogo pinta). Salve em `public/Novos assets/veiculos/` com o nome do título (o mesmo id de `src/game/vehicles.ts`). O avião não leva boneco nem anexo.
 
 **veiculo-patinete.png**
 ```
-A pixel art sprite sheet of a kid character riding a small electric scooter, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+Using the attached sprite sheet as the exact reference for this character (same hair shape, same clothes, same placeholder colors: skin #E8B48C, hair flat cyan #20B4C8, top flat green #3CB44A, bottom flat royal blue #3456C8, white sneakers; same proportions and outline), draw a pixel art sprite sheet of the SAME character riding a small electric scooter, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
 ```
 
 **veiculo-bicicleta.png**
 ```
-A pixel art sprite sheet of a kid character riding a bicycle, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+Using the attached sprite sheet as the exact reference for this character (same hair shape, same clothes, same placeholder colors: skin #E8B48C, hair flat cyan #20B4C8, top flat green #3CB44A, bottom flat royal blue #3456C8, white sneakers; same proportions and outline), draw a pixel art sprite sheet of the SAME character riding a bicycle, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
 ```
 
 **veiculo-moto.png**
 ```
-A pixel art sprite sheet of a kid character riding a small electric motorbike, wearing a helmet, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+Using the attached sprite sheet as the exact reference for this character (same hair shape, same clothes, same placeholder colors: skin #E8B48C, hair flat cyan #20B4C8, top flat green #3CB44A, bottom flat royal blue #3456C8, white sneakers; same proportions and outline), draw a pixel art sprite sheet of the SAME character riding a small electric motorbike, wearing a helmet, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
 ```
 
 **veiculo-carro.png**
 ```
-A pixel art sprite sheet of a kid character riding a small round electric car, the kid visible through the open roof, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+Using the attached sprite sheet as the exact reference for this character (same hair shape, same clothes, same placeholder colors: skin #E8B48C, hair flat cyan #20B4C8, top flat green #3CB44A, bottom flat royal blue #3456C8, white sneakers; same proportions and outline), draw a pixel art sprite sheet of the SAME character riding a small round electric car, the kid visible through the open roof, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same proportions as a 32x40 overworld character, clean dark outlines, limited palette, no anti-aliasing. Fully clothed, friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
 ```
 
 **veiculo-aviao.png** (sem o boneco)
