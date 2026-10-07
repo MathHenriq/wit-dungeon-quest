@@ -11,6 +11,7 @@
 /* desafiante atrás da mesa */
 .dv-foe { position: absolute; left: 50%; top: -1%; width: 19%; transform: translateX(-50%); z-index: 1; }
 .dv-foe canvas { width: 100%; display: block; image-rendering: pixelated; }
+.dv-foe.rx { width: 23.75%; }
 .dv-think { position: absolute; right: -28%; top: 4%; background: #fff; color: #222; border-radius: .5cqw; padding: .5cqw .6cqw; font-size: .75cqw; }
 .dv-think i { display: inline-block; width: .35cqw; height: .35cqw; border-radius: 50%; background: #444; margin: 0 .12cqw; animation: dvdot 1s infinite; }
 .dv-think i:nth-child(2) { animation-delay: .15s; } .dv-think i:nth-child(3) { animation-delay: .3s; }

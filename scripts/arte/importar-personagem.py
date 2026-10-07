@@ -70,16 +70,16 @@ def classify(img):
     return cls, mx
 
 
-def frames(path):
+def frames(path, cols=4, rows=4):
     rgb_, al = imp.load(str(path))
     A = al > 0.5
     img = np.dstack([rgb_, A * 255]).astype(np.uint8)
     ys, xs = np.where(A.any(1))[0], np.where(A.any(0))[0]
-    Y = [ys[0] + (ys[-1] + 1 - ys[0]) * k // 4 for k in range(5)]
-    X = [xs[0] + (xs[-1] + 1 - xs[0]) * k // 4 for k in range(5)]
+    Y = [ys[0] + (ys[-1] + 1 - ys[0]) * k // rows for k in range(rows + 1)]
+    X = [xs[0] + (xs[-1] + 1 - xs[0]) * k // cols for k in range(cols + 1)]
     out = []
-    for r in range(4):
-        for c in range(4):
+    for r in range(rows):
+        for c in range(cols):
             sub = A[Y[r]:Y[r + 1], X[c]:X[c + 1]].copy()
             # sujeira solta (risco no chão, resto do magenta) fora do boneco
             lab, n = ndimage.label(sub)
@@ -144,6 +144,50 @@ def reduce(frame, cls, tone, scale):
     return out
 
 
+# poses (docs/PROMPTS-GPT.md §A): mesma paleta e mesmo tamanho de quadro
+POSES = {'sentar': (4, 2), 'carregar': (4, 4), 'emotes': (4, 4)}
+POSE_SRC = ROOT / 'public/Novos assets/personagem/poses'
+POSE_OUT = OUT / 'poses'
+
+
+def hair_width(cls):
+    """Largura do cabelo no quadro (px da folha): serve de régua entre folhas."""
+    m = cls == HAIR
+    xs = np.where(m.any(0))[0]
+    return xs[-1] - xs[0] + 1 if len(xs) else 0
+
+
+def poses():
+    """Folhas de pose: a escala sai da largura do cabelo do quadro de frente
+    comparada com a do modelo (o GPT nem sempre desenha do mesmo tamanho)."""
+    POSE_OUT.mkdir(parents=True, exist_ok=True)
+    done = []
+    for f in sorted(POSE_SRC.glob('modelo-*-*.png')):
+        modelo, pose = f.stem.rsplit('-', 1)
+        if pose not in POSES or not (SRC / f'{modelo}.png').exists():
+            continue
+        cols, rows = POSES[pose]
+        ref = classify(frames(SRC / f'{modelo}.png')[0])[0]
+        fr = frames(f, cols, rows)
+        data = [classify(x) for x in fr]
+        allc = np.concatenate([c.ravel() for c, _ in data])
+        alll = np.concatenate([l.ravel() for _, l in data])
+        allt = shades(allc, alll)
+        tones, i = [], 0
+        for c, _ in data:
+            tones.append(allt[i:i + c.size].reshape(c.shape))
+            i += c.size
+        scale = SCALE * max(0.5, min(2.5, hair_width(data[0][0]) / max(1, hair_width(ref))))
+        sheet = np.zeros((CELL_H * rows, CELL * cols, 4), np.uint8)
+        for k, (x, (c, _), t) in enumerate(zip(fr, data, tones)):
+            r, col = divmod(k, cols)
+            sheet[r * CELL_H:(r + 1) * CELL_H, col * CELL:(col + 1) * CELL] = reduce(x, c, t, scale)
+        Image.fromarray(sheet, 'RGBA').save(POSE_OUT / f.name)
+        done.append(f.stem)
+    (POSE_OUT / 'manifest.json').write_text(json.dumps(done))
+    print('poses:', ', '.join(done) or 'nenhuma')
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     files = sorted(SRC.glob('modelo-*.png'))
@@ -169,6 +213,7 @@ def main():
         sheets.append(sheet)
         manifest.append(f.stem)
     (OUT / 'manifest.json').write_text(json.dumps(manifest))
+    poses()
     if '--folha' in sys.argv:
         dest = sys.argv[sys.argv.index('--folha') + 1]
         big = np.concatenate(sheets, axis=1)

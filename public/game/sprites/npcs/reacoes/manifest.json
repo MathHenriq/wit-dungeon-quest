@@ -1,0 +1,22 @@
+{
+ "cell": [
+  80,
+  80
+ ],
+ "foot": 78,
+ "frames": 8,
+ "sprites": [
+  "npc-desafiante-01",
+  "npc-desafiante-02",
+  "npc-desafiante-03",
+  "npc-desafiante-04",
+  "npc-desafiante-05",
+  "npc-desafiante-06",
+  "npc-desafiante-07",
+  "npc-desafiante-08",
+  "npc-desafiante-09",
+  "npc-desafiante-10",
+  "npc-desafiante-11",
+  "npc-desafiante-12"
+ ]
+}

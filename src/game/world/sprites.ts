@@ -80,6 +80,17 @@ export async function loadSheetFrames(url: string, cw: number, ch: number, footH
 const base = () => `${import.meta.env.BASE_URL}game/sprites`;
 /** NPC pronto (public/game/sprites/npcs). */
 export const loadNpcFrames = (id: string) => loadSheetFrames(`${base()}/npcs/${id}.png`, 64, 80, 76);
+/** Reações do desafiante no duelo (public/game/sprites/npcs/reacoes): 8 quadros de 80 × 80
+ *  — parado, pensando, jogando, apanhou, susto, comemorando, perdeu, sentado. */
+export async function loadReactionFrames(id: string): Promise<HTMLCanvasElement[]> {
+  const img = await loadImage(`${base()}/npcs/reacoes/${id}.png`);
+  return [...Array(8).keys()].map(i => {
+    const cv = document.createElement('canvas');
+    cv.width = 80; cv.height = 80;
+    cv.getContext('2d')!.drawImage(img, i * 80, 0, 80, 80, 0, 0, 80, 80);
+    return cv;
+  });
+}
 /** Pet do GPT (public/game/sprites/bichos). */
 export const loadPetFrames = (id: string) => loadSheetFrames(`${base()}/bichos/${id}.png`, 48, 48, 46);
 

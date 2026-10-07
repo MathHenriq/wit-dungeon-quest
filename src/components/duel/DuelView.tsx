@@ -8,7 +8,7 @@ import type { CardDef, CardInstance, DamageCalc, Element, GameState, PlayerState
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { isMuted, play, setMuted } from '@/game/sfx';
 import type { Look } from '@/game/world/outfit';
-import { loadLookFrames, loadNpcFrames } from '@/game/world/sprites';
+import { loadLookFrames, loadNpcFrames, loadReactionFrames } from '@/game/world/sprites';
 import { matOf, matStyle } from '@/game/playmats';
 import { diffMoves, type Move } from './moves';
 import './DuelView.css';
@@ -99,11 +99,22 @@ function Face({ frame }: { frame: HTMLCanvasElement | null }) {
  * apanhar (tremida e clarão), vencer (pulinhos) e perder (cai de lado).
  */
 export type FoeMood = 'idle' | 'think' | 'throw' | 'hurt' | 'bigHurt' | 'shock' | 'cheer' | 'blocked' | 'win' | 'lose';
-function Body({ frames, mood }: { frames: HTMLCanvasElement[] | null; mood: FoeMood }) {
+/** Quadro de reação do GPT para cada humor (ver loadReactionFrames). */
+const REACT_FRAME: Record<FoeMood, number> = { idle: 0, think: 1, throw: 2, hurt: 3, bigHurt: 3, shock: 4, cheer: 5, blocked: 4, win: 5, lose: 6 };
+
+function Body({ frames, react, mood }: { frames: HTMLCanvasElement[] | null; react: HTMLCanvasElement[] | null; mood: FoeMood }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current;
-    if (!c || !frames?.length) return;
+    if (!c) return;
+    if (react) {
+      // com a arte de reação: um quadro por humor (a animação do CSS continua por cima)
+      const f = react[REACT_FRAME[mood]];
+      c.width = f.width; c.height = f.height;
+      c.getContext('2d')!.drawImage(f, 0, 0);
+      return;
+    }
+    if (!frames?.length) return;
     c.width = frames[0].width; c.height = frames[0].height;
     const x = c.getContext('2d')!;
     const draw = (i: number) => { x.clearRect(0, 0, c.width, c.height); x.drawImage(frames[i % frames.length], 0, 0); };
@@ -113,7 +124,7 @@ function Body({ frames, mood }: { frames: HTMLCanvasElement[] | null; mood: FoeM
     let i = 0;
     const t = window.setInterval(() => draw(++i), mood === 'throw' ? 95 : 160);
     return () => { window.clearInterval(t); draw(0); };
-  }, [frames, mood]);
+  }, [frames, react, mood]);
   return <canvas ref={ref} />;
 }
 
@@ -305,6 +316,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
   const [error, setError] = useState<string | null>(null);
   const [hits, setHits] = useState<{ side: 0 | 1; v: number; key: number }[]>([]);
   const [frames, setFrames] = useState<[HTMLCanvasElement[] | null, HTMLCanvasElement[] | null]>([null, null]);
+  const [react, setReact] = useState<HTMLCanvasElement[] | null>(null);
   const [showLog, setShowLog] = useState(false);
   const [flights, setFlights] = useState<FlightSpec[]>([]);
   const [calcShow, setCalcShow] = useState<{ calc: DamageCalc; key: number } | null>(null);
@@ -405,6 +417,8 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     Promise.all([loadLookFrames(look).catch(() => null), loadNpcFrames(foeSprite).catch(() => null)]).then(([a, b]) => {
       if (alive) setFrames([a?.walk.south ?? null, b?.walk.south ?? null]);
     });
+    setReact(null);
+    loadReactionFrames(foeSprite).then(r => { if (alive) setReact(r); }).catch(() => undefined);
     return () => { alive = false; };
   }, [look, foeSprite]);
 
@@ -617,8 +631,8 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         <div className="dv-bg" style={{ background: `radial-gradient(ellipse at 50% 40%, ${el.el2}66, transparent 70%), repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 .12cqw, transparent .12cqw 2.4cqw), repeating-linear-gradient(90deg, #6b4a2e 0 7cqw, #5e3f26 7cqw 7.12cqw, #684629 7.12cqw 14cqw)` }} />
 
         {/* desafiante atrás da mesa */}
-        <div className={`dv-foe ${foeMood}`}>
-          <Body frames={frames[1]} mood={foeMood} />
+        <div className={`dv-foe ${foeMood} ${react ? 'rx' : ''}`}>
+          <Body frames={frames[1]} react={react} mood={foeMood} />
           {state.active === 1 && state.winner === null && foeMood !== 'blocked' && <div className="dv-think"><i /><i /><i /></div>}
           {(foeMood === 'shock' || foeMood === 'bigHurt') && <div className="dv-react dv-px">{foeMood === 'shock' ? '!!' : '!'}</div>}
           {foeMood === 'bigHurt' && <div className="dv-sweat"><i /><i /><i /></div>}

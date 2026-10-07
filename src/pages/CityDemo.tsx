@@ -36,6 +36,7 @@ import {
 } from '@/game/world/movement';
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
 import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
+import { poseFrames } from '@/game/world/model-sprite';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
 import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
@@ -338,6 +339,9 @@ function CityView({ town, start, startHour, onTravel }: {
     seat: null as { tx: number; ty: number; dx: number; from: { tx: number; ty: number } } | null,
     path: [] as Dir[],
     playerFrames: null as Frames | null,
+    /** Emotes do modelo (4 linhas: acenar, dançar, chorar, joinha) e o que está tocando. */
+    emotes: null as HTMLCanvasElement[][] | null,
+    emote: null as { row: number; t0: number } | null,
     /** Apelido e título do jogador (na plaquinha). */
     nick: 'Você',
     playerTitle: 'Novato' as string | undefined,
@@ -410,6 +414,19 @@ function CityView({ town, start, startHour, onTravel }: {
     loadPetFrames(look.pet ?? DEFAULT_PET).then(f => { if (alive) { g.current.petFrames = f; g.current.dirty = true; } }).catch(err => console.error('pet', err));
     return () => { alive = false; };
   }, [look]);
+
+  // emotes (só os modelos que já têm a folha do GPT)
+  useEffect(() => {
+    let alive = true;
+    poseFrames(look, 'emotes').then(f => { if (alive) g.current.emotes = f; }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [look]);
+  const emote = useCallback((row?: number) => {
+    const s = g.current;
+    if (!s.emotes || s.inside || s.modal || s.player.from) return;
+    s.emote = { row: row ?? ((s.emote?.row ?? -1) + 1) % 4, t0: performance.now() };
+    s.dirty = true;
+  }, []);
 
   // arte da cidade → canvas (uma vez)
   useEffect(() => {
@@ -892,6 +909,7 @@ function CityView({ town, start, startHour, onTravel }: {
       if ((e.key === 'm' || e.key === 'M') && !g.current.inside) setMapOpen(o => !o);
       // F: foto
       if ((e.key === 'f' || e.key === 'F') && !g.current.inside && !g.current.modal) takePhoto();
+      if (e.key >= '1' && e.key <= '4' && !g.current.inside && !g.current.modal) emote(+e.key - 1);
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
       // Q / E: troca a semente escolhida (fazenda)
@@ -1293,7 +1311,12 @@ function CityView({ town, start, startHour, onTravel }: {
         // cada passo usa metade dos quadros da caminhada (6 da PixelLab, 4 dos modelos)
         const n = fr.walk[w.dir].length;
         const frameMs = (w === s.player && s.run && !s.starving ? RUN_MS : WALK_MS) / (n / 2);
-        const img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % n : 0];
+        let img = fr.walk[w.dir][w.anim > 0 ? Math.floor(w.anim / frameMs) % n : 0];
+        // emote: 4 voltas da animação, parado; andar cancela
+        if (w === s.player && s.emote && s.emotes) {
+          const k = Math.floor((performance.now() - s.emote.t0) / 170);
+          if (k < 16 && !w.from) { img = s.emotes[s.emote.row][k % 4]; s.dirty = true; } else s.emote = null;
+        }
         const wx = Math.round(pos.x + 8 - fr.w / 2), wy = Math.round(pos.y + 15 - fr.foot[w.dir]);
         const x = wx - camX, y = wy - camY + bob;
         if (x > vw || y > vh || x < -32 || y < -48) return;
@@ -1700,7 +1723,7 @@ function CityView({ town, start, startHour, onTravel }: {
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
         {town.name.toUpperCase()} <span className="text-lime-300 hidden sm:inline">· protótipo</span>
         <span className="ml-2 text-white/90">{String(Math.floor(clock)).padStart(2, '0')}:00 · {clock >= 6 && clock < 18.5 ? 'dia' : 'noite'}</span>
-        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar{town.id === 'fazenda' ? '/plantar · Q E semente' : ''} · M mapa · F foto · T hora</div>}
+        {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar{town.id === 'fazenda' ? '/plantar · Q E semente' : ''} · M mapa · F foto · 1-4 emote · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
 
@@ -1711,6 +1734,8 @@ function CityView({ town, start, startHour, onTravel }: {
           className={`px-3 py-2 rounded-md bg-[#6a4a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MOCHILA</button>
         <button onClick={takePhoto} title="Tirar foto (F)"
           className={`px-3 py-2 rounded-md bg-[#c84a6a]/90 border-2 border-[#ffb0c4] text-white text-[10px] ${pixelFont}`}>FOTO</button>
+        <button onClick={() => emote()} title="Emote (teclas 1 a 4)"
+          className={`px-3 py-2 rounded-md bg-[#b0721e]/90 border-2 border-[#f0c870] text-white text-[10px] ${pixelFont}`}>EMOTE</button>
         <button onClick={() => setMapOpen(true)}
           className={`px-3 py-2 rounded-md bg-[#8a5a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MAPA</button>
         <button onClick={() => setDeckOpen(true)}

@@ -111,3 +111,33 @@ export async function modelFrames(look: Look): Promise<HTMLCanvasElement[][]> {
   ]);
   return paintModel(img, look, acc);
 }
+
+/**
+ * Poses do modelo (sentar 4 × 2, carregar e emotes 4 × 4), pintadas com o visual.
+ * Só existem para os modelos que já têm a folha do GPT; os outros dão null.
+ * Os acessórios não entram nas poses (o encaixe é medido nos quadros de andar).
+ */
+export async function poseFrames(look: Look, pose: 'sentar' | 'carregar' | 'emotes'): Promise<HTMLCanvasElement[][] | null> {
+  const img = await new Promise<HTMLImageElement | null>(res => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = () => res(null);
+    i.src = `${import.meta.env.BASE_URL}game/sprites/modelos/poses/${look.modelo}-${pose}.png`;
+  });
+  if (!img) return null;
+  const { w, h } = MODEL_CELL;
+  const full = document.createElement('canvas');
+  full.width = img.width; full.height = img.height;
+  const fx = full.getContext('2d', { willReadFrequently: true })!;
+  fx.drawImage(img, 0, 0);
+  const d = fx.getImageData(0, 0, full.width, full.height);
+  applyLook(d.data, look);
+  fx.putImageData(d, 0, 0);
+  const rows = Math.round(img.height / h), cols = Math.round(img.width / w);
+  return [...Array(rows).keys()].map(r => [...Array(cols).keys()].map(c => {
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    cv.getContext('2d')!.drawImage(full, c * w, r * h, w, h, 0, 0, w, h);
+    return cv;
+  }));
+}
