@@ -42,6 +42,7 @@ export function buildWit(assets?: WorldAssets, opts: ZoneOptions = {}): Town {
   z.shape('flores', 24, 15, ['###', '###']); z.shape('flores', 45, 15, ['###', '###']);
   z.shape('flores', 24, 25, ['###', '###']); z.shape('flores', 45, 25, ['###', '###']);
   z.blob('flores', 64, 42, 3, 1.5, 3, 0.2);
+  z.blob('flores', 49, 40, 2.2, 1.2, 4, 0.25);
   z.blob('agua', 58, 42, 3.5, 2.2, 6, 0.2);                                 // laguinho do parque
 
   z.forestEdge([{ side: 'n', from: WIT_NORTH.x0, to: WIT_NORTH.x1 }]);
@@ -145,6 +146,8 @@ export function buildWit(assets?: WorldAssets, opts: ZoneOptions = {}): Town {
     ['totem-info', 41, 38, 2, ['TOTEM DE INFORMAÇÕES', 'Parque Tecnológico da Cidade WIT: robótica, impressão 3D e drones.']],
     ['impressora-3d', 45, 44, 2], ['braco-robo', 48, 44, 2], ['robo-entrega', 47, 38, 1], ['antena-5g', 52, 44, 2], ['banco-solar', 62, 45, 2],
     ['reciclagem', 67, 45, 2], ['lixeira-smart', 54, 38, 1],
+    // miolo do parque, entre a base de drones e o laguinho
+    ['arvore-solar', 48, 44, 2], ['banco-solar', 45, 41, 2], ['totem-holo', 52, 41, 1],
   ];
   for (const [name, tx, ty, tw, lines] of tech) {
     if (!A[name] || !free(tx, ty, tw)) continue;

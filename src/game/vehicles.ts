@@ -39,3 +39,18 @@ export const tripMs = (v: Vehicle | null, tiles: number) => (v?.flies ? 6000 : t
 /** Barriga gasta numa viagem (por bloco andado; o avião gasta por voo). */
 export const tripHunger = (v: Vehicle | null, tiles: number, hungerPerTileWalking: number) =>
   v?.flies ? v.hunger : tiles * hungerPerTileWalking * (v ? v.hunger : 1);
+
+/** Compra um veículo (e já deixa escolhido para montar). */
+export function buyVehicle(p: Progress, id: VehicleId): { ok: true; progress: Progress } | { ok: false; reason: string } {
+  const v = VEHICLE_BY_ID.get(id);
+  if (!v) return { ok: false, reason: 'Veículo não existe.' };
+  if (p.veiculos.includes(id)) return { ok: false, reason: 'Você já tem este veículo.' };
+  if (p.coins < v.price) return { ok: false, reason: `Faltam ${v.price - p.coins} moedas.` };
+  return { ok: true, progress: { ...p, coins: p.coins - v.price, veiculos: [...p.veiculos, id], veiculo: v.flies ? p.veiculo : id } };
+}
+
+/** O veículo de chão escolhido (o avião não conta: ele só voa pelo mapa). */
+export function groundVehicle(p: Pick<Progress, 'veiculo' | 'veiculos'>): Vehicle | null {
+  const v = p.veiculo ? VEHICLE_BY_ID.get(p.veiculo) : undefined;
+  return v && !v.flies && p.veiculos.includes(v.id) ? v : null;
+}

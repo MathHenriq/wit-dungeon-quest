@@ -120,7 +120,7 @@ export function playDrum(i: number, t: number, out?: AudioNode): void {
  * grade). Devolve a função de parar. Agenda um pouco adiante (o relógio do
  * áudio é preciso; o do navegador, não).
  */
-export function loopSong(getSong: () => Pick<Song, 'inst' | 'bpm' | 'notas' | 'bateria'>, onStep: (step: number) => void): () => void {
+export function loopSong(getSong: () => Pick<Song, 'inst' | 'bpm' | 'notas' | 'bateria'>, onStep: (step: number) => void, out?: AudioNode): () => void {
   const a = audio();
   if (!a) return () => undefined;
   let step = 0, next = a.currentTime + 0.06;
@@ -130,8 +130,8 @@ export function loopSong(getSong: () => Pick<Song, 'inst' | 'bpm' | 'notas' | 'b
     const stepDur = 60 / song.bpm / 4;   // semicolcheias
     while (next < a.currentTime + 0.12) {
       const s = step % STEPS;
-      for (const row of song.notas[s]) playNote(song.inst, NOTES[row].midi, next, stepDur * 2);
-      for (const d of song.bateria[s]) playDrum(d, next);
+      for (const row of song.notas[s]) playNote(song.inst, NOTES[row].midi, next, stepDur * 2, out);
+      for (const d of song.bateria[s]) playDrum(d, next, out);
       const at = (next - a.currentTime) * 1000;
       timers.push(window.setTimeout(() => onStep(s), Math.max(0, at)));
       next += stepDur; step++;

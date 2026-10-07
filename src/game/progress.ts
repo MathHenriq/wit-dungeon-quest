@@ -3,6 +3,7 @@
 // banco do WIT 2 existir, estas mesmas funções passam a ler e gravar lá.
 // As regras (quanto rende uma vitória, quando o chefe libera) são puras e
 // testadas; só `loadProgress`/`saveProgress` tocam no navegador.
+import { VEHICLE_BY_ID, type VehicleId } from './vehicles';
 import type { Ticket } from './room-rewards';
 import { prizeFor } from './boss-prizes';
 import { deckSlots, TALENT_BY_ID, type GrimId } from './grimoire';
@@ -95,6 +96,9 @@ export interface Progress {
   premios: string[];
   /** Recompensas da Sala compradas (room-rewards.ts): esperando ou já entregues. */
   tickets: Ticket[];
+  /** Veículos comprados (vehicles.ts) e o escolhido para montar (tecla V). */
+  veiculos: VehicleId[];
+  veiculo?: VehicleId;
 }
 
 export function newProgress(): Progress {
@@ -126,6 +130,7 @@ export function newProgress(): Progress {
     desenhos: [],
     premios: [],
     tickets: [],
+    veiculos: [],
   };
 }
 
@@ -207,6 +212,8 @@ export function sanitizeProgress(raw: unknown): Progress {
     limpeza: (() => { const l = r.limpeza as Record<string, unknown> | undefined; return l && typeof l === 'object' ? { day: num(l.day, 0), n: num(l.n, 0, 0, 999) } : undefined; })(),
     tickets: Array.isArray(r.tickets) ? (r.tickets as Record<string, unknown>[]).filter(t => t && typeof t.code === 'string' && typeof t.reward === 'string' && /^[A-Z0-9]{4}$/.test(t.code as string)).slice(0, 30)
       .map(t => ({ code: t.code as string, reward: (t.reward as string).slice(0, 30), preco: num(t.preco, 0, 0, 1e6), dia: num(t.dia, 0), ...(t.entregue !== undefined ? { entregue: num(t.entregue, 0) } : {}) })) : [],
+    veiculos: Array.isArray(r.veiculos) ? [...new Set((r.veiculos as unknown[]).filter((x): x is VehicleId => typeof x === 'string' && VEHICLE_BY_ID.has(x as VehicleId)))] : [],
+    veiculo: typeof r.veiculo === 'string' && VEHICLE_BY_ID.has(r.veiculo as VehicleId) ? (r.veiculo as VehicleId) : undefined,
     premios: Array.isArray(r.premios) ? [...new Set((r.premios as unknown[]).filter((x): x is string => typeof x === 'string' && /^[a-z-]{1,30}$/.test(x)))].slice(0, 50) : [],
     desenhos: Array.isArray(r.desenhos) ? (r.desenhos as unknown[]).filter((d): d is string => typeof d === 'string' && /^[0-9a-f]{256}$/.test(d)).slice(0, 12) : [],
     pacotes: (() => {

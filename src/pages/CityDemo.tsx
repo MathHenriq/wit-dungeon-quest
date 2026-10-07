@@ -36,6 +36,9 @@ import {
 } from '@/game/world/movement';
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
 import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
+import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
+import { Radio } from '@/components/city/Radio';
+import { VehicleShop } from '@/components/city/VehicleShop';
 import { poseFrames } from '@/game/world/model-sprite';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
@@ -241,6 +244,7 @@ function CityView({ town, start, startHour, onTravel }: {
   const [clock, setClock] = useState(startHour);
   const [banner, setBanner] = useState<string | null>(town.name);
   const [mapOpen, setMapOpen] = useState(() => new URLSearchParams(window.location.search).has('mapa'));
+  const [vehicleShop, setVehicleShop] = useState(() => new URLSearchParams(window.location.search).has('veiculos'));
   // ?pesca=diario abre a Casa de Pesca numa aba (prints e testes)
   const [fishHouse, setFishHouse] = useState<'quadro' | 'vender' | 'diario' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('pesca');
@@ -342,6 +346,8 @@ function CityView({ town, start, startHour, onTravel }: {
     /** Emotes do modelo (4 linhas: acenar, dançar, chorar, joinha) e o que está tocando. */
     emotes: null as HTMLCanvasElement[][] | null,
     emote: null as { row: number; t0: number } | null,
+    /** Montado num veículo (tecla V): mais rápido em rua, calçada e terra. */
+    riding: null as Vehicle | null,
     /** Apelido e título do jogador (na plaquinha). */
     nick: 'Você',
     playerTitle: 'Novato' as string | undefined,
@@ -374,9 +380,9 @@ function CityView({ town, start, startHour, onTravel }: {
   });
 
   useEffect(() => {
-    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses || !!work || !!bag || !!shopUi || pathOpen;
+    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses || !!work || !!bag || !!shopUi || pathOpen || vehicleShop;
     g.current.inside = !!inside; g.current.dirty = true;
-  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel, courses, work, bag, shopUi]);
+  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel, courses, work, bag, shopUi, vehicleShop]);
 
   // título do cargo na plaquinha; com fome não corre
   useEffect(() => {
@@ -421,6 +427,17 @@ function CityView({ town, start, startHour, onTravel }: {
     poseFrames(look, 'emotes').then(f => { if (alive) g.current.emotes = f; }).catch(() => undefined);
     return () => { alive = false; };
   }, [look]);
+  const toggleRide = useCallback(() => {
+    const s = g.current;
+    if (s.sailing) return;
+    if (s.riding) { s.riding = null; s.dirty = true; setFishUi({ kind: 'toast', text: 'Desceu do veículo.' }); return; }
+    const pr = loadProgress(), v = groundVehicle(pr);
+    if (!v) { setFishUi({ kind: 'toast', text: 'Sem veículo: compre na estação da praça da Cidade WIT.' }); return; }
+    const ok = canRide(pr, v, town.terrain[s.player.ty]?.[s.player.tx]);
+    if ('reason' in ok) { setFishUi({ kind: 'toast', text: ok.reason }); return; }
+    s.riding = v; s.dirty = true; play('super');
+    setFishUi({ kind: 'toast', text: `${v.name}: mais rápido na rua. V para descer.` });
+  }, [town]);
   const emote = useCallback((row?: number) => {
     const s = g.current;
     if (!s.emotes || s.inside || s.modal || s.player.from) return;
@@ -776,7 +793,7 @@ function CityView({ town, start, startHour, onTravel }: {
           setDialog({ lines: [`Estação do tempo WIT · ${hh}h`, `Temperatura: ${22 + Math.round(Math.sin((s.hour - 9) / 24 * Math.PI * 2) * 6)}°C · Vento: fraco · Céu: ${s.hour >= 6 && s.hour < 18.5 ? 'sol' : 'estrelado'}.`, 'Os dados vão para o telão e para a turma de IoT.'], i: 0 });
           return;
         }
-        case 'patinetes': setDialog({ lines: ['Estação de patinetes elétricos (carregando).', 'Veículos chegam em breve: patinete, bicicleta e mais!'], i: 0 }); return;
+        case 'patinetes': setVehicleShop(true); return;
         case 'fliperama': play('super'); setWork({ game: 'teste-jogo' }); return;
         case 'quadra': setDialog({ lines: ['A cesta está baixinha, do seu tamanho.', 'Bora um basquete? Os campeonatos entre guildas chegam em breve!'], i: 0 }); return;
         case 'caixa-envio': setFarmPanel('envio'); return;
@@ -910,6 +927,7 @@ function CityView({ town, start, startHour, onTravel }: {
       // F: foto
       if ((e.key === 'f' || e.key === 'F') && !g.current.inside && !g.current.modal) takePhoto();
       if (e.key >= '1' && e.key <= '4' && !g.current.inside && !g.current.modal) emote(+e.key - 1);
+      if ((e.key === 'v' || e.key === 'V') && !g.current.inside && !g.current.modal) toggleRide();
       // T: avança 2 horas (para ver o dia e a noite sem esperar)
       if (e.key === 't' || e.key === 'T') { g.current.hour = (g.current.hour + 2) % 24; g.current.dirty = true; }
       // Q / E: troca a semente escolhida (fazenda)
@@ -1014,10 +1032,12 @@ function CityView({ town, start, startHour, onTravel }: {
         s.path = findPath(p.tx, p.ty, tx, ty, blocked);
       }
       const running = s.run && !s.starving;
-      const ms = running ? RUN_MS : WALK_MS;
+      const onRoad = ROAD_TERRAIN.has(town.terrain[p.ty]?.[p.tx] ?? '');
+      if (s.riding && (s.inside || s.sailing)) s.riding = null;
+      const ms = s.riding && onRoad ? s.riding.msPerTile : running ? RUN_MS : WALK_MS;
       // a barriga esvazia andando (a pé); guarda a cada ~5 s de caminhada
       if (p.from && !s.sailing && !s.modal) {
-        s.hungerAcc += (dt / 1000) * (running ? 2 : 1);
+        s.hungerAcc += (dt / 1000) * (s.riding && onRoad ? s.riding.hunger : running ? 2 : 1);
         if (s.hungerAcc >= 5) {
           const pr = loadProgress();
           const was = pr.fome;
@@ -1347,7 +1367,7 @@ function CityView({ town, start, startHour, onTravel }: {
               ctx.beginPath(); ctx.ellipse(x + fr.w / 2, y + fr.foot[w.dir], Math.min(7, fr.w / 3), 2.5, 0, 0, Math.PI * 2); ctx.fill();
             }
             // poeirinha nos pés de quem corre
-            if (w === s.player && s.run && !s.starving && w.from) {
+            if (w === s.player && ((s.run && !s.starving) || s.riding) && w.from) {
               const back = DELTA[w.dir];
               for (let k = 0; k < 3; k++) {
                 const life = ((now / 260) + k / 3) % 1;
@@ -1736,6 +1756,7 @@ function CityView({ town, start, startHour, onTravel }: {
           className={`px-3 py-2 rounded-md bg-[#c84a6a]/90 border-2 border-[#ffb0c4] text-white text-[10px] ${pixelFont}`}>FOTO</button>
         <button onClick={() => emote()} title="Emote (teclas 1 a 4)"
           className={`px-3 py-2 rounded-md bg-[#b0721e]/90 border-2 border-[#f0c870] text-white text-[10px] ${pixelFont}`}>EMOTE</button>
+        <Radio className={`px-3 py-2 rounded-md bg-[#6a2a8a]/90 border-2 border-[#d0a0f0] text-white text-[10px] ${pixelFont}`} />
         <button onClick={() => setMapOpen(true)}
           className={`px-3 py-2 rounded-md bg-[#8a5a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MAPA</button>
         <button onClick={() => setDeckOpen(true)}
@@ -1828,6 +1849,7 @@ function CityView({ town, start, startHour, onTravel }: {
           </div>
         );
       })()}
+      {vehicleShop && <VehicleShop onClose={() => setVehicleShop(false)} onChange={() => setProgress(loadProgress())} />}
       {mapOpen && (
         <WorldMap zone={town.id} pos={{ tx: g.current.player.tx, ty: g.current.player.ty }} size={{ w: town.solid[0].length, h: town.solid.length }}
           ready={ZONES} pending={progress.campo ? pendingByZone(progress.campo) : undefined} onClose={() => setMapOpen(false)}
