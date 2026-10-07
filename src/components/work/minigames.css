@@ -54,3 +54,121 @@
 .rt-pad .a0 { clip-path: polygon(100% 0, 0 50%, 100% 100%); } .rt-pad .a1 { clip-path: polygon(0 0, 100% 0, 50% 100%); }
 .rt-pad .a2 { clip-path: polygon(50% 0, 100% 100%, 0 100%); } .rt-pad .a3 { clip-path: polygon(0 0, 100% 50%, 0 100%); }
 @media (max-width: 600px) { .rt-spk { display: none; } }
+
+/* ── Ateliê: pintura de memória ── */
+.pt { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: end; gap: 8px 28px; }
+.pt-wall { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pt-frame { position: relative; padding: 10px; background: #8a5a2e; box-shadow: inset 0 0 0 4px #c8944a, inset 0 0 0 7px #5a3518, 4px 6px 0 rgba(0, 0, 0, .25); }
+.pt-grid { display: grid; grid-template-columns: repeat(4, 22px); gap: 2px; padding: 4px; background: #fbf6ea; }
+.pt-grid i { width: 22px; height: 22px; }
+.pt-cloth { position: absolute; inset: 4px; display: grid; place-items: center; font-size: 8px; color: #fff; letter-spacing: .1em;
+  background: repeating-linear-gradient(45deg, #b0487a 0 8px, #9a3a6a 8px 16px); box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .2); animation: ptcloth .4s ease-out; }
+@keyframes ptcloth { from { transform: translateY(-100%); } }
+.pt-cap { font-size: 8px; color: #7a5a34; }
+.pt-easel { position: relative; padding: 0 18px 46px; }
+/* cavalete de madeira: duas pernas abertas, a de trás e a travessa */
+.pt-easel::before, .pt-easel::after { content: ''; position: absolute; bottom: 0; width: 10px; height: 92%; background: #a8693a; box-shadow: inset -3px 0 0 #7a4422; z-index: 0; }
+.pt-easel::before { left: 26px; transform: rotate(8deg); transform-origin: top; }
+.pt-easel::after { right: 26px; transform: rotate(-8deg); transform-origin: top; }
+.pt-canvas { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, 34px); gap: 2px; padding: 5px; background: #fbf6ea; box-shadow: 0 0 0 3px #e8dcc0, 0 0 0 6px #7a4422, 3px 8px 0 rgba(0, 0, 0, .25); }
+.pt-canvas::after { content: ''; position: absolute; left: -16px; right: -16px; bottom: -14px; height: 8px; background: #8a5a2e; box-shadow: inset 0 -3px 0 #5a3518; }
+.pt-canvas button { width: 34px; height: 34px; border: 0; cursor: crosshair; }
+.pt-canvas button.splat { animation: ptsplat .25s ease-out; }
+@keyframes ptsplat { 0% { transform: scale(.4) rotate(-12deg); border-radius: 50%; } 70% { transform: scale(1.18); border-radius: 30%; } 100% { transform: none; } }
+.pt-canvas button.bad { animation: ptbad .5s steps(2) 3; }
+@keyframes ptbad { 50% { box-shadow: inset 0 0 0 4px #e8485a; } }
+.pt-bar { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 40px; }
+.pt-pots { display: flex; gap: 8px; }
+.pt-pot { width: 40px; height: 44px; border: 0; cursor: pointer; background: #e8e0d0; position: relative; box-shadow: inset 0 0 0 3px #8a7a64, 0 3px 0 #5a4a34; transition: transform .1s; }
+.pt-pot i { position: absolute; left: 5px; right: 5px; top: 6px; height: 18px; background: var(--pc); box-shadow: inset 0 3px 0 rgba(255, 255, 255, .35); }
+.pt-pot.on { transform: translateY(-6px); box-shadow: inset 0 0 0 3px #2e2a40, 0 0 0 3px #ffd84a, 0 3px 0 #5a4a34; }
+.pt-hint { font-size: 8px; color: #7a5a34; }
+
+/* ── Lab de IA: rotular na esteira ── */
+.rl { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.rl-top { width: min(520px, 90vw); display: flex; justify-content: space-between; font-size: 8px; }
+.rl-acc { display: flex; align-items: center; gap: 4px; }
+.rl-acc b { display: block; width: 70px; height: 8px; background: #2e2a40; box-shadow: 0 0 0 2px #3a2414; }
+.rl-acc i { display: block; height: 100%; transition: width .3s, background .3s; }
+.rl-floor { display: flex; align-items: flex-end; gap: 10px; margin-top: 6px; }
+.rl-bin { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 8px; padding: 4px; transition: transform .15s; }
+.rl-bin span { padding: 2px 6px; background: #2e2a40; color: #fff; }
+.rl-bin.good { transform: scale(1.12); filter: drop-shadow(0 0 8px #4ae88a); }
+.rl-bin.bad { animation: rlbad .35s; filter: drop-shadow(0 0 8px #e8485a); }
+@keyframes rlbad { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.rl-belt { position: relative; width: 220px; height: 120px; background: #3a3456; overflow: hidden;
+  background-image: repeating-linear-gradient(90deg, #4a4466 0 14px, #3a3456 14px 28px); animation: rlbelt .6s linear infinite; box-shadow: inset 0 -10px 0 #2a2440, 0 0 0 3px #1e1a30; }
+@keyframes rlbelt { to { background-position: -28px 0; } }
+.rl-scan { position: absolute; left: 50%; top: 0; width: 70px; margin-left: -35px; height: 100%; background: linear-gradient(transparent, rgba(74, 208, 255, .25)); border-top: 4px solid #4ad0ff; }
+.rl-item { position: absolute; left: 50%; top: 22px; margin-left: -32px; animation: rlin .35s ease-out; filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .35)); }
+@keyframes rlin { from { transform: translateX(140px); } }
+.rl-fly { position: absolute; left: 50%; top: 30px; margin-left: -24px; animation: rlflyl .38s ease-in forwards; }
+.rl-fly.r { animation-name: rlflyr; }
+@keyframes rlflyl { to { transform: translate(-170px, 40px) scale(.5) rotate(-30deg); opacity: 0; } }
+@keyframes rlflyr { to { transform: translate(170px, 40px) scale(.5) rotate(30deg); opacity: 0; } }
+.rl-btns { display: flex; gap: 12px; }
+.rl-hint { font-size: 7px; color: #5a5470; }
+
+/* ── Casa Inteligente: placa de circuito ── */
+.cc { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.cc-top { width: min(440px, 90vw); display: flex; justify-content: space-between; font-size: 8px; }
+.cc-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+.cc-end, .cc-house { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 7px; color: #5a5470; }
+.cc-house.on { filter: drop-shadow(0 0 12px #ffe86a); color: #3a9a5a; }
+.cc-board { position: relative; padding: 8px; background: #1e5a34; box-shadow: 0 0 0 4px #0e2a18, inset 0 0 0 2px #2e7a48;
+  background-image: radial-gradient(#2e7a48 1px, transparent 1.5px); background-size: 8px 8px; }
+.cc-tile .cc-bg { fill: transparent; }
+.cc-tile .cc-cu { stroke: #c8944a; stroke-width: 8; stroke-linecap: square; }
+.cc-tile .cc-pad { fill: #e8c890; stroke: #8a5a2e; stroke-width: 2; }
+.cc-tile.lit .cc-cu { stroke: #4ae88a; }
+.cc-tile.lit .cc-pad { fill: #b8ffd0; }
+.cc-tile .cc-flow { stroke: #f4fff8; stroke-width: 3; stroke-dasharray: 4 6; animation: ccflow .5s linear infinite; }
+@keyframes ccflow { to { stroke-dashoffset: -10; } }
+.cc-spin { animation: ccspin .14s ease-out; }
+@keyframes ccspin { from { transform: rotate(-90deg); } }
+.cc-in { position: absolute; left: -16px; padding: 2px; background: #e8a020; box-shadow: 0 0 0 2px #3a2414; }
+.cc-out { position: absolute; right: -22px; transition: filter .2s; }
+.cc-out.on { filter: drop-shadow(0 0 8px #4ae88a); }
+.cc-hint { font-size: 7px; color: #5a5470; }
+
+/* ── Metaverso: pares holográficos ── */
+.pr { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pr-top { width: min(300px, 90vw); display: flex; justify-content: space-between; align-items: center; font-size: 8px; }
+.pr-room { display: flex; gap: 2px; }
+.pr-room i { width: 10px; height: 10px; background: #3a2a5a; box-shadow: 0 0 0 1px #1a1030; }
+.pr-room i.on { background: #c88aff; box-shadow: 0 0 6px #c88aff; }
+.pr-floor { display: grid; grid-template-columns: repeat(4, 58px); gap: 8px; padding: 14px; perspective: 600px; background: #120a24;
+  background-image: linear-gradient(rgba(200, 138, 255, .25) 1px, transparent 1px), linear-gradient(90deg, rgba(200, 138, 255, .25) 1px, transparent 1px);
+  background-size: 18px 18px; box-shadow: 0 0 0 4px #2a1a4a, inset 0 0 40px rgba(200, 138, 255, .35); }
+.pr-card { width: 58px; height: 64px; border: 0; padding: 0; background: none; cursor: pointer; }
+.pr-in { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .35s; }
+.pr-card.up .pr-in { transform: rotateY(180deg); }
+.pr-back, .pr-front { position: absolute; inset: 0; backface-visibility: hidden; display: grid; place-items: center; }
+.pr-back { background: linear-gradient(135deg, #4a2a7a, #2a1a4a); box-shadow: inset 0 0 0 3px #c88aff, inset 0 0 0 6px #2a1a4a;
+  background-image: repeating-linear-gradient(45deg, rgba(200, 138, 255, .18) 0 4px, transparent 4px 10px); }
+.pr-front { transform: rotateY(180deg); background: #f4eeff; box-shadow: inset 0 0 0 3px #c88aff; }
+.pr-card.got .pr-front { animation: prgot 1.6s ease-in-out infinite; }
+@keyframes prgot { 50% { box-shadow: inset 0 0 0 3px #c88aff, 0 0 14px #c88aff; transform: rotateY(180deg) translateZ(6px); } }
+
+/* ── Oficina de Games: fliperama caça-bugs ── */
+.tj { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tj-cab { padding: 10px 14px 12px; background: #2a2440; box-shadow: 0 0 0 4px #120e1e, inset 0 0 0 3px #4a4466, 6px 8px 0 rgba(0, 0, 0, .25); }
+.tj-cab.shake { animation: tjshake .26s; }
+@keyframes tjshake { 20% { transform: translate(-5px, 2px); } 40% { transform: translate(5px, -2px); } 60% { transform: translate(-3px, 1px); } 80% { transform: translate(3px, 0); } }
+.tj-marquee { text-align: center; font-size: 11px; color: #ffd84a; padding: 4px; margin-bottom: 6px; background: #4a1a3a; text-shadow: 0 0 6px #ff4fd8, 2px 2px 0 #000; box-shadow: inset 0 0 0 2px #ff4fd8; }
+.tj-lcd { display: flex; justify-content: space-between; font-size: 8px; color: #4ae88a; background: #0a140e; padding: 3px 6px; margin-bottom: 6px; text-shadow: 0 0 4px #4ae88a; }
+.tj-screen { display: grid; grid-template-columns: repeat(3, 76px); gap: 6px; padding: 8px; background: #0e1a2a;
+  background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, .25) 0 1px, transparent 1px 3px); box-shadow: inset 0 0 20px rgba(74, 208, 255, .35); transition: background-color .1s; }
+.tj-screen.red { background-color: #4a0e1a; }
+.tj-hole { position: relative; height: 70px; border: 0; cursor: pointer; background: #1a2a40; box-shadow: inset 0 -8px 0 #0e1626, inset 0 0 0 2px #2e4a6a; overflow: visible; display: grid; place-items: center; }
+.tj-mob { display: block; animation: tjpop ease-out; }
+@keyframes tjpop { from { transform: translateY(26px) scale(.5); opacity: 0; } }
+.tj-mob.bug { filter: drop-shadow(0 0 6px #4ae88a); } .tj-mob.bomb { filter: drop-shadow(0 0 6px #e8485a); }
+.tj-pop { position: absolute; left: 50%; top: 10px; font-size: 12px; transform: translateX(-50%); animation: tjup .6s ease-out forwards; text-shadow: 2px 2px 0 #000; pointer-events: none; }
+.tj-pop.g { color: #4ae88a; } .tj-pop.b { color: #ff6a6a; }
+@keyframes tjup { to { transform: translate(-50%, -34px); opacity: 0; } }
+.tj-panel { display: flex; justify-content: center; gap: 14px; margin-top: 8px; }
+.tj-panel i { width: 16px; height: 16px; border-radius: 50%; background: #e8485a; box-shadow: 0 3px 0 #8a1a2a; }
+.tj-panel i:nth-child(2) { background: #f0c040; box-shadow: 0 3px 0 #8a6a10; } .tj-panel i:nth-child(3) { background: #3a9ae8; box-shadow: 0 3px 0 #1a4a8a; }
+.tj-hint { font-size: 7px; color: #5a5470; }
+@media (max-width: 600px) { .pt { grid-template-columns: auto; } .rl-belt { width: 160px; } .tj-screen { grid-template-columns: repeat(3, 64px); } }

@@ -194,52 +194,76 @@ function Ritmo({ perk, seed, onDone }: GameProps) {
 }
 
 // ─── Ateliê: pintura de memória ─────────────────────────────────────────────
+// O quadro de referência fica na parede e é coberto por um pano; o aluno
+// pinta a tela no cavalete com os potes de tinta. Ao entregar, os dois
+// aparecem lado a lado e o que ficou diferente pisca.
 
 function Pintura({ perk, seed, onDone }: GameProps) {
   const target = useMemo(() => paintPattern(seed), [seed]);
   const SHOW = 3500 + perk * 1000;
-  const [phase, setPhase] = useState<'ver' | 'pintar'>('ver');
+  const [phase, setPhase] = useState<'ver' | 'pintar' | 'conferir'>('ver');
   const [grid, setGrid] = useState<number[]>(() => Array(16).fill(4));
   const [color, setColor] = useState(0);
+  const [splat, setSplat] = useState<{ i: number; t: number } | null>(null);
   const [t0] = useState(() => performance.now());
   const now = useNow(phase === 'ver');
-  useEffect(() => { if (phase === 'ver' && now - t0 > SHOW) setPhase('pintar'); }, [now, t0, phase, SHOW]);
-  const send = () => {
-    const ok = grid.filter((c, i) => c === target[i]).length;
-    onDone({ score: ok / 16, hits: ok });
+  useEffect(() => { if (phase === 'ver' && now - t0 > SHOW) { setPhase('pintar'); play('flip'); } }, [now, t0, phase, SHOW]);
+  const paint = (i: number) => {
+    if (phase !== 'pintar') return;
+    const g = [...grid]; g[i] = color; setGrid(g); setSplat({ i, t: performance.now() }); play('click');
   };
-  const cells = phase === 'ver' ? target : grid;
+  const send = () => {
+    if (phase !== 'pintar') return;
+    setPhase('conferir');
+    const ok = grid.filter((c, i) => c === target[i]).length;
+    play(ok >= 13 ? 'coin' : 'drop');
+    window.setTimeout(() => onDone({ score: ok / 16, hits: ok }), 1600);
+  };
+  const left = Math.max(0, Math.ceil((SHOW - (now - t0)) / 1000));
   return (
-    <div className="text-center">
-      <div className="text-[9px] mb-2">{phase === 'ver' ? `Decore o desenho! (${Math.max(0, Math.ceil((SHOW - (now - t0)) / 1000))})` : 'Pinte igual ao desenho que você viu.'}</div>
-      <div className="mx-auto grid grid-cols-4 gap-1 w-[200px] p-2 rounded bg-[#8a5a34] border-4 border-[#5a3a20]">
-        {cells.map((c, i) => (
-          <button key={i} disabled={phase === 'ver'} onPointerDown={() => { const g = [...grid]; g[i] = color; setGrid(g); }}
-            className="w-[42px] h-[42px] rounded-sm border border-black/20" style={{ background: PAINT_COLORS[c] }} />
-        ))}
+    <div className="pt">
+      <div className="pt-wall">
+        <div className="pt-frame">
+          <div className="pt-grid">{target.map((c, i) => <i key={i} style={{ background: PAINT_COLORS[c] }} />)}</div>
+          {phase === 'pintar' && <div className="pt-cloth">COBERTO</div>}
+        </div>
+        <div className="pt-cap">{phase === 'ver' ? `DECORE! ${left}` : phase === 'conferir' ? 'MODELO' : 'O MODELO'}</div>
       </div>
-      {phase === 'pintar' && (
-        <>
-          <div className="flex justify-center gap-2 mt-3">
+      <div className="pt-easel">
+        <div className={`pt-canvas ${phase}`}>
+          {grid.map((c, i) => (
+            <button key={`${i}-${splat?.i === i ? splat.t : 0}`} onPointerDown={() => paint(i)} disabled={phase !== 'pintar'} aria-label={`quadrado ${i + 1}`}
+              className={`${phase === 'conferir' && c !== target[i] ? 'bad' : ''} ${splat?.i === i ? 'splat' : ''}`}
+              style={{ background: phase === 'ver' ? '#fbf6ea' : PAINT_COLORS[c] }} />
+          ))}
+        </div>
+      </div>
+      <div className="pt-bar">
+        {phase === 'pintar' && <>
+          <div className="pt-pots">
             {PAINT_COLORS.map((c, i) => (
-              <button key={c} onPointerDown={() => setColor(i)} className={`w-9 h-9 rounded-full border-4 ${color === i ? 'border-[#2e2a40] scale-110' : 'border-white'}`} style={{ background: c }} aria-label={`cor ${i + 1}`} />
+              <button key={c} onPointerDown={() => setColor(i)} className={`pt-pot ${color === i ? 'on' : ''}`} style={{ ['--pc' as string]: c }} aria-label={`tinta ${i + 1}`}><i /></button>
             ))}
           </div>
-          <button onPointerDown={send} className={`${btn} mt-3 px-5 py-3 bg-[#b0487a] border-[#7a2a50] text-white text-[10px]`}>ENTREGAR QUADRO</button>
-        </>
-      )}
+          <PxButton big color="#b0487a" onPointerDown={send}>ENTREGAR QUADRO</PxButton>
+        </>}
+        {phase === 'ver' && <div className="pt-hint">Olhe bem as cores de cada quadradinho...</div>}
+        {phase === 'conferir' && <div className="pt-hint">{grid.filter((c, i) => c === target[i]).length} de 16 iguais ao modelo</div>}
+      </div>
     </div>
   );
 }
 
 // ─── Lab de IA: rotular dados ───────────────────────────────────────────────
+// Os exemplos chegam numa esteira; o aluno manda cada um para a caixa certa.
+// A precisão do modelo sobe com os acertos (e cai com os erros).
 
 function Rotular({ perk, seed, onDone }: GameProps) {
   const set = useMemo(() => labelSet(seed), [seed]);
   const TIME = 22000 + perk * 3000;
   const [i, setI] = useState(0);
   const [ok, setOk] = useState(0);
-  const [wrong, setWrong] = useState(0);
+  const [fly, setFly] = useState<{ side: 0 | 1; right: boolean; icon: string; t: number } | null>(null);
   const [t0] = useState(() => performance.now());
   const doneRef = useRef(false);
   const now = useNow(!doneRef.current);
@@ -252,39 +276,55 @@ function Rotular({ perk, seed, onDone }: GameProps) {
   useEffect(() => { if (left <= 0) end(ok); }, [left, ok, end]);
   const pick = (side: 0 | 1) => {
     if (doneRef.current) return;
-    const right = set.items[i].side === side;
+    const item = set.items[i];
+    const right = item.side === side;
     play(right ? 'click' : 'lose');
     const good = ok + (right ? 1 : 0);
-    if (right) setOk(good); else setWrong(Date.now());
-    if (i + 1 >= set.items.length) end(good); else setI(i + 1);
+    if (right) setOk(good);
+    setFly({ side, right, icon: item.icon, t: performance.now() });
+    if (i + 1 >= set.items.length) window.setTimeout(() => end(good), 350); else setI(i + 1);
   };
   useKey(k => { if (k === 'ArrowLeft' || k === 'a' || k === 'A') pick(0); if (k === 'ArrowRight' || k === 'd' || k === 'D') pick(1); });
+  const acc = i ? ok / i : 0;
+  const flying = fly && now - fly.t < 380;
   return (
-    <div className="text-center">
-      <div className="text-[9px] mb-2">Ensine a IA: cada exemplo vai para o lado certo · {i + 1}/{set.items.length}</div>
-      <Bar v={left / TIME} color="#4ad0ff" />
-      <div className={`mx-auto my-4 w-[120px] h-[120px] rounded-xl bg-white border-4 flex items-center justify-center ${Date.now() - wrong < 300 ? 'border-[#e8485a]' : 'border-[#4ad0ff]'}`}><Icon id={set.items[i].icon} size={80} /></div>
-      <div className="flex justify-center gap-3">
-        <button onPointerDown={() => pick(0)} className={`${btn} px-5 py-4 bg-[#3a78c8] border-[#1a4a8a] text-white text-[10px]`}>◀ {set.left}</button>
-        <button onPointerDown={() => pick(1)} className={`${btn} px-5 py-4 bg-[#c86a3a] border-[#8a3a1a] text-white text-[10px]`}>{set.right} ▶</button>
+    <div className="rl">
+      <div className="rl-top">
+        <span>EXEMPLO {Math.min(i + 1, set.items.length)}/{set.items.length}</span>
+        <span className="rl-acc">PRECISÃO DA IA <b><i style={{ width: `${acc * 100}%`, background: acc > 0.8 ? '#4ae88a' : acc > 0.5 ? '#f0c040' : '#e8685a' }} /></b> {Math.round(acc * 100)}%</span>
       </div>
-      <div className="text-[8px] mt-3 text-[#5a5470]">Acertos: {ok} · a IA só aprende certo se os exemplos estiverem certos!</div>
+      <Bar v={left / TIME} color="#4ad0ff" />
+      <div className="rl-floor">
+        <div className={`rl-bin l ${flying && fly!.side === 0 ? (fly!.right ? 'good' : 'bad') : ''}`}><Prop id="cesto-pacotinhos" scale={2} /><span>{set.left}</span></div>
+        <div className="rl-belt">
+          <div className="rl-scan" />
+          {!doneRef.current && <div key={i} className="rl-item"><Icon id={set.items[i].icon} size={64} /></div>}
+          {flying && <div key={`f${fly!.t}`} className={`rl-fly ${fly!.side ? 'r' : 'l'}`}><Icon id={fly!.icon} size={48} /></div>}
+        </div>
+        <div className={`rl-bin r ${flying && fly!.side === 1 ? (fly!.right ? 'good' : 'bad') : ''}`}><Prop id="cesto-pacotinhos" scale={2} /><span>{set.right}</span></div>
+      </div>
+      <div className="rl-btns">
+        <PxButton big color="#3a78c8" onPointerDown={() => pick(0)}>◀ {set.left}</PxButton>
+        <PxButton big color="#c86a3a" onPointerDown={() => pick(1)}>{set.right} ▶</PxButton>
+      </div>
+      <div className="rl-hint">A IA aprende com os exemplos: se o rótulo estiver errado, ela aprende errado.</div>
     </div>
   );
 }
 
 // ─── Casa Inteligente: circuito ─────────────────────────────────────────────
+// Placa de circuito: as trilhas acesas mostram a corrente andando (tracejado
+// correndo). Ligou a bateria ao sensor, a lâmpada da casa acende.
 
 function PipeTile({ p, lit }: { p: number; lit: boolean }) {
-  const c = lit ? '#4ae88a' : '#8a94a8';
+  const arms: [number, number][] = [];
+  if (p & 1) arms.push([20, 0]); if (p & 2) arms.push([40, 20]); if (p & 4) arms.push([20, 40]); if (p & 8) arms.push([0, 20]);
   return (
-    <svg viewBox="0 0 40 40" className="w-full h-full">
-      <rect x="0" y="0" width="40" height="40" fill="#1e2a36" />
-      {p & 1 ? <rect x="16" y="0" width="8" height="24" fill={c} /> : null}
-      {p & 2 ? <rect x="16" y="16" width="24" height="8" fill={c} /> : null}
-      {p & 4 ? <rect x="16" y="16" width="8" height="24" fill={c} /> : null}
-      {p & 8 ? <rect x="0" y="16" width="24" height="8" fill={c} /> : null}
-      {p ? <circle cx="20" cy="20" r="6" fill={c} /> : null}
+    <svg viewBox="0 0 40 40" className={`w-full h-full cc-tile ${lit ? 'lit' : ''}`}>
+      <rect x="0" y="0" width="40" height="40" className="cc-bg" />
+      {arms.map(([x, y], k) => <line key={k} x1="20" y1="20" x2={x} y2={y} className="cc-cu" />)}
+      {lit && arms.map(([x, y], k) => <line key={`f${k}`} x1="20" y1="20" x2={x} y2={y} className="cc-flow" />)}
+      {p ? <circle cx="20" cy="20" r="5" className="cc-pad" /> : null}
     </svg>
   );
 }
@@ -294,6 +334,7 @@ function Circuito({ perk, seed, onDone }: GameProps) {
   const [c, setC] = useState<Circuit>(() => makeCircuit(seed));
   const [t0] = useState(() => performance.now());
   const [win, setWin] = useState(false);
+  const [spin, setSpin] = useState<number | null>(null);
   const doneRef = useRef(false);
   const now = useNow(!doneRef.current);
   const left = TIME - (now - t0);
@@ -303,33 +344,41 @@ function Circuito({ perk, seed, onDone }: GameProps) {
   const tap = (i: number) => {
     if (win || doneRef.current || !c.tiles[i]) return;
     const next = { ...c, turns: c.turns.map((t, k) => (k === i ? (t + 1) % 4 : t)) };
-    setC(next); play('click');
+    setC(next); setSpin(i); play('click');
     if (connected(next)) {
-      setWin(true); play('coin');
+      setWin(true); play('super');
       const solved = n + 1; setN(solved);
-      window.setTimeout(() => { setWin(false); if (solved >= GOAL + 2) end(solved); else setC(makeCircuit(seed + solved * 101)); }, 700);
+      window.setTimeout(() => { setWin(false); if (solved >= GOAL + 2) end(solved); else setC(makeCircuit(seed + solved * 101)); }, 1000);
     }
   };
   return (
-    <div className="text-center">
-      <div className="text-[9px] mb-2">Gire as peças e leve o sinal da tomada até o sensor · sensores: {n}</div>
+    <div className="cc">
+      <div className="cc-top"><span>SENSORES LIGADOS: {n}</span><span className="cc-goal">META {GOAL}</span></div>
       <Bar v={left / TIME} color="#4ae88a" />
-      <div className="relative mx-auto mt-3 inline-block">
-        <div className="grid gap-0.5 p-1 rounded bg-[#0e161e]" style={{ gridTemplateColumns: `repeat(${c.w}, 48px)` }}>
-          {c.tiles.map((_, i) => (
-            <button key={i} onPointerDown={() => tap(i)} className="w-12 h-12" aria-label={`peça ${i + 1}`}><PipeTile p={shown(c, i)} lit={lit.has(i) || win} /></button>
-          ))}
+      <div className="cc-row">
+        <div className="cc-end"><Icon id="raio" size={34} /><span>ENERGIA</span></div>
+        <div className="cc-board">
+          <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${c.w}, 48px)` }}>
+            {c.tiles.map((_, i) => (
+              <button key={i} onPointerDown={() => tap(i)} className={`w-12 h-12 ${spin === i ? 'cc-spin' : ''}`} onAnimationEnd={() => setSpin(null)} aria-label={`peça ${i + 1}`}>
+                <PipeTile p={shown(c, i)} lit={lit.has(i) || win} />
+              </button>
+            ))}
+          </div>
+          <span className="cc-in" style={{ top: c.inY * 48 + 14 }}><Symbol id="eletrico" size={16} /></span>
+          <span className={`cc-out ${win ? 'on' : ''}`} style={{ top: c.outY * 48 + 10 }}><Icon id="sensor" size={26} /></span>
         </div>
-        <span className="absolute rounded bg-[#e8a020] p-0.5" style={{ left: -28, top: 4 + c.inY * 50 + 12 }}><Symbol id="eletrico" size={18} /></span>
-        <span className="absolute" style={{ right: -32, top: 4 + c.outY * 50 + 8 }}><Icon id="sensor" size={26} /></span>
+        <div className={`cc-house ${win ? 'on' : ''}`}><Prop id="luminaria-chao" scale={2} /><span>{win ? 'ACENDEU!' : 'CASA'}</span></div>
       </div>
-      {win && <div className="text-[10px] text-[#3a9a5a] mt-2">LIGOU! +1 SENSOR</div>}
-      {!win && <div><button onPointerDown={() => end(n)} className={`${btn} mt-3 px-4 py-2 bg-[#4a4660] border-[#2e2a40] text-white text-[9px]`}>TERMINAR</button></div>}
+      <div className="cc-hint">Toque nas peças para girar e leve a energia até o sensor.</div>
+      {!win && <PxButton color="#4a4660" onPointerDown={() => end(n)}>TERMINAR</PxButton>}
     </div>
   );
 }
 
 // ─── Metaverso: pares 3D ────────────────────────────────────────────────────
+// Cartas holográficas que giram em 3D num chão de grade neon; cada par achado
+// acende uma peça da sala virtual.
 
 const OBJ3D = ['rubi', 'safira', 'jade', 'ametista', 'diamante', 'opala', 'ouro', 'cristal'];
 function Pares({ perk, seed, onDone }: GameProps) {
@@ -353,21 +402,25 @@ function Pares({ perk, seed, onDone }: GameProps) {
     const o = [...open, i]; setOpen(o); play('flip');
     if (o.length === 2) {
       if (cards[o[0]] === cards[o[1]]) {
-        const f = new Set(found); f.add(o[0]); f.add(o[1]); setFound(f); setOpen([]); play('coin');
-        if (f.size === 16) window.setTimeout(() => end(8, misses), 400);
-      } else { setMisses(m => m + 1); window.setTimeout(() => setOpen([]), 650); }
+        const f = new Set(found); f.add(o[0]); f.add(o[1]);
+        window.setTimeout(() => { setFound(f); setOpen([]); play('coin'); if (f.size === 16) window.setTimeout(() => end(8, misses), 500); }, 350);
+      } else { setMisses(m => m + 1); window.setTimeout(() => setOpen([]), 750); }
     }
   };
+  const pairs = found.size / 2;
   return (
-    <div className="text-center">
-      <div className="text-[9px] mb-2">Ache os pares para montar a sala virtual · pares {found.size / 2}/8</div>
+    <div className="pr">
+      <div className="pr-top"><span>SALA VIRTUAL</span><span className="pr-room">{OBJ3D.map((o, k) => <i key={o} className={k < pairs ? 'on' : ''} />)}</span><span>{pairs}/8</span></div>
       <Bar v={left / TIME} color="#c88aff" />
-      <div className="mx-auto mt-3 grid grid-cols-4 gap-1.5 w-[232px]">
+      <div className="pr-floor">
         {cards.map((v, i) => {
           const up = open.includes(i) || found.has(i);
           return (
-            <button key={i} onPointerDown={() => flip(i)} className={`h-[54px] rounded-lg border-4 text-[26px] ${up ? 'bg-white border-[#c88aff]' : 'bg-[#4a2a7a] border-[#2a1a4a]'} ${found.has(i) ? 'opacity-60' : ''}`}>
-              {up ? <Icon id={v} size={34} /> : ''}
+            <button key={i} onPointerDown={() => flip(i)} className={`pr-card ${up ? 'up' : ''} ${found.has(i) ? 'got' : ''}`} aria-label={`carta ${i + 1}`}>
+              <span className="pr-in">
+                <span className="pr-back" />
+                <span className="pr-front"><Icon id={v} size={34} /></span>
+              </span>
             </button>
           );
         })}
@@ -417,13 +470,16 @@ function Noticia({ seed, onDone, towerMax = 1, day = 0 }: GameProps) {
 }
 
 // ─── Oficina de Games: teste de jogo ────────────────────────────────────────
+// Um fliperama: a tela tem janelas onde os bugs aparecem (e as bombas, que
+// tiram pontos e sacodem a tela). Cada bug pego solta um "+1".
 
 function TesteJogo({ perk, seed, onDone }: GameProps) {
   const TIME = 20000 + perk * 2000, GOAL = 14;
   const [t0] = useState(() => performance.now() + 500);
-  const [holes, setHoles] = useState<({ bug: boolean; until: number } | null)[]>(() => Array(9).fill(null));
+  const [holes, setHoles] = useState<({ bug: boolean; until: number; born: number } | null)[]>(() => Array(9).fill(null));
   const [score, setScore] = useState(0);
   const [boom, setBoom] = useState(0);
+  const [pops, setPops] = useState<{ i: number; t: number; good: boolean }[]>([]);
   const doneRef = useRef(false);
   const now = useNow(!doneRef.current);
   const r = useMemo(() => rng(seed), [seed]);
@@ -439,7 +495,7 @@ function TesteJogo({ perk, seed, onDone }: GameProps) {
       if (now - lastSpawn.current > 560) {
         lastSpawn.current = now;
         const free = next.map((x, i) => (x ? -1 : i)).filter(i => i >= 0);
-        if (free.length) { next[free[Math.floor(r() * free.length)]] = { bug: r() < 0.74, until: now + 950 }; changed = true; }
+        if (free.length) { next[free[Math.floor(r() * free.length)]] = { bug: r() < 0.74, until: now + 950, born: now }; changed = true; }
       }
       return changed ? next : h;
     });
@@ -448,17 +504,26 @@ function TesteJogo({ perk, seed, onDone }: GameProps) {
     const x = holes[i];
     if (!x) return;
     if (x.bug) { setScore(s => s + 1); play('click'); } else { setScore(s => Math.max(0, s - 2)); setBoom(performance.now()); play('lose'); }
+    setPops(p => [...p.filter(q => now - q.t < 600), { i, t: performance.now(), good: x.bug }]);
     setHoles(h => h.map((y, k) => (k === i ? null : y)));
   };
+  const shake = now - boom < 260;
   return (
-    <div className="text-center">
-      <div className="text-[9px] mb-2">Pegue os bugs, fuja das bombas · bugs: {score}</div>
-      <Bar v={left / TIME} color="#ffd84a" />
-      <div className={`mx-auto mt-3 grid grid-cols-3 gap-2 w-[228px] p-2 rounded-lg ${now - boom < 250 ? 'bg-[#e8485a]' : 'bg-[#1e1a30]'}`}>
-        {holes.map((x, i) => (
-          <button key={i} onPointerDown={() => whack(i)} className="h-[68px] rounded-lg bg-[#3a3456] border-2 border-[#6a6488] flex items-center justify-center">{x ? <Icon id={x.bug ? 'bug' : 'bomba'} size={44} /> : ''}</button>
-        ))}
+    <div className="tj">
+      <div className={`tj-cab ${shake ? 'shake' : ''}`}>
+        <div className="tj-marquee">CAÇA-BUGS</div>
+        <div className="tj-lcd"><span>BUGS {String(score).padStart(2, '0')}</span><span>TEMPO {Math.max(0, Math.ceil(left / 1000))}</span></div>
+        <div className={`tj-screen ${shake ? 'red' : ''}`}>
+          {holes.map((x, i) => (
+            <button key={i} onPointerDown={() => whack(i)} className="tj-hole" aria-label={`janela ${i + 1}`}>
+              {x && <span className={`tj-mob ${x.bug ? 'bug' : 'bomb'}`} style={{ animationDuration: '.18s' }}><Icon id={x.bug ? 'bug' : 'bomba'} size={44} /></span>}
+              {pops.filter(q => q.i === i && now - q.t < 600).map(q => <span key={q.t} className={`tj-pop ${q.good ? 'g' : 'b'}`}>{q.good ? '+1' : '-2'}</span>)}
+            </button>
+          ))}
+        </div>
+        <div className="tj-panel"><i /><i /><i /></div>
       </div>
+      <div className="tj-hint">Pegue os bugs antes que sumam. Bomba tira 2 pontos!</div>
     </div>
   );
 }
