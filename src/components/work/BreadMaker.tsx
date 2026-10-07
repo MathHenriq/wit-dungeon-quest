@@ -22,7 +22,9 @@ const MEASURES: { name: string; frac: number; label: string; color: string }[][]
 const SHAPES: { id: string; name: string }[] = [
   { id: 'pao-bisnaga', name: 'Bisnaga' }, { id: 'pao-redondo', name: 'Redondo' }, { id: 'pao-forma', name: 'De forma' }, { id: 'pao-tranca', name: 'Trança' },
 ];
-const SCENE = `${import.meta.env.BASE_URL}game/minijogos/padaria-cena.png`;
+const SCENE = `${import.meta.env.BASE_URL}game/cenas/padaria-cena.webp`;
+/** Massa na tigela, do GPT: farinha, ovo, massa crua, bola lisa, sovando, enfarinhada. */
+const MASSA = (i: number) => `${import.meta.env.BASE_URL}game/cenas/padaria-massa-${i}.png`;
 
 function useNow(active: boolean) {
   const [now, setNow] = useState(() => performance.now());
@@ -135,10 +137,17 @@ export function BreadMaker({ perk, seed, onDone }: GameProps) {
         onPointerMove={step === 'misturar' ? onMixMove : step === 'sovar' ? onKneadMove : undefined}
         onPointerUp={() => { last.current = null; }}>
         {scene && <img src={SCENE} alt="" onError={() => setScene(false)} className="absolute inset-0 w-full h-full object-cover [image-rendering:pixelated]" />}
-        {/* bancada */}
-        <div className="absolute left-0 right-0 bottom-0 h-[38%] bg-[linear-gradient(#a8693a,#7a4422)] border-t-4 border-[#5a3018]" />
-        {/* tigela com a massa */}
-        {step !== 'forno' && (
+        {/* bancada (a cena do GPT já tem a dela) */}
+        {!scene && <div className="absolute left-0 right-0 bottom-0 h-[38%] bg-[linear-gradient(#a8693a,#7a4422)] border-t-4 border-[#5a3018]" />}
+        {/* tigela com a massa: a do GPT, ou a desenhada */}
+        {step !== 'forno' && scene && (
+          <div ref={bowl} className="absolute left-1/2 -translate-x-1/2 bottom-[16%] w-[190px] h-[140px] touch-none flex items-end justify-center">
+            <img src={MASSA(step === 'medir' ? 0 : step === 'sovar' ? 3 + (knead % 2) : Math.min(5, doughStage))} alt="" draggable={false}
+              className="w-[170px] [image-rendering:pixelated] transition-transform duration-300 origin-bottom"
+              style={{ opacity: step === 'medir' && errs.length === 0 ? 0.35 : 1, transform: `scale(${1 + rise * 0.25})` }} />
+          </div>
+        )}
+        {step !== 'forno' && !scene && (
           <div ref={bowl} className="absolute left-1/2 -translate-x-1/2 bottom-[18%] w-[190px] h-[120px] touch-none">
             <div className="absolute inset-x-0 bottom-0 h-[70%] rounded-b-[90px] rounded-t-[20px] bg-[linear-gradient(#e8f0f4,#9ab0c0)] border-4 border-[#5a6a7a]" />
             <div className="absolute left-1/2 bottom-[30%] -translate-x-1/2 rounded-[50%] transition-all duration-300"

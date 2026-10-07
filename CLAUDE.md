@@ -4,18 +4,23 @@ Jogo educacional do Matheus (professor do Núcleo WIT) para os alunos dele.
 React 18 + TypeScript + Vite + Supabase (projeto `pvnzfiyxwvfmmhvpvrrk`).
 Responda em português, de forma **curta e direta**, sem bajulação.
 
-## ⚠️ PENDENTE: o visual do mundo novo é provisório (lembrar o Matheus!)
+## Arte do mundo novo: trocada pela do GPT (07/10)
 
-A arte do **Lago Azul, da Fazenda do Vale e da Cidade WIT** (prédios, objetos,
-plantas, bichos, peixes, barco, drone, WIT-Bot) ainda é **feita por código** e o
-Matheus achou feia: **vai ser trocada pela arte do GPT**. Ele pediu para não
-deixar esquecer. Em toda entrega grande, lembre em uma linha quantas peças
-ainda faltam (`npx vite-node scripts/arte/falta-arte.ts`; hoje: 138 de 138).
+As 138 peças do Lago, da Fazenda e da Cidade WIT já usam a arte do GPT
+(`npx vite-node scripts/arte/falta-arte.ts` confere). Imagens brutas revisadas
+em `public/Novos assets/`; os zips originais ficam no rascunho de Release
+`Assets` do GitHub (baixar com `curl -L -H "Accept: application/octet-stream"`
+pela API). Ainda faltam do GPT: veículos com o boneco (refazer com o
+`modelo-01` anexado), poses dos modelos 03–10, tapete Monstrinhos, cerca
+vertical da Fazenda (prompts em `docs/PROMPTS-GPT.md`).
 
-- Prompts prontos, com os nomes e a ordem que o importador espera: `docs/PROMPTS-GPT.md`.
-- Salvar em `public/Novos assets/mundo/<área>/` e rodar `python3 scripts/arte/importar-gpt.py --folha revisao.png`.
-- A troca é automática pelo nome do sprite (`src/game/world/art-list.ts`); cada imagem é revisada antes de subir (público infantil).
-- Depois de importar: prints de cada área (`node scripts/mapa/prints-mundo.mjs <pasta>`) para aprovação.
+Importadores (todos com `--folha revisao.png` quando faz sentido):
+`importar-gpt.py` (mundo; folhas densas cortadas por grade em `GRID`),
+`importar-pacotes.py`, `importar-tapetes.py`, `importar-interiores.py`,
+`importar-reacoes.py` (reações dos desafiantes no duelo, 8 quadros 80 × 80),
+`importar-personagem.py` (modelos + poses sentar/carregar/emotes),
+`importar-icones.py` (4 folhas → `public/game/icons/itens/<id>.png`),
+`importar-cenas.py` (cenas e peças dos minijogos → `public/game/cenas/`).
 
 ## Para onde o jogo está indo: WIT Dungeon 2 (TCG)
 

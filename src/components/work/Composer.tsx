@@ -2,6 +2,8 @@
 // pentatônica, sempre soa bem) e 4 batidas de bateria. Escolhe o instrumento,
 // liga as notas, aperta TOCAR e ouve em laço; dá nome e grava o disco.
 import { useEffect, useRef, useState } from 'react';
+/** Figura do GPT de cada instrumento (folha musica-instrumentos: +5 = tocando). */
+const INST_ART: Record<string, number> = { teclado: 0, bateria: 1, violao: 2, flauta: 3, xilofone: 4 };
 import { DRUMS, emptySong, INSTRUMENTS, NOTES, songScore, songSize, STEPS, type InstrumentId, type Song } from '@/game/music';
 import { loadProgress, saveProgress } from '@/game/progress';
 import { audio } from '@/game/sfx';
@@ -71,7 +73,9 @@ export function Composer({ onDone }: GameProps) {
         <div className="flex flex-wrap items-center gap-1.5 mb-3">
           {INSTRUMENTS.map(i => (
             <button key={i.id} onClick={() => { setSong(g => ({ ...g, inst: i.id as InstrumentId })); const a = audio(); if (a) playNote(i.id, 67, a.currentTime + 0.01, 0.4); }}
-              className={`px-2.5 py-1.5 rounded-md text-[9px] border-2 ${song.inst === i.id ? 'bg-[#ffd04a] text-[#1a1530] border-[#ffd04a]' : 'border-white/25 text-white/85'}`}>{i.name.toUpperCase()}</button>
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] border-2 ${song.inst === i.id ? 'bg-[#ffd04a] text-[#1a1530] border-[#ffd04a]' : 'border-white/25 text-white/85'}`}>
+              <img src={`${import.meta.env.BASE_URL}game/cenas/musica-instrumentos-${INST_ART[i.id] + (song.inst === i.id ? 5 : 0)}.png`} alt="" draggable={false} className="h-7 w-auto" onError={e => { e.currentTarget.style.display = 'none'; }} />
+              {i.name.toUpperCase()}</button>
           ))}
           <div className="ml-auto flex items-center gap-1 text-[8px]">
             <button onClick={() => setSong(g => ({ ...g, bpm: Math.max(70, g.bpm - 10) }))} className="w-6 h-6 rounded bg-white/15">-</button>

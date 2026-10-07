@@ -159,6 +159,9 @@ function Ritmo({ perk, seed, onDone }: GameProps) {
   const crowd = Math.max(0, Math.min(1, 0.4 + (hits - missed * 1.2) / N));
   const pulse = flash && flash.ok && now - flash.t < 160;
   return (
+    <>
+    <img src={`${import.meta.env.BASE_URL}game/cenas/musica-palco.webp`} alt="" draggable={false} onError={e => { e.currentTarget.style.display = 'none'; }}
+      className="block mx-auto mb-2 max-h-[110px] [image-rendering:pixelated] transition-[filter] duration-300" style={{ filter: `brightness(${0.6 + crowd * 0.5})` }} />
     <div className="rt">
       <div className={`rt-spk ${pulse ? 'boom' : ''}`}><Prop id="caixa-som" scale={3} /></div>
       <div className="rt-mid">
@@ -186,6 +189,7 @@ function Ritmo({ perk, seed, onDone }: GameProps) {
       </div>
       <div className={`rt-spk ${pulse ? 'boom' : ''}`}><Prop id="caixa-som" scale={3} /></div>
     </div>
+    </>
   );
 }
 

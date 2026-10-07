@@ -346,7 +346,7 @@ export function towerRoom(andar: number): Room {
   items.push({ id: 'quadro-chaves', tx: 12, ty: WALL - 1 });
   items.push({ id: 'placa-andar', tx: 7, ty: 16 });
   // elevador: painel na parede do canto direito (escolhe o andar)
-  items.push({ id: 'painel-led', tx: 18, ty: WALL - 1 });
+  items.push({ id: 'elevador', tx: 17, ty: WALL - 1 });
   // 8 mesas em 2 fileiras de 4 (o corredor do meio fica livre até o chefe)
   const cols = [1, 5, 12, 16], rows = [9, 13];
   let k = 0;

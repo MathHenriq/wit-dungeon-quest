@@ -39,6 +39,8 @@ export function ForgePanel({ progress, onClose }: { progress: Progress; onClose:
 
   return (
     <PxPanel title="FORJA DO PROF. IAN" color="#c85a1a" onClose={onClose} width={880} dark>
+        <img src={`${import.meta.env.BASE_URL}game/cenas/forja-tela.webp`} alt="" draggable={false} onError={e => { e.currentTarget.style.display = 'none'; }}
+          className="block mx-auto mb-3 max-h-[150px] [image-rendering:pixelated]" />
         {/* pó de cada raridade */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {RARITY_ORDER.map(r => (

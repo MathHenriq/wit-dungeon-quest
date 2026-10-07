@@ -183,8 +183,11 @@ SHEETS = {
         'cristal-rank|Cristal de rank||2x1', 'portao-selado|Portão selado||3x2']),
     # ── Loja ──
     'loja-lojas-1': dict(cat='loja', ref=(0, 100), items=[
-        'loja-pacotinhos|Loja de pacotinhos||6x3', 'loja-pets|Pet shop||6x3', 'loja-roupas|Boutique||6x3',
+        'loja-pacotinhos-antiga|Loja de pacotinhos (antiga)||6x3', 'loja-pets|Pet shop||6x3', 'loja-roupas|Boutique||6x3',
         'loja-moveis|Loja de móveis||6x3']),
+    # 07/10: a loja de pacotinhos refeita e o elevador da Torre (fechado e aberto)
+    'loja-pacotinhos': dict(cat='loja', ref=(0, 100), items=['loja-pacotinhos|Loja de pacotinhos||6x3']),
+    'torre-elevador': dict(cat='torre', ref=(0, 48), items=['elevador|Elevador|p|3x1', 'elevador-aberto|Elevador aberto|p|3x1']),
     'loja-lojas-2': dict(cat='loja', ref=(0, 100), items=[
         'loja-acessorios|Loja de acessórios||6x3', 'loja-eventos|Loja de eventos||6x3', 'loja-premios|Troca de prêmios||6x3',
         'loja-informacoes|Informações||6x3']),

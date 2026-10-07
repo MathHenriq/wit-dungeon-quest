@@ -12,6 +12,10 @@ import type { GameProps } from './Minigames';
 
 const INK = '#2e2a40', RED = '#c84a6a';
 
+/** Retrato do GPT (folha testemunhas, na ordem do prompt). */
+const WITNESSES = ['Tião', 'recepcionista', 'WIT-Bot', 'morador', 'padaria', 'entregador', 'fazenda', 'Central'];
+const witness = (who: string) => WITNESSES.findIndex(w => who.includes(w));
+
 export function Materia({ seed, onDone, towerMax = 1, day = 0 }: GameProps) {
   const list = useMemo(() => pautas(day, seed, towerMax), [day, seed, towerMax]);
   const photos = useMemo(() => loadPhotos(), []);
@@ -51,7 +55,11 @@ export function Materia({ seed, onDone, towerMax = 1, day = 0 }: GameProps) {
       </div>
       {/* a testemunha */}
       <div className="flex gap-2 items-start mb-3">
-        <div className="shrink-0 w-10 h-10 rounded-full bg-[#ffd8e0] border-2 border-[#e8a0b4] flex items-center justify-center"><Icon id="jornal" size={26} /></div>
+        <div className="shrink-0 w-14 h-14 rounded-full bg-[#ffd8e0] border-2 border-[#e8a0b4] flex items-center justify-center overflow-hidden">
+          {witness(p.event.testemunha) >= 0
+            ? <img src={`${import.meta.env.BASE_URL}game/cenas/testemunhas-${witness(p.event.testemunha)}.png`} alt="" className="w-full h-full object-cover" />
+            : <Icon id="jornal" size={26} />}
+        </div>
         <div className="relative flex-1 rounded-lg bg-white border-2 border-[#e8c0cc] p-2.5 text-[9px] leading-[17px]">
           "{p.event.fala}"
           <div className="text-[7px] text-[#8a8498] mt-1">— {p.event.testemunha}</div>
