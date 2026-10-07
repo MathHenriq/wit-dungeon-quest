@@ -31,3 +31,19 @@ describe('aula de hoje', () => {
     expect(atRisk([['presente', 'faltou'], ['faltou', 'faltou'], ['faltou', 'presente']])).toEqual([0]);
   });
 });
+
+describe('relatório do professor', () => {
+  it('presença por aula e por aluno, retorno depois da falta, desempenho e CSV', async () => {
+    const { lessonsCsv, performanceMix, presenceByLesson, returnAfterAbsence, studentRates } = await import('../lesson');
+    // 3 aulas, 2 alunos
+    const h = [['presente', 'faltou'], ['foi_bem', 'faltou'], ['excepcional', 'presente']] as const;
+    const hist = h.map(a => [...a]);
+    expect(presenceByLesson(hist)).toEqual([0.5, 0.5, 1]);
+    expect(studentRates(hist)).toEqual([1, 1 / 3]);
+    expect(returnAfterAbsence(hist)).toBe(2);
+    expect(performanceMix(hist)).toEqual({ presente: 2, foi_bem: 1, excepcional: 1 });
+    const csv = lessonsCsv(['Ana', 'Beto, o "B"'], hist, ['01/10', '02/10', '03/10']).split('\n');
+    expect(csv[0]).toBe('aluno,01/10,02/10,03/10,presenca');
+    expect(csv[2]).toBe('"Beto, o ""B""",faltou,faltou,presente,0.33');
+  });
+});

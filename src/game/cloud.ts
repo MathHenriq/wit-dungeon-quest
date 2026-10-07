@@ -61,6 +61,15 @@ async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   return data as T;
 }
 
+/** As funções do professor usam a sessão do professor (outro cliente). */
+async function rpcTeacher<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
+  const { supabase } = await import('@/integrations/supabase/client');
+  const call = supabase.rpc.bind(supabase) as unknown as Rpc;
+  const { data, error } = await call(fn, args);
+  if (error) throw new Error(error.message);
+  return data as T;
+}
+
 let version = 0;
 let timer: number | undefined;
 
@@ -93,7 +102,7 @@ export const buyRewardCloud = (reward: string) => rpc<string>('wit2_buy_reward',
 export const joinCodeCloud = (code: string) => rpc<boolean>('wit2_join_code', { p_code: code });
 
 // professor
-export const teacherLessonCloud = (day: string) => rpc<{ lesson: string; delivered: string | null; students: { id: string; nome: string; status: string | null; pack: string | null; viaCode: boolean }[]; tickets: { code: string; student: string; reward: string; at: string }[] }>('wit2_teacher_lesson', { p_day: day });
-export const teacherDeliverCloud = (lesson: string, rows: { student: string; status: string; pack?: string }[]) => rpc<number>('wit2_teacher_deliver', { p_lesson: lesson, p_rows: rows });
-export const classCodeCloud = (lesson: string) => rpc<string>('wit2_class_code', { p_lesson: lesson });
-export const deliverTicketCloud = (code: string) => rpc<boolean>('wit2_teacher_deliver_ticket', { p_code: code });
+export const teacherLessonCloud = (day: string) => rpcTeacher<{ lesson: string; delivered: string | null; students: { id: string; nome: string; status: string | null; pack: string | null; viaCode: boolean }[]; tickets: { code: string; student: string; reward: string; at: string }[] }>('wit2_teacher_lesson', { p_day: day });
+export const teacherDeliverCloud = (lesson: string, rows: { student: string; status: string; pack?: string | null; viaCode?: boolean }[]) => rpcTeacher<number>('wit2_teacher_deliver', { p_lesson: lesson, p_rows: rows });
+export const classCodeCloud = (lesson: string) => rpcTeacher<string>('wit2_class_code', { p_lesson: lesson });
+export const deliverTicketCloud = (code: string) => rpcTeacher<boolean>('wit2_teacher_deliver_ticket', { p_code: code });

@@ -1,10 +1,17 @@
-// "Aula de hoje" do professor (WIT 2), em DEMONSTRAÇÃO com dados de mentira
-// (nada vai para o banco): para o Matheus aprovar o fluxo antes de ligar no
-// servidor (docs/banco-wit2.md). Um toque por aluno, pacote padrão por
-// desempenho (trocável), código no projetor e ENTREGAR com resumo.
+// "Aula de hoje" do professor (WIT 2). Três abas: AULA (um toque por aluno,
+// pacote padrão por desempenho, código no projetor, ENTREGAR), RESGATES (os
+// tickets das Recompensas da Sala) e RELATÓRIO (presença por aula e por aluno,
+// alunos em risco, retorno depois da falta, CSV).
+// Sem o banco ligado (VITE_WIT2_DB) é DEMONSTRAÇÃO com alunos de mentira;
+// ligado, usa as funções do servidor (src/game/cloud.ts).
 import { useEffect, useMemo, useState } from 'react';
-import { atRisk, delivery, lessonCode, nextStatus, packOf, STATUS_NAME, STATUS_ORDER, type LessonRow, type LessonStatus } from '@/game/lesson';
+import {
+  atRisk, delivery, lessonCode, lessonsCsv, nextStatus, packOf, performanceMix, presenceByLesson, returnAfterAbsence, STATUS_NAME, STATUS_ORDER, studentRates,
+  type LessonRow, type LessonStatus,
+} from '@/game/lesson';
 import { PACK_BY_ID, PACKS, type PackId } from '@/game/packs';
+import { REWARD_BY_ID } from '@/game/room-rewards';
+import { classCodeCloud, cloudEnabled, deliverTicketCloud, teacherDeliverCloud, teacherLessonCloud } from '@/game/cloud';
 
 const FAKE = [
   'Ana Clara', 'Pedro Henrique', 'Maria Eduarda', 'João Pedro', 'Laura Beatriz', 'Gabriel Lucas', 'Sofia Helena', 'Miguel Ângelo',
@@ -15,11 +22,25 @@ const FAKE = [
 const COLOR: Record<LessonStatus, string> = { faltou: '#9aa0ad', presente: '#3a8ae8', foi_bem: '#3aa85a', excepcional: '#e8a020' };
 const KEY = 'wit.aula-demo';
 
-interface Saved { history: LessonStatus[][]; lastDay?: string }
+interface Saved { history: LessonStatus[][]; days?: string[]; lastDay?: string }
 const load = (): Saved => { try { return JSON.parse(localStorage.getItem(KEY) ?? 'null') ?? { history: [] }; } catch { return { history: [] }; } };
+
+/** Tickets de mentira para a aba RESGATES na demonstração. */
+const FAKE_TICKETS = [
+  { code: 'K7QZ', student: 'aluno-3', reward: 'musica' }, { code: 'B3MX', student: 'aluno-8', reward: 'tablet-15' },
+  { code: 'R9TD', student: 'aluno-12', reward: 'vr-10' }, { code: 'H2WP', student: 'aluno-5', reward: 'lugar' },
+];
+type Tab = 'aula' | 'resgates' | 'relatorio';
 
 export default function TeacherLessonDemo() {
   const today = new Date().toLocaleDateString('pt-BR');
+  const live = cloudEnabled();
+  const [tab, setTab] = useState<Tab>('aula');
+  const [students, setStudents] = useState(FAKE);
+  const [lessonId, setLessonId] = useState<string | null>(null);
+  const [serverCode, setServerCode] = useState<string | null>(null);
+  const [tickets, setTickets] = useState<{ code: string; student: string; reward: string; done?: boolean }[]>(live ? [] : FAKE_TICKETS);
+  const [err, setErr] = useState<string | null>(null);
   const [rows, setRows] = useState<LessonRow[]>(() => FAKE.map(s => ({ studentId: s.id, status: 'faltou' })));
   const [saved, setSaved] = useState<Saved>(load);
   const [projector, setProjector] = useState(false);
@@ -28,10 +49,28 @@ export default function TeacherLessonDemo() {
   const [confirm, setConfirm] = useState(false);
   const [done, setDone] = useState<ReturnType<typeof delivery> | null>(null);
   useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(t); }, []);
+  // banco ligado: a aula do dia vem do servidor (alunos do professor, presenças já marcadas pelo código, tickets)
+  useEffect(() => {
+    if (!live) return;
+    const iso = new Date().toISOString().slice(0, 10);
+    teacherLessonCloud(iso).then(l => {
+      setLessonId(l.lesson);
+      setStudents(l.students.map(x => ({ id: x.id, name: x.nome, nick: '' })));
+      setRows(l.students.map(x => ({ studentId: x.id, status: (x.status ?? 'faltou') as LessonStatus, viaCode: x.viaCode, ...(x.pack ? { pack: x.pack as PackId } : {}) })));
+      setTickets(l.tickets.map(t => ({ code: t.code, student: t.student, reward: t.reward })));
+    }).catch(e => setErr(String(e.message ?? e)));
+  }, [live]);
+  useEffect(() => {
+    if (!live || !lessonId || !projector) return;
+    const tick = () => classCodeCloud(lessonId).then(setServerCode).catch(() => undefined);
+    tick();
+    const t = window.setInterval(tick, 5000);
+    return () => window.clearInterval(t);
+  }, [live, lessonId, projector]);
   const d = useMemo(() => delivery(rows), [rows]);
-  const risk = useMemo(() => new Set(atRisk(saved.history).map(k => FAKE[k]?.id)), [saved]);
+  const risk = useMemo(() => new Set(atRisk(saved.history).map(k => students[k]?.id)), [saved, students]);
   const secret = `demo-${today}`;
-  const code = lessonCode(secret, now);
+  const code = live ? serverCode ?? '····' : lessonCode(secret, now);
   const left = 30 - Math.floor((now % 30_000) / 1000);
 
   const set = (id: string, f: (r: LessonRow) => LessonRow) => setRows(rs => rs.map(r => (r.studentId === id ? f(r) : r)));
@@ -43,22 +82,40 @@ export default function TeacherLessonDemo() {
     const r = absent[Math.floor(Math.random() * absent.length)];
     set(r.studentId, x => ({ ...x, status: 'presente', viaCode: true }));
   };
-  const deliver = () => {
-    const next: Saved = { history: [...saved.history, rows.map(r => r.status)].slice(-12), lastDay: today };
+  const deliver = async () => {
+    if (live && lessonId) {
+      try { await teacherDeliverCloud(lessonId, rows.map(r => ({ student: r.studentId, status: r.status, pack: packOf(r), viaCode: r.viaCode }))); }
+      catch (e) { setErr(String((e as Error).message ?? e)); setConfirm(false); return; }
+    }
+    const next: Saved = { history: [...saved.history, rows.map(r => r.status)].slice(-24), days: [...(saved.days ?? []), today].slice(-24), lastDay: today };
     localStorage.setItem(KEY, JSON.stringify(next));
     setSaved(next); setDone(d); setConfirm(false);
   };
+  const giveTicket = async (c: string) => {
+    if (live) { try { await deliverTicketCloud(c); } catch (e) { setErr(String((e as Error).message ?? e)); return; } }
+    setTickets(ts => ts.map(t => (t.code === c ? { ...t, done: true } : t)));
+  };
+  const nameOf = (id: string) => students.find(x => x.id === id)?.name ?? id;
 
   return (
     <div className="min-h-screen bg-[#f4f2ee] text-[#1e1b2c] font-sans">
       <div className="max-w-[960px] mx-auto px-4 py-4">
-        <div className="rounded-lg bg-[#fff6d8] border border-[#e8d090] px-3 py-2 text-[12px] mb-3">
+        {!live && <div className="rounded-lg bg-[#fff6d8] border border-[#e8d090] px-3 py-2 text-[12px] mb-3">
           Demonstração com alunos de mentira: nada é gravado no banco. Serve para aprovar o fluxo da aula.
+        </div>}
+        {err && <div className="rounded-lg bg-[#fde8e8] border border-[#e8a0a0] px-3 py-2 text-[12px] mb-3">Erro do servidor: {err}</div>}
+        <div className="flex gap-1 mb-3">
+          {([['aula', 'Aula de hoje'], ['resgates', `Resgates (${tickets.filter(t => !t.done).length})`], ['relatorio', 'Relatório']] as [Tab, string][]).map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)} className={`px-4 py-2 rounded-lg text-[14px] border ${tab === k ? 'bg-[#1e1b2c] text-white border-[#1e1b2c]' : 'bg-white border-[#d8d4cc]'}`}>{l}</button>
+          ))}
         </div>
+        {tab === 'resgates' && <Tickets tickets={tickets} nameOf={nameOf} onGive={giveTicket} />}
+        {tab === 'relatorio' && <Report names={students.map(x => x.name)} saved={saved} />}
+        {tab === 'aula' && <>
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <div>
             <div className="text-[22px] font-bold">Aula de hoje</div>
-            <div className="text-[13px] text-[#6a6680]">{today} · {FAKE.length} alunos</div>
+            <div className="text-[13px] text-[#6a6680]">{today} · {students.length} alunos</div>
           </div>
           <div className="ml-auto flex gap-2">
             <button onClick={() => setProjector(v => !v)} className="px-3 py-2 rounded-lg bg-white border border-[#d8d4cc] text-[14px]">{projector ? 'Esconder código' : 'Código no projetor'}</button>
@@ -88,7 +145,7 @@ export default function TeacherLessonDemo() {
 
         <div className="text-[12px] text-[#6a6680] mb-2">Toque no aluno para mudar: Faltou → Presente → Foi bem → Excepcional. O pacote segue o desempenho; toque no pacote para trocar.</div>
         <div className="grid sm:grid-cols-2 gap-2">
-          {FAKE.map(s => {
+          {students.map(s => {
             const r = rows.find(x => x.studentId === s.id)!;
             const p = packOf(r);
             return (
@@ -119,7 +176,7 @@ export default function TeacherLessonDemo() {
             <div className="rounded-xl bg-[#e8f8ec] border border-[#9ad0a8] p-3 text-[14px]">
               Entregue! {done.grants.length} pacotes ({Object.entries(done.packs).map(([k, n]) => `${n} ${PACK_BY_ID.get(k as PackId)!.name.replace(/^Pacot(e|inho) /, '')}`).join(', ')}).
               Presença: {Math.round(done.rate * 100)}%. Cada aluno vê no jogo: "Você foi bem hoje! Pacote Raro" e o pacote aparece em MEUS PACOTES.
-              <button onClick={() => { setDone(null); setRows(FAKE.map(s => ({ studentId: s.id, status: 'faltou' }))); }} className="ml-2 underline">nova aula (demo)</button>
+              {!live && <button onClick={() => { setDone(null); setRows(students.map(s => ({ studentId: s.id, status: 'faltou' }))); }} className="ml-2 underline">nova aula (demo)</button>}
             </div>
           ) : (
             <button onClick={() => setConfirm(true)} className="w-full py-4 rounded-xl bg-[#1e1b2c] text-white text-[17px] font-semibold">
@@ -127,6 +184,7 @@ export default function TeacherLessonDemo() {
             </button>
           )}
         </div>
+        </>}
       </div>
 
       {confirm && (
@@ -144,6 +202,94 @@ export default function TeacherLessonDemo() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Tickets({ tickets, nameOf, onGive }: { tickets: { code: string; student: string; reward: string; done?: boolean }[]; nameOf: (id: string) => string; onGive: (code: string) => void }) {
+  if (!tickets.length) return <div className="text-[14px] text-[#6a6680]">Nenhum ticket esperando.</div>;
+  return (
+    <div className="grid gap-2">
+      <div className="text-[12px] text-[#6a6680]">O aluno mostra o código no jogo; entregue o prêmio e toque em Entregue.</div>
+      {tickets.map(t => (
+        <div key={t.code} className="flex items-center gap-3 rounded-lg bg-white border border-[#e4e0d8] p-3">
+          <span className="px-2 py-1 rounded bg-[#1e1b2c] text-[#ffd84a] tracking-[0.2em] text-[14px] font-mono">{t.code}</span>
+          <div className="flex-1">
+            <div className="text-[15px] font-semibold">{nameOf(t.student)}</div>
+            <div className="text-[13px] text-[#6a6680]">{REWARD_BY_ID.get(t.reward)?.nome ?? t.reward}</div>
+          </div>
+          {t.done ? <span className="text-[13px] text-[#3aa85a]">Entregue</span>
+            : <button onClick={() => onGive(t.code)} className="px-4 py-2 rounded-lg bg-[#3aa85a] text-white text-[14px]">Entregue</button>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Report({ names, saved }: { names: string[]; saved: Saved }) {
+  const h = saved.history;
+  if (!h.length) return <div className="text-[14px] text-[#6a6680]">Entregue uma aula para o relatório começar.</div>;
+  const days = saved.days?.length === h.length ? saved.days : h.map((_, i) => `aula ${i + 1}`);
+  const per = presenceByLesson(h), rates = studentRates(h), back = returnAfterAbsence(h), mix = performanceMix(h);
+  const risk = new Set(atRisk(h));
+  const avg = per.reduce((s, x) => s + x, 0) / per.length;
+  const csv = () => {
+    const blob = new Blob([lessonsCsv(names, h, days)], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'presenca-wit.csv'; a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  const totalMix = mix.presente + mix.foi_bem + mix.excepcional || 1;
+  return (
+    <div className="grid gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Stat label="Presença média" value={`${Math.round(avg * 100)}%`} />
+        <Stat label="Aulas registradas" value={String(h.length)} />
+        <Stat label="Alunos em risco" value={String(risk.size)} tone={risk.size ? '#c84a3a' : undefined} />
+        <Stat label="Volta depois de faltar" value={back === null ? '—' : `${back.toFixed(1)} aula(s)`} />
+      </div>
+      <div className="rounded-lg bg-white border border-[#e4e0d8] p-3">
+        <div className="text-[13px] font-semibold mb-2">Presença por aula</div>
+        <svg viewBox={`0 0 ${Math.max(1, per.length) * 40} 120`} className="w-full h-[140px]">
+          {per.map((p, i) => (
+            <g key={i}>
+              <rect x={i * 40 + 8} y={100 - p * 90} width={24} height={p * 90} fill="#3a8ae8" />
+              <text x={i * 40 + 20} y={100 - p * 90 - 3} fontSize="9" textAnchor="middle" fill="#1e1b2c">{Math.round(p * 100)}%</text>
+              <text x={i * 40 + 20} y={114} fontSize="8" textAnchor="middle" fill="#6a6680">{days[i].slice(0, 5)}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+      <div className="rounded-lg bg-white border border-[#e4e0d8] p-3">
+        <div className="text-[13px] font-semibold mb-2">Desempenho de quem veio</div>
+        <div className="flex h-5 rounded overflow-hidden">
+          <div style={{ width: `${(mix.presente / totalMix) * 100}%`, background: '#3a8ae8' }} />
+          <div style={{ width: `${(mix.foi_bem / totalMix) * 100}%`, background: '#3aa85a' }} />
+          <div style={{ width: `${(mix.excepcional / totalMix) * 100}%`, background: '#e8a020' }} />
+        </div>
+        <div className="text-[12px] text-[#6a6680] mt-1">Presente {mix.presente} · Foi bem {mix.foi_bem} · Excepcional {mix.excepcional}</div>
+      </div>
+      <div className="rounded-lg bg-white border border-[#e4e0d8] p-3">
+        <div className="flex items-center mb-2"><div className="text-[13px] font-semibold">Presença por aluno</div>
+          <button onClick={csv} className="ml-auto px-3 py-1.5 rounded-lg border border-[#d8d4cc] text-[13px]">Baixar CSV</button></div>
+        <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1">
+          {names.map((n, k) => (
+            <div key={n} className="flex items-center gap-2 text-[13px]">
+              <span className="flex-1 truncate">{n}{risk.has(k) ? ' · em risco' : ''}</span>
+              <span className="w-24 h-2 rounded bg-[#eee] overflow-hidden"><i className="block h-full" style={{ width: `${(rates[k] ?? 0) * 100}%`, background: risk.has(k) ? '#c84a3a' : '#3aa85a' }} /></span>
+              <span className="w-10 text-right">{Math.round((rates[k] ?? 0) * 100)}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="rounded-lg bg-white border border-[#e4e0d8] px-3 py-2">
+      <div className="text-[12px] text-[#6a6680]">{label}</div>
+      <div className="text-[22px] font-bold" style={{ color: tone }}>{value}</div>
     </div>
   );
 }

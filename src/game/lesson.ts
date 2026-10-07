@@ -60,3 +60,45 @@ export function atRisk(history: LessonStatus[][]): number[] {
   }
   return out;
 }
+
+// ─── Relatório (plano §9): o WIT 2 aumentou a presença e a dedicação? ───────
+
+/** Presença de cada aula (0–1), da mais antiga para a mais nova. */
+export const presenceByLesson = (history: LessonStatus[][]): number[] =>
+  history.map(a => (a.length ? a.filter(s => s !== 'faltou').length / a.length : 0));
+
+/** Presença de cada aluno (0–1) no período. */
+export function studentRates(history: LessonStatus[][]): number[] {
+  const n = history[0]?.length ?? 0;
+  return Array.from({ length: n }, (_, k) => (history.length ? history.filter(a => a[k] !== 'faltou').length / history.length : 0));
+}
+
+/** Retorno depois de faltar: em média, quantas aulas o aluno leva para voltar (só faltas que já acabaram). */
+export function returnAfterAbsence(history: LessonStatus[][]): number | null {
+  const n = history[0]?.length ?? 0;
+  const gaps: number[] = [];
+  for (let k = 0; k < n; k++) {
+    let run = 0;
+    for (const a of history) {
+      if (a[k] === 'faltou') run++;
+      else { if (run) gaps.push(run); run = 0; }
+    }
+  }
+  return gaps.length ? gaps.reduce((s, x) => s + x, 0) / gaps.length : null;
+}
+
+/** Distribuição do desempenho de quem veio (presente / foi bem / excepcional). */
+export function performanceMix(history: LessonStatus[][]): Record<Exclude<LessonStatus, 'faltou'>, number> {
+  const out = { presente: 0, foi_bem: 0, excepcional: 0 };
+  for (const a of history) for (const s of a) if (s !== 'faltou') out[s]++;
+  return out;
+}
+
+/** CSV para análise externa: uma linha por aluno, uma coluna por aula. */
+export function lessonsCsv(names: string[], history: LessonStatus[][], days: string[]): string {
+  const esc = (s: string) => (/[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+  const head = ['aluno', ...days.map(esc), 'presenca'].join(',');
+  const rates = studentRates(history);
+  const lines = names.map((n, k) => [esc(n), ...history.map(a => a[k] ?? ''), (rates[k] ?? 0).toFixed(2)].join(','));
+  return [head, ...lines].join('\n');
+}
