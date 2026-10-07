@@ -79,10 +79,10 @@ export const PLAYMATS: Playmat[] = [
       radial-gradient(ellipse at center, #3a1510, #160806 80%)`,
   },
   // arte em imagem (prompts em docs/PROMPTS-GPT.md): entram quando a arte for aprovada
-  { id: 'arena-heroi', nome: 'Arena dos Heróis', tema: 'Anime', preco: 1500, borda: '#ffd45c', arte: true, emBreve: true, descricao: 'Estádio de torneio shōnen com a plateia em volta.' },
-  { id: 'espiritos', nome: 'Floresta dos Espíritos', tema: 'Anime', preco: 1500, borda: '#7ee06a', arte: true, emBreve: true, descricao: 'Floresta mágica com espíritos brilhando, estilo filme de anime.' },
-  { id: 'cidade-neon', nome: 'Cidade Neon', tema: 'Anime', preco: 1500, borda: '#ff4fd8', arte: true, emBreve: true, descricao: 'Telhados de uma cidade futurista à noite.' },
-  { id: 'cartas-lendarias', nome: 'Cartas Lendárias', tema: 'Cartas', preco: 2000, borda: '#ffd45c', arte: true, emBreve: true, descricao: 'Cartas douradas em leque e runas brilhando.' },
+  { id: 'arena-heroi', nome: 'Arena dos Heróis', tema: 'Anime', preco: 1500, borda: '#ffd45c', arte: true, descricao: 'Estádio de torneio shōnen com a plateia em volta.' },
+  { id: 'espiritos', nome: 'Floresta dos Espíritos', tema: 'Anime', preco: 1500, borda: '#7ee06a', arte: true, descricao: 'Floresta mágica com espíritos brilhando, estilo filme de anime.' },
+  { id: 'cidade-neon', nome: 'Cidade Neon', tema: 'Anime', preco: 1500, borda: '#ff4fd8', arte: true, descricao: 'Telhados de uma cidade futurista à noite.' },
+  { id: 'cartas-lendarias', nome: 'Cartas Lendárias', tema: 'Cartas', preco: 2000, borda: '#ffd45c', arte: true, descricao: 'Cartas douradas em leque e runas brilhando.' },
   { id: 'monstrinhos', nome: 'Campo dos Monstrinhos', tema: 'Monstrinhos', preco: 2000, borda: '#ff5a5a', arte: true, emBreve: true, descricao: 'Campo de batalha de monstrinhos, com grama, pedras e o círculo no meio.' },
 ];
 

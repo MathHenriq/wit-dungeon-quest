@@ -16,9 +16,72 @@
   "h": 35,
   "w": 34
  },
+ "arvore-solar": {
+  "h": 48,
+  "w": 51
+ },
+ "atelie": {
+  "h": 103,
+  "noite": true,
+  "w": 80
+ },
+ "banca-peixe": {
+  "h": 48,
+  "w": 48
+ },
  "banco": {
   "h": 22,
   "w": 32
+ },
+ "banco-solar": {
+  "h": 19,
+  "w": 32
+ },
+ "barco-leste": {
+  "h": 12,
+  "w": 22
+ },
+ "barco-norte": {
+  "h": 22,
+  "w": 12
+ },
+ "barco-sul": {
+  "h": 22,
+  "w": 11
+ },
+ "barraca-camping": {
+  "h": 29,
+  "w": 32
+ },
+ "barraca-sementes": {
+  "h": 52,
+  "noite": true,
+  "w": 48
+ },
+ "barril": {
+  "h": 19,
+  "w": 14
+ },
+ "boia": {
+  "h": 26,
+  "w": 17
+ },
+ "caixa-envio": {
+  "h": 36,
+  "noite": true,
+  "w": 32
+ },
+ "caixotes": {
+  "h": 24,
+  "w": 24
+ },
+ "canteiro-iot": {
+  "h": 21,
+  "w": 32
+ },
+ "carrinho": {
+  "h": 10,
+  "w": 16
  },
  "casa-artista": {
   "h": 74,
@@ -50,6 +113,16 @@
   "noite": true,
   "w": 80
  },
+ "casa-coworking": {
+  "h": 96,
+  "noite": true,
+  "w": 80
+ },
+ "casa-fazenda": {
+  "h": 109,
+  "noite": true,
+  "w": 96
+ },
  "casa-fazendeiro": {
   "h": 79,
   "noite": true,
@@ -80,6 +153,11 @@
   "noite": true,
   "w": 80
  },
+ "casa-iot": {
+  "h": 81,
+  "noite": true,
+  "w": 96
+ },
  "casa-japonesa": {
   "h": 75,
   "noite": true,
@@ -88,6 +166,14 @@
  "casa-laranja": {
   "h": 86,
   "noite": true,
+  "w": 80
+ },
+ "casa-lucia": {
+  "h": 88,
+  "w": 80
+ },
+ "casa-marinho": {
+  "h": 91,
   "w": 80
  },
  "casa-moderna": {
@@ -105,10 +191,18 @@
   "noite": true,
   "w": 80
  },
+ "casa-nando": {
+  "h": 90,
+  "w": 80
+ },
  "casa-padaria": {
   "h": 84,
   "noite": true,
   "w": 80
+ },
+ "casa-pesca": {
+  "h": 103,
+  "w": 112
  },
  "casa-pescador": {
   "h": 73,
@@ -145,13 +239,33 @@
   "noite": true,
   "w": 112
  },
+ "castelo-areia": {
+  "h": 16,
+  "w": 16
+ },
+ "celeiro": {
+  "h": 93,
+  "w": 96
+ },
+ "central-entregas": {
+  "h": 91,
+  "w": 112
+ },
  "cerca": {
   "h": 10,
   "w": 16
  },
+ "cerca-em-pe": {
+  "h": 16,
+  "w": 21
+ },
  "cerejeira": {
   "h": 36,
   "w": 34
+ },
+ "cesta": {
+  "h": 32,
+  "w": 21
  },
  "chao-agua": {
   "h": 128,
@@ -181,22 +295,118 @@
   "h": 128,
   "w": 128
  },
+ "cocho": {
+  "h": 13,
+  "w": 24
+ },
  "cogumelos": {
   "h": 11,
   "w": 12
  },
+ "colmeia": {
+  "h": 17,
+  "w": 16
+ },
  "correio": {
   "h": 18,
   "w": 9
+ },
+ "drone": {
+  "h": 11,
+  "noite": true,
+  "w": 14
+ },
+ "espantalho": {
+  "h": 28,
+  "noite": true,
+  "w": 24
+ },
+ "estacao-tempo": {
+  "h": 32,
+  "w": 15
+ },
+ "estudio-comunicacao": {
+  "h": 91,
+  "noite": true,
+  "w": 96
+ },
+ "estudio-musica": {
+  "h": 102,
+  "w": 80
+ },
+ "estufa": {
+  "h": 92,
+  "noite": true,
+  "w": 96
+ },
+ "farol": {
+  "h": 110,
+  "w": 58
+ },
+ "feno": {
+  "h": 15,
+  "w": 16
+ },
+ "fliperama": {
+  "h": 26,
+  "w": 17
+ },
+ "fogueira": {
+  "h": 17,
+  "noite": true,
+  "w": 16
  },
  "fonte": {
   "h": 52,
   "noite": true,
   "w": 64
  },
+ "galinha-dir": {
+  "h": 12,
+  "w": 12
+ },
+ "galinha-esq": {
+  "h": 12,
+  "w": 12
+ },
+ "galinheiro": {
+  "h": 62,
+  "noite": true,
+  "w": 64
+ },
+ "guarda-sol": {
+  "h": 29,
+  "noite": true,
+  "w": 32
+ },
+ "lab-ia": {
+  "h": 107,
+  "w": 112
+ },
+ "lenha": {
+  "h": 13,
+  "w": 16
+ },
  "lixeira": {
   "h": 16,
   "w": 11
+ },
+ "lixo-garrafa": {
+  "h": 4,
+  "noite": true,
+  "w": 7
+ },
+ "lixo-lata": {
+  "h": 5,
+  "w": 7
+ },
+ "lixo-papel": {
+  "h": 7,
+  "w": 7
+ },
+ "loja-iscas": {
+  "h": 92,
+  "w": 80
  },
  "maquina": {
   "h": 32,
@@ -207,27 +417,171 @@
   "h": 15,
   "w": 16
  },
+ "mercado-central": {
+  "h": 66,
+  "noite": true,
+  "w": 160
+ },
+ "mesa-piquenique": {
+  "h": 24,
+  "w": 32
+ },
+ "metaverso": {
+  "h": 97,
+  "noite": true,
+  "w": 112
+ },
+ "moinho": {
+  "h": 100,
+  "w": 49
+ },
+ "moinho-pas": {
+  "h": 87,
+  "w": 90
+ },
+ "moradia-1": {
+  "h": 94,
+  "w": 80
+ },
+ "moradia-2": {
+  "h": 86,
+  "noite": true,
+  "w": 80
+ },
+ "moradia-3": {
+  "h": 88,
+  "noite": true,
+  "w": 80
+ },
+ "moradia-4": {
+  "h": 86,
+  "noite": true,
+  "w": 80
+ },
  "mural": {
   "h": 40,
   "noite": true,
   "w": 48
+ },
+ "nucleo-wit": {
+  "h": 118,
+  "noite": true,
+  "w": 192
  },
  "oficina": {
   "h": 85,
   "noite": true,
   "w": 112
  },
+ "oficina-games": {
+  "h": 84,
+  "noite": true,
+  "w": 112
+ },
+ "ovelha-dir": {
+  "h": 14,
+  "w": 16
+ },
+ "ovelha-esq": {
+  "h": 14,
+  "w": 16
+ },
  "palacio-cartas": {
   "h": 69,
   "noite": true,
   "w": 80
  },
+ "patinetes": {
+  "h": 26,
+  "w": 32
+ },
+ "pato": {
+  "h": 8,
+  "w": 12
+ },
  "pedra": {
   "h": 12,
   "w": 14
  },
+ "pedras-margem": {
+  "h": 10,
+  "w": 16
+ },
  "pedrinhas": {
   "h": 11,
+  "w": 16
+ },
+ "peixe-bagre": {
+  "h": 13,
+  "w": 24
+ },
+ "peixe-bota": {
+  "h": 19,
+  "w": 24
+ },
+ "peixe-camarao": {
+  "h": 20,
+  "w": 24
+ },
+ "peixe-carpa": {
+  "h": 14,
+  "w": 24
+ },
+ "peixe-dourado": {
+  "h": 17,
+  "w": 24
+ },
+ "peixe-koi": {
+  "h": 11,
+  "w": 24
+ },
+ "peixe-koi-dourada": {
+  "h": 18,
+  "w": 24
+ },
+ "peixe-lambari": {
+  "h": 12,
+  "w": 24
+ },
+ "peixe-lata": {
+  "h": 20,
+  "w": 24
+ },
+ "peixe-pacu": {
+  "h": 17,
+  "w": 24
+ },
+ "peixe-peixe-cristal": {
+  "h": 17,
+  "w": 24
+ },
+ "peixe-piau": {
+  "h": 12,
+  "w": 24
+ },
+ "peixe-pirarucu": {
+  "h": 11,
+  "w": 24
+ },
+ "peixe-tilapia": {
+  "h": 12,
+  "w": 24
+ },
+ "peixe-traira": {
+  "h": 11,
+  "w": 24
+ },
+ "peixe-tucunare": {
+  "h": 13,
+  "w": 24
+ },
+ "pier-horizontal": {
+  "h": 36,
+  "noite": true,
+  "w": 32
+ },
+ "pier-vertical": {
+  "h": 17,
   "w": 16
  },
  "pinheiro": {
@@ -238,15 +592,215 @@
   "h": 19,
   "w": 16
  },
+ "planta-abobora-0": {
+  "h": 5,
+  "w": 16
+ },
+ "planta-abobora-1": {
+  "h": 8,
+  "w": 16
+ },
+ "planta-abobora-2": {
+  "h": 12,
+  "w": 16
+ },
+ "planta-abobora-3": {
+  "h": 13,
+  "w": 16
+ },
+ "planta-abobora-4": {
+  "h": 13,
+  "w": 16
+ },
+ "planta-alface-0": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-alface-1": {
+  "h": 5,
+  "w": 16
+ },
+ "planta-alface-2": {
+  "h": 20,
+  "w": 16
+ },
+ "planta-alface-3": {
+  "h": 17,
+  "w": 16
+ },
+ "planta-alface-4": {
+  "h": 15,
+  "w": 16
+ },
+ "planta-cenoura-0": {
+  "h": 14,
+  "w": 16
+ },
+ "planta-cenoura-1": {
+  "h": 10,
+  "w": 16
+ },
+ "planta-cenoura-2": {
+  "h": 14,
+  "w": 16
+ },
+ "planta-cenoura-3": {
+  "h": 15,
+  "w": 16
+ },
+ "planta-cenoura-4": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-girassol-0": {
+  "h": 5,
+  "w": 16
+ },
+ "planta-girassol-1": {
+  "h": 7,
+  "w": 16
+ },
+ "planta-girassol-2": {
+  "h": 11,
+  "w": 16
+ },
+ "planta-girassol-3": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-girassol-4": {
+  "h": 18,
+  "w": 16
+ },
+ "planta-milho-0": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-milho-1": {
+  "h": 12,
+  "w": 16
+ },
+ "planta-milho-2": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-milho-3": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-milho-4": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-morango-0": {
+  "h": 17,
+  "w": 16
+ },
+ "planta-morango-1": {
+  "h": 5,
+  "w": 16
+ },
+ "planta-morango-2": {
+  "h": 11,
+  "w": 16
+ },
+ "planta-morango-3": {
+  "h": 14,
+  "w": 16
+ },
+ "planta-morango-4": {
+  "h": 15,
+  "w": 16
+ },
+ "planta-tomate-0": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-tomate-1": {
+  "h": 11,
+  "w": 16
+ },
+ "planta-tomate-2": {
+  "h": 17,
+  "w": 16
+ },
+ "planta-tomate-3": {
+  "h": 16,
+  "w": 16
+ },
+ "planta-tomate-4": {
+  "h": 16,
+  "w": 16
+ },
+ "poco": {
+  "h": 39,
+  "w": 32
+ },
+ "ponte": {
+  "h": 39,
+  "noite": true,
+  "w": 64
+ },
  "portal": {
   "h": 48,
   "noite": true,
   "w": 64
  },
+ "porteira": {
+  "h": 19,
+  "w": 32
+ },
  "poste": {
   "h": 32,
   "noite": true,
   "w": 10
+ },
+ "poste-inteligente": {
+  "h": 32,
+  "w": 18
+ },
+ "quadra": {
+  "h": 99,
+  "w": 144
+ },
+ "reciclagem": {
+  "h": 23,
+  "w": 32
+ },
+ "robo-costas": {
+  "h": 16,
+  "noite": true,
+  "w": 13
+ },
+ "robo-frente": {
+  "h": 16,
+  "noite": true,
+  "w": 13
+ },
+ "robo-gari": {
+  "h": 18,
+  "noite": true,
+  "w": 19
+ },
+ "semaforo": {
+  "h": 32,
+  "w": 13
+ },
+ "silo": {
+  "h": 92,
+  "w": 46
+ },
+ "telao": {
+  "h": 84,
+  "w": 96
+ },
+ "terra-molhada": {
+  "h": 15,
+  "w": 16
+ },
+ "terra-seca": {
+  "h": 15,
+  "w": 16
  },
  "toco": {
   "h": 11,
@@ -255,19 +809,44 @@
  "torre": {
   "h": 236,
   "noite": true,
-  "w": 118
+  "w": 192
  },
  "totem": {
   "h": 30,
   "noite": true,
   "w": 10
  },
+ "totem-holo": {
+  "h": 30,
+  "noite": true,
+  "w": 20
+ },
  "tulipas": {
   "h": 13,
   "w": 16
  },
+ "vaca-dir": {
+  "h": 15,
+  "w": 20
+ },
+ "vaca-esq": {
+  "h": 15,
+  "w": 20
+ },
+ "vara-barril": {
+  "h": 23,
+  "w": 16
+ },
+ "varal-peixe": {
+  "h": 20,
+  "w": 32
+ },
  "vaso": {
   "h": 18,
+  "w": 16
+ },
+ "vitoria-regia": {
+  "h": 12,
   "w": 16
  }
 }

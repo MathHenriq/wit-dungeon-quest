@@ -196,6 +196,25 @@ def components(alpha, n):
     return [bx for row in rows for bx in sorted(row, key=lambda b: b[0])], lab
 
 
+# folhas em grade com objetos muito perto (o agrupamento por vizinhança junta
+# a semente ao broto): corta a área desenhada em colunas x linhas iguais
+GRID = {'peixes': (4, 4), 'plantacoes': (5, 7)}
+
+
+def grid_boxes(alpha, cols, rows):
+    mask = alpha > 0.5
+    x0, y0, x1, y1 = bbox(alpha)
+    boxes = []
+    for r in range(rows):
+        for c in range(cols):
+            cx0, cx1 = x0 + (x1 - x0) * c // cols, x0 + (x1 - x0) * (c + 1) // cols
+            cy0, cy1 = y0 + (y1 - y0) * r // rows, y0 + (y1 - y0) * (r + 1) // rows
+            ys, xs = np.where(mask[cy0:cy1, cx0:cx1])
+            if len(xs):
+                boxes.append((cx0 + xs.min(), cy0 + ys.min(), cx0 + xs.max() + 1, cy0 + ys.max() + 1))
+    return boxes
+
+
 def bbox(alpha):
     ys, xs = np.where(alpha > 0.5)
     return xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
@@ -278,7 +297,7 @@ def build(out, k):
         if not os.path.exists(path):
             missing.append(src); continue
         rgb, alpha = load(path)
-        boxes, _ = components(alpha, len(items))
+        boxes = grid_boxes(alpha, *GRID[src]) if src in GRID else components(alpha, len(items))[0]
         if len(boxes) != len(items):
             print(f'{src}: achei {len(boxes)} objetos, esperava {len(items)}')
         for (name, size), box in zip(items, boxes):
