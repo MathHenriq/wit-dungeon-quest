@@ -109,7 +109,9 @@ export function buildWit(assets?: WorldAssets, opts: ZoneOptions = {}): Town {
   z.putLit('fliperama-1', z.sprLit('fliperama', () => arcade(hex('#e84a6a'))), 12, 34, 1, 1);
   z.putLit('fliperama-2', z.sprLit('fliperama', () => arcade(hex('#3a78c8'))), 13, 34, 1, 1);
   z.spot('fliperama', 12, 34); z.spot('fliperama', 13, 34);
-  z.building(z.sprB('mercado-central', 'mercado', 'Mercado Central', 10, 4, [4, 5], mercadoCentral), 22, 31);
+  // com a arte do GPT o Mercado é um galpão gigante (16 blocos); por código fica o de 10
+  if (A['mercado-central']) z.building(z.sprB('mercado-central', 'mercado', 'Mercado Central', 16, 4, [7, 8], mercadoCentral), 17, 31);
+  else z.building(mercadoCentral(), 22, 31);
   z.building(z.sprB('estudio-musica', 'estudio-musica', 'Estúdio de Música', 5, 3, [2], () => cottage('estudio-musica', 'Estúdio de Música', {
     wall: hex('#6a4a9a'), wallKind: 'planks', roof: hex('#2a2440'), trim: hex('#f4f0ea'), shutters: hex('#f0c040'),
     sign: { text: 'MUSICA', bg: hex('#2a1a40'), lit: [255, 140, 220] }, chimney: false, seed: 14,
@@ -129,11 +131,32 @@ export function buildWit(assets?: WorldAssets, opts: ZoneOptions = {}): Town {
   });
   z.fill('calcada', 2, 44, 36, 1);
   z.fill('calcada', 8, 37, 2, 7);
+  // ── tecnologia espalhada (só com a arte do GPT; sem ela o lugar fica com grama) ──
+  // campus atrás dos prédios, ponto de ônibus e bicicletas na rua de baixo, e o
+  // parque tecnológico com a base de drones e as vitrines de robótica
+  const free = (tx: number, ty: number, tw: number) => [...Array(tw).keys()].every(dx => !solid[ty]?.[tx + dx] && z.terrain[ty]?.[tx + dx] === 'grama');
+  const tech: [string, number, number, number, string[]?][] = [
+    ['data-center', 2, 5, 4], ['antena-5g', 7, 4, 2], ['paineis-solares', 39, 5, 3], ['paineis-solares', 42, 5, 3], ['turbina', 50, 4, 3],
+    ['turbina', 54, 3, 3], ['turbina', 58, 4, 3], ['antena-satelite', 66, 6, 3], ['paineis-solares', 62, 5, 3],
+    ['data-center', 66, 31, 4], ['paineis-solares', 63, 20, 3], ['paineis-solares', 67, 19, 3], ['paineis-solares', 4, 23, 3],
+    ['ponto-onibus', 53, 33, 3, ['PONTO DE ÔNIBUS', 'O painel mostra quanto falta para o ônibus chegar: ele manda a posição pela internet (IoT).']],
+    ['estacao-bike', 62, 33, 3], ['carregador-carro', 57, 33, 2], ['lixeira-smart', 51, 33, 1], ['robo-entrega', 56, 30, 1],
+    ['base-drone', 40, 42, 3, ['BASE DE DRONES', 'Os drones da Central de Entregas pousam aqui para trocar a bateria.']],
+    ['totem-info', 41, 38, 2, ['TOTEM DE INFORMAÇÕES', 'Parque Tecnológico da Cidade WIT: robótica, impressão 3D e drones.']],
+    ['impressora-3d', 45, 44, 2], ['braco-robo', 48, 44, 2], ['robo-entrega', 47, 38, 1], ['antena-5g', 52, 44, 2], ['banco-solar', 62, 45, 2],
+    ['reciclagem', 67, 45, 2], ['lixeira-smart', 54, 38, 1],
+  ];
+  for (const [name, tx, ty, tw, lines] of tech) {
+    if (!A[name] || !free(tx, ty, tw)) continue;
+    z.putLit(`${name}-${tx}-${ty}`, z.sprLit(name, () => ({ pix: A[name]!.pix })), tx, ty, tw, 1);
+    if (lines) for (let dx = 0; dx < tw; dx++) z.spot('placa', tx + dx, ty, { lines });
+  }
+
   // parque: árvores, banco na beira do laguinho, fliperama ao ar livre
   const groves: [import('./props').TreeKind, number, number][] = [
     ['redonda', 44, 39], ['florida', 48, 41], ['pinheiro', 52, 38], ['redonda', 64, 38], ['florida', 67, 43],
     ['redonda', 3, 15], ['florida', 3, 20], ['redonda', 64, 17], ['florida', 66, 22], ['redonda', 64, 27], ['florida', 3, 26],
-    ['florida', 12, 25], ['redonda', 16, 25], ['pinheiro', 17, 29], ['redonda', 52, 28], ['florida', 56, 28], ['redonda', 19, 15],
+    ['florida', 12, 25], ['redonda', 16, 25], ['redonda', 52, 28], ['florida', 56, 28], ['redonda', 19, 15],
   ];
   groves.forEach(([k, tx, ty], i) => {
     const ok = [0, 1].every(dy => [0, 1].every(dx => !solid[ty + dy]?.[tx + dx] && z.terrain[ty + dy]?.[tx + dx] === 'grama'));

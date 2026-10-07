@@ -68,7 +68,7 @@ SINGLE.update({
     'estufa': ('estufa', {'w': 96}), 'moinho': ('moinho', {'h': 100}), 'moinho-pas': ('moinho-pas', {'w': 90}),
     'nucleo-wit': ('nucleo-wit', {'w': 192}), 'lab-ia': ('lab-ia', {'w': 112}), 'casa-iot': ('casa-iot', {'w': 96}),
     'metaverso': ('metaverso', {'w': 112}), 'estudio-comunicacao': ('estudio-comunicacao', {'w': 96}),
-    'oficina-games': ('oficina-games', {'w': 112}), 'mercado-central': ('mercado-central', {'w': 160}),
+    'oficina-games': ('oficina-games', {'w': 112}), 'mercado-central': ('mercado-central', {'w': 256}),
     'central-entregas': ('central-entregas', {'w': 112}),
 })
 FISH_IDS = ['lambari', 'tilapia', 'carpa', 'camarao', 'bagre', 'traira', 'piau', 'pacu', 'tucunare', 'dourado',
@@ -108,6 +108,10 @@ SHEETS = {
                     ('arvore-solar', {'h': 48}), ('poste-inteligente', {'h': 32}), ('semaforo', {'h': 32}), ('patinetes', {'w': 32}),
                     ('fliperama', {'h': 26}), ('totem-holo', {'h': 30}), ('banco-solar', {'w': 32}), ('reciclagem', {'w': 32})],
     'wit-objetos-2': [('quadra', {'w': 144}), ('cesta', {'h': 32}), ('canteiro-iot', {'w': 32}), ('estacao-tempo', {'h': 32})],
+    'wit-tech-3': [('data-center', {'w': 64}), ('antena-5g', {'h': 48}), ('turbina', {'h': 48}), ('paineis-solares', {'w': 48}),
+                   ('carregador-carro', {'h': 24}), ('robo-entrega', {'w': 16}), ('totem-info', {'h': 36}), ('ponte-luz', {'w': 32}),
+                   ('impressora-3d', {'w': 36}), ('ponto-onibus', {'w': 40}), ('base-drone', {'w': 44}), ('braco-robo', {'w': 36}),
+                   ('lixeira-smart', {'h': 20}), ('estacao-bike', {'w': 40}), ('estacao-tempo-2', {'h': 32}), ('antena-satelite', {'w': 40})],
     'robo-gari': [('robo-gari', {'h': 18}), ('lixo-lata', {'w': 7}), ('lixo-papel', {'w': 7}), ('lixo-garrafa', {'w': 7})],
     'casinhas-wit': [(n, {'w': 80}) for n in ['casa-coworking', 'estudio-musica', 'atelie', 'moradia-1', 'moradia-2', 'moradia-3', 'moradia-4']],
 }
@@ -198,7 +202,7 @@ def components(alpha, n):
 
 # folhas em grade com objetos muito perto (o agrupamento por vizinhança junta
 # a semente ao broto): corta a área desenhada em colunas x linhas iguais
-GRID = {'peixes': (4, 4), 'plantacoes': (5, 7)}
+GRID = {'peixes': (4, 4), 'plantacoes': (5, 7), 'wit-tech-3': (4, 4)}
 
 
 def grid_boxes(alpha, cols, rows):

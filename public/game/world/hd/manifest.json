@@ -1,4 +1,14 @@
 {
+ "antena-5g": {
+  "h": 96,
+  "noite": true,
+  "w": 57
+ },
+ "antena-satelite": {
+  "h": 89,
+  "noite": true,
+  "w": 80
+ },
  "arbusto": {
   "h": 27,
   "w": 36
@@ -65,9 +75,19 @@
   "h": 37,
   "w": 28
  },
+ "base-drone": {
+  "h": 60,
+  "noite": true,
+  "w": 88
+ },
  "boia": {
   "h": 52,
   "w": 34
+ },
+ "braco-robo": {
+  "h": 63,
+  "noite": true,
+  "w": 72
  },
  "caixa-envio": {
   "h": 72,
@@ -80,6 +100,11 @@
  "canteiro-iot": {
   "h": 43,
   "w": 64
+ },
+ "carregador-carro": {
+  "h": 48,
+  "noite": true,
+  "w": 52
  },
  "carrinho": {
   "h": 21,
@@ -318,6 +343,11 @@
   "h": 36,
   "w": 18
  },
+ "data-center": {
+  "h": 92,
+  "noite": true,
+  "w": 128
+ },
  "drone": {
   "h": 22,
   "noite": true,
@@ -328,9 +358,19 @@
   "noite": true,
   "w": 48
  },
+ "estacao-bike": {
+  "h": 52,
+  "noite": true,
+  "w": 80
+ },
  "estacao-tempo": {
   "h": 64,
   "w": 31
+ },
+ "estacao-tempo-2": {
+  "h": 64,
+  "noite": true,
+  "w": 51
  },
  "estudio-comunicacao": {
   "h": 182,
@@ -388,6 +428,11 @@
   "noite": true,
   "w": 64
  },
+ "impressora-3d": {
+  "h": 60,
+  "noite": true,
+  "w": 72
+ },
  "lab-ia": {
   "h": 215,
   "w": 224
@@ -399,6 +444,11 @@
  "lixeira": {
   "h": 32,
   "w": 22
+ },
+ "lixeira-smart": {
+  "h": 40,
+  "noite": true,
+  "w": 47
  },
  "lixo-garrafa": {
   "h": 8,
@@ -429,9 +479,9 @@
   "w": 32
  },
  "mercado-central": {
-  "h": 132,
+  "h": 211,
   "noite": true,
-  "w": 320
+  "w": 512
  },
  "mesa-piquenique": {
   "h": 47,
@@ -497,6 +547,11 @@
  "ovelha-esq": {
   "h": 28,
   "w": 32
+ },
+ "paineis-solares": {
+  "h": 51,
+  "noite": true,
+  "w": 96
  },
  "palacio-cartas": {
   "h": 139,
@@ -755,6 +810,16 @@
   "noite": true,
   "w": 128
  },
+ "ponte-luz": {
+  "h": 56,
+  "noite": true,
+  "w": 64
+ },
+ "ponto-onibus": {
+  "h": 66,
+  "noite": true,
+  "w": 80
+ },
  "portal": {
   "h": 95,
   "noite": true,
@@ -787,6 +852,11 @@
   "h": 32,
   "noite": true,
   "w": 26
+ },
+ "robo-entrega": {
+  "h": 50,
+  "noite": true,
+  "w": 32
  },
  "robo-frente": {
   "h": 32,
@@ -839,9 +909,19 @@
   "noite": true,
   "w": 39
  },
+ "totem-info": {
+  "h": 72,
+  "noite": true,
+  "w": 67
+ },
  "tulipas": {
   "h": 27,
   "w": 32
+ },
+ "turbina": {
+  "h": 96,
+  "noite": true,
+  "w": 98
  },
  "vaca-dir": {
   "h": 31,
