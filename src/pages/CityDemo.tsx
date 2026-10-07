@@ -38,6 +38,7 @@ import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/worl
 import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
 import { cloudEnabled, pullProgress } from '@/game/cloud';
+import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
 import { Radio } from '@/components/city/Radio';
 import { VehicleShop } from '@/components/city/VehicleShop';
 import { poseFrames } from '@/game/world/model-sprite';
@@ -58,7 +59,7 @@ import { LookEditor } from '@/components/city/LookEditor';
 import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS, type NpcDef } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 import { drawAmbient } from '@/game/world/ambient';
-import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
+import { PLATE_FALA, PLATE_NPC, PLATE_OTHER, PLATE_PLAYER } from '@/game/world/nameplate';
 import { drawJob, jobBob, propsBehind } from '@/game/world/jobs';
 
 /**
@@ -352,6 +353,11 @@ function CityView({ town, start, startHour, onTravel }: {
     /** Apelido e título do jogador (na plaquinha). */
     nick: 'Você',
     playerTitle: 'Novato' as string | undefined,
+    /** Colegas na mesma área (só com o banco ligado): andam até o bloco que avisaram. */
+    peers: new Map<string, { st: PeerState; w: Walker; path: Dir[]; frames: Frames | null }>(),
+    link: null as ZoneLink | null,
+    /** Balão do jogador (frase pronta) e quando apareceu. */
+    fala: null as { i: number; t: number } | null,
     petFrames: null as Frames | null,
     /** Chão + todos os objetos já compostos (desenhado de uma vez). */
     scene: null as HTMLCanvasElement | null,
@@ -428,6 +434,37 @@ function CityView({ town, start, startHour, onTravel }: {
     pullProgress(loadProgress()).then(p => { saveProgress(p); setProgress(p); }).catch(err => console.error('banco', err));
   }, []);
 
+  // cidade compartilhada (só com VITE_WIT2_DB=1): cada colega da área vira um boneco
+  useEffect(() => {
+    if (!cloudEnabled()) return;
+    const s = g.current;
+    const wall = (x: number, y: number) => y < 0 || x < 0 || y >= town.solid.length || x >= town.solid[0].length || town.solid[y][x];
+    const me: PeerState = { id: tabId(), nick: s.nick, title: s.playerTitle, look, tx: s.player.tx, ty: s.player.ty, dir: s.player.dir };
+    let alive = true;
+    joinZone(town.id, me, list => {
+      const seen = new Set<string>();
+      for (const st of list) {
+        seen.add(st.id);
+        const cur = s.peers.get(st.id);
+        if (!cur) {
+          const peer = { st, w: newWalker(st.tx, st.ty, st.dir), path: [] as Dir[], frames: null as Frames | null };
+          s.peers.set(st.id, peer);
+          loadLookFrames(normalizeLook(st.look)).then(f => { peer.frames = f; s.dirty = true; }).catch(() => undefined);
+        } else {
+          cur.st = st;
+          const path = findPath(cur.w.tx, cur.w.ty, st.tx, st.ty, wall, 1500);
+          // longe demais ou sem caminho: aparece direto no bloco
+          if ((!path.length && (cur.w.tx !== st.tx || cur.w.ty !== st.ty)) || path.length > 24) { cur.w = newWalker(st.tx, st.ty, st.dir); cur.path = []; }
+          else cur.path = path;
+        }
+      }
+      for (const id of [...s.peers.keys()]) if (!seen.has(id)) s.peers.delete(id);
+      s.dirty = true;
+    }).then(link => { if (alive) s.link = link; else link?.leave(); }).catch(err => console.error('presença', err));
+    return () => { alive = false; s.link?.leave(); s.link = null; s.peers.clear(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // emotes (só os modelos que já têm a folha do GPT)
   useEffect(() => {
     let alive = true;
@@ -445,6 +482,13 @@ function CityView({ town, start, startHour, onTravel }: {
     s.riding = v; s.dirty = true; play('super');
     setFishUi({ kind: 'toast', text: `${v.name}: mais rápido na rua. V para descer.` });
   }, [town]);
+  const [falaOpen, setFalaOpen] = useState(false);
+  const say = useCallback((i: number) => {
+    const s = g.current;
+    s.fala = { i, t: Date.now() }; s.dirty = true;
+    s.link?.say(i);
+    setFalaOpen(false);
+  }, []);
   const emote = useCallback((row?: number) => {
     const s = g.current;
     if (!s.emotes || s.inside || s.modal || s.player.from) return;
@@ -1066,6 +1110,16 @@ function CityView({ town, start, startHour, onTravel }: {
         onStep: from => { if (!s.sailing) petQueue.push(from); if (!s.held.length) s.path.shift(); s.dirty = true; },
         onArrive: onStepDone,
       });
+      s.link?.move(p.tx, p.ty, p.dir);
+      for (const peer of s.peers.values()) {
+        tick(peer.w, dt, {
+          msPerTile: WALK_MS, blocked: () => false, fromPath: true,
+          want: () => peer.path[0] ?? null,
+          onStep: () => { peer.path.shift(); },
+          onArrive: () => { if (!peer.path.length) peer.w.dir = peer.st.dir; },
+        });
+        if (peer.w.from) s.dirty = true;
+      }
       // pesca: a boia cai, espera, o peixe morde; sem resposta, ele foge
       const fi = s.fish;
       cv.dataset.pesca = fi?.phase ?? '';   // (para os testes de navegador)
@@ -1605,6 +1659,7 @@ function CityView({ town, start, startHour, onTravel }: {
         const dir = n.w.dir;
         list.push({ baseY: pos.y + 16 + (propsBehind(dir) ? -0.01 : 0.01), draw: () => drawJob(ctx, job.kind, cx, fy, dir, st) });
       }
+      for (const peer of s.peers.values()) person(peer.w, peer.frames);
       person(p, s.playerFrames);
       for (const { o, cs, ns } of s.anims) {
         const f = (Math.floor(now / (o.frameMs ?? 500)) + (o.phase ?? 0)) % cs.length;
@@ -1658,8 +1713,14 @@ function CityView({ town, start, startHour, onTravel }: {
         ctx.drawImage(c, x, y, pw, ph);
       };
       plateAt(p, plateCanvas(s.nick, s.playerTitle, PLATE_PLAYER));
+      if (s.fala && Date.now() - s.fala.t < FALA_MS) { plateAt(p, plateCanvas(FALAS[s.fala.i], undefined, PLATE_FALA)); s.dirty = true; }
       for (const n of s.npcs) {
         if (Math.abs(n.w.tx - p.tx) + Math.abs(n.w.ty - p.ty) <= 3) plateAt(n.w, plateCanvas(n.def.name, n.def.title, PLATE_NPC));
+      }
+      for (const peer of s.peers.values()) {
+        plateAt(peer.w, plateCanvas(peer.st.nick, peer.st.title, PLATE_OTHER));
+        const f = peer.st.fala;
+        if (f && Math.abs(Date.now() - f.t) < FALA_MS) { plateAt(peer.w, plateCanvas(FALAS[f.i], undefined, PLATE_FALA)); s.dirty = true; }
       }
       // drones voando por cima de tudo
       if (s.droneCanvases) for (const d of s.drones) {
@@ -1761,6 +1822,18 @@ function CityView({ town, start, startHour, onTravel }: {
           className={`px-3 py-2 rounded-md bg-[#6a4a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MOCHILA</button>
         <button onClick={takePhoto} title="Tirar foto (F)"
           className={`px-3 py-2 rounded-md bg-[#c84a6a]/90 border-2 border-[#ffb0c4] text-white text-[10px] ${pixelFont}`}>FOTO</button>
+        <span className="relative">
+          <button onClick={() => setFalaOpen(o => !o)} title="Falar uma frase"
+            className={`px-3 py-2 rounded-md bg-[#2a7a8a]/90 border-2 border-[#90e0f0] text-white text-[10px] ${pixelFont}`}>FALAR</button>
+          {falaOpen && (
+            <span className="absolute right-0 top-full mt-1 z-20 flex flex-col gap-1 p-1.5 rounded-md bg-[#1c2a30]/95 border-2 border-[#90e0f0] w-40">
+              {FALAS.map((t, i) => (
+                <button key={t} onClick={() => say(i)}
+                  className={`text-left px-2 py-1 rounded bg-white/10 hover:bg-white/25 text-white text-[10px] ${pixelFont}`}>{t}</button>
+              ))}
+            </span>
+          )}
+        </span>
         <button onClick={() => emote()} title="Emote (teclas 1 a 4)"
           className={`px-3 py-2 rounded-md bg-[#b0721e]/90 border-2 border-[#f0c870] text-white text-[10px] ${pixelFont}`}>EMOTE</button>
         <Radio className={`px-3 py-2 rounded-md bg-[#6a2a8a]/90 border-2 border-[#d0a0f0] text-white text-[10px] ${pixelFont}`} />

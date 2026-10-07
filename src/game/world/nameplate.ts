@@ -14,6 +14,8 @@ export interface PlateStyle {
 export const PLATE_PLAYER: PlateStyle = { border: hex('#8cc63f'), title: hex('#c6f06a') };
 export const PLATE_NPC: PlateStyle = { border: hex('#f0c850'), title: hex('#ffe08a') };
 export const PLATE_OTHER: PlateStyle = { border: hex('#7ab8ff'), title: hex('#b8dcff') };
+/** Balão de fala (frase pronta) em cima da plaquinha. */
+export const PLATE_FALA: PlateStyle = { border: hex('#ffffff'), title: hex('#ffffff') };
 
 /** Plaquinha em hd; a base (ponta de baixo) fica no meio embaixo da imagem. */
 export function nameplate(name: string, title: string | undefined, st: PlateStyle): Pixmap {

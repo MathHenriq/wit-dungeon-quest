@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { decodeDeck, encodeDeck } from '@/lib/tcg/deck-code';
 import { RoomRewards } from '@/components/packs/RoomRewards';
 import { shownTitle } from '@/game/titles';
 import { hasTalent } from '@/game/grimoire';
@@ -164,6 +165,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const [lift, setLift] = useState(false);
   /** Sentado esperando outro aluno (PvP). */
   const [waiting, setWaiting] = useState(false);
+  const [pvpCode, setPvpCode] = useState('');
+  const [pvpMsg, setPvpMsg] = useState<string | null>(null);
   /** Balcão de quem vende (Dona Ana). */
   const [shopOf, setShopOf] = useState<RoomNpc | null>(null);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
@@ -807,7 +810,24 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
           <div className="text-[11px] text-[#b8ff7a]">{room.id === 'oficina' ? 'MESA DE TROCAS · ESPERANDO UM COLEGA' : 'MESA LIVRE · ESPERANDO UM DESAFIANTE'}<span className="animate-pulse">...</span></div>
           <div className="text-[8px] leading-5 text-white/80 mt-2">{room.id === 'oficina'
             ? 'Quando um colega sentar na sua frente, vocês veem a coleção um do outro e podem pedir uma troca. (Liga quando o servidor da turma estiver pronto.)'
-            : 'Quando outro aluno entrar na Arena e sentar na sua frente, o duelo começa. (O jogo entre alunos liga quando o servidor da turma estiver pronto.)'}</div>
+            : 'Desafie um colega agora: ele copia o código do deck dele e você cola aqui. A IA joga com o deck exato dele. Para ser desafiado, passe o SEU código.'}</div>
+          {room.id !== 'oficina' && (
+            <div className="mt-2 flex flex-wrap gap-2 items-center">
+              <button onClick={() => { const c = encodeDeck(look.apelido || 'Colega', progress.decks[progress.activeDeck] ?? []); navigator.clipboard?.writeText(c).catch(() => undefined); setPvpMsg('Seu código foi copiado. Mande para o colega!'); }}
+                className="px-3 py-2 rounded bg-[#3a78c8] text-[9px]">COPIAR MEU CÓDIGO</button>
+              <input value={pvpCode} onChange={e => setPvpCode(e.target.value)} placeholder="cole o código do colega" className="flex-1 min-w-[160px] px-2 py-2 rounded bg-white text-[#2e2a40] text-[9px]" />
+              <button onClick={() => {
+                const d = decodeDeck(pvpCode);
+                if ('reason' in d) { setPvpMsg(d.reason); return; }
+                const counts = new Map<string, number>();
+                for (const c of d.cards) counts.set(c.element, (counts.get(c.element) ?? 0) + 1);
+                const element = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0] as Foe['element'];
+                setDuel({ sprite: 'npc-desafiante-07', foe: { id: `pvp-${d.nick}`, name: d.nick, kind: 'mesa', andar: progress.andar, element, life: 150, ai: 3, deck: d.cards, coins: 0 } });
+                setPvpMsg(null); setPvpCode('');
+              }} className="px-3 py-2 rounded bg-[#e8485a] text-[9px]">DESAFIAR</button>
+            </div>
+          )}
+          {pvpMsg && <div className="mt-2 text-[8px] text-[#ffd84a]">{pvpMsg}</div>}
           <button onClick={standUp} className="mt-3 px-3 py-2 rounded bg-[#4a4660] text-[9px]">LEVANTAR</button>
         </div>
       )}
@@ -911,6 +931,13 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
           nick={look.apelido || 'Você'}
           onQuit={() => setDuel(null)}
           onEnd={won => {
+            // duelo contra o deck de um colega (código): não rende moedas, conta no placar de PvP
+            if (duel.foe.id.startsWith('pvp-')) {
+              const next = { ...progress, stats: { ...progress.stats, [won ? 'pvpVitorias' : 'pvpDerrotas']: (progress.stats[won ? 'pvpVitorias' : 'pvpDerrotas'] ?? 0) + 1 } };
+              saveProgress(next); setProgress(next);
+              setDuel(d => (d ? { ...d, result: { won, coins: 0, firstWin: false } } : d));
+              return;
+            }
             const { progress: next, result } = applyDuel(progress, duel.foe, won, Math.random());
             if (next !== progress) { saveProgress(next); setProgress(next); }
             setDuel(d => (d ? { ...d, result } : d));
