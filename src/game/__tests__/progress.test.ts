@@ -93,3 +93,22 @@ describe('progresso', () => {
     expect(s.mat).toBe('classico');
   });
 });
+
+describe('prêmio exclusivo do chefe', () => {
+  it('o chefe do andar 10 dá a coroa só na primeira vitória; acessórios livres continuam livres', async () => {
+    const { canWear } = await import('../boss-prizes');
+    const p = { ...newProgress(), towerMax: 10, andar: 10 };
+    expect(canWear('coroa', p.premios)).toBe(false);
+    expect(canWear('bone', p.premios)).toBe(true);
+    const a = applyDuel(p, bossFoe(10, 'Chefe'), true, 0.3);
+    expect(a.result.premio).toBe('coroa');
+    expect(canWear('coroa', a.progress.premios)).toBe(true);
+    const b = applyDuel(a.progress, bossFoe(10, 'Chefe'), true, 0.3);
+    expect(b.result.premio).toBeUndefined();
+    expect(b.progress.premios).toEqual(['coroa']);
+    // andar sem prêmio
+    expect(applyDuel(newProgress(), bossFoe(3, 'Chefe'), true, 0.3).result.premio).toBeUndefined();
+    // salvo e lido de volta
+    expect(sanitizeProgress(JSON.parse(JSON.stringify(a.progress))).premios).toEqual(['coroa']);
+  });
+});

@@ -85,7 +85,7 @@ export interface Exit { tx: number; ty: number; to: ExitKind }
 export interface Talk {
   tiles: [number, number][]; lines: string[];
   /** Abre uma tela em vez de só falar: o elevador da Torre, sentar numa mesa vazia (PvP). */
-  action?: 'elevador' | 'sentar' | 'pacotes';
+  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas';
   /** Mesa vazia: o bloco da cadeira (onde o aluno senta). */
   seat?: [number, number];
 }
@@ -598,7 +598,8 @@ export function shopRoom(): Room {
   const talks: Talk[] = [];
   for (const [id, tx, ty, text] of stores) {
     items.push({ id, tx, ty });
-    talks.push({ tiles: area(tx, ty, 6, 3), lines: [text, 'Esta loja abre em breve.'] });
+    // a Troca de prêmios já funciona (Recompensas da Sala); as outras abrem depois
+    talks.push(id === 'loja-premios' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'recompensas' } : { tiles: area(tx, ty, 6, 3), lines: [text, 'Esta loja abre em breve.'] });
   }
   // a estrela: a loja de pacotinhos no meio, de frente para a porta
   items.push({ id: 'loja-pacotinhos', tx: 13, ty: 12 });

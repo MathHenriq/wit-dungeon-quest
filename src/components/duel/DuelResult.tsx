@@ -9,6 +9,8 @@ import { play } from '@/game/sfx';
  */
 const pixel = "font-['Press_Start_2P',monospace]";
 
+const ACC_NAME: Record<string, string> = { coroa: 'COROA', 'oculos-aviador': 'ÓCULOS DE AVIADOR', 'orelhas-gato': 'ORELHAS DE GATO', 'coroa-flores': 'COROA DE FLORES', fone: 'FONE' };
+
 export function DuelResult({ result, coinsNow, onBack }: { result: Result; coinsNow: number; onBack: () => void }) {
   const [shown, setShown] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -69,6 +71,7 @@ export function DuelResult({ result, coinsNow, onBack }: { result: Result; coins
             </div>
           )}
           {result.unlocked && <div className="mt-4 text-[10px] text-lime-300">ANDAR {result.unlocked} LIBERADO! A ESCADA ESTÁ ABERTA.</div>}
+          {result.premio && <div className="mt-2 text-[10px] text-yellow-300">PRÊMIO EXCLUSIVO DO CHEFE: {ACC_NAME[result.premio] ?? result.premio.toUpperCase()}! Use no VISUAL.</div>}
         </>
       ) : (
         <div className="mt-4 text-[10px] leading-5 text-white/80">Tente de novo! Dica: monte o deck no botão DECK e guarde os bônus para o ataque certo.</div>

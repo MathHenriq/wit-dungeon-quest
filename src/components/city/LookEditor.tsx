@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { canWear, prizeFloor } from '@/game/boss-prizes';
+import { loadProgress } from '@/game/progress';
 import { PxPanel } from '@/components/pixel/Pixel';
 import { CLOTH, DEFAULT_PET, HAIR, MODEL_CELL, MODELOS, SKIN, type Look, type Ramp } from '@/game/world/outfit';
 import { loadModelSheet, paintModel } from '@/game/world/model-sprite';
@@ -99,6 +101,7 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
   const [tick, setTick] = useState(0);
   const pets = usePets();
   const [acc, setAcc] = useState<AccAssets | null>(null);
+  const [premios] = useState(() => loadProgress().premios);
   useEffect(() => {
     let alive = true;
     loadAccessories().then(a => { if (alive) setAcc(a); }).catch(err => console.error('acessórios', err));
@@ -176,13 +179,18 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
                   <div className="flex flex-wrap gap-1.5">
                     <button onClick={() => wear(null)} aria-label={`${nome} nenhum`}
                       className={`w-11 h-10 rounded-md border-2 bg-white text-[8px] text-[#2f6b1e] ${!cur ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}>—</button>
-                    {ids.map(id => (
-                      <button key={id} title={acc.manifest[id].nome} aria-label={acc.manifest[id].nome}
-                        onClick={() => wear({ id, cor: cur?.cor })}
-                        className={`w-11 h-10 rounded-md border-2 bg-white flex items-center justify-center ${cur?.id === id ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}>
-                        <AccThumb acc={acc} id={id} cor={cur?.id === id ? cur.cor : undefined} />
-                      </button>
-                    ))}
+                    {ids.map(id => {
+                      // prêmio de chefe ainda não ganho: aparece trancado, com o andar
+                      const lock = !canWear(id, premios);
+                      return (
+                        <button key={id} title={lock ? `Prêmio do chefe do andar ${prizeFloor(id)}` : acc.manifest[id].nome} aria-label={acc.manifest[id].nome}
+                          onClick={() => !lock && wear({ id, cor: cur?.cor })} disabled={lock}
+                          className={`relative w-11 h-10 rounded-md border-2 bg-white flex items-center justify-center ${cur?.id === id ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'} ${lock ? 'opacity-50' : ''}`}>
+                          <AccThumb acc={acc} id={id} cor={cur?.id === id ? cur.cor : undefined} />
+                          {lock && <span className="absolute -bottom-1 -right-1 px-0.5 rounded bg-[#2e2a40] text-white text-[6px]">A{prizeFloor(id)}</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                   {cur && !acc.manifest[cur.id]?.fixo && (
                     <div className="flex flex-wrap gap-1 mt-1.5">

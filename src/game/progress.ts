@@ -3,6 +3,8 @@
 // banco do WIT 2 existir, estas mesmas funções passam a ler e gravar lá.
 // As regras (quanto rende uma vitória, quando o chefe libera) são puras e
 // testadas; só `loadProgress`/`saveProgress` tocam no navegador.
+import type { Ticket } from './room-rewards';
+import { prizeFor } from './boss-prizes';
 import { deckSlots, TALENT_BY_ID, type GrimId } from './grimoire';
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { maxCopies, rewardFor, starterCollection, starterDeck, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opponents';
@@ -89,6 +91,10 @@ export interface Progress {
   caminho?: PathId;
   /** Trabalho de campo em andamento (fieldwork.ts): qual, semente, pontos feitos e quando começou. */
   campo?: { job: string; seed: number; feitos: number[]; ini: number };
+  /** Acessórios exclusivos ganhos dos chefes (boss-prizes.ts). */
+  premios: string[];
+  /** Recompensas da Sala compradas (room-rewards.ts): esperando ou já entregues. */
+  tickets: Ticket[];
 }
 
 export function newProgress(): Progress {
@@ -118,6 +124,8 @@ export function newProgress(): Progress {
     grimorio: [],
     pacotes: {},
     desenhos: [],
+    premios: [],
+    tickets: [],
   };
 }
 
@@ -197,6 +205,9 @@ export function sanitizeProgress(raw: unknown): Progress {
     grimorio: Array.isArray(r.grimorio) ? [...new Set((r.grimorio as unknown[]).filter((x): x is GrimId => typeof x === 'string' && TALENT_BY_ID.has(x as GrimId)))] : [],
     verso: r.verso === 'dourado' || r.verso === 'noite' || r.verso === 'classico' ? r.verso : undefined,
     limpeza: (() => { const l = r.limpeza as Record<string, unknown> | undefined; return l && typeof l === 'object' ? { day: num(l.day, 0), n: num(l.n, 0, 0, 999) } : undefined; })(),
+    tickets: Array.isArray(r.tickets) ? (r.tickets as Record<string, unknown>[]).filter(t => t && typeof t.code === 'string' && typeof t.reward === 'string' && /^[A-Z0-9]{4}$/.test(t.code as string)).slice(0, 30)
+      .map(t => ({ code: t.code as string, reward: (t.reward as string).slice(0, 30), preco: num(t.preco, 0, 0, 1e6), dia: num(t.dia, 0), ...(t.entregue !== undefined ? { entregue: num(t.entregue, 0) } : {}) })) : [],
+    premios: Array.isArray(r.premios) ? [...new Set((r.premios as unknown[]).filter((x): x is string => typeof x === 'string' && /^[a-z-]{1,30}$/.test(x)))].slice(0, 50) : [],
     desenhos: Array.isArray(r.desenhos) ? (r.desenhos as unknown[]).filter((d): d is string => typeof d === 'string' && /^[0-9a-f]{256}$/.test(d)).slice(0, 12) : [],
     pacotes: (() => {
       const o: Record<string, number> = {};
@@ -314,6 +325,8 @@ export interface DuelResult {
   card?: CardDef;
   /** Andar liberado agora (vencer o chefe pela primeira vez). */
   unlocked?: number;
+  /** Acessório exclusivo ganho agora (chefe de 10 em 10 andares, só na primeira vitória). */
+  premio?: string;
   firstWin: boolean;
 }
 
@@ -332,6 +345,11 @@ export function applyDuel(p: Progress, foe: Foe, won: boolean, pick: number): { 
     const card = foe.deck[Math.floor(Math.abs(pick) * foe.deck.length) % foe.deck.length];
     next.collection[card.id] = (next.collection[card.id] ?? 0) + 1;
     result.card = card;
+    const premio = prizeFor(foe.andar);
+    if (premio && !p.premios.includes(premio)) {
+      next.premios = [...p.premios, premio];
+      result.premio = premio;
+    }
     if (next.towerMax <= foe.andar && foe.andar < 100) {
       next.towerMax = foe.andar + 1;
       result.unlocked = foe.andar + 1;

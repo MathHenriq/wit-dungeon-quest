@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RoomRewards } from '@/components/packs/RoomRewards';
 import { shownTitle } from '@/game/titles';
 import { hasTalent } from '@/game/grimoire';
 import { towerBoss } from '@/lib/tcg/bosses';
@@ -167,9 +168,9 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const [shopOf, setShopOf] = useState<RoomNpc | null>(null);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
   /** Loja de pacotinhos ou forja abertas (?painel=pacotes|forja abre direto). */
-  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | null>(() => {
+  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('painel');
-    return q === 'pacotes' || q === 'forja' ? q : null;
+    return q === 'pacotes' || q === 'forja' || q === 'recompensas' ? q : null;
   });
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
   const [housePanel, setHousePanel] = useState<HousePanel | null>(null);
@@ -436,6 +437,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     }
     if (talk?.action === 'elevador') { S.held = []; setLift(true); return; }
     if (talk?.action === 'pacotes') { S.held = []; setPanelOpen('pacotes'); return; }
+    if (talk?.action === 'recompensas') { S.held = []; setPanelOpen('recompensas'); return; }
     if (talk?.action === 'sentar' && talk.seat) {
       // senta na cadeira da mesa vazia e espera um colega sentar na frente
       S.sit = { tx: talk.seat[0], ty: talk.seat[1], from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
@@ -815,6 +817,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
           onOpen={setHousePanel} onDeck={() => { setHousePanel(null); setDeckOpen(true); }} />
       )}
       {panelOpen === 'pacotes' && <PackShop progress={progress} onClose={() => setPanelOpen(null)} />}
+      {panelOpen === 'recompensas' && <RoomRewards progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {shopOf && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 p-3" onPointerDown={() => setShopOf(null)}>

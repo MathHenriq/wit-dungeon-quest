@@ -96,15 +96,25 @@ Só existem **duas** formas (decidido):
 
 Não existe mais loja de cartas. O deck inicial do aluno também sai de pacotinhos (comuns e incomuns, com trava de jogabilidade: elemento da classe + cartas baratas suficientes).
 
-### Pacotinho (proposta, **[aberto]**)
+### Pacotinho (implementado em `src/game/packs.ts`; valores ajustáveis)
 
-5 cartas por pacotinho:
+6 pacotinhos à venda na Loja (o 7º, Desconhecido, só sai de prêmio). Cada
+um tem **5 cartas**: 4 de base e 1 destaque, que é no mínimo da raridade do
+nome, com chance pequena de vir acima.
 
-| Posição | Conteúdo |
-|---|---|
-| 1–3 | Comum |
-| 4 | Incomum |
-| 5 | Rara ou melhor: Rara 70% · Épica 20% · Lendária 7% · Mítica 2,5% · Desconhecida 0,5% |
+| Pacotinho | Preço | 4 de base | Destaque |
+|---|---|---|---|
+| Comum | 300 | Comum 80% · Incomum 20% | Comum 60 · Incomum 25 · Rara 12 · Épica 2,5 · Lendária 0,5 |
+| Incomum | 700 | Comum 60% · Incomum 40% | Incomum 75 · Rara 20 · Épica 4 · Lendária 1 |
+| Raro | 1.500 | Comum 50% · Incomum 50% | Rara 80 · Épica 16 · Lendária 3 · Mítica 1 |
+| Épico | 4.000 | Incomum 60% · Rara 40% | Épica 85 · Lendária 12 · Mítica 2,5 · Desconhecida 0,5 |
+| Lendário | 10.000 | Rara 60% · Épica 40% | Lendária 90 · Mítica 9 · Desconhecida 1 |
+| Mítico | 25.000 | Épica 60% · Lendária 40% | Mítica 98 · Desconhecida 2 |
+
+**Garantia:** 10 pacotinhos seguidos sem Épica ou melhor → o destaque do
+próximo é Épica ou melhor (`progress.semEpica`). A proposta antiga
+(3 Comuns + 1 Incomum + 1 Rara ou melhor) é o Pacotinho Raro de hoje com a
+base um pouco melhor. O professor dá pacotinhos pela aula (Aula de hoje).
 
 ## Raridade
 
