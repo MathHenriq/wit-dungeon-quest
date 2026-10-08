@@ -134,6 +134,18 @@ export async function flush(): Promise<void> {
 /** Depois de uma operação de valor: o saldo do servidor passa a ser o conhecido. */
 const known = (coins: number | undefined) => { if (typeof coins === 'number') base = coins; };
 
+/**
+ * Depois de algo que mexeu nos valores no servidor (troca, Vitrine): traz só
+ * moedas, cartas, pó e pacotes (o resto do progresso local fica).
+ */
+export async function refreshValues(p: Progress): Promise<Progress> {
+  if (!cloudEnabled()) return p;
+  await flush();
+  const s = await rpc<ServerSnapshot>('wit2_load');
+  base = s.coins;
+  return { ...p, coins: s.coins, po: s.po ?? {}, semEpica: s.semEpica ?? 0, collection: s.collection ?? p.collection, pacotes: s.pacotes ?? {} };
+}
+
 // ─── operações de valor (com a chave ligada, só o servidor muda cartas e pó) ──
 
 type OpenOk = { ok: true; progress: Progress; result: PackResult; fresh: Set<string> };

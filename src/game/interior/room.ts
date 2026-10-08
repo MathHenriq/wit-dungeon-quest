@@ -85,7 +85,7 @@ export interface Exit { tx: number; ty: number; to: ExitKind }
 export interface Talk {
   tiles: [number, number][]; lines: string[];
   /** Abre uma tela em vez de só falar: o elevador da Torre, sentar numa mesa vazia (PvP). */
-  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas';
+  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas';
   /** Mesa vazia: o bloco da cadeira (onde o aluno senta). */
   seat?: [number, number];
 }
@@ -662,7 +662,7 @@ export function workshopRoom(): Room {
     ],
     talks: [
       { tiles: area(15, 9, 2, 1), lines: ['O álbum aberto mostra quais cartas você já tem e quais faltam. (Em breve.)'] },
-      { tiles: area(13, 15, 2, 1), lines: ['Mural de ofertas: "Troco Mítica por 3 Raras!" (ofertas dos colegas em breve).'] },
+      { tiles: area(13, 15, 2, 1), lines: ['Mural de ofertas da turma.'], action: 'trocas' },
       // mesas de troca vazias: senta e espera um colega (vê a coleção dele e pede troca)
       { tiles: area(6, 8, 3, 2), lines: ['Mesa de trocas livre.'], action: 'sentar', seat: [7, 7] },
       { tiles: area(1, 12, 4, 2), lines: ['Mesa de trocas livre.'], action: 'sentar', seat: [2, 11] },

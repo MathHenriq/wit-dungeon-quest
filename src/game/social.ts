@@ -108,3 +108,44 @@ export const guildHit = () => (cloudEnabled() ? rpc<{ bossHp: number } | null>('
 export interface ReportRow { id: number; reason: ReportReason; at: string; alvo: string; alvoApelido: string | null; quem: string }
 export const teacherReports = () => (cloudEnabled() ? rpcTeacher<ReportRow[]>('wit2_teacher_reports') : Promise.resolve<ReportRow[]>([]));
 export const teacherResolve = (id: number, action: 'ok' | 'silenciar' | 'apelido') => rpcTeacher<boolean>('wit2_teacher_resolve', { p_report: id, p_action: action });
+
+// ─── trocas, Vitrine e Mercado da turma (supabase/migrations/*_wit2_trades.sql) ──
+export interface TradeRow {
+  id: number; eu: 'ofereci' | 'recebi'; com: { handle: string; nick: string } | null;
+  daCards: Record<string, number>; daCoins: number; recebeCards: Record<string, number>; recebeCoins: number;
+  status: 'aberta' | 'feita' | 'recusada' | 'cancelada'; aberta: boolean; at: string;
+}
+export interface Listing { id: number; card: string; price: number; minha: boolean; nick: string | null; at: string }
+
+const DEMO_TRADES: TradeRow[] = [
+  { id: 1, eu: 'recebi', com: { handle: 'demo-lia', nick: 'Lia' }, daCards: { 'excalibur-de-arthur': 1 }, daCoins: 0, recebeCards: { 'mago-negro': 1 }, recebeCoins: 30, status: 'aberta', aberta: true, at: '' },
+  { id: 2, eu: 'ofereci', com: { handle: 'demo-rafa', nick: 'Rafa' }, daCards: { enma: 2 }, daCoins: 0, recebeCards: { disaster: 1 }, recebeCoins: 0, status: 'aberta', aberta: true, at: '' },
+];
+const DEMO_VITRINE: Listing[] = [
+  { id: 1, card: 'disaster', price: 140, minha: false, nick: 'Rafa', at: '' },
+  { id: 2, card: 'gura-gura-no-mi', price: 180, minha: false, nick: 'Lia', at: '' },
+  { id: 3, card: 'enma', price: 35, minha: true, nick: 'Você', at: '' },
+];
+
+const TRADE_ERRORS: Record<string, string> = {
+  'troca inválida': 'Troca inválida.', 'ofertas demais': 'Você já tem 5 ofertas abertas.', 'só cartas repetidas': 'Só cartas repetidas entram.',
+  'troca não encontrada': 'Essa troca não está mais aberta.', 'troca não vale mais': 'Alguém já não tem o que prometeu: a troca foi cancelada.',
+  'preço fora da faixa': 'Preço fora da faixa da raridade.', 'vitrine cheia': 'Você já tem 5 cartas à venda.', 'já foi vendida': 'Alguém comprou antes.',
+  'moedas insuficientes': 'Moedas insuficientes.', 'colega não encontrado': 'Colega não encontrado.',
+};
+export const tradeError = (e: unknown) => TRADE_ERRORS[e instanceof Error ? e.message : ''] ?? socialError(e);
+
+export const tradeView = (handle: string) => call<{ nick: string; spare: Record<string, number> }>('wit2_trade_view', { p_handle: handle },
+  () => ({ nick: DEMO_PEOPLE.find(p => p.handle === handle)?.nick ?? 'Colega', spare: { 'mago-negro': 1, disaster: 2, 'gura-gura-no-mi': 1 } }));
+export const tradeOffer = (handle: string, give: Record<string, number>, giveCoins: number, want: Record<string, number>, wantCoins: number) =>
+  call<number>('wit2_trade_offer', { p_handle: handle, p_give: give, p_give_coins: giveCoins, p_want: want, p_want_coins: wantCoins }, () => 3);
+export const tradeAnswer = (id: number, accept: boolean) => call<string>('wit2_trade_answer', { p_id: id, p_accept: accept }, () => (accept ? 'feita' : 'recusada'));
+export const tradeCancel = (id: number) => call<boolean>('wit2_trade_cancel', { p_id: id }, () => true);
+export const tradesMine = () => call<TradeRow[]>('wit2_trades_mine', undefined, () => DEMO_TRADES);
+export const vitrine = () => call<Listing[]>('wit2_vitrine', undefined, () => DEMO_VITRINE);
+export const listCard = (card: string, price: number) => call<number>('wit2_list_card', { p_card: card, p_price: price }, () => 9);
+export const unlist = (id: number) => call<boolean>('wit2_unlist', { p_id: id }, () => true);
+export const buyListing = (id: number) => call<{ card: string; coins: number }>('wit2_buy_listing', { p_id: id }, () => ({ card: DEMO_VITRINE.find(l => l.id === id)?.card ?? 'enma', coins: 0 }));
+/** Mercado da turma: quanto cada item está "cheio" hoje (null offline). */
+export const marketState = () => (cloudEnabled() ? rpc<{ day: number; sat: Record<string, number> }>('wit2_market_state').catch(() => null) : Promise.resolve(null));
+export const marketSold = (item: string, n: number) => (cloudEnabled() ? rpc<{ day: number; sat: Record<string, number> }>('wit2_market_sold', { p_item: item, p_n: Math.min(50, n) }).catch(() => null) : Promise.resolve(null));

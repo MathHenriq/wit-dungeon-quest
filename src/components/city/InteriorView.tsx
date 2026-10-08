@@ -35,6 +35,7 @@ import {
 import { cloudBossCard, cloudEnabled } from '@/game/cloud';
 import { guildHit, saveHouse } from '@/game/social';
 import { GuildPanel } from '@/components/social/GuildPanel';
+import { TradeHub } from '@/components/social/TradeHub';
 import {
   drawSeated, loadImage, loadLookFrames, loadNpcFrames, loadPetFrames, plateCanvas, R, type Frames,
 } from '@/game/world/sprites';
@@ -176,9 +177,9 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const [shopOf, setShopOf] = useState<RoomNpc | null>(null);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
   /** Loja de pacotinhos ou forja abertas (?painel=pacotes|forja abre direto). */
-  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | 'guilda' | null>(() => {
+  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | 'guilda' | 'trocas' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('painel');
-    return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' ? q : null;
+    return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' || q === 'trocas' ? q : null;
   });
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
   const [housePanel, setHousePanel] = useState<HousePanel | null>(null);
@@ -450,6 +451,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     if (talk?.action === 'elevador') { S.held = []; setLift(true); return; }
     if (talk?.action === 'pacotes') { S.held = []; setPanelOpen('pacotes'); return; }
     if (talk?.action === 'recompensas') { S.held = []; setPanelOpen('recompensas'); return; }
+    if (talk?.action === 'trocas') { S.held = []; setPanelOpen('trocas'); return; }
     if (talk?.action === 'sentar' && talk.seat) {
       // senta na cadeira da mesa vazia e espera um colega sentar na frente
       S.sit = { tx: talk.seat[0], ty: talk.seat[1], from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
@@ -849,6 +851,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'recompensas' && <RoomRewards progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
+      {panelOpen === 'trocas' && <TradeHub onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {shopOf && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 p-3" onPointerDown={() => setShopOf(null)}>
           <div onPointerDown={e => e.stopPropagation()} className={`w-[min(94vw,480px)] rounded-xl border-4 border-[#c8762a] bg-[#f4efe2] p-4 text-[#2e2a40] ${pixelFont}`}>

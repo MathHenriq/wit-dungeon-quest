@@ -60,6 +60,16 @@ CREATE TABLE IF NOT EXISTS public.wit2_dust_rules (
   gives   int NOT NULL,
   costs   int            -- NULL: não se forja
 );
+-- usados pela migração de trocas (_wit2_trades.sql)
+CREATE TABLE IF NOT EXISTS public.wit2_price_bands (
+  rarity  text PRIMARY KEY,
+  lo      int NOT NULL,
+  hi      int NOT NULL CHECK (hi >= lo)
+);
+CREATE TABLE IF NOT EXISTS public.wit2_market_items (
+  item    text PRIMARY KEY,
+  price   int NOT NULL
+);
 
 -- ── do aluno ─────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.wit2_wallet (
@@ -137,7 +147,7 @@ BEGIN
     EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (public.can_act_for_student(student_id))', t || '_read', t);
   END LOOP;
   -- catálogos: todo mundo logado lê
-  FOREACH t IN ARRAY ARRAY['wit2_card_catalog','wit2_pack_defs','wit2_room_rewards','wit2_starter','wit2_path_cards','wit2_boss_cards','wit2_dust_rules']
+  FOREACH t IN ARRAY ARRAY['wit2_card_catalog','wit2_pack_defs','wit2_room_rewards','wit2_starter','wit2_path_cards','wit2_boss_cards','wit2_dust_rules','wit2_price_bands','wit2_market_items']
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_read', t);
@@ -523,7 +533,7 @@ REVOKE INSERT, UPDATE, DELETE ON
   public.wit2_wallet, public.wit2_cards, public.wit2_packs, public.wit2_progress, public.wit2_tickets,
   public.wit2_lessons, public.wit2_attendance, public.wit2_events,
   public.wit2_card_catalog, public.wit2_pack_defs, public.wit2_room_rewards, public.wit2_starter,
-  public.wit2_path_cards, public.wit2_boss_cards, public.wit2_dust_rules
+  public.wit2_path_cards, public.wit2_boss_cards, public.wit2_dust_rules, public.wit2_price_bands, public.wit2_market_items
 FROM anon, authenticated;
 REVOKE ALL ON public.wit2_wallet, public.wit2_cards, public.wit2_packs, public.wit2_progress, public.wit2_tickets,
   public.wit2_lessons, public.wit2_attendance, public.wit2_events FROM anon;

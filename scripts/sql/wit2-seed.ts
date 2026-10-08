@@ -9,6 +9,9 @@ import { CATALOG } from '../../src/lib/tcg/cards/catalog';
 import { PACKS } from '../../src/game/packs';
 import { ROOM_REWARDS } from '../../src/game/room-rewards';
 import { DUST } from '../../src/game/forge';
+import { PRICE_BANDS } from '../../src/game/trades';
+import { ALL_TRADED } from '../../src/game/market';
+import { itemDef } from '../../src/game/items';
 import { starterCollection } from '../../src/lib/tcg/opponents';
 import { PATHS, pathDeck } from '../../src/lib/tcg/paths';
 import { towerBoss } from '../../src/lib/tcg/bosses';
@@ -40,6 +43,12 @@ const lines = [
   // regras da forja
   'INSERT INTO public.wit2_dust_rules (rarity, gives, costs) VALUES',
   Object.entries(DUST).map(([r, d]) => `  (${q(r)}, ${d.gives}, ${d.costs ?? 'NULL'})`).join(',\n') + '\nON CONFLICT (rarity) DO UPDATE SET gives = EXCLUDED.gives, costs = EXCLUDED.costs;',
+  // faixa de preço da Vitrine (venda entre alunos)
+  'INSERT INTO public.wit2_price_bands (rarity, lo, hi) VALUES',
+  Object.entries(PRICE_BANDS).map(([r, [lo, hi]]) => `  (${q(r)}, ${lo}, ${hi})`).join(',\n') + '\nON CONFLICT (rarity) DO UPDATE SET lo = EXCLUDED.lo, hi = EXCLUDED.hi;',
+  // itens que o Mercado compra (o Mercado da turma só aceita estes)
+  'INSERT INTO public.wit2_market_items (item, price) VALUES',
+  ALL_TRADED.map(id => `  (${q(id)}, ${itemDef(id)!.price})`).join(',\n') + '\nON CONFLICT (item) DO UPDATE SET price = EXCLUDED.price;',
   'COMMIT;',
 ];
 writeFileSync('supabase/migrations/20261008120100_wit2_seed.sql', lines.join('\n') + '\n');

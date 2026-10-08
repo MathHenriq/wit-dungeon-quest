@@ -1,8 +1,9 @@
 // Telas do dia a dia: mochila (comer, irrigador), profissões, missões do dia,
 // Mercado Central, cozinha da Casa da Fazenda e Central de Entregas.
+import { marketSold, marketState } from '@/game/social';
 import { FriendsList } from '@/components/social/Friends';
 import { earnedTitles, visibleTitles } from '@/game/titles';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { canCook, chooseProfession, cook, craftIrrigator, eat, gainXp, RECIPES, SENSORS_PER_IRRIG } from '@/game/life';
 import { buy, buyPrice, MARKET_SELLS, marketPrice, sell, sellable, trend } from '@/game/market';
 import { claimMission, missionProgress, missionsOf, syncMissions } from '@/game/missions';
@@ -177,9 +178,14 @@ export function MarketPanel({ progress, onClose, onWork }: { progress: Progress;
   const [tab, setTab] = useState<'vender' | 'comprar' | 'grafico'>('vender');
   const [chartItem, setChartItem] = useState<string>(() => sellable(progress).find(i => CHART_ITEMS.includes(i)) ?? 'pao');
   const [msg, setMsg] = useState<string | null>(null);
-  const items = sellable(progress).sort((a, b) => marketPrice(progress, b) - marketPrice(progress, a));
+  // com o banco ligado o mercado é da turma: o que todos venderam enche o preço de todos
+  const [classSat, setClassSat] = useState<{ day: number; sat: Record<string, number> } | null>(null);
+  useEffect(() => { marketState().then(setClassSat); }, []);
+  const view = classSat ? { ...progress, mercado: classSat } : progress;
+  const items = sellable(view).sort((a, b) => marketPrice(view, b) - marketPrice(view, a));
   const doSell = (id: string, n: number) => {
-    const r = sell(progress, id, n);
+    const r = sell(view, id, n);
+    if (classSat) { const sold = Math.min(n, progress.itens[id] ?? 0); if (sold) void marketSold(id, sold).then(st => { if (st) setClassSat(st); }); }
     const g = gainXp(r.progress, 'comerciante', Math.max(1, Math.round(r.coins / 4)));
     saveProgress(g.progress); play('coin');
     setMsg(`Vendido! +${r.coins} moedas${g.levelUp ? ` · Comerciante subiu para o nível ${g.levelUp}!` : ''}`);
@@ -191,7 +197,7 @@ export function MarketPanel({ progress, onClose, onWork }: { progress: Progress;
   };
   return (
     <Shell title="MERCADO CENTRAL" color="#c8762a" coins={progress.coins} onClose={onClose}>
-      <div className="text-[8px] leading-4 text-[#5a5470] mb-2">Os preços mudam todo dia (▲ subiu, ▼ caiu). Vender muito da mesma coisa enche o mercado e o preço cai; ele esvazia aos poucos.</div>
+      <div className="text-[8px] leading-4 text-[#5a5470] mb-2">Os preços mudam todo dia (▲ subiu, ▼ caiu). Vender muito da mesma coisa enche o mercado e o preço cai; ele esvazia aos poucos.{classSat ? ' Este é o mercado da turma: o que os colegas vendem também conta.' : ''}</div>
       <Tabs tabs={[['vender', 'VENDER'], ['comprar', 'COMPRAR'], ['grafico', 'GRÁFICOS']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color="#c8762a" />
       {tab === 'grafico' && (
         <div>
@@ -213,7 +219,7 @@ export function MarketPanel({ progress, onClose, onWork }: { progress: Progress;
         <div>
           {!items.length && <div className="text-[8px] text-[#5a5470]">Nada para vender. Peixes, colheitas, ovos, discos, quadros, sensores... tudo vende aqui.</div>}
           {items.map(id => {
-            const price = marketPrice(progress, id), base = itemDef(id)!.price;
+            const price = marketPrice(view, id), base = itemDef(id)!.price;
             return (
               <div key={id} className="flex items-center gap-2 py-1.5 border-b border-[#e0d8c4]">
                 <Icon id={itemIcon(id)} size={28} />

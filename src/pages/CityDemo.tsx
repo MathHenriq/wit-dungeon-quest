@@ -41,6 +41,7 @@ import { cloudEnabled, pullProgress } from '@/game/cloud';
 import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
 import { DEMO_PEOPLE, nickOk, setProfile, socialDemo, socialError, socialOn, visit } from '@/game/social';
 import { ProfileCard } from '@/components/social/ProfileCard';
+import { TradeHub } from '@/components/social/TradeHub';
 import { Radio } from '@/components/city/Radio';
 import { VehicleShop } from '@/components/city/VehicleShop';
 import { poseFrames } from '@/game/world/model-sprite';
@@ -512,6 +513,8 @@ function CityView({ town, start, startHour, onTravel }: {
   const [muted, setMuted] = useState(false);
   /** Cartão de perfil de um colega (tocou nele). */
   const [card, setCard] = useState<string | null>(null);
+  /** Central de trocas aberta pelo cartão (com quem). */
+  const [tradeWith, setTradeWith] = useState<string | null>(null);
   const say = useCallback((i: number) => {
     const s = g.current;
     s.fala = { i, t: Date.now() }; s.dirty = true;
@@ -1884,7 +1887,9 @@ function CityView({ town, start, startHour, onTravel }: {
 
       {editing && !inside && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
       {card && <ProfileCard handle={card} onClose={() => setCard(null)}
-        onChallenge={() => { setCard(null); setBag(null); setInside({ kind: 'sala', id: 'arena' }); setFishUi({ kind: 'toast', text: 'Sente numa mesa LIVRE e troquem os códigos do deck.' }); }} />}
+        onChallenge={() => { setCard(null); setBag(null); setInside({ kind: 'sala', id: 'arena' }); setFishUi({ kind: 'toast', text: 'Sente numa mesa LIVRE e troquem os códigos do deck.' }); }}
+        onTrade={() => { setTradeWith(card); setCard(null); setBag(null); }} />}
+      {tradeWith && <TradeHub target={tradeWith} onClose={() => setTradeWith(null)} />}
 
       {banner && (
         <div className={`absolute top-[22%] left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg border-4 border-[#e8c690] bg-[#2e2a40]/90 text-[#fff4d0] text-[14px] tracking-wider pointer-events-none ${pixelFont}`}>
