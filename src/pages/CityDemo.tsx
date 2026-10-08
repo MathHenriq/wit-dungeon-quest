@@ -10,7 +10,7 @@ import { biteDelay, meterFor, meterHit, RARITY_COLOR, RARITY_LABEL, rollFish, ty
 import { boatArt, duckFrames } from '@/game/world/buildings-lago';
 import { chickenFrames, cowFrames, cropArt, sheepFrames, soilArt } from '@/game/world/buildings-fazenda';
 import { HENYARD, PASTURE } from '@/game/world/zone-fazenda';
-import { actionAt, applyAction, CAN_SIZE, catchUp, CROP_BY_ID, CROPS, itemName, loadFarm, nextDay, saveFarm, type CropId, type FarmState } from '@/game/farm';
+import { actionAt, applyAction, CAN_SIZE, catchUp, CROP_BY_ID, CROPS, isFairDay, itemName, loadFarm, nextDay, rainOn, saveFarm, SEASON_NAME, seasonOf, type CropId, type FarmState } from '@/game/farm';
 import { FarmPanel, iconOf } from '@/components/city/FarmPanel';
 import { CoursesPanel } from '@/components/city/CoursesPanel';
 import { droneFrames, gariBotFrames, litterArt, witBotFrames } from '@/game/world/buildings-wit';
@@ -957,11 +957,14 @@ function CityView({ town, start, startHour, onTravel }: {
     if (fields.some(fd => f.tx >= fd.x0 && f.tx <= fd.x1 && f.ty >= fd.y0 && f.ty <= fd.y1) && !town.solid[f.ty][f.tx] && !npcAt(f.tx, f.ty)) {
       const pr = loadProgress();
       const seeds = s.seed ? pr.itens[`semente:${s.seed}`] ?? 0 : 0;
-      const a = actionAt(s.farm, f.tx, f.ty, s.seed, seeds);
+      const a = actionAt(s.farm, f.tx, f.ty, s.seed, seeds, pr.itens.adubo ?? 0);
       if (a.kind === 'nada') { toast(a.why); return; }
       const r = applyAction(s.farm, f.tx, f.ty, a);
       s.farm = r.farm; saveFarm(r.farm);
-      const after = a.kind === 'plantar' ? addItem(pr, `semente:${a.crop}`, -1) : r.harvested ? addItem(pr, `colheita:${r.harvested}`, 1) : pr;
+      const after = a.kind === 'plantar' ? addItem(pr, `semente:${a.crop}`, -1) : a.kind === 'adubar' ? addItem(pr, 'adubo', -1)
+        : r.harvested ? addItem(pr, `colheita:${r.harvested}`, r.amount ?? 1) : pr;
+      if (a.kind === 'adubar') toast('Adubado! Regue todo dia e a colheita sai de ouro.');
+      if (r.quality === 'ouro') toast(`Colheita de ouro! +${r.amount} ${CROP_BY_ID.get(r.harvested!)!.name}`);
       const w = doWork(after, 'fazendeiro', a.kind === 'colher' ? 'colheitas' : a.kind === 'regar' ? 'regas' : null, a.kind === 'colher' ? 5 : 1);
       saveProgress(w.progress);
       if (w.levelUp) toast(`Fazendeiro subiu para o nível ${w.levelUp}!`);
@@ -1110,7 +1113,7 @@ function CityView({ town, start, startHour, onTravel }: {
     // 6h: vira o dia da fazenda (planta regada cresce, caixa de envio paga)
     const newDay = () => {
       const s = g.current;
-      const r = nextDay(s.farm, Date.now(), false, irrigPlots(loadProgress()));
+      const r = nextDay(s.farm, Date.now(), rainOn(s.farm.day + 1), irrigPlots(loadProgress()));
       s.farm = r.farm; saveFarm(r.farm);
       if (r.paid) { const pr = loadProgress(); r.paid = Math.round(r.paid * shipBonus(pr)); saveProgress({ ...pr, coins: pr.coins + r.paid }); play('coin'); }
       if (r.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `Dia ${r.farm.day}!${r.paid ? ` A caixa de envio pagou ${r.paid} moedas.` : ''}${r.grown ? ` ${r.grown} planta${r.grown > 1 ? 's' : ''} cresce${r.grown > 1 ? 'ram' : 'u'}.` : ''}` });
@@ -1739,6 +1742,19 @@ function CityView({ town, start, startHour, onTravel }: {
       }
       // vida da cidade (fumaça, brilhos, borboletas, pássaros, nuvens, vaga-lumes)
       drawAmbient(ctx, town.fx, { now, camX, camY, vw, vh, tint: tod.tint, light: tod.light }, mapW, mapH);
+      // chuva (o mesmo dia da fazenda para o mundo todo): céu mais escuro e pingos caindo
+      if (rainOn(s.farm.day)) {
+        ctx.fillStyle = 'rgba(30,40,70,0.18)'; ctx.fillRect(0, 0, vw, vh);
+        ctx.strokeStyle = 'rgba(200,220,255,0.55)'; ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        for (let i = 0; i < 140; i++) {
+          const sx = ((i * 97.13 + now * 0.05) % (vw + 40)) - 20;
+          const sy = ((i * 53.71 + now * 0.32 + (i % 7) * 41) % (vh + 30)) - 15;
+          ctx.moveTo(sx, sy); ctx.lineTo(sx - 2, sy + 7);
+        }
+        ctx.stroke();
+        s.dirty = true;
+      }
       // plaquinhas: a do jogador sempre; a dos moradores quando o jogador chega perto
       // (a do jogador primeiro; a de quem estiver colado sobe até não cobrir)
       const placed: { x: number; y: number; w: number; h: number }[] = [];
@@ -1982,7 +1998,10 @@ function CityView({ town, start, startHour, onTravel }: {
             <span className="min-w-[132px] text-center">{crop ? <><Icon id={iconOf(crop.id)} size={16} /> {crop.name} ×{progress.itens[`semente:${crop.id}`] ?? 0}</> : 'sem sementes'}</span>
             <button onClick={() => cycleSeed(1)} className="px-1.5 py-1 rounded bg-white/15" aria-label="próxima semente">▶</button>
             <span className="ml-2 text-[#8ad0ff] flex items-center gap-1"><Icon id="agua" size={14} /> {s.farm.water}/{canSize(progress)}</span>{s.farm.irrig > 0 && <span className="ml-2">IRRIGADOR ×{s.farm.irrig}</span>}
-            <span className="ml-2 text-[#e8c690]">DIA {s.farm.day}</span>
+            <span className="ml-2 text-[#e8c690]">{SEASON_NAME[seasonOf(s.farm.day)].toUpperCase()} · DIA {s.farm.day}</span>
+            {(progress.itens.adubo ?? 0) > 0 && <span className="ml-2 flex items-center gap-1"><Icon id="folha" size={14} /> {progress.itens.adubo}</span>}
+            {rainOn(s.farm.day) && <span className="ml-2 text-[#8ad0ff]">CHUVA</span>}
+            {isFairDay(s.farm.day) && <span className="ml-2 text-[#ffd84a]">FEIRA</span>}
           </div>
         );
       })()}

@@ -27,6 +27,7 @@ const BASE: ItemDef[] = [
   { id: 'ovo', name: 'Ovo', icon: 'ovo', kind: 'fazenda', price: 4 },
   { id: 'leite', name: 'Leite', icon: 'leite', kind: 'fazenda', price: 7, food: 8 },
   { id: 'la', name: 'Lã', icon: 'la', kind: 'fazenda', price: 9 },
+  { id: 'adubo', name: 'Adubo', icon: 'folha', kind: 'fazenda', price: 0 },
   { id: 'fruta:maca', name: 'Maçã', icon: 'fruta:maca', kind: 'fazenda', price: 3, food: 10 },
   { id: 'fruta:laranja', name: 'Laranja', icon: 'fruta:laranja', kind: 'fazenda', price: 3, food: 10 },
   { id: 'fruta:pessego', name: 'Pêssego', icon: 'fruta:pessego', kind: 'fazenda', price: 3, food: 10 },

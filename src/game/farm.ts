@@ -16,16 +16,37 @@ export interface Crop {
   /** Depois de colher, volta este tanto de dias e dá de novo. */
   regrow?: number;
   about: string;
+  /** Estações em que dá para plantar (plantou, cresce até o fim mesmo se a estação virar). */
+  seasons: Season[];
 }
 
+// ─── estações, chuva e feira (2ª onda da fazenda) ────────────────────────────
+export type Season = 'primavera' | 'verao' | 'outono' | 'inverno';
+export const SEASONS: Season[] = ['primavera', 'verao', 'outono', 'inverno'];
+export const SEASON_NAME: Record<Season, string> = { primavera: 'Primavera', verao: 'Verão', outono: 'Outono', inverno: 'Inverno' };
+/** Cada estação dura 7 dias da fazenda. */
+export const SEASON_DAYS = 7;
+export const seasonOf = (day: number): Season => SEASONS[Math.floor((Math.max(1, day) - 1) / SEASON_DAYS) % 4];
+/** Chove neste dia? (sorteio fixo pelo dia: 1 em 4; no verão, 1 em 10). Chuva rega tudo. */
+export function rainOn(day: number): boolean {
+  let h = Math.imul(day ^ 0x9e3779b9, 2654435761) >>> 0;
+  h = (h ^ (h >>> 15)) >>> 0;
+  return (h % 100) < (seasonOf(day) === 'verao' ? 10 : 25);
+}
+/** Sábado (o 6º dia de cada semana da fazenda) é dia de feira: a caixa de envio paga 50% a mais. */
+export const isFairDay = (day: number) => day % 7 === 6;
+export const FAIR_BONUS = 1.5;
+/** Adubo: comprado na barraca de sementes; colheita adubada e sempre regada sai de ouro (rende 2). */
+export const ADUBO_PRICE = 6;
+
 export const CROPS: Crop[] = [
-  { id: 'cenoura', name: 'Cenoura', days: 3, seedPrice: 2, sellPrice: 5, about: 'Rápida e fácil. Boa para começar!' },
-  { id: 'alface', name: 'Alface', days: 3, seedPrice: 2, sellPrice: 5, about: 'Verdinha e crocante.' },
-  { id: 'morango', name: 'Morango', days: 4, seedPrice: 5, sellPrice: 6, regrow: 2, about: 'Depois de colher, dá de novo a cada 2 dias.' },
-  { id: 'tomate', name: 'Tomate', days: 4, seedPrice: 5, sellPrice: 6, regrow: 2, about: 'Cresce na estaca e dá de novo a cada 2 dias.' },
-  { id: 'milho', name: 'Milho', days: 5, seedPrice: 4, sellPrice: 12, about: 'Alto como você! Vira pipoca na festa junina.' },
-  { id: 'girassol', name: 'Girassol', days: 4, seedPrice: 3, sellPrice: 9, about: 'Vira para o sol e deixa a fazenda alegre.' },
-  { id: 'abobora', name: 'Abóbora', days: 6, seedPrice: 8, sellPrice: 28, about: 'Demora, mas vale muito. A maior da fazenda!' },
+  { id: 'cenoura', name: 'Cenoura', days: 3, seedPrice: 2, sellPrice: 5, about: 'Rápida e fácil. Boa para começar!', seasons: ['primavera', 'outono', 'inverno'] },
+  { id: 'alface', name: 'Alface', days: 3, seedPrice: 2, sellPrice: 5, about: 'Verdinha e crocante.', seasons: ['primavera', 'outono', 'inverno'] },
+  { id: 'morango', name: 'Morango', days: 4, seedPrice: 5, sellPrice: 6, regrow: 2, about: 'Depois de colher, dá de novo a cada 2 dias.', seasons: ['primavera', 'verao'] },
+  { id: 'tomate', name: 'Tomate', days: 4, seedPrice: 5, sellPrice: 6, regrow: 2, about: 'Cresce na estaca e dá de novo a cada 2 dias.', seasons: ['verao', 'outono'] },
+  { id: 'milho', name: 'Milho', days: 5, seedPrice: 4, sellPrice: 12, about: 'Alto como você! Vira pipoca na festa junina.', seasons: ['verao', 'outono'] },
+  { id: 'girassol', name: 'Girassol', days: 4, seedPrice: 3, sellPrice: 9, about: 'Vira para o sol e deixa a fazenda alegre.', seasons: ['verao', 'primavera'] },
+  { id: 'abobora', name: 'Abóbora', days: 6, seedPrice: 8, sellPrice: 28, about: 'Demora, mas vale muito. A maior da fazenda!', seasons: ['outono', 'inverno'] },
 ];
 export const CROP_BY_ID = new Map(CROPS.map(c => [c.id, c]));
 
@@ -57,7 +78,16 @@ export interface Plot {
   stage: number;
   /** Dias seguidos sem nada plantado (a terra arada volta a ser grama). */
   idle: number;
+  /** Adubado (a colheita pode sair de ouro). */
+  adubo?: boolean;
+  /** Dias que passou sem água enquanto crescia (0 = sempre regado: colheita de prata ou ouro). */
+  dry?: number;
 }
+
+export type Quality = 'normal' | 'prata' | 'ouro';
+export const QUALITY_NAME: Record<Quality, string> = { normal: '', prata: 'de prata', ouro: 'de ouro' };
+/** Qualidade da colheita: sempre regada = prata; e adubada = ouro (rende 2). */
+export const qualityOf = (p: Plot): Quality => ((p.dry ?? 0) > 0 ? 'normal' : p.adubo ? 'ouro' : 'prata');
 
 export interface FarmState {
   day: number;
@@ -104,27 +134,33 @@ export type Action =
   | { kind: 'arar' }
   | { kind: 'plantar'; crop: CropId }
   | { kind: 'regar' }
+  | { kind: 'adubar' }
   | { kind: 'colher'; crop: CropId }
   | { kind: 'encher'; size?: number }
   | { kind: 'nada'; why: string };
 
 /** O que o ESPAÇO faz neste bloco do campo (a ação certa, sem trocar de ferramenta). */
-export function actionAt(f: FarmState, tx: number, ty: number, seed: CropId | null, seeds: number): Action {
+export function actionAt(f: FarmState, tx: number, ty: number, seed: CropId | null, seeds: number, adubos = 0): Action {
   const p = f.plots[key(tx, ty)];
   if (!p) return { kind: 'arar' };
   if (p.crop) {
     const c = CROP_BY_ID.get(p.crop)!;
     if (p.stage >= c.days) return { kind: 'colher', crop: p.crop };
     if (!p.wet) return f.water > 0 ? { kind: 'regar' } : { kind: 'nada', why: 'O regador está vazio. Encha no poço ou na lagoa.' };
+    if (!p.adubo && adubos > 0) return { kind: 'adubar' };
     return { kind: 'nada', why: `${c.name}: já regado hoje. Falta${c.days - p.stage > 1 ? 'm' : ''} ${c.days - p.stage} dia${c.days - p.stage > 1 ? 's' : ''}.` };
   }
-  if (seed && seeds > 0) return { kind: 'plantar', crop: seed };
+  if (seed && seeds > 0) {
+    const c = CROP_BY_ID.get(seed)!;
+    if (!c.seasons.includes(seasonOf(f.day))) return { kind: 'nada', why: `${c.name} não nasce no ${SEASON_NAME[seasonOf(f.day)]}. Dá em: ${c.seasons.map(x => SEASON_NAME[x]).join(', ')}.` };
+    return { kind: 'plantar', crop: seed };
+  }
   if (!p.wet && f.water > 0) return { kind: 'regar' };
   return { kind: 'nada', why: seed ? 'Sem sementes. Compre na barraca de sementes.' : 'Escolha uma semente embaixo.' };
 }
 
 /** Aplica a ação no bloco. Devolve o estado novo e o que foi colhido (se colheu). */
-export function applyAction(f: FarmState, tx: number, ty: number, a: Action): { farm: FarmState; harvested?: CropId } {
+export function applyAction(f: FarmState, tx: number, ty: number, a: Action): { farm: FarmState; harvested?: CropId; quality?: Quality; amount?: number } {
   const k = key(tx, ty);
   const plots = { ...f.plots };
   const p = plots[k] ? { ...plots[k] } : undefined;
@@ -134,7 +170,11 @@ export function applyAction(f: FarmState, tx: number, ty: number, a: Action): { 
       return { farm: { ...f, plots } };
     case 'plantar':
       if (!p || p.crop) return { farm: f };
-      plots[k] = { ...p, crop: a.crop, stage: 0, idle: 0 };
+      plots[k] = { ...p, crop: a.crop, stage: 0, idle: 0, adubo: false, dry: 0 };
+      return { farm: { ...f, plots } };
+    case 'adubar':
+      if (!p?.crop || p.adubo) return { farm: f };
+      plots[k] = { ...p, adubo: true };
       return { farm: { ...f, plots } };
     case 'regar':
       if (!p || p.wet || f.water <= 0) return { farm: f };
@@ -144,8 +184,9 @@ export function applyAction(f: FarmState, tx: number, ty: number, a: Action): { 
       if (!p?.crop) return { farm: f };
       const c = CROP_BY_ID.get(p.crop)!;
       if (p.stage < c.days) return { farm: f };
+      const quality = qualityOf(p);
       plots[k] = c.regrow ? { ...p, stage: c.days - c.regrow } : { wet: p.wet, stage: 0, idle: 0 };
-      return { farm: { ...f, plots }, harvested: p.crop };
+      return { farm: { ...f, plots }, harvested: p.crop, quality, amount: quality === 'ouro' ? 2 : 1 };
     }
     case 'encher':
       return { farm: { ...f, water: a.size ?? CAN_SIZE } };
@@ -166,6 +207,7 @@ export function nextDay(f: FarmState, now: number, rain = false, irrigPlots = IR
     if (p.crop) {
       const c = CROP_BY_ID.get(p.crop)!;
       if ((p.wet || rain) && p.stage < c.days) { p.stage++; grown++; }
+      else if (p.stage < c.days) p.dry = (p.dry ?? 0) + 1;
       p.idle = 0;
     } else {
       p.idle++;
@@ -180,14 +222,16 @@ export function nextDay(f: FarmState, now: number, rain = false, irrigPlots = IR
     if (left <= 0) break;
     if (p.crop && !p.wet && p.stage < CROP_BY_ID.get(p.crop)!.days) { p.wet = true; left--; }
   }
-  const paid = Object.entries(f.bin).reduce((s, [id, n]) => s + sellPrice(id) * n, 0);
+  // sábado é dia de feira: a caixa paga 50% a mais
+  const raw = Object.entries(f.bin).reduce((s, [id, n]) => s + sellPrice(id) * n, 0);
+  const paid = Math.round(raw * (isFairDay(f.day) ? FAIR_BONUS : 1));
   return { farm: { ...f, day: f.day + 1, lastDay: now, plots, bin: {} }, paid, grown };
 }
 
 /** Voltando depois de um tempo fora: vira no máximo um dia (quem não regou não ganha nada). */
 export function catchUp(f: FarmState, now: number, irrigPlots = IRRIG_PLOTS): { farm: FarmState; paid: number; grown: number } | null {
   if (now - f.lastDay < DAY_MS) return null;
-  return nextDay(f, now, false, irrigPlots);
+  return nextDay(f, now, rainOn(f.day + 1), irrigPlots);
 }
 
 export function sanitizeFarm(raw: unknown, now: number): FarmState {
@@ -201,7 +245,7 @@ export function sanitizeFarm(raw: unknown, now: number): FarmState {
       if (!/^\d{1,3},\d{1,3}$/.test(k) || !v || typeof v !== 'object') continue;
       const p = v as Record<string, unknown>;
       const crop = typeof p.crop === 'string' && CROP_BY_ID.has(p.crop as CropId) ? (p.crop as CropId) : undefined;
-      plots[k] = { wet: p.wet === true, crop, stage: crop ? num(p.stage, 0, 0, CROP_BY_ID.get(crop)!.days) : 0, idle: num(p.idle, 0, 0, 9) };
+      plots[k] = { wet: p.wet === true, crop, stage: crop ? num(p.stage, 0, 0, CROP_BY_ID.get(crop)!.days) : 0, idle: num(p.idle, 0, 0, 9), adubo: p.adubo === true, dry: num(p.dry, 0, 0, 99) };
     }
   }
   const bin: Record<string, number> = {};
