@@ -14,9 +14,13 @@ funções de segurança que já existem: `my_student_id`, `can_act_for_student`,
    - Nenhuma delas muda tabela, função ou política do WIT 1.
 3. **Rodar as checagens abaixo no SQL Editor (ou pelo `execute_sql` do conector).** Todas têm
    de dar `true`.
-4. **Ligar a chave:** `VITE_WIT2_DB=1` no `.env` local e nas variáveis da Vercel (Production e
+4. **Master:** colocar o e-mail do Matheus na lista. Assim ele vê as turmas de todos os
+   professores nas abas Alunos e Missões. O e-mail não fica no repositório: rode à mão no SQL
+   Editor:
+   `INSERT INTO public.wit2_masters (email) VALUES (lower('<e-mail do Matheus>'));`
+5. **Ligar a chave:** `VITE_WIT2_DB=1` no `.env` local e nas variáveis da Vercel (Production e
    Preview), depois um novo deploy.
-5. **Testar com 2 navegadores (dois alunos de teste):**
+6. **Testar com 2 navegadores (dois alunos de teste):**
    - os dois veem um ao outro andando na mesma área, com balão;
    - o PvP abre;
    - o pacote abre e as moedas batem nos dois aparelhos.

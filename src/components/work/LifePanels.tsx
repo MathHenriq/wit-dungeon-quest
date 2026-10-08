@@ -1,5 +1,7 @@
 // Telas do dia a dia: mochila (comer, irrigador), profissões, missões do dia,
 // Mercado Central, cozinha da Casa da Fazenda e Central de Entregas.
+import { claimMission as claimClassMission, missionPct, myClassMissions, type Mission } from '@/game/teacher-cloud';
+import { PACK_BY_ID } from '@/game/packs';
 import { marketSold, marketState } from '@/game/social';
 import { FriendsList } from '@/components/social/Friends';
 import { earnedTitles, visibleTitles } from '@/game/titles';
@@ -50,11 +52,44 @@ export function ProfessionsList({ progress, onMsg }: { progress: Progress; onMsg
 
 // ─── Missões do dia ─────────────────────────────────────────────────────────
 
+/** Missões da sala (o professor cria; a turma inteira soma junto). Só com o banco ligado. */
+function ClassMissions({ onMsg }: { onMsg: (m: string) => void }) {
+  const [list, setList] = useState<Mission[]>([]);
+  const load = () => { void myClassMissions().then(setList); };
+  useEffect(load, []);
+  if (!list.length) return null;
+  return (
+    <div className="grid gap-1.5 mb-2">
+      <div className="text-[8px] text-[#3a78c8]">MISSÕES DA SALA (a turma toda junta)</div>
+      {list.map(m => {
+        const done = m.progress >= m.target;
+        return (
+          <div key={m.id} className="rounded-lg border-2 p-2 bg-[#eef4ff] border-[#9ab8e8]">
+            <div className="flex items-center gap-2 text-[9px]">
+              <span className="flex-1">{m.title}</span>
+              <span className="text-[#3a78c8]">{PACK_BY_ID.get(m.pack)?.name ?? m.pack}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 h-2 rounded bg-white overflow-hidden"><div className="h-full bg-[#3a78c8]" style={{ width: `${missionPct(m)}%` }} /></div>
+              <span className="text-[8px]">{m.progress}/{m.target}</span>
+              {done && !m.peguei && <button className="px-2 py-1 rounded bg-[#3a9a5a] text-white text-[8px]" onClick={() => {
+                claimClassMission(m.id).then(() => { onMsg('Pacote guardado em MEUS PACOTES, na Loja!'); play('coin'); load(); }).catch(() => onMsg('Ainda não deu. Tente de novo.'));
+              }}>PEGAR</button>}
+              {m.peguei && <span className="text-[8px] text-[#3a9a5a]">PEGO</span>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function MissionsList({ progress, onMsg }: { progress: Progress; onMsg: (m: string) => void }) {
   const p = syncMissions(progress);
   const ms = missionsOf(today());
   return (
     <div className="grid gap-2">
+      <ClassMissions onMsg={onMsg} />
       <div className="text-[8px] leading-4 text-[#5a5470]">Três missões por dia, iguais para a turma toda. Viram à meia-noite.</div>
       {ms.map(m => {
         const n = missionProgress(p, m), done = p.missoes.feitas.includes(m.id);

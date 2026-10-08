@@ -188,6 +188,22 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   RETURNING qty;
 $$;
 
+-- contadores do jogo que contam para as missões da sala (progress.stats)
+CREATE OR REPLACE FUNCTION public.wit2_stat_keys() RETURNS text[] LANGUAGE sql IMMUTABLE AS $$
+  SELECT ARRAY['mesas','peixes','colheitas','entregas','minijogos','vendas','pvpVitorias']
+$$;
+CREATE OR REPLACE FUNCTION public.wit2_stat_events(p_student uuid, p_old jsonb, p_new jsonb) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE k text; d numeric;
+BEGIN
+  IF p_new IS NULL OR jsonb_typeof(p_new) <> 'object' THEN RETURN; END IF;
+  FOREACH k IN ARRAY wit2_stat_keys() LOOP
+    IF jsonb_typeof(p_new->k) <> 'number' THEN CONTINUE; END IF;
+    d := (p_new->>k)::numeric - CASE WHEN jsonb_typeof(p_old->k) = 'number' THEN (p_old->>k)::numeric ELSE 0 END;
+    IF d >= 1 THEN PERFORM wit2_event(p_student, 'stat:' || k, least(30, floor(d))::int); END IF;
+  END LOOP;
+END $$;
+
 -- sorteio ponderado: [[valor, peso], ...]
 CREATE OR REPLACE FUNCTION public.wit2_weighted(p_list jsonb) RETURNS text
 LANGUAGE plpgsql VOLATILE SET search_path = public AS $$
@@ -281,6 +297,9 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'coins', w.coins, 'version', cur, 'data', (SELECT data FROM wit2_progress WHERE student_id = me));
   END IF;
   clean := p_data - ARRAY['coins','collection','pacotes','po','semEpica','tickets'];
+  -- o quanto cada contador do jogo andou desde a última gravação vira evento
+  -- (missões da sala e relatório do professor); no máximo 30 por gravação
+  PERFORM wit2_stat_events(me, (SELECT data->'stats' FROM wit2_progress WHERE student_id = me), clean->'stats');
   UPDATE wit2_progress SET data = clean, version = cur + 1, updated_at = now() WHERE student_id = me;
   RETURN jsonb_build_object('ok', true, 'coins', w.coins, 'version', cur + 1);
 END $$;
@@ -514,7 +533,8 @@ END $$;
 -- devolve só as públicas para quem está logado)
 REVOKE ALL ON FUNCTION
   public.wit2_ensure(uuid), public.wit2_event(uuid, text, int), public.wit2_draw_pack(uuid, text),
-  public.wit2_weighted(jsonb), public.wit2_add_card(uuid, text, int), public.wit2_daily_cap()
+  public.wit2_weighted(jsonb), public.wit2_add_card(uuid, text, int), public.wit2_daily_cap(),
+  public.wit2_stat_keys(), public.wit2_stat_events(uuid, jsonb, jsonb)
 FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION
   public.wit2_load(), public.wit2_sync(int, jsonb, int), public.wit2_buy_pack(text), public.wit2_open_saved_pack(text),

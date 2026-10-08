@@ -49,6 +49,7 @@ import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
 import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
+import { PACK_BY_ID, type PackId } from '@/game/packs';
 import { RARITY_ORDER as RANKS } from '@/lib/tcg/opponents';
 import { canSize, doWork, fishLuck, FISH_XP, HUNGRY, irrigPlots, shipBonus, spendEnergy, today } from '@/game/life';
 import { buy } from '@/game/market';
@@ -438,7 +439,13 @@ function CityView({ town, start, startHour, onTravel }: {
   // banco do WIT 2 (só com VITE_WIT2_DB=1): ao abrir, traz moedas, cartas e Torre do servidor
   useEffect(() => {
     if (!cloudEnabled()) return;
-    pullProgress(loadProgress()).then(p => { saveProgress(p); setProgress(p); }).catch(err => console.error('banco', err));
+    const before = loadProgress();
+    pullProgress(before).then(p => {
+      saveProgress(p); setProgress(p);
+      // o professor mandou pacotes (aula, missão da sala) desde a última vez: avisa
+      const got = Object.entries(p.pacotes).filter(([id, n]) => n > (before.pacotes[id] ?? 0));
+      if (got.length) setFishUi({ kind: 'toast', text: `Seu professor mandou ${got.map(([id, n]) => `${n - (before.pacotes[id] ?? 0)} ${PACK_BY_ID.get(id as PackId)?.name ?? id}`).join(' e ')}! Abra em MEUS PACOTES, na Loja.` });
+    }).catch(err => console.error('banco', err));
   }, []);
 
   // cidade compartilhada (só com VITE_WIT2_DB=1): publica o perfil (apelido,
