@@ -54,6 +54,14 @@ export const teacherMissions = (teacher?: string) => (live() ? rpcTeacher<Missio
 export const createMission = (title: string, kind: MissionKind, target: number, pack: PackId, days: number) =>
   (live() ? rpcTeacher<number>('wit2_teacher_mission_create', { p_title: title, p_kind: kind, p_target: target, p_pack: pack, p_days: days }) : Promise.resolve(3));
 export const endMission = (id: number) => (live() ? rpcTeacher<boolean>('wit2_teacher_mission_end', { p_id: id }) : Promise.resolve(true));
+/** A virada WIT 1 → WIT 2 (só o master). Desligada: o botão só liga quando o Matheus decidir o dia. */
+export const VIRADA_LIGADA = false;
+export interface MigrateStatus { alunos: number; migrados: number; teste: number; itensSemCarta: string[] }
+export const migrateStatus = () => (live() ? rpcTeacher<MigrateStatus>('wit2_migrate_status') : Promise.resolve<MigrateStatus>({ alunos: 112, migrados: 0, teste: 3, itensSemCarta: ['Poção Pequena', 'Bandeira da Guilda'] }));
+export const migrateAll = () => {
+  if (!VIRADA_LIGADA) return Promise.reject(new Error('A virada está desligada.'));
+  return rpcTeacher<{ migrados: number; falhas: { aluno: string; erro: string }[] }>('wit2_migrate_all');
+};
 export const masterTeachers = () => (live() ? rpcTeacher<TeacherOpt[]>('wit2_master_teachers') : Promise.resolve<TeacherOpt[]>([]));
 
 // aluno: missões da sala

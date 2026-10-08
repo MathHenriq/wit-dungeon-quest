@@ -12,6 +12,9 @@ funções de segurança que já existem: `my_student_id`, `can_act_for_student`,
    (`apply_migration`, uma por vez, com o mesmo nome do arquivo) ou
    `npx supabase db push --linked`.
    - Nenhuma delas muda tabela, função ou política do WIT 1.
+   - A virada (`_wit2_virada.sql`) só cria as funções: **ninguém é migrado ao aplicar**. Ela roda
+     pelo botão "Virar todos agora" na aba Virada do painel (só o master), que fica desligado
+     (`VIRADA_LIGADA` em `src/game/teacher-cloud.ts`) até o Matheus escolher o dia.
 3. **Rodar as checagens abaixo no SQL Editor (ou pelo `execute_sql` do conector).** Todas têm
    de dar `true`.
 4. **Master:** colocar o e-mail do Matheus na lista. Assim ele vê as turmas de todos os
@@ -39,7 +42,8 @@ FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace AND p.proname LIKE 
 -- funções internas fechadas também para quem está logado
 SELECT bool_and(NOT has_function_privilege('authenticated', p.oid, 'EXECUTE'))
 FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace
-  AND p.proname IN ('wit2_ensure','wit2_event','wit2_draw_pack','wit2_weighted','wit2_add_card','wit2_daily_cap');
+  AND p.proname IN ('wit2_ensure','wit2_event','wit2_draw_pack','wit2_weighted','wit2_add_card','wit2_daily_cap',
+                    'wit2_migrate_one','wit2_legacy_packs','wit2_path_of_class','wit2_level_ok');
 
 -- ninguém logado escreve direto nas tabelas de valor
 SELECT bool_and(NOT has_table_privilege('authenticated', c.oid, 'INSERT')
@@ -47,11 +51,31 @@ SELECT bool_and(NOT has_table_privilege('authenticated', c.oid, 'INSERT')
 FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace
   AND c.relname IN ('wit2_wallet','wit2_cards','wit2_packs','wit2_progress','wit2_tickets');
 
--- catálogo carregado: 350 cartas, 6 pacotes, 100 chefes, 8 Caminhos
-SELECT (SELECT count(*) FROM wit2_card_catalog) = 350
+-- catálogo carregado: 350 cartas (+ as versões "+"), 6 pacotes, 100 chefes, 8 Caminhos, mapa da loja antiga
+SELECT (SELECT count(*) FROM wit2_card_catalog WHERE base) = 350
    AND (SELECT count(*) FROM wit2_pack_defs) = 6
    AND (SELECT count(DISTINCT andar) FROM wit2_boss_cards) = 100
-   AND (SELECT count(DISTINCT path_id) FROM wit2_path_cards) = 8;
+   AND (SELECT count(DISTINCT path_id) FROM wit2_path_cards) = 8
+   AND (SELECT count(*) FROM wit2_shop_map) > 100;
+
+-- ninguém foi migrado só por aplicar
+SELECT (SELECT count(*) FROM wit2_legacy) = 0;
+```
+
+## Antes de virar (no dia que o Matheus escolher)
+
+1. Na aba Virada, conferir a lista "Itens da loja antiga sem carta igual". Se algum item
+   importante estiver lá, acrescentar o nome em `CARD_ID_BY_SHOP_NAME` (catálogo) e rodar
+   `npx vite-node scripts/sql/wit2-virada.ts` (regera o mapa e o teste).
+2. Testar numa cópia: `pg_dump` das tabelas do WIT 1 para um Postgres local, aplicar as
+   migrações do WIT 2 e rodar `SELECT wit2_migrate_all()` como master. Conferir 3 alunos à mão.
+3. Ligar `VITE_WIT2_DB=1` e `VIRADA_LIGADA = true`, publicar e apertar o botão.
+4. Rodar o botão de novo não dá nada em dobro; quem deu erro aparece na lista e pode ser
+   repetido depois de corrigir.
+
+```sql
+-- depois de virar: todos os alunos (menos as contas de teste) passaram
+SELECT (SELECT count(*) FROM students WHERE NOT is_test_account) = (SELECT count(*) FROM wit2_legacy);
 ```
 
 ## Desfazer (só se der errado no mesmo dia)

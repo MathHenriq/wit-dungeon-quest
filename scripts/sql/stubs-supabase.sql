@@ -20,3 +20,15 @@ CREATE FUNCTION public.can_act_for_student(p uuid) RETURNS boolean LANGUAGE sql 
   SELECT EXISTS (SELECT 1 FROM students WHERE id = p AND user_id = auth.uid())
       OR EXISTS (SELECT 1 FROM students s JOIN teachers t ON t.id = s.teacher_id WHERE s.id = p AND t.user_id = auth.uid()) $$;
 CREATE FUNCTION public.can_act_for_teacher(p uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$ SELECT p = get_teacher_id() $$;
+-- Tabelas do WIT 1 que a virada lê (_wit2_virada.sql), só com as colunas usadas
+ALTER TABLE public.students ADD COLUMN coins int NOT NULL DEFAULT 50, ADD COLUMN level int NOT NULL DEFAULT 1, ADD COLUMN xp int NOT NULL DEFAULT 0,
+  ADD COLUMN diamonds numeric(10,2) NOT NULL DEFAULT 0, ADD COLUMN character_class text, ADD COLUMN is_test_account boolean NOT NULL DEFAULT false;
+CREATE TABLE public.shop_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL);
+CREATE TABLE public.student_inventory (student_id uuid REFERENCES public.students(id) ON DELETE CASCADE, item_id uuid REFERENCES public.shop_items(id), UNIQUE (student_id, item_id));
+CREATE TABLE public.materials (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text, rarity text NOT NULL);
+CREATE TABLE public.student_inventory_materials (student_id uuid REFERENCES public.students(id) ON DELETE CASCADE, material_id uuid REFERENCES public.materials(id), quantity int NOT NULL DEFAULT 0);
+CREATE TABLE public.student_consumables (student_id uuid REFERENCES public.students(id) ON DELETE CASCADE, consumable_id uuid, quantity int NOT NULL DEFAULT 0);
+CREATE TABLE public.student_attribute_points (student_id uuid PRIMARY KEY REFERENCES public.students(id) ON DELETE CASCADE,
+  forca int DEFAULT 0, destreza int DEFAULT 0, inteligencia int DEFAULT 0, carisma int DEFAULT 0, agilidade int DEFAULT 0, resistencia int DEFAULT 0);
+CREATE TABLE public.student_skill_points (student_id uuid PRIMARY KEY REFERENCES public.students(id) ON DELETE CASCADE, available_points int DEFAULT 0, total_earned int DEFAULT 0);
+CREATE TABLE public.student_titles (student_id uuid REFERENCES public.students(id) ON DELETE CASCADE, title_type text NOT NULL);

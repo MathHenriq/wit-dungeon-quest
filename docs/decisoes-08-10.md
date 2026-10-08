@@ -17,6 +17,8 @@ Cada uma segue a proposta que já estava nos documentos. Para mudar, basta dizer
 | 11 | Efeito do pet no duelo | Todo pet faz a mesma coisa: o "faro", 1 vez por duelo no seu turno. Mostra a carta do topo do deck e você escolhe deixar ou mandar para o fundo. A IA não usa | `engine.ts` (`sniff`) |
 | 12 | Florista, Inventor e Bibliotecária | Só proposta (abaixo), não entrou no jogo. Cada uma precisa de um prédio e de uma cena, que são arte do GPT | este arquivo |
 | 13 | Tarefas de profissão que faltavam | Entraram as que não precisam de arte nem de servidor: Conserto dos postes (IoT, no mapa), Pesquisa de mercado (Comerciante, no mapa) e Compra e venda (Comerciante, tabela de preços). As outras esperam arte ou servidor (lista abaixo) | `fieldwork.ts`, `lessons2.ts` |
+| 14 | Pacotes de Legado | 1 Comum a cada 5 níveis, 1 Raro a cada 15, 1 Épico a cada 30 (nível 20 = 4 Comuns + 1 Raro). Ficam guardados para abrir quando quiser | `legacyPacks` em `migration.ts` e `wit2_legacy_packs` (as duas juntas) |
+| 15 | A virada | Fica pronta e desligada. Ela só roda pelo botão do master, e o botão só liga com `VIRADA_LIGADA = true`. Aplicar o banco não migra ninguém | `teacher-cloud.ts`, `_wit2_virada.sql` |
 
 ## Proposta: 3 profissões novas (decisão 12)
 

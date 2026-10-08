@@ -2,9 +2,10 @@
 // sala e Denúncias. Visual da tela do professor (claro, fonte normal, botões
 // grandes para tablet), não o pixel do jogo.
 import { useEffect, useState } from 'react';
-import { createMission, endMission, kindLabel, MISSION_KINDS, missionPct, teacherMissions, teacherStudent, teacherStudents, type Mission, type MissionKind, type StudentCard, type StudentRow } from '@/game/teacher-cloud';
+import { createMission, endMission, migrateAll, migrateStatus, VIRADA_LIGADA, type MigrateStatus, kindLabel, MISSION_KINDS, missionPct, teacherMissions, teacherStudent, teacherStudents, type Mission, type MissionKind, type StudentCard, type StudentRow } from '@/game/teacher-cloud';
 import { moderatePost, MURAL_FRASES, teacherPosts, teacherReports, teacherResolve, REPORT_REASONS, type ReportRow, type TeacherPost } from '@/game/social';
 import { PACK_BY_ID, PACKS, type PackId } from '@/game/packs';
+import { DIAMOND_TO_COINS, legacyPacks } from '@/game/migration';
 import { RARITY_PT } from '@/lib/tcg/labels';
 import { cloudEnabled } from '@/game/cloud';
 import { PATH_BY_ID } from '@/lib/tcg/paths';
@@ -214,6 +215,63 @@ export function PostsTab() {
         </div>
       ))}
       {rows && !rows.length && <div className="text-[14px] text-[#6a6680]">Nada no mural ainda.</div>}
+    </div>
+  );
+}
+
+/** Virada WIT 1 → WIT 2 (só o master): como está, o que cada um recebe e o botão (desligado). */
+export function ViradaTab() {
+  const [st, setSt] = useState<MigrateStatus | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [sure, setSure] = useState(false);
+  useEffect(() => { migrateStatus().then(setSt).catch(e => setMsg(String((e as Error).message ?? e))); }, []);
+  const run = async () => {
+    try { const r = await migrateAll(); setMsg(`${r.migrados} alunos migrados${r.falhas.length ? `, ${r.falhas.length} com erro` : ''}.`); setSt(await migrateStatus()); }
+    catch (e) { setMsg(String((e as Error).message ?? e)); }
+    setSure(false);
+  };
+  const levels = [5, 10, 15, 20, 30, 45];
+  return (
+    <div className="grid gap-3">
+      <div className={`${box} p-3`}>
+        <div className="text-[18px] font-bold">Virada para o WIT 2</div>
+        <div className="text-[13px] text-[#6a6680] mt-1 leading-5">
+          Cada aluno do WIT 1 passa para o WIT 2 sem perder nada: os itens da loja viram as cartas iguais, as moedas continuam (1 diamante = {DIAMOND_TO_COINS} moedas),
+          materiais e poções viram pó da forja, os pontos de atributo e de skill viram pontos do Grimório (até 6), os títulos ficam e todos ganham o título Veterano.
+          Rodar de novo não dá nada em dobro. Conta de teste fica de fora.
+        </div>
+      </div>
+      {st && (
+        <div className="grid grid-cols-3 gap-2">
+          {([['Alunos', st.alunos], ['Já migrados', st.migrados], ['Contas de teste', st.teste]] as [string, number][]).map(([l, n]) => (
+            <div key={l} className={`${box} px-3 py-2`}><div className="text-[12px] text-[#6a6680]">{l}</div><div className="text-[22px] font-bold">{n}</div></div>
+          ))}
+        </div>
+      )}
+      <div className={`${box} p-3`}>
+        <div className="text-[14px] font-semibold mb-1">Pacotes de Legado (pelo nível no WIT 1)</div>
+        <table className="text-[13px] w-full"><tbody>
+          <tr className="text-[#6a6680]"><td>Nível</td>{levels.map(l => <td key={l}>{l}</td>)}</tr>
+          {(['comum', 'raro', 'epico'] as PackId[]).map(id => (
+            <tr key={id}><td>{PACK_BY_ID.get(id)!.name}</td>{levels.map(l => <td key={l}>{legacyPacks(l)[id] ?? 0}</td>)}</tr>
+          ))}
+        </tbody></table>
+        <div className="text-[12px] text-[#6a6680] mt-1">Proposta: 1 Comum a cada 5 níveis, 1 Raro a cada 15, 1 Épico a cada 30. Os pacotes ficam guardados em MEUS PACOTES.</div>
+      </div>
+      {!!st?.itensSemCarta.length && (
+        <div className={`${box} p-3 text-[13px]`}>
+          <div className="font-semibold mb-1">Itens da loja antiga sem carta igual ({st.itensSemCarta.length})</div>
+          <div className="text-[#6a6680]">{st.itensSemCarta.join(' · ')}</div>
+          <div className="text-[12px] text-[#6a6680] mt-1">Estes ficam no relatório do aluno e não viram carta.</div>
+        </div>
+      )}
+      <div className={`${box} p-3 flex flex-wrap items-center gap-2`}>
+        {!sure
+          ? <button className={btn} disabled={!VIRADA_LIGADA} onClick={() => setSure(true)}>Virar todos agora</button>
+          : <><span className="text-[14px]">Tem certeza? Isso não se desfaz.</span><button className={btnOn} onClick={() => void run()}>Sim, virar</button><button className={btn} onClick={() => setSure(false)}>Cancelar</button></>}
+        {!VIRADA_LIGADA && <span className="text-[13px] text-[#6a6680]">Desligado até você escolher o dia (chave VIRADA_LIGADA em teacher-cloud.ts). O WIT 1 continua no ar.</span>}
+      </div>
+      {msg && <div className="text-[13px]">{msg}</div>}
     </div>
   );
 }
