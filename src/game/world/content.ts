@@ -60,6 +60,12 @@ export const NPC_HOUSES: { id: string; sprite: string; title: string }[] = [
   { id: 'npc-artista', sprite: 'casa-artista', title: 'Ateliê da Artista' },
 ];
 
+/** Casa onde mora alguém (tem interior gerado): casa-*, as dos moradores do Bairro e os modelos de casa. */
+export function isResidentHouse(id: string): boolean {
+  return id.startsWith('casa-') && id !== 'casa-pesca' && id !== 'casa-fazenda' && id !== 'casa-iot'
+    || NPC_HOUSES.some(h => h.id === id) || HOUSE_MODELS.some(h => h.id === id);
+}
+
 export function houseInfo(id: string, name: string): { title: string; text: string } {
   const npc = NPC_HOUSES.find(h => h.id === id);
   if (npc) return { title: npc.title, text: 'Casa de um morador do Bairro Novo. No futuro: entrar, conversar e ganhar missões.' };

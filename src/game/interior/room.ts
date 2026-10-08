@@ -85,7 +85,7 @@ export interface Exit { tx: number; ty: number; to: ExitKind }
 export interface Talk {
   tiles: [number, number][]; lines: string[];
   /** Abre uma tela em vez de só falar: o elevador da Torre, sentar numa mesa vazia (PvP). */
-  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas';
+  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas' | 'moveis';
   /** Mesa vazia: o bloco da cadeira (onde o aluno senta). */
   seat?: [number, number];
 }
@@ -599,7 +599,9 @@ export function shopRoom(): Room {
   for (const [id, tx, ty, text] of stores) {
     items.push({ id, tx, ty });
     // a Troca de prêmios já funciona (Recompensas da Sala); as outras abrem depois
-    talks.push(id === 'loja-premios' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'recompensas' } : { tiles: area(tx, ty, 6, 3), lines: [text, 'Esta loja abre em breve.'] });
+    talks.push(id === 'loja-premios' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'recompensas' }
+      : id === 'loja-moveis' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'moveis' }
+      : { tiles: area(tx, ty, 6, 3), lines: [text, 'Esta loja abre em breve.'] });
   }
   // a estrela: a loja de pacotinhos no meio, de frente para a porta
   items.push({ id: 'loja-pacotinhos', tx: 13, ty: 12 });
@@ -714,3 +716,96 @@ export const ROOMS: Record<string, () => Room> = {
 export const ROOM_BUILDING: Record<string, string> = {
   arena: 'arena', treino: 'arena', loja: 'loja', oficina: 'centro', castelo: 'guildas',
 };
+
+// ─── casas dos moradores (Lago, Fazenda, Cidade WIT, Bairro Novo) ─────────────
+
+/** Sala de uma casa de morador: `morador:<id do prédio>`. */
+export const RESIDENT_PREFIX = 'morador:';
+
+/** Tema dos móveis pelo nome da casa (pescador, fazenda, músico...). */
+function residentTheme(id: string): string[] {
+  if (/pesca|marinho|lucia|nando|farol|iscas/.test(id)) return ['extra', 'planta'];
+  if (/fazenda|celeiro|galinheiro|estufa|silo/.test(id)) return ['jardim', 'cozinha'];
+  if (/musico|estudio/.test(id)) return ['eletronico', 'poltrona'];
+  if (/games|gamer|coworking|iot|ia|metaverso/.test(id)) return ['gamer', 'eletronico'];
+  if (/artista|atelie/.test(id)) return ['parede', 'planta'];
+  return ['planta', 'eletronico'];
+}
+
+function seeded(id: string): () => number {
+  let h = 2166136261;
+  for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; };
+}
+
+/**
+ * Monta a casa de um morador com o kit de móveis do atlas, sempre igual para a
+ * mesma casa (semente pelo id). Cada móvel entra no primeiro lugar livre que
+ * não fecha o caminho da porta até o meio da sala.
+ */
+export function residentRoom(m: Manifest, building: string, title: string): Room {
+  const rnd = seeded(building);
+  const pick = <T,>(xs: T[]) => xs[Math.floor(rnd() * xs.length)];
+  const room: Room = {
+    id: `${RESIDENT_PREFIX}${building}`, title, w: 12, h: 10, wallRows: 3,
+    piso: pick(HOUSE_FLOORS), parede: pick(HOUSE_WALLS),
+    items: [], npcs: [],
+    spawn: { tx: 5, ty: 8, dir: 'north' },
+    exits: [{ tx: 5, ty: 9, to: 'cidade' }, { tx: 6, ty: 9, to: 'cidade' }],
+  };
+  // perto da porta fica livre
+  const keep = new Set(['4,8', '5,8', '6,8', '7,8', '5,7', '6,7', '5,9', '6,9']);
+  const connected = (): boolean => {
+    const solid = solidGrid(m, room);
+    const free: [number, number][] = [];
+    for (let y = room.wallRows; y < room.h - 1; y++) for (let x = 0; x < room.w; x++) if (!solid[y][x]) free.push([x, y]);
+    // todo bloco livre alcançável a partir da porta (nada fica preso atrás dos móveis)
+    const seen = new Set(['5,8']);
+    const q: [number, number][] = [[5, 8]];
+    while (q.length) {
+      const [x, y] = q.pop()!;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy, k = `${nx},${ny}`;
+        if (ny < room.wallRows || ny >= room.h - 1 || nx < 0 || nx >= room.w || solid[ny][nx] || seen.has(k)) continue;
+        seen.add(k); q.push([nx, ny]);
+      }
+    }
+    return free.every(([x, y]) => seen.has(`${x},${y}`));
+  };
+  const place = (cat: string) => {
+    const ids = catalogOf(m, cat);
+    if (!ids.length) return;
+    const tries = [...ids].sort(() => rnd() - 0.5).slice(0, 6);
+    for (const id of tries) {
+      const layer = layerOf(m, id);
+      const spots: [number, number][] = [];
+      // móvel grande (cama, armário, sofá, cozinha) fica encostado na parede do fundo
+      const back = ['cama', 'armario', 'sofa', 'cozinha', 'eletronico'].includes(cat);
+      if (layer === 'p') for (let x = 0; x < room.w; x++) spots.push([x, room.wallRows - 1]);
+      else if (back) for (let x = 0; x < room.w; x++) spots.push([x, room.wallRows]);
+      else for (let y = room.wallRows; y < room.h - 1; y++) for (let x = 0; x < room.w; x++) spots.push([x, y]);
+      // começa por um canto sorteado (cada casa fica com a sua cara)
+      const off = Math.floor(rnd() * spots.length);
+      for (let i = 0; i < spots.length; i++) {
+        const [tx, ty] = spots[(i + off) % spots.length];
+        const p: Placed = { id, tx, ty };
+        if (!canPlace(m, room, p)) continue;
+        const [fw, fd] = footprint(m, p);
+        let blocksDoor = false;
+        if (layer === 'm') for (let y = ty; y < ty + fd; y++) for (let x = tx; x < tx + fw; x++) if (keep.has(`${x},${y}`)) blocksDoor = true;
+        if (blocksDoor) continue;
+        // 1 bloco de folga entre móveis (nada fica um na frente do outro)
+        if (layer === 'm' && room.items.some(q => {
+          if (layerOf(m, q.id) !== 'm') return false;
+          const [qw, qd] = footprint(m, q);
+          return tx - 1 < q.tx + qw && q.tx < tx + fw + 1 && ty - 1 < q.ty + qd && q.ty < ty + fd + 1;
+        })) continue;
+        room.items.push(p);
+        if (layer !== 'm' || connected()) return;
+        room.items.pop();
+      }
+    }
+  };
+  for (const cat of ['tapete', 'cama', 'mesa', 'sofa', 'armario', 'parede', 'luz', ...residentTheme(building), 'planta']) place(cat);
+  return room;
+}

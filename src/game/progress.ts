@@ -100,6 +100,10 @@ export interface Progress {
   /** Veículos comprados (vehicles.ts) e o escolhido para montar (tecla V). */
   veiculos: VehicleId[];
   veiculo?: VehicleId;
+  /** Móveis comprados na Loja de Móveis (furniture.ts); os da casa inicial são de graça. */
+  moveis: string[];
+  /** Plantas da Sua Casa: regas seguidas e o dia da última (house-life.ts). */
+  plantas: Record<string, { regas: number; dia: number }>;
 }
 
 export function newProgress(): Progress {
@@ -132,6 +136,8 @@ export function newProgress(): Progress {
     premios: [],
     tickets: [],
     veiculos: [],
+    moveis: [],
+    plantas: {},
   };
 }
 
@@ -213,6 +219,10 @@ export function sanitizeProgress(raw: unknown): Progress {
     limpeza: (() => { const l = r.limpeza as Record<string, unknown> | undefined; return l && typeof l === 'object' ? { day: num(l.day, 0), n: num(l.n, 0, 0, 999) } : undefined; })(),
     tickets: Array.isArray(r.tickets) ? (r.tickets as Record<string, unknown>[]).filter(t => t && typeof t.code === 'string' && typeof t.reward === 'string' && /^[A-Z0-9]{4}$/.test(t.code as string)).slice(0, 30)
       .map(t => ({ code: t.code as string, reward: (t.reward as string).slice(0, 30), preco: num(t.preco, 0, 0, 1e6), dia: num(t.dia, 0), ...(t.entregue !== undefined ? { entregue: num(t.entregue, 0) } : {}) })) : [],
+    plantas: Object.fromEntries(Object.entries((r.plantas && typeof r.plantas === 'object' ? r.plantas : {}) as Record<string, { regas?: unknown; dia?: unknown }>)
+      .filter(([k, v]) => /^[a-z0-9.-]{1,40}@\d{1,2},\d{1,2}$/.test(k) && v && Number.isInteger(v.regas) && Number.isInteger(v.dia))
+      .slice(0, 60).map(([k, v]) => [k, { regas: Math.max(0, Math.min(10, v.regas as number)), dia: v.dia as number }])),
+    moveis: Array.isArray(r.moveis) ? [...new Set((r.moveis as unknown[]).filter((x): x is string => typeof x === 'string' && /^[a-z0-9-]{1,40}$/.test(x)))].slice(0, 400) : [],
     veiculos: Array.isArray(r.veiculos) ? [...new Set((r.veiculos as unknown[]).filter((x): x is VehicleId => typeof x === 'string' && VEHICLE_BY_ID.has(x as VehicleId)))] : [],
     veiculo: typeof r.veiculo === 'string' && VEHICLE_BY_ID.has(r.veiculo as VehicleId) ? (r.veiculo as VehicleId) : undefined,
     premios: Array.isArray(r.premios) ? [...new Set((r.premios as unknown[]).filter((x): x is string => typeof x === 'string' && /^[a-z-]{1,30}$/.test(x)))].slice(0, 50) : [],

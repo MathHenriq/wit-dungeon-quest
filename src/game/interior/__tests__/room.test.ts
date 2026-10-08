@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { findPath } from '@/game/world/movement';
 import {
-  canPlace, catalogOf, ROOMS, footprint, HOUSE_CATS, HOUSE_START, houseRoom, nextFacing, sanitizeHouse, solidGrid,
+  canPlace, catalogOf, residentRoom, ROOMS, footprint, HOUSE_CATS, HOUSE_START, houseRoom, nextFacing, sanitizeHouse, solidGrid,
   hiddenBehind, seatLine, spriteOf, tableBelow, towerRoom, wanderTiles, type Manifest,
 } from '../room';
 
@@ -145,5 +145,26 @@ describe('interiores', () => {
       }
       for (const [from, pos] of Object.entries(r.entries ?? {})) expect(reach(pos.tx, pos.ty), `entrada de ${from}`).toBe(true);
     });
+  });
+});
+
+describe('casas dos moradores', () => {
+  const ids = ['casa-nando', 'casa-lucia', 'casa-marinho', 'casa-coworking', 'npc-pescador', 'npc-musico', 'npc-fazendeiro', 'npc-artista', 'modelo-gamer', 'casa-x1', 'casa-x2', 'casa-x3'];
+  it('cada casa tem móveis que existem, sem sobrepor, e dá para chegar em todo canto livre a partir da porta', () => {
+    for (const id of ids) {
+      const r = residentRoom(m, id, id);
+      expect(r.items.length, id).toBeGreaterThanOrEqual(6);
+      for (const p of r.items) expect(m[p.id], `${id}: ${p.id}`).toBeTruthy();
+      r.items.forEach((p, i) => expect(canPlace(m, r, p, i), `${id}: ${p.id} sobreposto`).toBe(true));
+      const solid = solidGrid(m, r);
+      for (let y = r.wallRows; y < r.h - 1; y++) for (let x = 0; x < r.w; x++) {
+        if (solid[y][x] || (x === r.spawn.tx && y === r.spawn.ty)) continue;
+        expect(findPath(r.spawn.tx, r.spawn.ty, x, y, (a, b) => b < 0 || a < 0 || b >= r.h || a >= r.w || solid[b][a]).length, `${id}: (${x},${y}) preso`).toBeGreaterThan(0);
+      }
+    }
+  });
+  it('a mesma casa sai sempre igual; casas diferentes, diferentes', () => {
+    expect(residentRoom(m, 'casa-nando', 'a')).toEqual(residentRoom(m, 'casa-nando', 'a'));
+    expect(JSON.stringify(residentRoom(m, 'casa-nando', 'a').items)).not.toEqual(JSON.stringify(residentRoom(m, 'casa-lucia', 'a').items));
   });
 });

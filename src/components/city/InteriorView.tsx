@@ -12,7 +12,7 @@ import { itemDef, itemIcon, itemLabel } from '@/game/items';
 import { Icon } from '@/components/Icon';
 import {
   canPlace, catalogOf, footprint, HOUSE_CATS, HOUSE_FLOORS, HOUSE_START, HOUSE_WALLS, houseRoom, layerOf, nextFacing,
-  ROOMS, sanitizeHouse, seatLine, solidGrid, wanderTiles, spriteOf, spriteRect, TILE, towerRoom, type Exit, type Manifest, type Placed, type Room, type RoomNpc,
+  RESIDENT_PREFIX, residentRoom, ROOMS, sanitizeHouse, seatLine, solidGrid, wanderTiles, spriteOf, spriteRect, TILE, towerRoom, type Exit, type Manifest, type Placed, type Room, type RoomNpc,
 } from '@/game/interior/room';
 import { ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker } from '@/game/world/movement';
 import { drawExitMark, drawHint } from '@/game/world/player-acts';
@@ -38,6 +38,10 @@ import { buildMatch, joinTable, reportPvp, validDeck, WO_MS, type PvpAction, typ
 import { tabId } from '@/game/presence';
 import { GuildPanel } from '@/components/social/GuildPanel';
 import { TradeHub } from '@/components/social/TradeHub';
+import { FurnitureShop } from './FurnitureShop';
+import { plantKey, waterPlant } from '@/game/house-life';
+import { today } from '@/game/life';
+import { furniturePrice, ownsFurniture } from '@/game/furniture';
 import {
   drawSeated, loadImage, loadLookFrames, loadNpcFrames, loadPetFrames, plateCanvas, R, type Frames,
 } from '@/game/world/sprites';
@@ -49,7 +53,7 @@ import {
  */
 
 /** `visita`: a casa de um amigo (só olhar; vem do banco, wit2_visit). */
-export type Sala = { kind: 'torre'; andar: number } | { kind: 'casa'; visita?: { layout: unknown; dono: string } } | { kind: 'sala'; id: string };
+export type Sala = { kind: 'torre'; andar: number } | { kind: 'casa'; visita?: { layout: unknown; dono: string } } | { kind: 'sala'; id: string; title?: string };
 
 const WALK_MS = 230, RUN_MS = 125;
 const KEY_DIR: Record<string, Dir> = {
@@ -129,6 +133,7 @@ const foeIdOf = (d: DuelSpec) => (d.kind === 'chefe' ? `torre-${d.andar}-chefe` 
 
 function buildRoom(m: Manifest, sala: Sala): Room {
   if (sala.kind === 'torre') return towerRoom(sala.andar);
+  if (sala.kind === 'sala' && sala.id.startsWith(RESIDENT_PREFIX)) return residentRoom(m, sala.id.slice(RESIDENT_PREFIX.length), sala.title ?? 'Casa');
   if (sala.kind === 'sala') return (ROOMS[sala.id] ?? ROOMS.arena)();
   const h = savedHouse(m, sala.visita?.layout ?? undefined);
   const r = { ...houseRoom(h.items), piso: h.piso, parede: h.parede };
@@ -183,9 +188,9 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const [shopOf, setShopOf] = useState<RoomNpc | null>(null);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
   /** Loja de pacotinhos ou forja abertas (?painel=pacotes|forja abre direto). */
-  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | 'guilda' | 'trocas' | null>(() => {
+  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | 'guilda' | 'trocas' | 'moveis' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('painel');
-    return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' || q === 'trocas' ? q : null;
+    return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' || q === 'trocas' || q === 'moveis' ? q : null;
   });
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
   const [housePanel, setHousePanel] = useState<HousePanel | null>(null);
@@ -455,7 +460,12 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       case 'mural': setHousePanel({ kind: 'mochila', start: 'missoes' }); return;
       case 'banho': say('Banho tomado! Cheirosinho e pronto para a aula.'); return;
       case 'brinquedos': say(['Você monta uma torre de blocos... e ela cai. De novo!', 'Abraço apertado na pelúcia preferida.', 'Achou uma carta perdida no fundo do baú! (Era só uma figurinha.)'][book.current++ % 3]); return;
-      case 'planta': say('Você regou a planta. Ela parece mais verdinha!'); return;
+      case 'planta': {
+        const r = waterPlant(loadProgress(), plantKey(item.id, item.tx, item.ty), today());
+        if (r.progress !== progress) { saveProgress(r.progress); setProgress(r.progress); }
+        play(r.fruit ? 'coin' : 'drop');
+        say(r.text); return;
+      }
       case 'janela': say(canSleep(hour) ? 'Lá fora, as luzes da cidade piscam e os vaga-lumes passeiam.' : 'Lá fora, a cidade está cheia de gente indo trabalhar.'); return;
     }
   };
@@ -501,6 +511,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     if (talk?.action === 'pacotes') { S.held = []; setPanelOpen('pacotes'); return; }
     if (talk?.action === 'recompensas') { S.held = []; setPanelOpen('recompensas'); return; }
     if (talk?.action === 'trocas') { S.held = []; setPanelOpen('trocas'); return; }
+    if (talk?.action === 'moveis') { S.held = []; setPanelOpen('moveis'); return; }
     if (talk?.action === 'sentar' && talk.seat) {
       // senta na cadeira da mesa vazia e espera um colega sentar na frente
       S.sit = { tx: talk.seat[0], ty: talk.seat[1], from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
@@ -908,6 +919,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'recompensas' && <RoomRewards progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
+      {panelOpen === 'moveis' && m && <FurnitureShop m={m} onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {panelOpen === 'trocas' && <TradeHub onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {shopOf && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 p-3" onPointerDown={() => setShopOf(null)}>
@@ -1069,13 +1081,18 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
                   <Thumb m={m} id={id} fill />
                 </button>
               ))
-              : items.map(id => (
-                <button key={id} onClick={() => pick(id)} title={m[id].nome}
-                  className={`h-[76px] rounded border-2 bg-white flex flex-col items-center justify-end p-1 ${holding?.p.id === id ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'}`}>
-                  <Thumb m={m} id={id} />
-                  <span className="text-[7px] leading-3 text-[#5a4630] truncate w-full text-center">{m[id].nome}</span>
-                </button>
-              ))}
+              : items.map(id => {
+                // ainda não comprado: aparece com o preço (compra na Loja de Móveis, no shopping)
+                const own = ownsFurniture(progress, id);
+                return (
+                  <button key={id} onClick={() => (own ? pick(id) : setDialog({ lines: [`${m[id].nome ?? id}: ${furniturePrice(m, id)} moedas na Loja de Móveis (shopping).`], i: 0 }))} title={m[id].nome}
+                    className={`relative h-[76px] rounded border-2 bg-white flex flex-col items-center justify-end p-1 ${holding?.p.id === id ? 'border-[#2f6b1e] ring-2 ring-[#8cc63f]' : 'border-black/15'} ${own ? '' : 'opacity-60'}`}>
+                    <Thumb m={m} id={id} />
+                    <span className="text-[7px] leading-3 text-[#5a4630] truncate w-full text-center">{own ? m[id].nome : `${furniturePrice(m, id)} moedas`}</span>
+                    {!own && <span className="absolute top-1 right-1"><Icon id="cadeado" size={12} /></span>}
+                  </button>
+                );
+              })}
           </div>
         </div>
       )}

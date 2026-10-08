@@ -46,7 +46,7 @@ import { Radio } from '@/components/city/Radio';
 import { VehicleShop } from '@/components/city/VehicleShop';
 import { poseFrames } from '@/game/world/model-sprite';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
-import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
+import { RESIDENT_PREFIX, ROOM_BUILDING, ROOMS } from '@/game/interior/room';
 import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { PACK_BY_ID, type PackId } from '@/game/packs';
@@ -62,7 +62,7 @@ import { Icon } from '@/components/Icon';
 import { iconUrl } from '@/game/icons';
 import { DeckBuilder } from '@/components/duel/DeckBuilder';
 import { LookEditor } from '@/components/city/LookEditor';
-import { BUILDING_INFO, houseInfo, MURAL_TEXT, NPCS, type NpcDef } from '@/game/world/content';
+import { BUILDING_INFO, houseInfo, isResidentHouse, MURAL_TEXT, NPCS, type NpcDef } from '@/game/world/content';
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 import { drawAmbient } from '@/game/world/ambient';
 import { PLATE_FALA, PLATE_NPC, PLATE_OTHER, PLATE_PLAYER } from '@/game/world/nameplate';
@@ -296,6 +296,8 @@ function CityView({ town, start, startHour, onTravel }: {
     if (q.get('sala') === 'casa') return { kind: 'casa' };
     const sid = q.get('sala');
     if (sid && ROOMS[sid]) return { kind: 'sala', id: sid };
+    // ?sala=morador:casa-nando abre a casa de um morador (prints)
+    if (sid?.startsWith(RESIDENT_PREFIX)) return { kind: 'sala', id: sid, title: houseInfo(sid.slice(RESIDENT_PREFIX.length), 'Casa').title };
     if (q.get('sala') === 'torre') return { kind: 'torre', andar: Math.max(1, Math.min(100, Number(q.get('andar')) || 1)) };
     return null;
   });
@@ -1081,6 +1083,8 @@ function CityView({ town, start, startHour, onTravel }: {
         else if (door.building === 'casa-pesca') setFishHouse('quadro');
         else if (door.building === 'nucleo-wit') setCourses(true);
         else if (door.building === 'farol') { setDialog({ lines: ['Você sobe a escada em caracol do farol...', 'Lá de cima dá para ver o mundo todo!'], i: 0 }); window.setTimeout(() => setMapOpen(true), 50); s.player.ty += 1; s.player.dir = 'south'; }
+        // casa de morador: entra (móveis do kit, cada casa do seu jeito)
+        else if (!BUILDING_INFO[door.building] && isResidentHouse(door.building)) setInside({ kind: 'sala', id: `${RESIDENT_PREFIX}${door.building}`, title: houseInfo(door.building, door.name).title });
         else setPanel(BUILDING_INFO[door.building] ?? houseInfo(door.building, door.name));
         return;
       }
@@ -1827,7 +1831,7 @@ function CityView({ town, start, startHour, onTravel }: {
   // saiu do interior: aparece na frente da porta, olhando para a rua
   const exitInterior = useCallback((from: Sala) => {
     const s = g.current;
-    const id = from.kind === 'torre' ? 'torre' : from.kind === 'casa' ? 'sua-casa' : ROOM_BUILDING[from.id];
+    const id = from.kind === 'torre' ? 'torre' : from.kind === 'casa' ? 'sua-casa' : from.id.startsWith(RESIDENT_PREFIX) ? from.id.slice(RESIDENT_PREFIX.length) : ROOM_BUILDING[from.id];
     const d = town.doors.find(dd => dd.building === id);
     if (d) {
       s.player = newWalker(d.tx, d.ty + 1, 'south');
