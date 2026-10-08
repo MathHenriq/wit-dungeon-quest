@@ -62,13 +62,14 @@ export const NPC_HOUSES: { id: string; sprite: string; title: string }[] = [
 
 /** Casa onde mora alguém (tem interior gerado): casa-*, as dos moradores do Bairro e os modelos de casa. */
 export function isResidentHouse(id: string): boolean {
-  return id.startsWith('casa-') && id !== 'casa-pesca' && id !== 'casa-fazenda' && id !== 'casa-iot'
+  return id.startsWith('casa-') && id !== 'casa-pesca' && id !== 'casa-fazenda' && id !== 'casa-iot' && id !== 'casa-coworking'
+    || id.startsWith('moradia-')
     || NPC_HOUSES.some(h => h.id === id) || HOUSE_MODELS.some(h => h.id === id);
 }
 
 export function houseInfo(id: string, name: string): { title: string; text: string } {
   const npc = NPC_HOUSES.find(h => h.id === id);
-  if (npc) return { title: npc.title, text: 'Casa de um morador do Bairro Novo. No futuro: entrar, conversar e ganhar missões.' };
+  if (npc) return { title: npc.title, text: 'Casa de um morador do Bairro Novo.' };
   const m = HOUSE_MODELS.find(h => h.id === id);
   if (!m) return { title: name, text: HOUSE_INFO.text };
   return m.inicial
@@ -76,7 +77,7 @@ export function houseInfo(id: string, name: string): { title: string; text: stri
     : { title: m.title, text: 'Modelo à venda: comprando na Loja, a sua casa vira esta.' };
 }
 
-export const HOUSE_INFO = { title: 'Casa de um morador', text: 'No futuro, a casa dos seus amigos: visite, veja a decoração e deixe um recado.' };
+export const HOUSE_INFO = { title: 'Casa de um morador', text: 'A casa de um morador da cidade. Para visitar a casa de um amigo, use a aba AMIGOS da mochila.' };
 
 export interface NpcDef {
   id: string;

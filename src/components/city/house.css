@@ -12,4 +12,5 @@
 .hs-bubble { position: absolute; bottom: 30%; width: 6px; height: 6px; background: rgba(255, 255, 255, .7); box-shadow: inset -1px -1px 0 rgba(0, 0, 0, .2); animation: hsbub 3.5s linear infinite; }
 @keyframes hsbub { from { transform: translateY(0); opacity: .9; } to { transform: translateY(-190px); opacity: 0; } }
 .hs-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; text-align: center; font-size: 9px; color: #fff; text-shadow: 1px 1px 0 #0e3a5a; }
+.hs-night { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 60%, rgba(255, 190, 110, .08), rgba(14, 18, 56, .34) 75%); pointer-events: none; z-index: 5; }
 .hs-dark { position: absolute; inset: 0; background: rgba(8, 10, 40, .55); pointer-events: none; z-index: 5; }

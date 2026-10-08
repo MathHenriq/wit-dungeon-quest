@@ -38,14 +38,19 @@ export function rotated(pm: Pixmap, ang: number): Pixmap {
   return o;
 }
 
-/** Repete um pedaço (tábua do píer) ao longo de `n` vezes, na vertical ou na horizontal. */
+/**
+ * Repete um pedaço (tábua do píer) até cobrir `n` blocos, na vertical ou na
+ * horizontal, e corta no tamanho exato (o pedaço pode ter mais de 1 bloco:
+ * repetir 1 vez por bloco deixava o píer com o dobro do comprimento).
+ */
 export function repeated(pm: Pixmap, n: number, vertical: boolean): Pixmap {
-  const one = (p: Pixmap) => {
-    const o = new Pixmap(vertical ? p.w : p.w * n, vertical ? p.h * n : p.h);
-    for (let k = 0; k < n; k++) o.blit(p, vertical ? 0 : k * p.w, vertical ? k * p.h : 0);
+  const one = (p: Pixmap, unit: number) => {
+    const len = n * unit, step = vertical ? p.h : p.w;
+    const o = new Pixmap(vertical ? p.w : len, vertical ? len : p.h);
+    for (let at = 0; at < len; at += step) o.blit(p, vertical ? 0 : at, vertical ? at : 0);
     return o;
   };
-  const o = one(pm);
-  if (pm.hd) o.hd = one(pm.hd);
+  const o = one(pm, 16);
+  if (pm.hd) o.hd = one(pm.hd, 32);
   return o;
 }

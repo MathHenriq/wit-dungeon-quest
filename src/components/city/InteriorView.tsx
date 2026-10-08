@@ -204,6 +204,14 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const [housePanel, setHousePanel] = useState<HousePanel | null>(() => (new URLSearchParams(window.location.search).get('painel') === 'quebra' ? { kind: 'quebra' } : null));
   /** Luzes da casa apagadas (a sala escurece). */
   const [lightsOff, setLightsOff] = useState(false);
+  // casa (a sua e as dos moradores) à noite: um pouco mais escura, como lá fora
+  const homey = sala0.kind === 'casa' || (sala0.kind === 'sala' && sala0.id.startsWith(RESIDENT_PREFIX));
+  const [night, setNight] = useState(() => homey && canSleep(house?.hour() ?? 12));
+  useEffect(() => {
+    if (!homey) return;
+    const t = window.setInterval(() => setNight(canSleep(house?.hour() ?? 12)), 5000);
+    return () => window.clearInterval(t);
+  }, [homey, house]);
   const music = useRef<{ stop: () => void; k: number } | null>(null);
   const book = useRef(0);
   /** Faixa grande "ANDAR N" ao chegar num andar. */
@@ -926,7 +934,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
           <button onClick={standUp} className="mt-3 px-3 py-2 rounded bg-[#4a4660] text-[9px]">LEVANTAR</button>
         </div>
       )}
-      {lightsOff && <div className="hs-dark" />}
+      {lightsOff ? <div className="hs-dark" /> : night && <div className="hs-night" />}
       {housePanel && (
         <HousePanels panel={housePanel} progress={progress} nick={look.apelido || 'Você'} onClose={() => setHousePanel(null)}
           onOpen={setHousePanel} onDeck={() => { setHousePanel(null); setDeckOpen(true); }} />

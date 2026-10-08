@@ -603,7 +603,7 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
       const v = amountValue(state, actor, e.amount);
       const antes = t.life;
       t.life = Math.min(t.maxLife, t.life + v);
-      log(state, actor, `${t.name} recupera ${t.life - antes} de vida (vida ${t.life}).`);
+      log(state, actor, t.life > antes ? `${t.name} recupera ${t.life - antes} de vida (vida ${t.life}).` : `${t.name} já está com a vida cheia (vida ${t.life}).`);
       return;
     }
     case 'draw': {
