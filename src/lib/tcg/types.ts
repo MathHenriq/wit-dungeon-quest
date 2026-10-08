@@ -257,6 +257,8 @@ export interface PlayerState {
   playedThisTurn: CardDef[];
   /** Já usou o talento "Embaralhar de Novo" nesta partida. */
   mulliganed?: boolean;
+  /** Já usou o faro do pet nesta partida. */
+  sniffed?: boolean;
 }
 
 /** A conta de um golpe, peça por peça (a tela mostra em fichas). */

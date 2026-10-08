@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addItem, newProgress, sanitizeProgress } from '../progress';
-import { applyReward, bump, canCook, chooseProfession, cook, eat, gainXp, playsLeft, RECIPES, spendEnergy, spendPlay } from '../life';
+import { applyReward, bump, canChangeProfession, canCook, chooseProfession, cook, eat, gainXp, playsLeft, RECIPES, spendEnergy, spendPlay } from '../life';
 import { levelOf, PROFESSIONS, profTitle } from '../professions';
 import { buy, buyPrice, demand, marketPrice, sell } from '../market';
 import { claimMission, missionProgress, missionsOf, syncMissions } from '../missions';
@@ -20,6 +20,18 @@ describe('profissões', () => {
     expect(r.levelUp).toBe(2);
     p = r.progress;
     expect(gainXp(p, 'padeiro', 1).levelUp).toBeUndefined();
+  });
+  it('trocar de cargo: 1ª escolha livre, depois 1 troca por dia e a experiência fica', () => {
+    let p = chooseProfession({ ...newProgress(), xp: { padeiro: 300 } }, 'padeiro', 100);
+    expect(p.profTroca).toBeUndefined();
+    p = chooseProfession(p, 'pescador', 100);
+    expect(p.profissao).toBe('pescador');
+    expect(canChangeProfession(p, 100)).toBeTruthy();
+    expect(chooseProfession(p, 'padeiro', 100).profissao).toBe('pescador');
+    expect(canChangeProfession(p, 101)).toBeNull();
+    p = chooseProfession(p, 'padeiro', 101);
+    expect(p.profissao).toBe('padeiro');
+    expect(p.xp.padeiro).toBe(300);
   });
   it('toda profissão com minijogo tem um só minijogo', () => {
     const games = PROFESSIONS.filter(p => p.minigame).map(p => p.minigame);

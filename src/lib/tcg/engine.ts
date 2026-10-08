@@ -739,6 +739,26 @@ export function mulligan(stateIn: GameState, who: 0 | 1): GameState {
   return state;
 }
 
+/**
+ * Faro do pet: uma vez por partida, no seu turno, o pet fareja a carta do
+ * topo do seu deck; você decide se ela fica ou vai para o fundo. Pequeno
+ * de propósito: não compra, não dá dano, não mexe no adversário.
+ */
+export function canSniff(state: GameState, who: 0 | 1): boolean {
+  const p = state.players[who];
+  return state.winner === null && state.active === who && !p.sniffed && p.deck.length > 1;
+}
+
+export function sniff(stateIn: GameState, who: 0 | 1, toBottom: boolean): GameState {
+  if (!canSniff(stateIn, who)) return stateIn;
+  const state = structuredClone(stateIn);
+  const p = state.players[who];
+  if (toBottom) p.deck.push(p.deck.shift()!);
+  p.sniffed = true;
+  log(state, who, toBottom ? `O pet de ${p.name} fareja o deck e manda a carta do topo para o fundo.` : `O pet de ${p.name} fareja o deck e deixa a carta do topo onde está.`);
+  return state;
+}
+
 export function playCard(stateIn: GameState, uid: string, choices: PlayChoices = {}): GameState {
   const state = structuredClone(stateIn);
   const check = canPlay(state, uid);

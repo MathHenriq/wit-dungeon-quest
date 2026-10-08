@@ -6,7 +6,7 @@ import { marketSold, marketState } from '@/game/social';
 import { FriendsList } from '@/components/social/Friends';
 import { earnedTitles, visibleTitles } from '@/game/titles';
 import { useEffect, useState } from 'react';
-import { canCook, chooseProfession, cook, craftIrrigator, eat, gainXp, RECIPES, SENSORS_PER_IRRIG } from '@/game/life';
+import { canChangeProfession, canCook, chooseProfession, cook, craftIrrigator, eat, gainXp, RECIPES, SENSORS_PER_IRRIG } from '@/game/life';
 import { buy, buyPrice, MARKET_SELLS, marketPrice, sell, sellable, trend } from '@/game/market';
 import { claimMission, missionProgress, missionsOf, syncMissions } from '@/game/missions';
 import { PROFESSIONS, TITLES, levelOf } from '@/game/professions';
@@ -29,7 +29,7 @@ const Msg = ({ msg }: { msg: string | null }) => (msg ? <div className="mt-3 tex
 export function ProfessionsList({ progress, onMsg }: { progress: Progress; onMsg: (m: string) => void }) {
   return (
     <div className="grid gap-1.5">
-      <div className="text-[8px] leading-4 text-[#5a5470] mb-1">Qualquer um faz qualquer trabalho e ganha experiência nele. O CARGO escolhido dá um bônus (troque quando quiser; a experiência fica guardada).</div>
+      <div className="text-[8px] leading-4 text-[#5a5470] mb-1">Qualquer um faz qualquer trabalho e ganha experiência nele. O CARGO escolhido dá um bônus (dá para trocar uma vez por dia; a experiência fica guardada).</div>
       {PROFESSIONS.map(p => {
         const mine = progress.profissao === p.id;
         return (
@@ -38,7 +38,7 @@ export function ProfessionsList({ progress, onMsg }: { progress: Progress; onMsg
               <Icon id={p.icon} size={24} />
               <div className="flex-1 text-[9px]">{p.name}{p.course && <span className="text-[7px] text-[#5a5470]"> · curso de {p.course}</span>}</div>
               {mine ? <span className="text-[8px] text-[#e8a020]">SEU CARGO</span>
-                : <button onClick={() => { saveProgress(chooseProfession(progress, p.id)); play('coin'); onMsg(`Agora você é ${p.name}!`); }} className="px-2 py-1 rounded bg-[#3c56b0] text-white text-[7px]">ESCOLHER</button>}
+                : <button onClick={() => { const no = canChangeProfession(progress); if (no) { play('lose'); onMsg(no); return; } saveProgress(chooseProfession(progress, p.id)); play('coin'); onMsg(`Agora você é ${p.name}!`); }} className="px-2 py-1 rounded bg-[#3c56b0] text-white text-[7px]">ESCOLHER</button>}
             </div>
             <div className="text-[7px] leading-4 text-[#5a5470] mt-1">{p.place} · {p.how}</div>
             <div className="text-[7px] leading-4 text-[#3a7a3a]">Bônus: {p.perk}</div>

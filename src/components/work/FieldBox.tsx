@@ -1,7 +1,7 @@
 // Trabalho de campo (aba NO MAPA): pegar o trabalho que faz andar pelo mundo,
 // ver quantos pontos faltam em cada área e cancelar.
 import { useState } from 'react';
-import { cancelField, FIELD_BY_ID, fieldLeft, fieldOf, pendingByZone, takeField } from '@/game/fieldwork';
+import { cancelField, FIELD_BY_ID, fieldLeft, fieldsOf, pendingByZone, type FieldJob, takeField } from '@/game/fieldwork';
 import type { ProfId } from '@/game/professions';
 import { saveProgress, type Progress } from '@/game/progress';
 import { play } from '@/game/sfx';
@@ -10,9 +10,12 @@ import { Icon } from '@/components/Icon';
 import { itemIcon } from '@/game/items';
 
 export function FieldBox({ prof, progress }: { prof: ProfId; progress: Progress }) {
+  const jobs = fieldsOf(prof);
+  return <div className="grid gap-2">{jobs.map(j => <OneField key={j.id} job={j} prof={prof} progress={progress} />)}</div>;
+}
+
+function OneField({ job, prof, progress }: { job: FieldJob; prof: ProfId; progress: Progress }) {
   const [msg, setMsg] = useState<string | null>(null);
-  const job = fieldOf(prof);
-  if (!job) return null;
   const c = progress.campo, mine = c && c.job === job.id, other = c && !mine ? FIELD_BY_ID.get(c.job) : null;
   const left = mine ? fieldLeft(progress, Date.now()) : null;
   return (
@@ -33,7 +36,7 @@ export function FieldBox({ prof, progress }: { prof: ProfId; progress: Progress 
         <div className="mt-2 text-[8px] text-[#c84a6a]">Você já está fazendo outro trabalho de campo ({other.name}). Termine ou cancele no lugar dele.</div>
       ) : (
         <button onClick={() => {
-          const r = takeField(progress, prof, Math.floor(Math.random() * 1e6), Date.now());
+          const r = takeField(progress, prof, Math.floor(Math.random() * 1e6), Date.now(), job.id);
           if ('reason' in r) { setMsg(r.reason); play('lose'); return; }
           saveProgress(r.progress); play('drop'); setMsg('Trabalho anotado! Saia e procure os pontos marcados.');
         }} className="mt-2 px-3 py-2 rounded text-white text-[9px]" style={{ background: job.color }}>PEGAR O TRABALHO</button>

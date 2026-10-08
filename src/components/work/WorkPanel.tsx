@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { applyReward, chooseProfession, playsLeft, today, spendPlay, WORK_HUNGER, PLAYS_PER_DAY, type Reward } from '@/game/life';
+import { applyReward, canChangeProfession, chooseProfession, playsLeft, today, spendPlay, WORK_HUNGER, PLAYS_PER_DAY, type Reward } from '@/game/life';
 import { buy, buyPrice } from '@/game/market';
 import { rewardOf } from '@/game/minigames';
 import { plain } from '@/game/news';
@@ -20,7 +20,7 @@ import { FieldBox } from './FieldBox';
 import { fieldOf } from '@/game/fieldwork';
 
 const COLOR: Record<MinigameId, string> = {
-  compor: '#3a78c8', pao: '#c87a2a', forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', materia: '#c84a6a', programar: '#2a9ac8', grafico: '#c8762a', afinar: '#3a78c8', cores: '#b0487a', regras: '#2a9a5a', rota: '#e8762a', coordenadas: '#7a4ac8', acuracia: '#2a9ac8', calendario: '#5a9a3a', fermento: '#c87a2a', barraca: '#c8762a', boato: '#c84a6a', logica: '#c8a020', pixelart: '#b0487a', 'teste-jogo': '#c8a020', sala3d: '#7a4ac8',
+  compor: '#3a78c8', pao: '#c87a2a', forno: '#c87a2a', ritmo: '#3a78c8', pintura: '#b0487a', rotular: '#2a9ac8', circuito: '#2a9a5a', pares: '#7a4ac8', noticia: '#c84a6a', materia: '#c84a6a', programar: '#2a9ac8', grafico: '#c8762a', afinar: '#3a78c8', cores: '#b0487a', regras: '#2a9a5a', rota: '#e8762a', coordenadas: '#7a4ac8', acuracia: '#2a9ac8', calendario: '#5a9a3a', fermento: '#c87a2a', barraca: '#c8762a', atacado: '#c8762a', boato: '#c84a6a', logica: '#c8a020', pixelart: '#b0487a', 'teste-jogo': '#c8a020', sala3d: '#7a4ac8',
 };
 
 /**
@@ -68,7 +68,7 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
     setRes({ r, reward, levelUp, news });
     setPhase('result');
   };
-  const choose = () => { saveProgress(chooseProfession(progress, prof.id)); play('coin'); setMsg(`Agora você é ${prof.name}! O bônus já vale.`); };
+  const choose = () => { const no = canChangeProfession(progress); if (no) { setMsg(no); play('lose'); return; } saveProgress(chooseProfession(progress, prof.id)); play('coin'); setMsg(`Agora você é ${prof.name}! O bônus já vale.`); };
   const buyOne = (id: string) => {
     const r = buy(progress, id);
     if ('reason' in r) { setMsg(r.reason); play('lose'); return; }
@@ -76,7 +76,7 @@ export function WorkPanel({ game: first, also = [], progress, nick, shop, onClos
   };
 
   return (
-    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={phase === 'intro' || game === 'compor' || game === 'pao' || game === 'materia' || game === 'programar' || game === 'grafico' || game === 'rota' || game === 'coordenadas' || game === 'sala3d' || game === 'acuracia' || game === 'regras' || game === 'calendario' || game === 'fermento' || game === 'barraca' || game === 'boato' || game === 'logica' || game === 'pixelart' || tab === 'jornal'}>
+    <Shell title={prof.place.toUpperCase()} color={color} coins={progress.coins} onClose={onClose} wide={phase === 'intro' || game === 'compor' || game === 'pao' || game === 'materia' || game === 'programar' || game === 'grafico' || game === 'rota' || game === 'coordenadas' || game === 'sala3d' || game === 'acuracia' || game === 'regras' || game === 'calendario' || game === 'fermento' || game === 'barraca' || game === 'atacado' || game === 'boato' || game === 'logica' || game === 'pixelart' || tab === 'jornal'}>
       {phase === 'intro' && tabs.length > 1 && <Tabs tabs={tabs} value={tab} onChange={t => { setTab(t); setMsg(null); }} color={color} />}
       {phase === 'intro' && tab === 'campo' && <FieldBox prof={prof.id} progress={progress} />}
       {phase === 'intro' && tab === 'jornal' && <Jornalzinho progress={progress} />}

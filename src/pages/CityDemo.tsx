@@ -25,7 +25,7 @@ import { FishHouse } from '@/components/city/FishHouse';
 import { WorldMap } from '@/components/city/WorldMap';
 import { play } from '@/game/sfx';
 import { addPhoto, loadPhotos, MAX_PHOTOS, savePhotos, snap } from '@/game/photos';
-import { cancelField, completeTarget, FIELD_BY_ID, fieldLeft, interviewLine, pendingByZone, targetsIn, type FieldTarget } from '@/game/fieldwork';
+import { cancelField, completeTarget, FIELD_BY_ID, fieldLeft, interviewLine, pendingByZone, surveyTable, targetsIn, wantOf, type FieldTarget } from '@/game/fieldwork';
 import { publish } from '@/game/press';
 import { PathChooser } from '@/components/city/PathChooser';
 import { lampPower, lightHalo, timeOfDay } from '@/game/world/light';
@@ -90,7 +90,7 @@ const WORK_DOORS: Record<string, { game: MinigameId; also?: MinigameId[]; shop?:
   estudio: { game: 'materia', also: ['boato', 'noticia'] },
   'oficina-games': { game: 'logica', also: ['teste-jogo'] },
   // sem porta própria: abre pela aba GRÁFICOS do Mercado (e por ?trabalho=analista)
-  analista: { game: 'grafico', also: ['barraca'] },
+  analista: { game: 'grafico', also: ['barraca', 'atacado'] },
   // calendário da horta: botão na barraca de sementes da Fazenda
   horta: { game: 'calendario' },
   // idem: botão MELHOR ROTA na Central de Entregas
@@ -785,7 +785,8 @@ function CityView({ town, start, startHour, onTravel }: {
     g.current.pops.push({ x, y, t: performance.now() }); g.current.dirty = true;
     play(r.done ? 'win' : 'coin');
     if (!r.done) return [`${r.line} (${c.feitos.length + 1}/${job.zones.length})`];
-    return [r.line, r.done.coins ? `${job.name.toUpperCase()}: TRABALHO COMPLETO! +${r.done.coins} moedas` : `${job.name.toUpperCase()}: TRABALHO COMPLETO! Hoje os trabalhos de campo já renderam 2 vezes: este valeu experiência.`, ...(r.done.levelUp ? [`${PROF_BY_ID.get(job.prof)!.name} subiu para o nível ${r.done.levelUp}!`] : []), ...(job.id === 'entrevista' ? ['A matéria com as entrevistas saiu no jornalzinho do Estúdio.'] : [])];
+    return [r.line, r.done.coins ? `${job.name.toUpperCase()}: TRABALHO COMPLETO! +${r.done.coins} moedas` : `${job.name.toUpperCase()}: TRABALHO COMPLETO! Hoje os trabalhos de campo já renderam 2 vezes: este valeu experiência.`, ...(r.done.levelUp ? [`${PROF_BY_ID.get(job.prof)!.name} subiu para o nível ${r.done.levelUp}!`] : []), ...(job.id === 'entrevista' ? ['A matéria com as entrevistas saiu no jornalzinho do Estúdio.'] : []),
+      ...(job.id === 'pesquisa' ? [`Resultado da pesquisa: ${surveyTable(c.seed, job.zones.length).map(([w, n]) => `${w} ${n}`).join(', ')}. O mais pedido é o que mais vende!`] : [])];
   };
 
   /** Câmera do repórter: retrato da tela (sem os botões), guardado no álbum. */
@@ -831,7 +832,8 @@ function CityView({ town, start, startHour, onTravel }: {
       const c = loadProgress().campo;
       if (ft && c) {
         const lines = doTarget(ft, npc.w.tx * TILE + 8, npc.w.ty * TILE);
-        setDialog({ lines: [`${npc.def.name}: "${interviewLine(c.seed, ft.i)}"`, ...(lines ?? [])], i: 0 });
+        const said = c.job === 'pesquisa' ? `Eu queria comprar ${wantOf(c.seed, ft.i)}.` : interviewLine(c.seed, ft.i);
+        setDialog({ lines: [`${npc.def.name}: "${said}"`, ...(lines ?? [])], i: 0 });
         return;
       }
       setDialog({ lines: npc.def.lines, i: 0 });

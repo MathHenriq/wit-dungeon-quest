@@ -1,9 +1,10 @@
 // Telas das tarefas de game/lessons2.ts: calendário da horta (Fazendeiro),
 // por que a massa cresce (Padeiro), minha barraca (Comerciante), fato ou
-// boato (Repórter), lógica do jogo (Games) e pixel art (Artista).
-import { useMemo, useState, type ReactNode } from 'react';
+// boato (Repórter), lógica do jogo (Games), pixel art (Artista) e compra e
+// venda (Comerciante).
+import { useMemo, useState } from 'react';
 import {
-  artScore, bestPrice, BOWLS, calendarRounds, claims, encodeArt, fill, GAME_ACTIONS, GAME_DESIGN, GAME_EVENTS, PIX, PIX_PALETTE, plantDay, profit, riseScore,
+  artScore, bestPrice, bestTrade, margin, TRADE_PLACES, tradeRounds, BOWLS, calendarRounds, claims, encodeArt, fill, GAME_ACTIONS, GAME_DESIGN, GAME_EVENTS, PIX, PIX_PALETTE, plantDay, profit, riseScore,
   rulesRight, runGame, sold, STALL_DAYS, stallOf, type GameAction, type GameEvent,
 } from '@/game/lessons2';
 import { itemIcon, itemLabel } from '@/game/items';
@@ -11,16 +12,8 @@ import { loadProgress, saveProgress } from '@/game/progress';
 import { play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
 import type { GameProps } from './Minigames';
+import { Big, Head, Note } from './LessonKit';
 
-const Head = ({ step, total, children }: { step?: number; total?: number; children: ReactNode }) => (
-  <div className="flex justify-between items-start gap-2 text-[8px] mb-2">{step !== undefined && <span className="shrink-0">{step}/{total}</span>}<span className="text-[#5a5470] text-right leading-4 flex-1">{children}</span></div>
-);
-const Big = ({ onClick, children, color = '#3a78c8', disabled }: { onClick: () => void; children: ReactNode; color?: string; disabled?: boolean }) => (
-  <button onClick={onClick} disabled={disabled} className="w-full mt-2 py-2.5 rounded-lg text-white text-[10px] border-b-4 border-black/25 disabled:opacity-40" style={{ background: color }}>{children}</button>
-);
-const Note = ({ ok, children }: { ok: boolean; children: ReactNode }) => (
-  <div className="mt-2 rounded-lg p-2 text-[8px] leading-4" style={{ background: ok ? '#e8f8ec' : '#fdecef' }}><b style={{ color: ok ? '#3a9a5a' : '#c84a6a' }}>{ok ? 'CERTO! ' : 'QUASE. '}</b>{children}</div>
-);
 
 // ─── Fazendeiro: calendário da horta ────────────────────────────────────────
 
@@ -88,7 +81,7 @@ export function Fermento({ onDone }: GameProps) {
         {BOWLS.map(b => {
           const h = 18 + b.rise * 70 * t;
           return (
-            <div key={b.id} className="rounded-lg bg-white border-2 border-[#e0d8c4] p-2 text-center">
+            <div key={b.id} className="lk-card p-2 text-center">
               <div className="relative mx-auto h-[110px] w-[86px] flex items-end justify-center">
                 {/* massa crescendo (formas de interface) */}
                 <div className="w-[70px] rounded-t-[40px] bg-[#f4dcae] border-2 border-[#c8a070] transition-none" style={{ height: h }} />
@@ -138,7 +131,7 @@ export function Barraca({ seed, onDone }: GameProps) {
         {days.length < STALL_DAYS && <button onClick={open} className="px-3 py-2 rounded-lg bg-[#3a9a5a] text-white text-[9px] border-b-4 border-[#1e6a3a]">ABRIR A BARRACA</button>}
       </div>
       {/* gráfico: preço × lucro de cada dia (pontos) */}
-      <div className="rounded-lg bg-white border-2 border-[#e0d8c4] p-2">
+      <div className="lk-card p-2">
         <div className="text-[8px] mb-1">LUCRO DE CADA DIA PELO PREÇO</div>
         <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full h-auto" style={{ maxWidth: 480 }}>
           <line x1={20} y1={H} x2={W} y2={H} stroke="#e4dccb" /><line x1={20} y1={0} x2={20} y2={H} stroke="#e4dccb" />
@@ -160,6 +153,46 @@ export function Barraca({ seed, onDone }: GameProps) {
         <Note ok={top >= best.profit}>O melhor preço era {best.price} moedas: {sold(st, best.price)} vendidos, {best.profit} de lucro. Subir o preço vende menos; abaixar vende mais mas sobra menos em cada um. O lucro máximo fica no meio: isso é a curva da procura.</Note>
         <Big onClick={() => onDone({ score: Math.max(0, top) / best.profit, hits: days.length })} color="#c8762a">TERMINAR</Big>
       </>}
+    </div>
+  );
+}
+
+// ─── Comerciante: compra e venda ────────────────────────────────────────────
+
+export function Atacado({ seed, onDone }: GameProps) {
+  const rounds = useMemo(() => tradeRounds(seed), [seed]);
+  const [i, setI] = useState(0);
+  const [pick, setPick] = useState<[number, number] | null>(null);
+  const [score, setScore] = useState(0);
+  const t = rounds[i], best = bestTrade(t);
+  const next = () => {
+    const sc = pick ? Math.max(0, margin(t, pick[0], pick[1])) / best.margin : 0;
+    const total = score + sc;
+    if (i + 1 >= rounds.length) { onDone({ score: total / rounds.length, hits: Math.round(total) }); return; }
+    setScore(total); setI(i + 1); setPick(null);
+  };
+  return (
+    <div className="text-[#2e2a40]">
+      <Head step={i + 1} total={rounds.length}>Cada lugar vende mais caro ou mais barato. Compre onde o LUCRO (venda no Mercado − compra) é o maior. Toque na célula da tabela.</Head>
+      <div className="lk-card p-2 overflow-x-auto">
+        <table className="w-full text-[8px] text-center border-collapse">
+          <thead><tr><th className="text-left p-1">ITEM</th>{TRADE_PLACES.map(pl => <th key={pl} className="p-1">{pl.toUpperCase()}</th>)}<th className="p-1 text-[#3a9a5a]">MERCADO PAGA</th></tr></thead>
+          <tbody>
+            {t.items.map((it, k) => (
+              <tr key={it} className="border-t border-[#eee6d4]">
+                <td className="text-left p-1"><span className="inline-flex items-center gap-1"><Icon id={itemIcon(it)} size={18} />{itemLabel(it)}</span></td>
+                {TRADE_PLACES.map((_, p) => {
+                  const on = pick?.[0] === k && pick?.[1] === p;
+                  return <td key={p} className="p-0.5"><button onClick={() => { setPick([k, p]); play('drop'); }} className={`w-full rounded py-1 ${on ? 'bg-[#c8762a] text-white' : 'bg-[#f6f0e2] hover:bg-[#efe4cc]'}`}>{t.buy[k][p]}</button></td>;
+                })}
+                <td className="p-1 text-[#3a9a5a]">{t.sell[k]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {pick && <div className="text-[8px] mt-2">Lucro de cada um: {t.sell[pick[0]]} − {t.buy[pick[0]][pick[1]]} = <b style={{ color: margin(t, pick[0], pick[1]) > 0 ? '#3a9a5a' : '#c84a6a' }}>{margin(t, pick[0], pick[1])}</b></div>}
+      <Big onClick={next} disabled={!pick} color="#c8762a">{i + 1 >= rounds.length ? 'TERMINAR' : 'PRÓXIMA'}</Big>
     </div>
   );
 }
@@ -220,7 +253,7 @@ export function Logica({ onDone }: GameProps) {
         ))}
       </div>
       {!run ? <Big disabled={!full} onClick={() => { setRun(runGame(rules)); setTries(n => n + 1); play('click'); }} color="#c8a020">TESTAR O JOGO</Big> : (
-        <div className="mt-2 rounded-lg bg-white border-2 border-[#e0d8c4] text-[8px] overflow-hidden">
+        <div className="mt-2 lk-card text-[8px] overflow-hidden">
           <div className="grid grid-cols-[1fr_1fr_44px_44px] px-2 py-1 bg-[#c8a020] text-white"><span>ACONTECEU</span><span>O JOGO FEZ</span><span>VIDAS</span><span>PONTOS</span></div>
           {run.map((s, k) => (
             <div key={k} className={`grid grid-cols-[1fr_1fr_44px_44px] px-2 py-1 ${s.action !== GAME_DESIGN[s.event] ? 'bg-[#fdecef]' : k % 2 ? 'bg-[#f6f2e8]' : ''}`}>

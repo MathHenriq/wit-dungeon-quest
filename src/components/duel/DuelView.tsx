@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TcgCard, TcgCardBack, ELEMENT_STYLE } from '@/components/tcg/TcgCard';
 import { AI_NAMES, planTurn } from '@/lib/tcg/ai';
-import { canMulligan, canPlay, createGame, endTurn, IllegalPlay, mulligan, playCard } from '@/lib/tcg/engine';
+import { canMulligan, canPlay, canSniff, createGame, endTurn, IllegalPlay, mulligan, playCard, sniff } from '@/lib/tcg/engine';
 import { ELEMENT_PT, STATUS_PT, TYPE_PT_PLURAL } from '@/lib/tcg/labels';
 import type { Foe } from '@/lib/tcg/opponents';
 import type { CardDef, CardInstance, DamageCalc, Element, GameState, PlayerState } from '@/lib/tcg/types';
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 import { isMuted, play, setMuted } from '@/game/sfx';
-import type { Look } from '@/game/world/outfit';
+import { DEFAULT_PET, type Look } from '@/game/world/outfit';
 import { loadLookFrames, loadNpcFrames, loadReactionFrames } from '@/game/world/sprites';
 import { matOf, matStyle } from '@/game/playmats';
 import { diffMoves, type Move } from './moves';
@@ -307,6 +307,8 @@ function CalcPanel({ c }: { c: DamageCalc }) {
 
 export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result, mat, talents, remote }: Props) {
   const [peek, setPeek] = useState<'pronto' | 'aberto' | 'usado'>('pronto');
+  const [sniffOpen, setSniffOpen] = useState(false);
+  const pet = look.pet ?? DEFAULT_PET;
   const [state, setState] = useState<GameState>(() => {
     if (remote) return remote.initial;
     // ?mao=id1,id2 põe essas cartas na mão e ?comeca=eu|ele escolhe quem começa (prints e testes)
@@ -561,6 +563,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         setState(next);
       } else if (a.t === 'end') { setShown(null); setFoeMood('idle'); if (s.winner === null) setState(endTurn(s)); }
       else if (a.t === 'mull') setState(mulligan(s, 1));
+      else if (a.t === 'sniff') setState(sniff(s, 1, a.bottom));
     } catch (e) { if (!(e instanceof IllegalPlay)) throw e; }
     // a próxima espera a animação desta
     const t = window.setTimeout(() => setInboxTick(x => x + 1), a.t === 'play' ? AI_STEP_MS + 420 : 200);
@@ -854,6 +857,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         <div className="dv-tools dv-px">
           {talents?.novaMao && canMulligan(state, 0) && <button title="Grimório: Embaralhar de Novo" onClick={() => { remote?.send({ t: 'mull' }); setState(mulligan(state, 0)); play('draw'); }}>NOVA MÃO</button>}
           {talents?.espiar && peek === 'pronto' && myTurn && state.players[0].deck.length > 0 && <button title="Grimório: Olho do Oráculo" onClick={() => { setPeek('aberto'); play('flip'); }}>ESPIAR</button>}
+          {myTurn && canSniff(state, 0) && <button title="Faro do pet: uma vez por duelo" className="dv-pet" onClick={() => { setSniffOpen(true); play('flip'); }}><i style={{ backgroundImage: `url(/game/sprites/bichos/${pet}.png)` }} />FARO</button>}
           <button onClick={() => setShowLog(v => !v)}>LOG</button>
           <button onClick={() => { setMuted(!muted); setMutedState(!muted); if (muted) play('click'); }} aria-label={muted ? 'Ligar o som' : 'Desligar o som'}>{muted ? 'MUDO' : 'SOM'}</button>
           <button onClick={onQuit}>SAIR</button>
@@ -874,6 +878,21 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
               <div className="dv-px text-center text-[10px] mb-2" style={{ color: '#d9f99d' }}>A PRÓXIMA CARTA DO SEU DECK</div>
               <div className="card"><TcgCard card={state.players[0].deck[0].def} /></div>
               <div className="btns dv-px"><button onClick={() => setPeek('usado')}>OK</button></div>
+            </div>
+          </div>
+        )}
+
+        {/* Faro do pet: a carta do topo fica ou vai para o fundo */}
+        {sniffOpen && canSniff(state, 0) && (
+          <div className="dv-modal" onClick={() => setSniffOpen(false)}>
+            <div className="box" onClick={e => e.stopPropagation()}>
+              <div className="dv-px text-center text-[10px] mb-2" style={{ color: '#d9f99d' }}>SEU PET FAREJOU A PRÓXIMA CARTA</div>
+              <div className="card"><TcgCard card={state.players[0].deck[0].def} /></div>
+              <div className="btns dv-px">
+                {([[false, 'DEIXAR NO TOPO'], [true, 'PARA O FUNDO']] as const).map(([bottom, label]) => (
+                  <button key={label} className={`dv-btn ${bottom ? 'go' : ''}`} onClick={() => { remote?.send({ t: 'sniff', bottom }); setState(sniff(state, 0, bottom)); setSniffOpen(false); play(bottom ? 'draw' : 'click'); }}>{label}</button>
+                ))}
+              </div>
             </div>
           </div>
         )}

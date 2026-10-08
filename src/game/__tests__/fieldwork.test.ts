@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { completeTarget, FIELD_JOBS, fieldOf, pendingByZone, reachable, takeField, targetsIn } from '../fieldwork';
+import { completeTarget, FIELD_JOBS, fieldOf, fieldsOf, pendingByZone, reachable, surveyTable, takeField, targetsIn } from '../fieldwork';
 import { addItem, newProgress, sanitizeProgress } from '../progress';
 import { buildZone, ZONES } from '../world/world';
 import type { Town, ZoneId } from '../world/zone';
@@ -19,6 +19,14 @@ describe('trabalho de campo', () => {
       const keys = all.map(t => `${t.z}:${t.tx},${t.ty}`);
       expect(new Set(keys).size).toBe(keys.length);
     }
+  });
+  it('profissão com dois trabalhos: escolhe pelo id; pesquisa soma as respostas', () => {
+    expect(fieldsOf('tecnico-iot').map(j => j.id)).toEqual(['sensores', 'postes']);
+    const r = takeField(newProgress(), 'tecnico-iot', 3, 0, 'postes') as { progress: ReturnType<typeof newProgress> };
+    expect(r.progress.campo!.job).toBe('postes');
+    const t = surveyTable(5, 4);
+    expect(t.reduce((a, [, n]) => a + n, 0)).toBe(4);
+    expect(t[0][1]).toBeGreaterThanOrEqual(t[t.length - 1][1]);
   });
   it('pegar, cumprir os pontos e receber no último', () => {
     let p = { ...newProgress(), coins: 0 };

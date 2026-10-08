@@ -11,10 +11,10 @@ import { gainXp, PAID_PER_DAY, playsLeft, spendPlay, today } from './life';
 import { NPCS } from './world/content';
 import type { Town, ZoneId } from './world/zone';
 
-export type FieldKind = 'porta' | 'chao' | 'falar';
+export type FieldKind = 'porta' | 'chao' | 'falar' | 'poste';
 export interface FieldJob {
   id: string; prof: ProfId; name: string; how: string;
-  /** porta = na frente de um prédio; chao = um lugar livre qualquer; falar = um morador. */
+  /** porta = na frente de um prédio; chao = um lugar livre qualquer; falar = um morador; poste = embaixo de um poste. */
   kind: FieldKind;
   /** A área de cada alvo (a ordem não importa para o aluno). */
   zones: ZoneId[];
@@ -45,9 +45,15 @@ export const FIELD_JOBS: FieldJob[] = [
     line: 'Leite fresquinho entregue!', coins: 50, xp: 30, need: 'leite', color: '#5a9a3a' },
   { id: 'entrevista', prof: 'reporter', name: 'Entrevista', how: 'Entreviste 3 moradores marcados, em áreas diferentes. As respostas viram uma matéria no jornalzinho.', kind: 'falar', zones: ['cidade', 'lago', 'fazenda'],
     line: 'Entrevista anotada no bloquinho!', coins: 40, xp: 30, color: '#c84a6a' },
+  { id: 'postes', prof: 'tecnico-iot', name: 'Conserto dos postes', how: 'Quatro postes inteligentes queimaram. Vá até eles (marcados no Centro e na Cidade WIT) e troque o sensor em 6 minutos.', kind: 'poste', zones: ['cidade', 'cidade', 'wit', 'wit'],
+    line: 'Poste consertado! O sensor voltou a mandar dados.', coins: 45, xp: 30, minutes: 6, color: '#e8a020' },
+  { id: 'pesquisa', prof: 'comerciante', name: 'Pesquisa de mercado', how: 'Pergunte a 4 moradores, em áreas diferentes, o que eles querem comprar. A resposta vira uma tabela no Mercado.', kind: 'falar', zones: ['cidade', 'lago', 'fazenda', 'wit'],
+    line: 'Resposta anotada na prancheta!', coins: 45, xp: 30, color: '#3a78c8' },
 ];
 export const FIELD_BY_ID = new Map(FIELD_JOBS.map(j => [j.id, j]));
 export const fieldOf = (prof: ProfId) => FIELD_JOBS.find(j => j.prof === prof);
+/** Todos os trabalhos de campo da profissão (alguns têm dois). */
+export const fieldsOf = (prof: ProfId) => FIELD_JOBS.filter(j => j.prof === prof);
 
 export interface Campo { job: string; seed: number; feitos: number[]; ini: number }
 
@@ -91,6 +97,18 @@ export function targetsIn(t: Town, c: Campo): FieldTarget[] {
     });
   }
   const ok = reachable(t);
+  if (job.kind === 'poste') {
+    // o bloco embaixo do poste (o poste em si é sólido)
+    const spots = t.lamps.map(l => [Math.floor(l.ground[0] / 16), Math.floor(l.ground[1] / 16) + 1] as [number, number]).filter(([x, y]) => ok.has(`${x},${y}`));
+    const used = new Set<number>();
+    return idx.map((i, n) => {
+      let k = Math.floor(h01(c.seed, i) * spots.length);
+      while (used.has(k) && used.size < spots.length) k = (k + 1) % spots.length;
+      used.add(k);
+      const p = spots[k] ?? spots[n % Math.max(1, spots.length)];
+      return { i, tx: p[0], ty: p[1], label: 'poste queimado' };
+    });
+  }
   if (job.kind === 'porta') {
     const doors = t.doors.filter(d => ok.has(`${d.tx},${d.ty + 1}`));
     const used = new Set<number>();
@@ -115,8 +133,8 @@ export function targetsIn(t: Town, c: Campo): FieldTarget[] {
   return out;
 }
 
-export function takeField(p: Progress, prof: ProfId, seed: number, now: number): { progress: Progress } | { reason: string } {
-  const job = fieldOf(prof);
+export function takeField(p: Progress, prof: ProfId, seed: number, now: number, jobId?: string): { progress: Progress } | { reason: string } {
+  const job = jobId ? fieldsOf(prof).find(j => j.id === jobId) : fieldOf(prof);
   if (!job) return { reason: 'Esta profissão não tem trabalho de campo.' };
   if (p.campo) return { reason: 'Termine (ou cancele) o trabalho de campo que já pegou.' };
   if (job.need && (p.itens[job.need] ?? 0) < job.zones.length) return { reason: `Precisa de ${job.zones.length} na mochila (${job.need === 'pao' ? 'pães' : 'leites'}). Tem ${p.itens[job.need] ?? 0}.` };
@@ -168,4 +186,14 @@ export const INTERVIEW = [
   'Eu sonho em chegar no último andar da Torre!',
   'O lago está mais limpo desde que começaram a catar o lixo.',
 ];
+/** O que cada morador quer comprar (pesquisa de mercado). */
+export const WANTS = ['pão', 'peixe fresco', 'ovos', 'leite', 'abóbora', 'bolo', 'cenoura', 'morango'];
+export const wantOf = (seed: number, i: number) => WANTS[Math.floor(h01(seed, i + 70) * WANTS.length)];
+/** A tabela da pesquisa: quantas vezes cada coisa foi pedida (mais pedida primeiro). */
+export function surveyTable(seed: number, n: number): [string, number][] {
+  const m = new Map<string, number>();
+  for (let i = 0; i < n; i++) { const w = wantOf(seed, i); m.set(w, (m.get(w) ?? 0) + 1); }
+  return [...m].sort((a, b) => b[1] - a[1]);
+}
+
 export const interviewLine = (seed: number, i: number) => INTERVIEW[Math.floor(h01(seed, i + 40) * INTERVIEW.length)];

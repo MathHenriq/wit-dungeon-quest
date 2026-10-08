@@ -16,7 +16,7 @@ import type { CardDef, GameState } from '@/lib/tcg/types';
 import type { Look } from './world/outfit';
 import { cloudEnabled, rpc } from './cloud';
 
-export type PvpAction = { t: 'play'; uid: string; discard?: string[] } | { t: 'end' } | { t: 'mull' };
+export type PvpAction = { t: 'play'; uid: string; discard?: string[] } | { t: 'end' } | { t: 'mull' } | { t: 'sniff'; bottom: boolean };
 export interface PvpHello { tab: string; handle?: string; nick: string; look: Look; deck: string[] }
 export interface PvpStart { key: string; seed: number; first: 0 | 1; host: PvpHello; guest: PvpHello }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  artScore, bestPrice, BOWLS, calendarRounds, claims, decodeArt, encodeArt, fill, GAME_DESIGN, GAME_EVENTS, PIX, plantDay, profit, riseScore, rulesRight, runGame, sold, stallOf,
+  artScore, bestPrice, bestTrade, margin, tradeRounds, BOWLS, calendarRounds, claims, decodeArt, encodeArt, fill, GAME_DESIGN, GAME_EVENTS, PIX, plantDay, profit, riseScore, rulesRight, runGame, sold, stallOf,
 } from '../lessons2';
 
 describe('mais tarefas que ensinam', () => {
@@ -23,6 +23,14 @@ describe('mais tarefas que ensinam', () => {
       for (let p = 1; p <= 30; p++) expect(profit(st, p)).toBeLessThanOrEqual(b.profit);
       expect(sold(st, 30)).toBe(0);
       expect(b.price).toBeGreaterThan(st.cost);
+    }
+  });
+  it('compra e venda: sempre há lucro e um só melhor', () => {
+    for (let s = 1; s < 60; s++) for (const t of tradeRounds(s)) {
+      const b = bestTrade(t);
+      expect(b.margin).toBeGreaterThan(0);
+      const tops = t.items.flatMap((_, i) => [0, 1, 2].filter(p => margin(t, i, p) === b.margin));
+      expect(tops).toHaveLength(1);
     }
   });
   it('fato ou boato: 6 manchetes, sem repetir tema, com pista', () => {

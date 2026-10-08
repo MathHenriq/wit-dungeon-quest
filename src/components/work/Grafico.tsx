@@ -54,7 +54,7 @@ export function Grafico({ seed, onDone }: GameProps) {
     <div className="text-[#2e2a40]">
       <div className="flex justify-between text-[8px] mb-2"><span>PERGUNTA {i + 1}/{qs.length}</span><span className="text-[#5a5470]">acertos: {hits}</span></div>
       <div className="text-[10px] leading-5 mb-2">{q.text}</div>
-      <div className="rounded-lg bg-white border-2 border-[#e0d8c4] p-2">
+      <div className="lk-card p-2">
         {'item' in q && (
           <div className="flex items-center gap-1.5 text-[8px] mb-1"><Icon id={itemIcon(q.item)} size={20} /> {itemDef(q.item)!.name} · preço por dia (moedas)</div>
         )}

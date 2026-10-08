@@ -5,6 +5,7 @@
 //   Repórter: FATO OU BOATO (checar manchetes com as pistas do próprio jogo)
 //   Dev de Games: LÓGICA DO JOGO (regras SE/ENTÃO de um joguinho)
 //   Artista: PIXEL ART (desenho 16×16 que vira quadro)
+//   Comerciante: COMPRA E VENDA (tabela de preços: onde comprar para lucrar mais)
 // Regras puras (com semente); as telas ficam em components/work/Lessons2.tsx.
 import { rng } from './minigames';
 import { CROPS, type Crop } from './farm';
@@ -63,6 +64,35 @@ export function stallOf(seed: number): Stall {
   return opts[Math.floor(r() * opts.length)];
 }
 export const STALL_DAYS = 6;
+
+// ─── Compra e venda ─────────────────────────────────────────────────────────
+
+/** Onde dá para comprar (os preços de compra mudam por lugar) e o preço de venda no Mercado. */
+export const TRADE_PLACES = ['Casa de Pesca', 'Barraca da Fazenda', 'Padaria'] as const;
+export const TRADE_ITEMS = ['peixe:tilapia', 'ovo', 'leite', 'pao', 'colheita:cenoura', 'colheita:abobora'];
+export interface TradeRound { items: string[]; buy: number[][]; sell: number[] }
+/** 3 rodadas: 3 itens × 3 lugares; o lucro é venda − compra (pode dar prejuízo). */
+export function tradeRounds(seed: number): TradeRound[] {
+  const r = rng(seed);
+  return [0, 1, 2].map(() => {
+    const items = shuffle(r, TRADE_ITEMS).slice(0, 3);
+    const sell = items.map(() => 10 + Math.floor(r() * 15));
+    const buy = items.map((_, k) => TRADE_PLACES.map(() => Math.max(2, sell[k] - 6 + Math.floor(r() * 10))));
+    // sempre há um lucro, e um só é o maior
+    const t = { items, buy, sell };
+    const b = bestTrade(t);
+    if (b.margin <= 0) buy[b.item][b.place] = sell[b.item] - 3;
+    const top = bestTrade(t).margin;
+    t.items.forEach((_, i) => TRADE_PLACES.forEach((_, p) => { if (margin(t, i, p) === top && (i !== bestTrade(t).item || p !== bestTrade(t).place)) buy[i][p] += 1; }));
+    return t;
+  });
+}
+export const margin = (t: TradeRound, item: number, place: number) => t.sell[item] - t.buy[item][place];
+export function bestTrade(t: TradeRound): { item: number; place: number; margin: number } {
+  let b = { item: 0, place: 0, margin: -Infinity };
+  t.items.forEach((_, i) => TRADE_PLACES.forEach((_, p) => { const m = margin(t, i, p); if (m > b.margin) b = { item: i, place: p, margin: m }; }));
+  return b;
+}
 
 // ─── Fato ou boato ──────────────────────────────────────────────────────────
 

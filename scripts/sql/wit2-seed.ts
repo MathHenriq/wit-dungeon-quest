@@ -5,7 +5,7 @@
  *   npx vite-node scripts/sql/wit2-seed.ts
  */
 import { writeFileSync } from 'node:fs';
-import { CATALOG } from '../../src/lib/tcg/cards/catalog';
+import { CATALOG, EVOLVED } from '../../src/lib/tcg/cards/catalog';
 import { PACKS } from '../../src/game/packs';
 import { ROOM_REWARDS } from '../../src/game/room-rewards';
 import { DUST } from '../../src/game/forge';
@@ -20,8 +20,9 @@ const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 const lines = [
   '-- Gerado por scripts/sql/wit2-seed.ts (não editar à mão). Vem depois de _wit2_core.sql.',
   'BEGIN;',
-  'INSERT INTO public.wit2_card_catalog (id, rarity) VALUES',
-  CATALOG.map(c => `  (${q(c.id)}, ${q(c.rarity)})`).join(',\n') + '\nON CONFLICT (id) DO UPDATE SET rarity = EXCLUDED.rarity;',
+  'INSERT INTO public.wit2_card_catalog (id, rarity, base) VALUES',
+  // as 350 e as versões "+" (evolução); o pacotinho só sorteia as 350 (base = true)
+  [...CATALOG.map(c => `  (${q(c.id)}, ${q(c.rarity)}, true)`), ...EVOLVED.map(c => `  (${q(c.id)}, ${q(c.rarity)}, false)`)].join(',\n') + '\nON CONFLICT (id) DO UPDATE SET rarity = EXCLUDED.rarity, base = EXCLUDED.base;',
   'INSERT INTO public.wit2_pack_defs (id, price, rarity, base, highlight) VALUES',
   PACKS.map(p => `  (${q(p.id)}, ${p.price}, ${q(p.rarity)}, ${q(JSON.stringify(p.base))}::jsonb, ${q(JSON.stringify(p.highlight))}::jsonb)`).join(',\n')
     + '\nON CONFLICT (id) DO UPDATE SET price = EXCLUDED.price, rarity = EXCLUDED.rarity, base = EXCLUDED.base, highlight = EXCLUDED.highlight;',
@@ -52,4 +53,4 @@ const lines = [
   'COMMIT;',
 ];
 writeFileSync('supabase/migrations/20261008120100_wit2_seed.sql', lines.join('\n') + '\n');
-console.log(`supabase/migrations/20261008120100_wit2_seed.sql: ${CATALOG.length} cartas, ${PACKS.length} pacotes, ${ROOM_REWARDS.length} recompensas`);
+console.log(`supabase/migrations/20261008120100_wit2_seed.sql: ${CATALOG.length} cartas + ${EVOLVED.length} evoluídas, ${PACKS.length} pacotes, ${ROOM_REWARDS.length} recompensas`);

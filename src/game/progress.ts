@@ -45,6 +45,8 @@ export interface Progress {
   recordes: Record<string, number>;
   /** Cargo escolhido no Núcleo WIT (dá bônus) e a experiência em cada profissão. */
   profissao?: ProfId;
+  /** Dia da última troca de cargo (a próxima só no dia seguinte). */
+  profTroca?: number;
   xp: Record<string, number>;
   /** Contadores de tudo que o aluno fez (missões, Jornal WIT): peixes, colheitas, mesas... */
   stats: Record<string, number>;
@@ -179,6 +181,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     itens: counts(r.itens, 9999),
     recordes: counts(r.recordes, 1000),
     profissao: typeof r.profissao === 'string' && PROF_BY_ID.has(r.profissao as ProfId) ? (r.profissao as ProfId) : undefined,
+    profTroca: typeof r.profTroca === 'number' && Number.isFinite(r.profTroca) ? Math.round(r.profTroca) : undefined,
     xp: counts(r.xp, 1e6),
     stats: counts(r.stats, 1e9),
     fome: typeof r.fome === 'number' && Number.isFinite(r.fome) ? Math.max(0, Math.min(100, Math.round(r.fome * 100) / 100)) : 100,

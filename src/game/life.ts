@@ -24,9 +24,16 @@ export function gainXp(p: Progress, prof: ProfId, n: number): { progress: Progre
   return { progress: { ...p, xp: { ...p.xp, [prof]: after } }, levelUp: l1 > l0 ? l1 : undefined };
 }
 
-/** Escolhe o cargo (pode trocar quando quiser; a experiência de cada profissão fica guardada). */
-export function chooseProfession(p: Progress, prof: ProfId): Progress {
-  return PROF_BY_ID.has(prof) ? { ...p, profissao: prof } : p;
+/** Pode trocar de cargo? A 1ª escolha é livre; depois, uma troca por dia (a experiência fica guardada). */
+export function canChangeProfession(p: Progress, day = today()): string | null {
+  if (!p.profissao) return null;
+  return (p.profTroca ?? -1) >= day ? 'Você já trocou de cargo hoje. Amanhã pode trocar de novo.' : null;
+}
+
+/** Escolhe o cargo. Respeita a espera de 1 dia entre trocas; a experiência de cada profissão fica guardada. */
+export function chooseProfession(p: Progress, prof: ProfId, day = today()): Progress {
+  if (!PROF_BY_ID.has(prof) || p.profissao === prof || canChangeProfession(p, day)) return p;
+  return { ...p, profissao: prof, profTroca: p.profissao ? day : p.profTroca };
 }
 
 // ─── fome ───────────────────────────────────────────────────────────────────

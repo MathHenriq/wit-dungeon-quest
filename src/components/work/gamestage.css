@@ -18,3 +18,6 @@
 .gs-burst i:nth-child(even) { background: #fff; box-shadow: 0 0 0 2px var(--gc); }
 @keyframes gsspark { from { transform: rotate(var(--a)) translateX(0); opacity: 1; } to { transform: rotate(var(--a)) translateX(var(--d)); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .gs * { animation-duration: .01ms !important; } }
+
+/* caixa branca das lições (tabelas e gráficos) com a borda em degrau do kit pixel */
+.lk-card { background: #fff; border: 0; box-shadow: 0 -3px 0 #c8bea8, 0 3px 0 #c8bea8, -3px 0 0 #c8bea8, 3px 0 0 #c8bea8, 0 6px 0 rgba(0,0,0,.12); margin: 3px; }

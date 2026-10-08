@@ -6,8 +6,11 @@
 export interface CardAtlas { base: string; cols: number; rows: number; w: number; h: number; cards: Record<string, [number, number]> }
 let atlas: CardAtlas | null = null;
 
+/** A versão "+" (evolução) usa a ilustração da carta normal. */
+const artId = (id: string) => (id.endsWith('+') ? id.slice(0, -1) : id);
+
 /** Endereço da ilustração (um arquivo por carta). */
-export const cardArtUrl = (id: string) => `${import.meta.env.BASE_URL}cards/art/${id}.webp`;
+export const cardArtUrl = (id: string) => `${import.meta.env.BASE_URL}cards/art/${artId(id)}.webp`;
 
 export async function initCardAtlas(base: string): Promise<void> {
   try {
@@ -18,7 +21,7 @@ export async function initCardAtlas(base: string): Promise<void> {
 
 /** Fundo CSS da célula da carta na folha (ou null sem folhas). */
 export function atlasBackground(id: string): React.CSSProperties | null {
-  const at = atlas?.cards[id];
+  const at = atlas?.cards[artId(id)];
   if (!atlas || !at) return null;
   const [sheet, i] = at, col = i % atlas.cols, row = Math.floor(i / atlas.cols);
   return {

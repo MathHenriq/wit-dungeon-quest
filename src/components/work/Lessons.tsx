@@ -2,7 +2,7 @@
 // misturar cores (Artista), regra SE/ENTÃO (IoT), melhor rota (Entregador),
 // coordenadas X Y Z (Metaverso) e teste do modelo (IA). Visual de interface:
 // gráficos, cores e blocos em código; nada de emoji.
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import {
   accuracy, ACTIONS, bestRoute, colorMatches, colorRounds, coordRounds, GRID3, mixDrops, modelTest, pitchRounds, routeLength, routeRounds, routeScore,
   ruleOk, ruleTasks, runRule, SENSORS, toCss, truth, tuneScore, ZMAX, type Drops, type Label, type P3, type Rule,
@@ -11,17 +11,9 @@ import { audio, play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
 import { playNote } from './synth';
 import type { GameProps } from './Minigames';
+import { Big, Head, Note as Feedback } from './LessonKit';
 
 const INK = '#2e2a40';
-const Head = ({ step, total, children }: { step: number; total: number; children: ReactNode }) => (
-  <div className="flex justify-between items-start gap-2 text-[8px] mb-2"><span className="shrink-0">{step}/{total}</span><span className="text-[#5a5470] text-right leading-4">{children}</span></div>
-);
-const Big = ({ onClick, children, color = '#3a78c8', disabled }: { onClick: () => void; children: ReactNode; color?: string; disabled?: boolean }) => (
-  <button onClick={onClick} disabled={disabled} className="w-full mt-2 py-2.5 rounded-lg text-white text-[10px] border-b-4 border-black/25 disabled:opacity-40" style={{ background: color }}>{children}</button>
-);
-const Feedback = ({ ok, children }: { ok: boolean; children: ReactNode }) => (
-  <div className="mt-2 rounded-lg p-2 text-[8px] leading-4" style={{ background: ok ? '#e8f8ec' : '#fdecef' }}><b style={{ color: ok ? '#3a9a5a' : '#c84a6a' }}>{ok ? 'CERTO! ' : 'QUASE. '}</b>{children}</div>
-);
 
 // ─── Músico: afinar ─────────────────────────────────────────────────────────
 
@@ -188,7 +180,7 @@ export function Regras({ seed, onDone }: GameProps) {
         ? <Big disabled={!rule.sensor || !rule.cond || !rule.action} onClick={() => { setTested(true); setTries(n => n + 1); play(ruleOk(t, rule) ? 'win' : 'lose'); }} color="#2a9a5a">TESTAR A REGRA</Big>
         : <>
           {/* o teste: as leituras ao longo do dia, o que a regra fez e o que devia fazer */}
-          <div className="mt-2 rounded-lg bg-white border-2 border-[#e0d8c4] overflow-hidden text-[8px]">
+          <div className="mt-2 lk-card overflow-hidden text-[8px]">
             <div className="grid grid-cols-[1fr_1fr_1fr] px-2 py-1 bg-[#2a9a5a] text-white"><span>{tSensor.name.toUpperCase()}</span><span>SUA REGRA</span><span>DEVIA</span></div>
             {t.readings.map((v, k) => (
               <div key={k} className={`grid grid-cols-[1fr_1fr_1fr] px-2 py-1 ${run[k].fired !== run[k].should ? 'bg-[#fdecef]' : k % 2 ? 'bg-[#f6f2e8]' : ''}`}>

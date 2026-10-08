@@ -26,7 +26,8 @@ BEGIN;
 -- ── catálogo (preenchido por _wit2_seed.sql) ─────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.wit2_card_catalog (
   id      text PRIMARY KEY,
-  rarity  text NOT NULL CHECK (rarity IN ('common','uncommon','rare','epic','legendary','mythic','unknown'))
+  rarity  text NOT NULL CHECK (rarity IN ('common','uncommon','rare','epic','legendary','mythic','unknown')),
+  base    boolean NOT NULL DEFAULT true   -- false: versão "+" (evolução), não sai em pacotinho
 );
 CREATE TABLE IF NOT EXISTS public.wit2_pack_defs (
   id         text PRIMARY KEY,
@@ -237,7 +238,7 @@ BEGIN
       IF pity >= 9 AND NOT got_epic AND array_position(rank, r) < 4 THEN r := 'epic'; forced := true; END IF;
     END IF;
     IF array_position(rank, r) >= 4 THEN got_epic := true; END IF;
-    SELECT id INTO card FROM wit2_card_catalog WHERE rarity = r ORDER BY random() LIMIT 1;
+    SELECT id INTO card FROM wit2_card_catalog WHERE rarity = r AND base ORDER BY random() LIMIT 1;
     cards := cards || card;
     PERFORM wit2_add_card(p_student, card, 1);
   END LOOP;

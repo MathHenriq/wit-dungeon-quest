@@ -2,19 +2,19 @@
 // raridade delas e forjar, com esse pó, a carta que falta no álbum.
 import { useMemo, useState } from 'react';
 import { PxPanel } from '@/components/pixel/Pixel';
-import { CATALOG } from '@/lib/tcg/cards/catalog';
+import { CARD_BY_ID, CATALOG } from '@/lib/tcg/cards/catalog';
 import { RARITY_PT } from '@/lib/tcg/labels';
 import type { CardDef, Rarity } from '@/lib/tcg/types';
-import { disenchant, DUST, dustOf, forge, spare } from '@/game/forge';
+import { canEvolve, disenchant, DUST, dustOf, evolve, evolveCost, forge, spare } from '@/game/forge';
 import { RARITY_ORDER } from '@/game/packs';
 import { loadProgress, saveProgress, type Progress } from '@/game/progress';
-import { cloudDust, cloudEnabled, cloudForge } from '@/game/cloud';
+import { cloudDust, cloudEnabled, cloudEvolve, cloudForge } from '@/game/cloud';
 import { play } from '@/game/sfx';
 import { TcgCard } from '@/components/tcg/TcgCard';
 import { RARITY_COLOR } from './PackOpening';
 
 export function ForgePanel({ progress, onClose }: { progress: Progress; onClose: () => void }) {
-  const [tab, setTab] = useState<'desmanchar' | 'forjar'>('desmanchar');
+  const [tab, setTab] = useState<'desmanchar' | 'forjar' | 'evoluir'>('desmanchar');
   const [rar, setRar] = useState<Rarity>('common');
   const [msg, setMsg] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ card: CardDef; key: number } | null>(null);
@@ -30,6 +30,16 @@ export function ForgePanel({ progress, onClose }: { progress: Progress; onClose:
     if ('reason' in r) { setMsg(r.reason); return; }
     saveProgress(r.progress); play('burn');
     setMsg(`+${r.dust} de pó ${RARITY_PT[r.rarity].toLowerCase()}`);
+  };
+  // evoluir: 3 cópias (2 vão) + pó viram a versão "+"
+  const evolvable = useMemo(() => CATALOG.filter(c => CARD_BY_ID.has(c.id + '+') && (progress.collection[c.id] ?? 0) >= 2)
+    .sort((a, b) => (progress.collection[b.id] ?? 0) - (progress.collection[a.id] ?? 0)), [progress]);
+  const doEvolve = async (c: CardDef) => {
+    const r = cloudEnabled() ? await cloudEvolve(loadProgress(), c.id) : evolve(loadProgress(), c.id);
+    if ('reason' in r) { setMsg(r.reason); play('lose'); return; }
+    saveProgress(r.progress); play('super');
+    setFlash({ card: CARD_BY_ID.get(c.id + '+')!, key: Date.now() });
+    setMsg(`Evoluiu: ${c.name} +!`);
   };
   const doForge = async (c: CardDef) => {
     const r = cloudEnabled() ? await cloudForge(loadProgress(), c.id) : forge(loadProgress(), c.id);
@@ -52,7 +62,7 @@ export function ForgePanel({ progress, onClose }: { progress: Progress; onClose:
           ))}
         </div>
         <div className="flex gap-1 mb-3">
-          {(['desmanchar', 'forjar'] as const).map(t => (
+          {(['desmanchar', 'forjar', 'evoluir'] as const).map(t => (
             <button key={t} onClick={() => { setTab(t); setMsg(null); }}
               className={`px-3 py-1.5 rounded text-[9px] border-2 ${tab === t ? 'bg-[#e86a2a] border-[#e86a2a]' : 'border-white/20'}`}>{t.toUpperCase()}</button>
           ))}
@@ -91,6 +101,24 @@ export function ForgePanel({ progress, onClose }: { progress: Progress; onClose:
                   <div key={c.id} className="flex flex-col items-center">
                     <div className={`w-full ${can ? '' : 'opacity-50 grayscale-[60%]'}`}><TcgCard card={c} /></div>
                     <button disabled={!can} onClick={() => doForge(c)} className={`mt-1 px-2 py-1 rounded text-[7px] ${can ? 'bg-[#e86a2a]' : 'bg-white/10 text-white/40'}`}>FORJAR</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {tab === 'evoluir' && (
+          <div>
+            <div className="text-[8px] leading-4 text-white/70 mb-2">Com 3 cópias, 2 delas e um pouco de pó viram a versão + da carta: um pouco mais forte (dano, cura, bônus). A primeira cópia fica no álbum.</div>
+            {!evolvable.length && <div className="text-[9px] text-white/60">Nenhuma carta com cópias repetidas para evoluir ainda.</div>}
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {evolvable.map(c => {
+                const why = canEvolve(progress, c.id), plus = CARD_BY_ID.get(c.id + '+')!;
+                return (
+                  <div key={c.id} className="flex flex-col items-center">
+                    <div className={`w-full ${why ? 'opacity-50 grayscale-[60%]' : ''}`}><TcgCard card={plus} /></div>
+                    <div className="text-[7px] mt-1">×{progress.collection[c.id]} · {evolveCost(c.rarity)} pó</div>
+                    <button disabled={!!why} title={why ?? ''} onClick={() => void doEvolve(c)} className={`mt-1 px-2 py-1 rounded text-[7px] ${why ? 'bg-white/10 text-white/40' : 'bg-[#8a4ac8]'}`}>{why ? (why.startsWith('Precisa') ? 'PRECISA DE 3' : 'FALTA PÓ') : 'EVOLUIR'}</button>
                   </div>
                 );
               })}

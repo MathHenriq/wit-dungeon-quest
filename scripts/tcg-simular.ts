@@ -1,7 +1,9 @@
 /**
  * Simulador de balanceamento do TCG.
  *
- *   npx vite-node scripts/tcg-simular.ts [partidas=4000]
+ *   npx vite-node scripts/tcg-simular.ts [partidas=4000] [--evoluidas]
+ *
+ * Com --evoluidas, as versões "+" (evolução) entram no sorteio e no relatório.
  *
  * Monta decks aleatórios de 20 cartas do catálogo, joga com uma IA gulosa
  * simples e mede: duração das partidas, vantagem de quem começa e a taxa de
@@ -12,11 +14,12 @@
  * O número serve para COMPARAR cartas entre si, não como verdade absoluta.
  */
 
-import { CATALOG } from '../src/lib/tcg/cards/catalog';
+import { CATALOG as BASE, EVOLVED } from '../src/lib/tcg/cards/catalog';
 import { createGame, endTurn, playableCards, playCard, IllegalPlay } from '../src/lib/tcg/engine';
 import type { CardDef, CardInstance, Element, GameState } from '../src/lib/tcg/types';
 
 const N = Number(process.argv[2] ?? 4000);
+const CATALOG = process.argv.includes('--evoluidas') ? [...BASE, ...EVOLVED] : BASE;
 const ELEMENTS: Element[] = ['Fire', 'Water', 'Electric', 'Grass', 'Ice', 'Ground', 'Fighting', 'Steel', 'Poison', 'Dark', 'Ghost', 'Flying'];
 const RARE = new Set(['legendary', 'mythic', 'unknown']);
 
@@ -137,4 +140,14 @@ console.log(`Média por tipo: ${media(c => c.type)}`);
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify(rows.map(r => ({ id: r.c.id, wr: r.wr, n: r.n }))));
+}
+
+// evolução: quanto a versão "+" ganha a mais que a carta normal (a média deve ficar perto de +2 a +5 pontos)
+if (process.argv.includes('--evoluidas')) {
+  const byId = new Map(rows.map(r => [r.c.id, r]));
+  const diffs = rows.filter(r => r.c.id.endsWith('+') && byId.has(r.c.id.slice(0, -1))).map(r => r.wr - byId.get(r.c.id.slice(0, -1))!.wr);
+  const m = diffs.reduce((a, b) => a + b, 0) / Math.max(1, diffs.length);
+  const fora = rows.filter(r => r.c.id.endsWith('+') && (r.wr < 0.4 || r.wr > 0.62));
+  console.log(`\nEvolução: ${diffs.length} pares; a "+" ganha ${(m * 100).toFixed(1)} pontos a mais em média; ${fora.length} "+" fora de 40%–62%`);
+  fora.slice(0, 10).forEach(r => console.log(fmt(r)));
 }

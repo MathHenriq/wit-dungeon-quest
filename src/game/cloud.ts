@@ -167,7 +167,7 @@ const why = (e: unknown) => {
   const nice: Record<string, string> = {
     'moedas insuficientes': 'Moedas insuficientes.', 'sem esse pacote guardado': 'Você não tem esse pacote guardado.',
     'só cartas repetidas': 'Só dá para desmanchar cartas repetidas (a primeira fica no álbum).', 'pó insuficiente': 'Pó insuficiente.',
-    'não se forja': 'Cartas Desconhecidas não podem ser forjadas.', 'já tem 3 tickets esperando': 'Você já tem 3 tickets esperando.',
+    'não se forja': 'Cartas Desconhecidas não podem ser forjadas.', 'precisa de 3 cópias': 'Precisa de 3 cópias.', 'essa carta não evolui': 'Essa carta não evolui.', 'já tem 3 tickets esperando': 'Você já tem 3 tickets esperando.',
   };
   return nice[m] ?? 'Sem conexão com o servidor. Tente de novo.';
 };
@@ -194,6 +194,12 @@ export async function cloudForge(p: Progress, id: string): Promise<{ ok: true; p
   try {
     const r = await rpc<{ qty: number; po: Progress['po'] }>('wit2_forge', { p_card: id });
     return { ok: true, progress: { ...p, po: r.po, collection: { ...p.collection, [id]: r.qty } } };
+  } catch (e) { return { ok: false, reason: why(e) }; }
+}
+export async function cloudEvolve(p: Progress, id: string): Promise<{ ok: true; progress: Progress } | Fail> {
+  try {
+    const r = await rpc<{ qty: number; plus: number; po: Progress['po'] }>('wit2_evolve', { p_card: id });
+    return { ok: true, progress: { ...p, po: r.po, collection: { ...p.collection, [id]: r.qty, [id + '+']: r.plus } } };
   } catch (e) { return { ok: false, reason: why(e) }; }
 }
 /** Carta do chefe: o local já somou; o servidor confere e devolve quantas o aluno tem de verdade. */
