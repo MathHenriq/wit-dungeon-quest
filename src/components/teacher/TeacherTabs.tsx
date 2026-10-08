@@ -6,6 +6,7 @@ import { createMission, endMission, migrateAll, migrateStatus, VIRADA_LIGADA, ty
 import { moderatePost, MURAL_FRASES, teacherPosts, teacherReports, teacherResolve, REPORT_REASONS, type ReportRow, type TeacherPost } from '@/game/social';
 import { PACK_BY_ID, PACKS, type PackId } from '@/game/packs';
 import { DIAMOND_TO_COINS, legacyPacks } from '@/game/migration';
+import { closeVote, leader, openVote, teacherVotes, themeLabel, VOTE_THEMES, votePct, type Vote } from '@/game/class-events';
 import { RARITY_PT } from '@/lib/tcg/labels';
 import { cloudEnabled } from '@/game/cloud';
 import { PATH_BY_ID } from '@/lib/tcg/paths';
@@ -272,6 +273,57 @@ export function ViradaTab() {
         {!VIRADA_LIGADA && <span className="text-[13px] text-[#6a6680]">Desligado até você escolher o dia (chave VIRADA_LIGADA em teacher-cloud.ts). O WIT 1 continua no ar.</span>}
       </div>
       {msg && <div className="text-[13px]">{msg}</div>}
+    </div>
+  );
+}
+
+/** Eventos da turma: votação do tema da próxima coleção. */
+export function EventsTab() {
+  const [votes, setVotes] = useState<Vote[] | null>(null);
+  const [pick, setPick] = useState<string[]>([]);
+  const [days, setDays] = useState(3);
+  const [msg, setMsg] = useState<string | null>(null);
+  const load = () => { teacherVotes().then(setVotes).catch(e => { setVotes([]); setMsg(String((e as Error).message ?? e)); }); };
+  useEffect(load, []);
+  const toggle = (id: string) => setPick(p => (p.includes(id) ? p.filter(x => x !== id) : p.length < 4 ? [...p, id] : p));
+  const open = async () => {
+    try { await openVote(pick, days); setPick([]); setMsg('Votação aberta! Os alunos votam no mural da praça (aba VOTAÇÃO).'); load(); }
+    catch (e) { setMsg(String((e as Error).message ?? e)); }
+  };
+  return (
+    <div className="grid gap-3">
+      <div className={`${box} p-3`}>
+        <div className="text-[18px] font-bold">Votação: tema da próxima coleção</div>
+        <div className="text-[13px] text-[#6a6680] mt-1">Escolha de 2 a 4 temas. Cada aluno vota uma vez no mural da praça e pode trocar o voto até fechar. Abrir uma nova fecha a anterior.</div>
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {VOTE_THEMES.map(t => <button key={t.id} onClick={() => toggle(t.id)} className={pick.includes(t.id) ? btnOn : btn}>{t.label}</button>)}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 mt-3 text-[14px]">
+          Fica aberta por
+          <select value={days} onChange={e => setDays(+e.target.value)} className={field}>{[1, 2, 3, 5, 7, 14].map(d => <option key={d} value={d}>{d} {d === 1 ? 'dia' : 'dias'}</option>)}</select>
+          <button className={btnOn} disabled={pick.length < 2} onClick={() => void open()} style={pick.length < 2 ? { opacity: 0.4 } : undefined}>Abrir votação ({pick.length})</button>
+        </div>
+      </div>
+      {msg && <div className="text-[13px]">{msg}</div>}
+      {!votes && <div>Carregando...</div>}
+      {votes?.map(v => {
+        const win = leader(v);
+        return (
+          <div key={v.id} className={`${box} p-3`}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="text-[15px] font-semibold flex-1">{v.aberta ? 'Aberta' : 'Fechada'} · {v.total} votos{!v.aberta && win ? ` · venceu ${themeLabel(win)}` : ''}</div>
+              {v.aberta && <button className={btn} onClick={() => void closeVote(v.id).then(load)}>Fechar agora</button>}
+            </div>
+            {v.options.map(o => (
+              <div key={o} className="flex items-center gap-2 text-[13px] mb-1">
+                <div className="w-[160px]">{themeLabel(o)}</div>
+                <div className="flex-1 h-3 rounded bg-[#eee8dc]"><div className="h-full rounded bg-[#7a5ac8]" style={{ width: `${votePct(v, o)}%` }} /></div>
+                <div className="w-[70px] text-right">{v.votos[o] ?? 0} ({votePct(v, o)}%)</div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

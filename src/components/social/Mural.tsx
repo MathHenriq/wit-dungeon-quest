@@ -7,10 +7,11 @@ import { LEVEL_TITLES } from '@/game/arcade';
 import { loadPhotos } from '@/game/photos';
 import { PxBox, PxButton, PxPanel, PxTabs } from '@/components/pixel/Pixel';
 import { ArcadePlayer } from './Arcade';
+import { castVote, currentVote, leader, themeLabel, votePct, type Vote } from '@/game/class-events';
 import { play } from '@/game/sfx';
 
 export function Mural({ onClose, onMissions, onMaker }: { onClose: () => void; onMissions?: () => void; onMaker?: () => void }) {
-  const [tab, setTab] = useState<'mural' | 'postar'>('mural');
+  const [tab, setTab] = useState<'mural' | 'postar' | 'votar'>(() => (new URLSearchParams(window.location.search).has('votar') ? 'votar' : 'mural'));
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [playing, setPlaying] = useState<Post | null>(null);
@@ -27,7 +28,7 @@ export function Mural({ onClose, onMissions, onMaker }: { onClose: () => void; o
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            <PxTabs<'mural' | 'postar'> tabs={[['mural', 'MURAL'], ['postar', 'POSTAR']]} value={tab} onChange={setTab} color="#c8762a" />
+            <PxTabs<'mural' | 'postar' | 'votar'> tabs={[['mural', 'MURAL'], ['postar', 'POSTAR'], ['votar', 'VOTAÇÃO']]} value={tab} onChange={setTab} color="#c8762a" />
             <span className="flex-1" />
             {onMissions && <PxButton color="#3a78c8" onClick={onMissions}>MISSÕES DO DIA</PxButton>}
             {onMaker && <PxButton color="#c8303a" onClick={onMaker}>CRIAR FASE</PxButton>}
@@ -53,6 +54,7 @@ export function Mural({ onClose, onMissions, onMaker }: { onClose: () => void; o
               ))}
             </div>
           )}
+          {socialOn() && tab === 'votar' && <VotePanel />}
           {socialOn() && tab === 'postar' && (
             <div className="grid md:grid-cols-2 gap-3">
               <PxBox>
@@ -75,5 +77,37 @@ export function Mural({ onClose, onMissions, onMaker }: { onClose: () => void; o
       )}
       {msg && <div className="text-[8px] text-[#3a9a5a] mt-2">{msg}</div>}
     </PxPanel>
+  );
+}
+
+/** Votação do tema da próxima coleção (o professor abre e fecha). */
+function VotePanel() {
+  const [v, setV] = useState<Vote | null | undefined>(undefined);
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => { currentVote().then(setV).catch(e => { setV(null); setMsg(socialError(e)); }); }, []);
+  if (v === undefined) return <div className="text-[8px]">Carregando...</div>;
+  if (!v) return <div className="text-[8px] leading-4 text-[#6a4a2a]">Nenhuma votação ainda. Quando o professor abrir, você escolhe aqui o tema da próxima coleção de cartas.</div>;
+  const win = leader(v);
+  const vote = async (o: string) => {
+    try { setV(await castVote(v.id, o)); play('coin'); setMsg(`Seu voto: ${themeLabel(o)}. Dá para trocar até fechar.`); } catch (e) { setMsg(socialError(e)); }
+  };
+  return (
+    <div>
+      <div className="text-[9px] mb-1">{v.aberta ? 'QUAL O TEMA DA PRÓXIMA COLEÇÃO?' : 'RESULTADO DA ÚLTIMA VOTAÇÃO'}</div>
+      <div className="text-[7px] text-[#6a4a2a] mb-2">{v.aberta ? `Fecha em ${new Date(v.ends).toLocaleDateString('pt-BR')} · ${v.total} votos` : `${v.total} votos · venceu: ${win ? themeLabel(win) : 'ninguém'}`}</div>
+      <div className="grid gap-1.5">
+        {v.options.map(o => (
+          <PxBox key={o} color={v.meu === o ? '#fff3c8' : undefined} className="flex items-center gap-2">
+            <div className="flex-1">
+              <div className="text-[10px]">{themeLabel(o)}{!v.aberta && o === win ? ' · VENCEU' : ''}{v.meu === o ? ' · SEU VOTO' : ''}</div>
+              <div className="h-2 mt-1 bg-[#e8dcc0]"><div className="h-full bg-[#c8762a]" style={{ width: `${votePct(v, o)}%` }} /></div>
+            </div>
+            <div className="text-[9px] w-9 text-right">{votePct(v, o)}%</div>
+            {v.aberta && <PxButton color={v.meu === o ? '#6a6a7a' : '#3a9a5a'} disabled={v.meu === o} onClick={() => void vote(o)}>VOTAR</PxButton>}
+          </PxBox>
+        ))}
+      </div>
+      {msg && <div className="text-[8px] text-[#3a9a5a] mt-2">{msg}</div>}
+    </div>
   );
 }

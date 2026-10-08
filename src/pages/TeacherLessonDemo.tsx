@@ -4,8 +4,11 @@
 // alunos em risco, retorno depois da falta, CSV).
 // Sem o banco ligado (VITE_WIT2_DB) é DEMONSTRAÇÃO com alunos de mentira;
 // ligado, usa as funções do servidor (src/game/cloud.ts).
-import { MissionsTab, PostsTab, ReportsTab, StudentsTab, ViradaTab } from '@/components/teacher/TeacherTabs';
+import { MissionsTab, PostsTab, ReportsTab, StudentsTab, ViradaTab, EventsTab } from '@/components/teacher/TeacherTabs';
 import { masterTeachers, type TeacherOpt } from '@/game/teacher-cloud';
+import { giveLessonCard, weekCards, weekOf } from '@/game/class-events';
+import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
+import { RARITY_PT } from '@/lib/tcg/labels';
 import { useEffect, useMemo, useState } from 'react';
 import {
   atRisk, delivery, lessonCode, lessonsCsv, nextStatus, packOf, performanceMix, presenceByLesson, returnAfterAbsence, STATUS_NAME, STATUS_ORDER, studentRates,
@@ -32,14 +35,14 @@ const FAKE_TICKETS = [
   { code: 'K7QZ', student: 'aluno-3', reward: 'musica' }, { code: 'B3MX', student: 'aluno-8', reward: 'tablet-15' },
   { code: 'R9TD', student: 'aluno-12', reward: 'vr-10' }, { code: 'H2WP', student: 'aluno-5', reward: 'lugar' },
 ];
-type Tab = 'aula' | 'alunos' | 'missoes' | 'resgates' | 'mural' | 'denuncias' | 'relatorio' | 'virada';
+type Tab = 'aula' | 'alunos' | 'missoes' | 'resgates' | 'mural' | 'denuncias' | 'relatorio' | 'virada' | 'eventos';
 
 export default function TeacherLessonDemo() {
   const today = new Date().toLocaleDateString('pt-BR');
   const live = cloudEnabled();
   const [tab, setTab] = useState<Tab>(() => {
     const q = new URLSearchParams(window.location.search).get('aba');
-    return (['alunos', 'missoes', 'resgates', 'mural', 'denuncias', 'relatorio', 'virada'] as string[]).includes(q ?? '') ? q as Tab : 'aula';
+    return (['alunos', 'missoes', 'resgates', 'mural', 'denuncias', 'relatorio', 'virada', 'eventos'] as string[]).includes(q ?? '') ? q as Tab : 'aula';
   });
   // master (e-mail na lista do banco): escolhe de qual professor ver
   const [masters, setMasters] = useState<TeacherOpt[]>([]);
@@ -57,6 +60,9 @@ export default function TeacherLessonDemo() {
   const [menu, setMenu] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [done, setDone] = useState<ReturnType<typeof delivery> | null>(null);
+  // Carta da Aula: uma das 3 sugestões da semana (ou nenhuma)
+  const [lessonCard, setLessonCard] = useState<string | null>(null);
+  const [cardGiven, setCardGiven] = useState<number | null>(null);
   useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(t); }, []);
   // banco ligado: a aula do dia vem do servidor (alunos do professor, presenças já marcadas pelo código, tickets)
   useEffect(() => {
@@ -93,9 +99,13 @@ export default function TeacherLessonDemo() {
   };
   const deliver = async () => {
     if (live && lessonId) {
-      try { await teacherDeliverCloud(lessonId, rows.map(r => ({ student: r.studentId, status: r.status, pack: packOf(r), viaCode: r.viaCode }))); }
+      try {
+        await teacherDeliverCloud(lessonId, rows.map(r => ({ student: r.studentId, status: r.status, pack: packOf(r), viaCode: r.viaCode })));
+        if (lessonCard) setCardGiven(await giveLessonCard(lessonId, lessonCard));
+      }
       catch (e) { setErr(String((e as Error).message ?? e)); setConfirm(false); return; }
     }
+    if (!live && lessonCard) setCardGiven(rows.filter(r => r.status !== 'faltou').length);
     const next: Saved = { history: [...saved.history, rows.map(r => r.status)].slice(-24), days: [...(saved.days ?? []), today].slice(-24), lastDay: today };
     localStorage.setItem(KEY, JSON.stringify(next));
     setSaved(next); setDone(d); setConfirm(false);
@@ -114,7 +124,7 @@ export default function TeacherLessonDemo() {
         </div>}
         {err && <div className="rounded-lg bg-[#fde8e8] border border-[#e8a0a0] px-3 py-2 text-[12px] mb-3">Erro do servidor: {err}</div>}
         <div className="flex flex-wrap gap-1 mb-3">
-          {([['aula', 'Aula de hoje'], ['alunos', 'Alunos'], ['missoes', 'Missões da sala'], ['resgates', `Resgates (${tickets.filter(t => !t.done).length})`], ['mural', 'Mural'], ['denuncias', 'Denúncias'], ['relatorio', 'Relatório'], ...((masters.length > 0 || !live) ? [['virada', 'Virada']] : [])] as [Tab, string][]).map(([k, l]) => (
+          {([['aula', 'Aula de hoje'], ['alunos', 'Alunos'], ['missoes', 'Missões da sala'], ['resgates', `Resgates (${tickets.filter(t => !t.done).length})`], ['mural', 'Mural'], ['eventos', 'Eventos'], ['denuncias', 'Denúncias'], ['relatorio', 'Relatório'], ...((masters.length > 0 || !live) ? [['virada', 'Virada']] : [])] as [Tab, string][]).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={`px-4 py-2 rounded-lg text-[14px] border ${tab === k ? 'bg-[#1e1b2c] text-white border-[#1e1b2c]' : 'bg-white border-[#d8d4cc]'}`}>{l}</button>
           ))}
         </div>
@@ -131,6 +141,7 @@ export default function TeacherLessonDemo() {
         {tab === 'denuncias' && <ReportsTab />}
         {tab === 'mural' && <PostsTab />}
         {tab === 'virada' && <ViradaTab />}
+        {tab === 'eventos' && <EventsTab />}
         {tab === 'resgates' && <Tickets tickets={tickets} nameOf={nameOf} onGive={giveTicket} />}
         {tab === 'relatorio' && <Report names={students.map(x => x.name)} saved={saved} />}
         {tab === 'aula' && <>
@@ -193,11 +204,23 @@ export default function TeacherLessonDemo() {
           })}
         </div>
 
+        <div className="mt-4 rounded-lg bg-white border border-[#e4e0d8] p-3">
+          <div className="text-[15px] font-semibold">Carta da Aula</div>
+          <div className="text-[12px] text-[#6a6680] mb-2">Quem não faltou ganha 1 cópia ao entregar. As 3 sugestões mudam toda semana.</div>
+          <div className="flex flex-wrap gap-2">
+            {[...weekCards(weekOf()).map(id => [id, `${CARD_BY_ID.get(id)?.name ?? id} (${RARITY_PT[CARD_BY_ID.get(id)!.rarity]})`] as const), [null, 'Sem carta hoje'] as const].map(([id, label]) => (
+              <button key={id ?? 'nada'} disabled={!!done} onClick={() => setLessonCard(id)}
+                className={`px-3 py-2 rounded-lg text-[13px] border ${lessonCard === id ? 'bg-[#1e1b2c] text-white border-[#1e1b2c]' : 'bg-white border-[#d8d4cc]'} disabled:opacity-50`}>{label}</button>
+            ))}
+          </div>
+        </div>
+
         <div className="sticky bottom-0 mt-4 py-3 bg-[#f4f2ee]">
           {done ? (
             <div className="rounded-xl bg-[#e8f8ec] border border-[#9ad0a8] p-3 text-[14px]">
               Entregue! {done.grants.length} pacotes ({Object.entries(done.packs).map(([k, n]) => `${n} ${PACK_BY_ID.get(k as PackId)!.name.replace(/^Pacot(e|inho) /, '')}`).join(', ')}).
               Presença: {Math.round(done.rate * 100)}%. Cada aluno vê no jogo: "Você foi bem hoje! Pacote Raro" e o pacote aparece em MEUS PACOTES.
+              {cardGiven !== null && lessonCard && ` Carta da Aula (${CARD_BY_ID.get(lessonCard)?.name}): ${cardGiven} alunos ganharam.`}
               {!live && <button onClick={() => { setDone(null); setRows(students.map(s => ({ studentId: s.id, status: 'faltou' }))); }} className="ml-2 underline">nova aula (demo)</button>}
             </div>
           ) : (

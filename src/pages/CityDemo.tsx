@@ -25,6 +25,7 @@ import { FishHouse } from '@/components/city/FishHouse';
 import { WorldMap } from '@/components/city/WorldMap';
 import { play } from '@/game/sfx';
 import { addPhoto, loadPhotos, MAX_PHOTOS, savePhotos, snap } from '@/game/photos';
+import { lessonCardsMine } from '@/game/class-events';
 import { cancelField, completeTarget, FIELD_BY_ID, fieldLeft, interviewLine, pendingByZone, surveyTable, targetsIn, wantOf, type FieldTarget } from '@/game/fieldwork';
 import { publish } from '@/game/press';
 import { PathChooser } from '@/components/city/PathChooser';
@@ -448,7 +449,17 @@ function CityView({ town, start, startHour, onTravel }: {
       saveProgress(p); setProgress(p);
       // o professor mandou pacotes (aula, missão da sala) desde a última vez: avisa
       const got = Object.entries(p.pacotes).filter(([id, n]) => n > (before.pacotes[id] ?? 0));
-      if (got.length) setFishUi({ kind: 'toast', text: `Seu professor mandou ${got.map(([id, n]) => `${n - (before.pacotes[id] ?? 0)} ${PACK_BY_ID.get(id as PackId)?.name ?? id}`).join(' e ')}! Abra em MEUS PACOTES, na Loja.` });
+      const packsText = got.length ? `Seu professor mandou ${got.map(([id, n]) => `${n - (before.pacotes[id] ?? 0)} ${PACK_BY_ID.get(id as PackId)?.name ?? id}`).join(' e ')}! Abra em MEUS PACOTES, na Loja.` : '';
+      if (packsText) setFishUi({ kind: 'toast', text: packsText });
+      // Carta da Aula nova (avisa uma vez)
+      void lessonCardsMine().then(list => {
+        const seen = (() => { try { return localStorage.getItem('wit.cartaAula') ?? ''; } catch { return ''; } })();
+        const c = list[0];
+        if (!c || `${c.day}:${c.card}` === seen) return;
+        try { localStorage.setItem('wit.cartaAula', `${c.day}:${c.card}`); } catch { /* sem armazenamento */ }
+        const text = `Carta da Aula: ${CARD_BY_ID.get(c.card)?.name ?? c.card} entrou no seu álbum!`;
+        setFishUi({ kind: 'toast', text: packsText ? `${packsText} ${text}` : text });
+      });
     }).catch(err => console.error('banco', err));
   }, []);
 
