@@ -33,6 +33,8 @@ import {
   activeDeckCards, applyDuel, bossUnlocked, canGoUp, loadProgress, saveProgress, tablesWon, winsOf, type DuelResult, type Progress,
 } from '@/game/progress';
 import { cloudBossCard, cloudEnabled } from '@/game/cloud';
+import { guildHit, saveHouse } from '@/game/social';
+import { GuildPanel } from '@/components/social/GuildPanel';
 import {
   drawSeated, loadImage, loadLookFrames, loadNpcFrames, loadPetFrames, plateCanvas, R, type Frames,
 } from '@/game/world/sprites';
@@ -43,7 +45,8 @@ import {
  * cidade; `onExit` volta para ela.
  */
 
-export type Sala = { kind: 'torre'; andar: number } | { kind: 'casa' } | { kind: 'sala'; id: string };
+/** `visita`: a casa de um amigo (só olhar; vem do banco, wit2_visit). */
+export type Sala = { kind: 'torre'; andar: number } | { kind: 'casa'; visita?: { layout: unknown; dono: string } } | { kind: 'sala'; id: string };
 
 const WALK_MS = 230, RUN_MS = 125;
 const KEY_DIR: Record<string, Dir> = {
@@ -97,9 +100,9 @@ function paint(img: HTMLCanvasElement, key: string, cor?: string, cor2?: string)
   return c;
 }
 
-function savedHouse(m: Manifest): { items: Placed[]; piso: string; parede: string } {
+function savedHouse(m: Manifest, from?: unknown): { items: Placed[]; piso: string; parede: string } {
   try {
-    const raw = JSON.parse(localStorage.getItem(HOUSE_KEY) ?? 'null');
+    const raw = (from ?? JSON.parse(localStorage.getItem(HOUSE_KEY) ?? 'null')) as { items?: unknown; piso: string; parede: string } | null;
     const items = sanitizeHouse(m, raw?.items);
     if (items) {
       return {
@@ -124,8 +127,9 @@ const foeIdOf = (d: DuelSpec) => (d.kind === 'chefe' ? `torre-${d.andar}-chefe` 
 function buildRoom(m: Manifest, sala: Sala): Room {
   if (sala.kind === 'torre') return towerRoom(sala.andar);
   if (sala.kind === 'sala') return (ROOMS[sala.id] ?? ROOMS.arena)();
-  const h = savedHouse(m);
-  return { ...houseRoom(h.items), piso: h.piso, parede: h.parede };
+  const h = savedHouse(m, sala.visita?.layout ?? undefined);
+  const r = { ...houseRoom(h.items), piso: h.piso, parede: h.parede };
+  return sala.visita ? { ...r, title: `Casa de ${sala.visita.dono}` } : r;
 }
 
 /** O que a casa pede para a cidade fazer (o relógio e o visual moram lá). */
@@ -172,9 +176,9 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const [shopOf, setShopOf] = useState<RoomNpc | null>(null);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
   /** Loja de pacotinhos ou forja abertas (?painel=pacotes|forja abre direto). */
-  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | null>(() => {
+  const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | 'guilda' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('painel');
-    return q === 'pacotes' || q === 'forja' || q === 'recompensas' ? q : null;
+    return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' ? q : null;
   });
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
   const [housePanel, setHousePanel] = useState<HousePanel | null>(null);
@@ -266,11 +270,15 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     return () => { alive = false; };
   }, [m, room, S]);
 
-  // casa: guarda cada mudança
+  // casa: guarda cada mudança (no navegador e, com o banco ligado, para as visitas dos amigos)
+  const visiting = sala.kind === 'casa' && !!sala.visita;
   useEffect(() => {
-    if (room.id !== 'casa') return;
-    try { localStorage.setItem(HOUSE_KEY, JSON.stringify({ items: room.items, piso: room.piso, parede: room.parede })); } catch { /* sem armazenamento */ }
-  }, [room]);
+    if (room.id !== 'casa' || visiting) return;
+    const layout = { items: room.items, piso: room.piso, parede: room.parede };
+    try { localStorage.setItem(HOUSE_KEY, JSON.stringify(layout)); } catch { /* sem armazenamento */ }
+    const t = window.setTimeout(() => { void saveHouse(layout); }, 3000);
+    return () => window.clearTimeout(t);
+  }, [room, visiting]);
 
   // tela → escala inteira; decorando, a sala inteira tem de caber acima do painel
   // (ali a escala pode ser meia: 1 pixel hd = 1 pixel da tela)
@@ -435,7 +443,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     const exit = room.exits.find(e => e.tx === f.tx && e.ty === f.ty && solid[e.ty]?.[e.tx]);
     // olhando para a escada ou o portal: usa (a conversa do portal fica para quem olha de lado)
     if (exit) { takeExit(exit); return; }
-    if (sala.kind === 'casa') {
+    if (sala.kind === 'casa' && !sala.visita) {
       const h = houseActAt(m, room, f.tx, f.ty);
       if (h) { furniture(h.act, h.item); return; }
     }
@@ -840,6 +848,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'pacotes' && <PackShop progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'recompensas' && <RoomRewards progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
+      {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
       {shopOf && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 p-3" onPointerDown={() => setShopOf(null)}>
           <div onPointerDown={e => e.stopPropagation()} className={`w-[min(94vw,480px)] rounded-xl border-4 border-[#c8762a] bg-[#f4efe2] p-4 text-[#2e2a40] ${pixelFont}`}>
@@ -887,7 +896,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
         </div>
       )}
 
-      {room.id === 'casa' && (
+      {room.id === 'casa' && !visiting && (
         <button
           onClick={() => { if (decor) { cancelHold(); setDecor(false); } else { setDialog(null); setDecor(true); } }}
           className={`absolute top-2 right-2 px-3 py-2 rounded-md bg-[#2f6b1e]/90 border-2 border-[#8cc63f] text-white text-[10px] ${pixelFont}`}
@@ -941,6 +950,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
             }
             const { progress: next, result } = applyDuel(progress, duel.foe, won, Math.random());
             if (next !== progress) { saveProgress(next); setProgress(next); }
+            // vitória na Torre também bate no chefe da guilda da semana
+            if (won && duel.foe.id.startsWith('torre-')) void guildHit();
             // com o banco ligado, o servidor confere a carta do chefe e diz quantas o aluno tem
             const won1 = result.card, andar = duel.foe.andar;
             if (won1 && cloudEnabled()) void cloudBossCard(andar, won1.id).then(n => {

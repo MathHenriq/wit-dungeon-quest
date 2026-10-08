@@ -16,7 +16,7 @@ P="env PGOPTIONS=-cclient_min_messages=warning psql -h $DIR -p 54329 -U postgres
 $P -f "$ROOT/scripts/sql/stubs-supabase.sql" >/dev/null
 for f in "$ROOT"/supabase/migrations/*_wit2_*.sql; do $P -f "$f" >/dev/null; done
 OUT=""
-for t in "$ROOT"/scripts/sql/teste-wit2*.sql; do OUT="$OUT
+for t in "$ROOT"/scripts/sql/teste-wit2.sql "$ROOT"/scripts/sql/teste-wit2-*.sql; do OUT="$OUT
 $($P -t -A -f "$t" | grep -vE '^[0-9a-f-]{36}$')"; done
 echo "$OUT" | grep -c '^t$' | xargs -I{} echo "{} verificações"
 if echo "$OUT" | grep -q '^f$'; then echo "FALHOU: alguma verificação deu falso"; echo "$OUT"; exit 1; fi

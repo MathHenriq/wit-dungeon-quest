@@ -39,18 +39,22 @@ import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanv
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
 import { cloudEnabled, pullProgress } from '@/game/cloud';
 import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
+import { DEMO_PEOPLE, nickOk, setProfile, socialDemo, socialError, socialOn, visit } from '@/game/social';
+import { ProfileCard } from '@/components/social/ProfileCard';
 import { Radio } from '@/components/city/Radio';
 import { VehicleShop } from '@/components/city/VehicleShop';
 import { poseFrames } from '@/game/world/model-sprite';
 import { InteriorView, type Sala } from '@/components/city/InteriorView';
 import { ROOM_BUILDING, ROOMS } from '@/game/interior/room';
 import { addCatch, addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
+import { RARITY_ORDER as RANKS } from '@/lib/tcg/opponents';
 import { canSize, doWork, fishLuck, FISH_XP, HUNGRY, irrigPlots, shipBonus, spendEnergy, today } from '@/game/life';
 import { buy } from '@/game/market';
 import { finishDelivery } from '@/game/deliveries';
 import { PROF_BY_ID, profTitle, type MinigameId } from '@/game/professions';
 import { WorkPanel } from '@/components/work/WorkPanel';
-import { Backpack, DeliveryPanel, KitchenPanel, MarketPanel } from '@/components/work/LifePanels';
+import { Backpack, DeliveryPanel, KitchenPanel, MarketPanel, type BagTab } from '@/components/work/LifePanels';
 import { HungerBar } from '@/components/work/Shell';
 import { Icon } from '@/components/Icon';
 import { iconUrl } from '@/game/icons';
@@ -260,7 +264,7 @@ function CityView({ town, start, startHour, onTravel }: {
     const w = new URLSearchParams(window.location.search).get('trabalho');
     return w && WORK_DOORS[w] ? WORK_DOORS[w] : null;
   });
-  const [bag, setBag] = useState<'mochila' | 'cargos' | 'missoes' | 'titulos' | null>(() => (new URLSearchParams(window.location.search).has('mochila') ? 'mochila' : null));
+  const [bag, setBag] = useState<BagTab | null>(() => { const q = new URLSearchParams(window.location.search); return q.has('amigos') ? 'amigos' : q.has('mochila') ? 'mochila' : null; });
   const [shopUi, setShopUi] = useState<'mercado' | 'cozinha' | 'entregas' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('loja');
     return q === 'mercado' || q === 'cozinha' || q === 'entregas' ? q : null;
@@ -356,6 +360,8 @@ function CityView({ town, start, startHour, onTravel }: {
     /** Colegas na mesma área (só com o banco ligado): andam até o bloco que avisaram. */
     peers: new Map<string, { st: PeerState; w: Walker; path: Dir[]; frames: Frames | null }>(),
     link: null as ZoneLink | null,
+    /** O professor silenciou o balão (denúncia). */
+    muted: false,
     /** Balão do jogador (frase pronta) e quando apareceu. */
     fala: null as { i: number; t: number } | null,
     petFrames: null as Frames | null,
@@ -434,14 +440,33 @@ function CityView({ town, start, startHour, onTravel }: {
     pullProgress(loadProgress()).then(p => { saveProgress(p); setProgress(p); }).catch(err => console.error('banco', err));
   }, []);
 
-  // cidade compartilhada (só com VITE_WIT2_DB=1): cada colega da área vira um boneco
+  // cidade compartilhada (só com VITE_WIT2_DB=1): publica o perfil (apelido,
+  // visual, título), entra no canal da turma e cada colega da área vira um boneco.
+  // ?social=demo põe 2 colegas de mentira perto (prints do cartão de perfil).
   useEffect(() => {
-    if (!cloudEnabled()) return;
+    if (!socialOn()) return;
     const s = g.current;
     const wall = (x: number, y: number) => y < 0 || x < 0 || y >= town.solid.length || x >= town.solid[0].length || town.solid[y][x];
-    const me: PeerState = { id: tabId(), nick: s.nick, title: s.playerTitle, look, tx: s.player.tx, ty: s.player.ty, dir: s.player.dir };
+    if (socialDemo()) {
+      DEMO_PEOPLE.forEach((pp, i) => {
+        const st: PeerState = { id: pp.handle, handle: pp.handle, nick: pp.nick, title: pp.title ?? undefined, look: normalizeLook(pp.look), tx: s.player.tx + 2 + i, ty: s.player.ty + (i ? 1 : 0), dir: 'west' };
+        const peer = { st, w: newWalker(st.tx, st.ty, st.dir), path: [] as Dir[], frames: null as Frames | null };
+        s.peers.set(st.id, peer);
+        loadLookFrames(st.look).then(f => { peer.frames = f; s.dirty = true; }).catch(() => undefined);
+      });
+      s.peers.get('demo-lia')!.st.fala = { i: 1, t: Date.now() + 3_600_000 };
+      return () => { s.peers.clear(); };
+    }
     let alive = true;
-    joinZone(town.id, me, list => {
+    const pr = loadProgress();
+    const favs = Object.keys(pr.collection).sort((a, b) => RANKS.indexOf(CARD_BY_ID.get(b)?.rarity ?? 'common') - RANKS.indexOf(CARD_BY_ID.get(a)?.rarity ?? 'common')).slice(0, 3);
+    const nick = nickOk(s.nick) ? s.nick : 'Desafiante';
+    setProfile(nick, s.playerTitle, look, favs).then(meP => {
+      if (!alive) return;
+      s.muted = meP.muted;
+      setMuted(meP.muted);
+      const me: PeerState = { id: tabId(), handle: meP.handle, nick, title: s.playerTitle, look, tx: s.player.tx, ty: s.player.ty, dir: s.player.dir };
+      return joinZone(town.id, me, list => {
       const seen = new Set<string>();
       for (const st of list) {
         seen.add(st.id);
@@ -460,7 +485,8 @@ function CityView({ town, start, startHour, onTravel }: {
       }
       for (const id of [...s.peers.keys()]) if (!seen.has(id)) s.peers.delete(id);
       s.dirty = true;
-    }).then(link => { if (alive) s.link = link; else link?.leave(); }).catch(err => console.error('presença', err));
+    }, meP.sala);
+    }).then(link => { if (alive) s.link = link ?? null; else link?.leave(); }).catch(err => console.error('presença', err));
     return () => { alive = false; s.link?.leave(); s.link = null; s.peers.clear(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -483,6 +509,9 @@ function CityView({ town, start, startHour, onTravel }: {
     setFishUi({ kind: 'toast', text: `${v.name}: mais rápido na rua. V para descer.` });
   }, [town]);
   const [falaOpen, setFalaOpen] = useState(false);
+  const [muted, setMuted] = useState(false);
+  /** Cartão de perfil de um colega (tocou nele). */
+  const [card, setCard] = useState<string | null>(null);
   const say = useCallback((i: number) => {
     const s = g.current;
     s.fala = { i, t: Date.now() }; s.dirty = true;
@@ -1773,6 +1802,10 @@ function CityView({ town, start, startHour, onTravel }: {
     const camX = mapW <= cw ? Math.round((mapW - cw) / 2) : Math.max(0, Math.min(mapW - cw, Math.round(pp.x + 8 - cw / 2)));
     const camY = mapH <= ch ? Math.round((mapH - ch) / 2) : Math.max(0, Math.min(mapH - ch, Math.round(pp.y + 8 - ch / 2)));
     const tx = Math.floor((vx + camX) / TILE), ty = Math.floor((vy + camY) / TILE);
+    // tocar num colega (ou na cabeça dele, um bloco acima): abre o cartão de perfil
+    for (const peer of s.peers.values()) {
+      if (peer.st.handle && peer.w.tx === tx && (peer.w.ty === ty || peer.w.ty === ty + 1)) { setCard(peer.st.handle); return; }
+    }
     // tocar num morador ou prédio: vai até o bloco livre mais perto e olha para ele
     const target = blocked(tx, ty)
       ? [[0, 1], [0, -1], [1, 0], [-1, 0]].map(([dx, dy]) => ({ tx: tx + dx, ty: ty + dy })).find(t => !blocked(t.tx, t.ty))
@@ -1823,7 +1856,7 @@ function CityView({ town, start, startHour, onTravel }: {
         <button onClick={takePhoto} title="Tirar foto (F)"
           className={`px-3 py-2 rounded-md bg-[#c84a6a]/90 border-2 border-[#ffb0c4] text-white text-[10px] ${pixelFont}`}>FOTO</button>
         <span className="relative">
-          <button onClick={() => setFalaOpen(o => !o)} title="Falar uma frase"
+          <button onClick={() => setFalaOpen(o => !o)} title={muted ? 'O professor desligou o seu balão por uns dias' : 'Falar uma frase'} disabled={muted}
             className={`px-3 py-2 rounded-md bg-[#2a7a8a]/90 border-2 border-[#90e0f0] text-white text-[10px] ${pixelFont}`}>FALAR</button>
           {falaOpen && (
             <span className="absolute right-0 top-full mt-1 z-20 flex flex-col gap-1 p-1.5 rounded-md bg-[#1c2a30]/95 border-2 border-[#90e0f0] w-40">
@@ -1850,6 +1883,8 @@ function CityView({ town, start, startHour, onTravel }: {
       <div className="absolute inset-0 bg-white pointer-events-none transition-opacity duration-300" style={{ opacity: flash ? 0.85 : 0 }} />
 
       {editing && !inside && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
+      {card && <ProfileCard handle={card} onClose={() => setCard(null)}
+        onChallenge={() => { setCard(null); setBag(null); setInside({ kind: 'sala', id: 'arena' }); setFishUi({ kind: 'toast', text: 'Sente numa mesa LIVRE e troquem os códigos do deck.' }); }} />}
 
       {banner && (
         <div className={`absolute top-[22%] left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg border-4 border-[#e8c690] bg-[#2e2a40]/90 text-[#fff4d0] text-[14px] tracking-wider pointer-events-none ${pixelFont}`}>
@@ -1906,7 +1941,13 @@ function CityView({ town, start, startHour, onTravel }: {
         </div>
       )}
       {work && <WorkPanel game={work.game} also={work.also} shop={work.shop} progress={progress} nick={look.apelido || 'Você'} onClose={() => setWork(null)} />}
-      {bag && <Backpack progress={progress} start={bag} onClose={() => { setBag(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }} />}
+      {bag && <Backpack progress={progress} start={bag} onClose={() => { setBag(null); g.current.farm = loadFarm(); setFarmHud(n => n + 1); }}
+        onCard={h => setCard(h)}
+        onVisit={(h, nick) => {
+          // casa de um amigo: só olhar (layout vem do banco)
+          visit(h).then(v => { setBag(null); setInside({ kind: 'casa', visita: { layout: v.layout, dono: nick } }); })
+            .catch(e => setFishUi({ kind: 'toast', text: socialError(e) }));
+        }} />}
       {shopUi === 'mercado' && <MarketPanel progress={progress} onClose={() => setShopUi(null)} onWork={() => { setShopUi(null); setWork({ game: 'grafico' }); }} />}
       {shopUi === 'cozinha' && <KitchenPanel progress={progress} onClose={() => setShopUi(null)} />}
       {shopUi === 'entregas' && <DeliveryPanel progress={progress} zone={town.id} onClose={() => setShopUi(null)} onWork={() => { setShopUi(null); setWork({ game: 'rota' }); }} />}

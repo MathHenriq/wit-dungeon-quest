@@ -1,5 +1,6 @@
 // Telas do dia a dia: mochila (comer, irrigador), profissões, missões do dia,
 // Mercado Central, cozinha da Casa da Fazenda e Central de Entregas.
+import { FriendsList } from '@/components/social/Friends';
 import { earnedTitles, visibleTitles } from '@/game/titles';
 import { useState } from 'react';
 import { canCook, chooseProfession, cook, craftIrrigator, eat, gainXp, RECIPES, SENSORS_PER_IRRIG } from '@/game/life';
@@ -79,8 +80,9 @@ export function MissionsList({ progress, onMsg }: { progress: Progress; onMsg: (
 
 // ─── Mochila ────────────────────────────────────────────────────────────────
 
-export function Backpack({ progress, onClose, start = 'mochila' }: { progress: Progress; onClose: () => void; start?: 'mochila' | 'cargos' | 'missoes' | 'titulos' }) {
-  const [tab, setTab] = useState(start);
+export type BagTab = 'mochila' | 'cargos' | 'missoes' | 'titulos' | 'amigos';
+export function Backpack({ progress, onClose, start = 'mochila', onVisit, onCard }: { progress: Progress; onClose: () => void; start?: BagTab; onVisit?: (handle: string, nick: string) => void; onCard?: (handle: string) => void }) {
+  const [tab, setTab] = useState<BagTab>(start);
   const [msg, setMsg] = useState<string | null>(null);
   const ids = Object.keys(progress.itens).filter(k => progress.itens[k] > 0 && itemDef(k));
   const prof = PROFESSIONS.find(p => p.id === progress.profissao);
@@ -112,7 +114,7 @@ export function Backpack({ progress, onClose, start = 'mochila' }: { progress: P
         <span>{Math.round(progress.fome)}/100</span>
         <span className="ml-auto flex items-center gap-1">{prof ? <><Icon id={prof.icon} size={16} /> {prof.name} · {TITLES[levelOf(progress.xp[prof.id] ?? 0).level - 1]}</> : 'Sem cargo: escolha no Núcleo WIT'}</span>
       </div>
-      <Tabs tabs={[['mochila', 'ITENS'], ['cargos', 'PROFISSÕES'], ['missoes', `MISSÕES${ready ? ` (${ready}!)` : ''}`], ['titulos', `TÍTULOS ${earnedTitles(progress).length}/${visibleTitles(progress).length}`]]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color="#8a5a2e" />
+      <Tabs tabs={[['mochila', 'ITENS'], ['cargos', 'PROFISSÕES'], ['missoes', `MISSÕES${ready ? ` (${ready}!)` : ''}`], ['titulos', `TÍTULOS ${earnedTitles(progress).length}/${visibleTitles(progress).length}`], ['amigos', 'AMIGOS']]} value={tab} onChange={t => { setTab(t); setMsg(null); }} color="#8a5a2e" />
       {tab === 'mochila' && (
         <div>
           {!ids.length && <div className="text-[8px] leading-4 text-[#5a5470]">A mochila está vazia. Pesque, plante, trabalhe nos prédios da Cidade WIT ou compre comida na Padaria e no Mercado.</div>}
@@ -143,6 +145,7 @@ export function Backpack({ progress, onClose, start = 'mochila' }: { progress: P
         </div>
       )}
       {tab === 'cargos' && <ProfessionsList progress={progress} onMsg={setMsg} />}
+      {tab === 'amigos' && <FriendsList onVisit={onVisit} onCard={onCard} />}
       {tab === 'missoes' && <MissionsList progress={progress} onMsg={setMsg} />}
       {tab === 'titulos' && (
         <div>

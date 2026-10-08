@@ -64,7 +64,7 @@ export interface RoomNpc {
   /** Vende alguma coisa (ids dos itens, src/game/items.ts). */
   shop?: string[];
   /** Abre uma tela própria ao conversar: loja de pacotinhos, forja. */
-  action?: 'pacotes' | 'forja';
+  action?: 'pacotes' | 'forja' | 'guilda';
   /** Anda à toa dentro deste retângulo [x0, y0, x1, y1] (clientes do shopping). */
   wander?: [number, number, number, number];
   /** Aceita duelo: qual adversário da Torre ele é (ver src/lib/tcg/opponents.ts). */
@@ -690,10 +690,9 @@ export function castleRoom(): Room {
     piso: 'piso-castelo-piso', parede: 'parede-castelo-parede', items,
     patches: [{ piso: 'piso-castelo-tapete', tx: 10, ty: 5, w: 2, h: 13 }],
     npcs: [
-      npc('rei', 'npc-desafiante-07', 11, 5, 'Sir Téo', 'Mestre das Guildas', [
+      { ...npc('rei', 'npc-desafiante-07', 11, 5, 'Sir Téo', 'Mestre das Guildas', [
         'Bem-vindo ao Castelo! Cada guilda é uma equipe da turma.',
-        'Juntos vocês cumprem a meta de presença da semana e enfrentam o chefe da guilda. (Em breve.)',
-      ]),
+      ]), action: 'guilda' },
       npc('guilda-azul', 'npc-desafiante-05', 5, 8, 'Caio', 'Guilda Azul', ['A Guilda Azul está a 2 presenças da meta da semana!']),
       npc('guilda-verde', 'npc-desafiante-08', 16, 8, 'Iris', 'Guilda Verde', ['Estamos juntando pacotinhos no baú da guilda.']),
     ],

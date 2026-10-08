@@ -56,7 +56,7 @@ export function toServerJson(p: Progress): Record<string, unknown> {
 }
 
 type Rpc = (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
+export async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   const { supabaseStudent } = await import('@/integrations/supabase/studentClient');
   const call = supabaseStudent.rpc.bind(supabaseStudent) as unknown as Rpc;
   const { data, error } = await call(fn, args);
@@ -65,7 +65,7 @@ async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
 }
 
 /** As funções do professor usam a sessão do professor (outro cliente). */
-async function rpcTeacher<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
+export async function rpcTeacher<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   const { supabase } = await import('@/integrations/supabase/client');
   const call = supabase.rpc.bind(supabase) as unknown as Rpc;
   const { data, error } = await call(fn, args);
