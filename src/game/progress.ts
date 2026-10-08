@@ -4,6 +4,7 @@
 // As regras (quanto rende uma vitória, quando o chefe libera) são puras e
 // testadas; só `loadProgress`/`saveProgress` tocam no navegador.
 import { VEHICLE_BY_ID, type VehicleId } from './vehicles';
+import { newHunter, sanitizeHunter, type HunterState } from './hunter-state';
 import { schedulePush } from './cloud';
 import type { Ticket } from './room-rewards';
 import { prizeFor } from './boss-prizes';
@@ -106,6 +107,8 @@ export interface Progress {
   moveis: string[];
   /** Plantas da Sua Casa: regas seguidas e o dia da última (house-life.ts). */
   plantas: Record<string, { regas: number; dia: number }>;
+  /** Masmorra: caçador, armas, cartas de habilidade, sombras, missão (hunter.ts). */
+  masmorra: HunterState;
 }
 
 export function newProgress(): Progress {
@@ -140,6 +143,7 @@ export function newProgress(): Progress {
     veiculos: [],
     moveis: [],
     plantas: {},
+    masmorra: newHunter(),
   };
 }
 
@@ -225,6 +229,7 @@ export function sanitizeProgress(raw: unknown): Progress {
     plantas: Object.fromEntries(Object.entries((r.plantas && typeof r.plantas === 'object' ? r.plantas : {}) as Record<string, { regas?: unknown; dia?: unknown }>)
       .filter(([k, v]) => /^[a-z0-9.-]{1,40}@\d{1,2},\d{1,2}$/.test(k) && v && Number.isInteger(v.regas) && Number.isInteger(v.dia))
       .slice(0, 60).map(([k, v]) => [k, { regas: Math.max(0, Math.min(10, v.regas as number)), dia: v.dia as number }])),
+    masmorra: sanitizeHunter(r.masmorra),
     moveis: Array.isArray(r.moveis) ? [...new Set((r.moveis as unknown[]).filter((x): x is string => typeof x === 'string' && /^[a-z0-9-]{1,40}$/.test(x)))].slice(0, 400) : [],
     veiculos: Array.isArray(r.veiculos) ? [...new Set((r.veiculos as unknown[]).filter((x): x is VehicleId => typeof x === 'string' && VEHICLE_BY_ID.has(x as VehicleId)))] : [],
     veiculo: typeof r.veiculo === 'string' && VEHICLE_BY_ID.has(r.veiculo as VehicleId) ? (r.veiculo as VehicleId) : undefined,

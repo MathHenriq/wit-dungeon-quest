@@ -63,6 +63,19 @@ const BASE: ItemDef[] = [
   { id: 'irrigador', name: 'Irrigador Automático', icon: 'irrigador', kind: 'produto', price: 0, about: 'Rega sozinho 8 canteiros da fazenda todo dia. Usar: na mochila.' },
   { id: 'cubo-virtual', name: 'Cubo Virtual', icon: 'cubo-virtual', kind: 'produto', price: 16, about: 'Um objeto 3D feito no Metaverso.' },
   { id: 'tiquete', name: 'Tíquete de Fliperama', icon: 'tiquete', kind: 'produto', price: 2, about: 'Ganho testando jogos na Oficina de Games.' },
+  // da masmorra (o pet cata; ícones provisórios até os do GPT: docs/gpt-masmorra.md §7)
+  { id: 'minerio:cobre', name: 'Minério de Cobre', icon: 'rubi', kind: 'produto', price: 3, about: 'Das pedras da masmorra. O ferreiro da Associação usa.' },
+  { id: 'minerio:ferro', name: 'Minério de Ferro', icon: 'safira', kind: 'produto', price: 6, about: 'Das pedras da masmorra. O ferreiro da Associação usa.' },
+  { id: 'minerio:ouro', name: 'Minério de Ouro', icon: 'ouro', kind: 'produto', price: 12, about: 'Das pedras dos portais altos. Para as melhores armas.' },
+  { id: 'erva:cura', name: 'Erva de Cura', icon: 'folha', kind: 'produto', price: 3, about: '3 viram uma Poção de Vida na boticária.' },
+  { id: 'erva:mana', name: 'Erva de Mana', icon: 'cogumelo', kind: 'produto', price: 4, about: '3 viram uma Poção de Mana na boticária.' },
+  { id: 'cristal:azul', name: 'Cristal Azul', icon: 'cristal', kind: 'produto', price: 0, about: 'Vira pó comum da forja de cartas (Associação).' },
+  { id: 'cristal:roxo', name: 'Cristal Roxo', icon: 'ametista', kind: 'produto', price: 0, about: 'Vira pó raro da forja de cartas (Associação).' },
+  { id: 'cristal:dourado', name: 'Cristal Dourado', icon: 'diamante', kind: 'produto', price: 0, about: 'Vira pó épico da forja de cartas (Associação).' },
+  { id: 'pena', name: 'Pena de Goblin', icon: 'pena', kind: 'produto', price: 4, about: 'Do chapéu dos goblins. Vende no Mercado.' },
+  { id: 'pelo', name: 'Pelo de Lobo Sombrio', icon: 'la', kind: 'produto', price: 8, about: 'Macio e escuro. Vende no Mercado.' },
+  { id: 'pocao:vida', name: 'Poção de Vida', icon: 'coracao', kind: 'produto', price: 0, about: 'Leve até 2 para o portal: com 1 coração, bebe sozinho (+3).' },
+  { id: 'pocao:mana', name: 'Poção de Mana', icon: 'gota', kind: 'produto', price: 0, about: 'Leve até 2 para o portal: sem mana, bebe sozinho (enche).' },
 ];
 
 export const ITEMS: ItemDef[] = [
