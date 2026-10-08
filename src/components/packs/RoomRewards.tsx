@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { buyReward, cancelTicket, MAX_PENDING, pending, REWARD_BY_ID, ROOM_REWARDS } from '@/game/room-rewards';
 import { loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { cloudBuyReward, cloudCancelTicket, cloudEnabled } from '@/game/cloud';
 import { play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
 import { PxBox, PxButton, PxPanel } from '@/components/pixel/Pixel';
@@ -13,14 +14,29 @@ export function RoomRewards({ progress, onClose }: { progress: Progress; onClose
   const [msg, setMsg] = useState<string | null>(null);
   const [, redraw] = useState(0);
   const p = loadProgress();
-  const buy = (id: string) => {
+  const buy = async (id: string) => {
     const r = buyReward(loadProgress(), id, today(), Math.floor(Math.random() * 1e9));
     if ('reason' in r) { setMsg(r.reason); play('lose'); return; }
+    // com o banco ligado: o código e a cobrança são do servidor
+    if (cloudEnabled()) {
+      const c = await cloudBuyReward(id);
+      if ('reason' in c) { setMsg(c.reason); play('lose'); return; }
+      r.ticket.code = c.code;
+      r.progress = { ...r.progress, coins: c.coins, tickets: [r.ticket, ...loadProgress().tickets].slice(0, 30) };
+    }
     saveProgress(r.progress); play('coin');
     setMsg(`Ticket ${r.ticket.code}: mostre ao professor na próxima aula.`);
     redraw(x => x + 1);
   };
-  const cancel = (code: string) => { saveProgress(cancelTicket(loadProgress(), code)); play('drop'); setMsg('Ticket cancelado, moedas devolvidas.'); redraw(x => x + 1); };
+  const cancel = async (code: string) => {
+    let next = cancelTicket(loadProgress(), code);
+    if (cloudEnabled()) {
+      const c = await cloudCancelTicket(code);
+      if ('reason' in c) { setMsg(c.reason); return; }
+      next = { ...next, coins: c.coins };
+    }
+    saveProgress(next); play('drop'); setMsg('Ticket cancelado, moedas devolvidas.'); redraw(x => x + 1);
+  };
   const wait = pending(p);
   return (
     <PxPanel title="RECOMPENSAS DA SALA" color="#3a9a5a" coins={p.coins ?? progress.coins} onClose={onClose} width={760}>

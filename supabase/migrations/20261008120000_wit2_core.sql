@@ -1,25 +1,29 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- WIT 2: banco (PROPOSTA, NÃO APLICADA). Desenho em docs/banco-wit2.md.
+-- WIT 2: banco (aprovado pelo Matheus em 08/10). Desenho em docs/banco-wit2.md.
 --
--- Fica em docs/sql de propósito (fora de supabase/migrations) para nunca subir
--- num deploy sem o OK do Matheus. RPC, LGPD e segurança são da outra sessão:
--- este arquivo usa as funções que já existem lá (my_student_id,
+-- Usa as funções de segurança que já existem (my_student_id,
 -- can_act_for_student, can_act_for_teacher, get_teacher_id, is_caller_admin)
 -- e não muda nenhuma delas.
 --
 -- Testado num Postgres 16 local com dublês dessas funções
--- (scripts/sql/testar-wit2.sh). Depende de docs/sql/wit2-seed.sql (catálogo
--- das cartas e dos pacotinhos, gerado do TypeScript).
+-- (scripts/sql/testar-wit2.sh). O catálogo (cartas, pacotinhos, coleção
+-- inicial, decks dos Caminhos e dos chefes, regras da forja) vem na migração
+-- seguinte (_wit2_seed.sql, gerada do TypeScript).
 --
--- Regras:
---  * moeda, carta e pacote só mudam aqui dentro (security definer);
---  * o resto do progresso é um JSON por aluno com número de versão;
---  * sorteio do pacotinho é no servidor;
+-- Quem manda em quê:
+--  * cartas, pó, pacotes guardados: SÓ o servidor (pacote sorteado aqui,
+--    carta do chefe conferida contra o deck dele, forja com as regras daqui);
+--  * moedas: o jogo ganha moedas em muitos lugares (Torre, pesca, minijogos,
+--    entregas...); manda só a diferença (wit2_sync) e o servidor põe um teto
+--    de ganho por dia (gasto não tem teto). Passou do teto: corta e anota
+--    'suspeita' para o professor ver;
+--  * o resto do progresso (Torre, fazenda, profissões...) é um JSON por aluno
+--    com número de versão;
 --  * nada de dado pessoal novo.
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
 
--- ── catálogo (preenchido por wit2-seed.sql) ──────────────────────────────────
+-- ── catálogo (preenchido por _wit2_seed.sql) ─────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.wit2_card_catalog (
   id      text PRIMARY KEY,
   rarity  text NOT NULL CHECK (rarity IN ('common','uncommon','rare','epic','legendary','mythic','unknown'))
@@ -36,14 +40,37 @@ CREATE TABLE IF NOT EXISTS public.wit2_room_rewards (
   nome    text NOT NULL,
   preco   int  NOT NULL CHECK (preco > 0)
 );
+CREATE TABLE IF NOT EXISTS public.wit2_starter (
+  card_id text PRIMARY KEY REFERENCES public.wit2_card_catalog(id),
+  qty     int NOT NULL CHECK (qty > 0)
+);
+CREATE TABLE IF NOT EXISTS public.wit2_path_cards (
+  path_id text NOT NULL,
+  card_id text NOT NULL REFERENCES public.wit2_card_catalog(id),
+  qty     int NOT NULL CHECK (qty > 0),
+  PRIMARY KEY (path_id, card_id)
+);
+CREATE TABLE IF NOT EXISTS public.wit2_boss_cards (
+  andar   int  NOT NULL CHECK (andar BETWEEN 1 AND 100),
+  card_id text NOT NULL REFERENCES public.wit2_card_catalog(id),
+  PRIMARY KEY (andar, card_id)
+);
+CREATE TABLE IF NOT EXISTS public.wit2_dust_rules (
+  rarity  text PRIMARY KEY,
+  gives   int NOT NULL,
+  costs   int            -- NULL: não se forja
+);
 
 -- ── do aluno ─────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.wit2_wallet (
-  student_id  uuid PRIMARY KEY REFERENCES public.students(id) ON DELETE CASCADE,
-  coins       int  NOT NULL DEFAULT 0 CHECK (coins >= 0),
-  po          jsonb NOT NULL DEFAULT '{}'::jsonb,
-  sem_epica   int  NOT NULL DEFAULT 0,
-  updated_at  timestamptz NOT NULL DEFAULT now()
+  student_id    uuid PRIMARY KEY REFERENCES public.students(id) ON DELETE CASCADE,
+  coins         int  NOT NULL DEFAULT 0 CHECK (coins >= 0),
+  po            jsonb NOT NULL DEFAULT '{}'::jsonb,
+  sem_epica     int  NOT NULL DEFAULT 0,
+  caminho       text,
+  earned_day    date NOT NULL DEFAULT current_date,
+  earned_today  int  NOT NULL DEFAULT 0,
+  updated_at    timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS public.wit2_cards (
   student_id  uuid NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
@@ -56,12 +83,6 @@ CREATE TABLE IF NOT EXISTS public.wit2_packs (
   pack_id     text NOT NULL REFERENCES public.wit2_pack_defs(id),
   qty         int  NOT NULL CHECK (qty >= 0),
   PRIMARY KEY (student_id, pack_id)
-);
-CREATE TABLE IF NOT EXISTS public.wit2_tower (
-  student_id  uuid PRIMARY KEY REFERENCES public.students(id) ON DELETE CASCADE,
-  tower_max   int  NOT NULL DEFAULT 1 CHECK (tower_max BETWEEN 1 AND 100),
-  andar       int  NOT NULL DEFAULT 1,
-  wins        jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 CREATE TABLE IF NOT EXISTS public.wit2_progress (
   student_id  uuid PRIMARY KEY REFERENCES public.students(id) ON DELETE CASCADE,
@@ -109,43 +130,52 @@ CREATE INDEX IF NOT EXISTS wit2_events_student_at ON public.wit2_events (student
 DO $$
 DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['wit2_wallet','wit2_cards','wit2_packs','wit2_tower','wit2_progress','wit2_tickets','wit2_events']
+  FOREACH t IN ARRAY ARRAY['wit2_wallet','wit2_cards','wit2_packs','wit2_progress','wit2_tickets','wit2_events','wit2_attendance']
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_read', t);
     EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (public.can_act_for_student(student_id))', t || '_read', t);
   END LOOP;
+  -- catálogos: todo mundo logado lê
+  FOREACH t IN ARRAY ARRAY['wit2_card_catalog','wit2_pack_defs','wit2_room_rewards','wit2_starter','wit2_path_cards','wit2_boss_cards','wit2_dust_rules']
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', t || '_read', t);
+    EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (true)', t || '_read', t);
+  END LOOP;
 END $$;
-ALTER TABLE public.wit2_attendance ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS wit2_attendance_read ON public.wit2_attendance;
-CREATE POLICY wit2_attendance_read ON public.wit2_attendance FOR SELECT TO authenticated USING (public.can_act_for_student(student_id));
 ALTER TABLE public.wit2_lessons ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS wit2_lessons_read ON public.wit2_lessons;
 CREATE POLICY wit2_lessons_read ON public.wit2_lessons FOR SELECT TO authenticated USING (public.can_act_for_teacher(teacher_id));
--- catálogos: todo mundo lê
-ALTER TABLE public.wit2_card_catalog ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.wit2_pack_defs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.wit2_room_rewards ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS wit2_card_catalog_read ON public.wit2_card_catalog;
-DROP POLICY IF EXISTS wit2_pack_defs_read ON public.wit2_pack_defs;
-DROP POLICY IF EXISTS wit2_room_rewards_read ON public.wit2_room_rewards;
-CREATE POLICY wit2_card_catalog_read ON public.wit2_card_catalog FOR SELECT TO authenticated USING (true);
-CREATE POLICY wit2_pack_defs_read ON public.wit2_pack_defs FOR SELECT TO authenticated USING (true);
-CREATE POLICY wit2_room_rewards_read ON public.wit2_room_rewards FOR SELECT TO authenticated USING (true);
 
 -- ═══ funções internas (não expostas) ═════════════════════════════════════════
 
--- garante as linhas do aluno
+-- teto de moedas ganhas por dia fora das funções do servidor (docs/economia.md:
+-- uma tarde longa jogando dá ~1500; o teto deixa folga)
+CREATE OR REPLACE FUNCTION public.wit2_daily_cap() RETURNS int LANGUAGE sql IMMUTABLE AS $$ SELECT 2500 $$;
+
+-- garante as linhas do aluno; na primeira vez dá a coleção inicial
 CREATE OR REPLACE FUNCTION public.wit2_ensure(p_student uuid) RETURNS void
-LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
   INSERT INTO wit2_wallet (student_id) VALUES (p_student) ON CONFLICT DO NOTHING;
-  INSERT INTO wit2_tower (student_id) VALUES (p_student) ON CONFLICT DO NOTHING;
+  IF FOUND THEN
+    INSERT INTO wit2_cards (student_id, card_id, qty) SELECT p_student, card_id, qty FROM wit2_starter
+      ON CONFLICT DO NOTHING;
+  END IF;
   INSERT INTO wit2_progress (student_id) VALUES (p_student) ON CONFLICT DO NOTHING;
-$$;
+END $$;
 
 CREATE OR REPLACE FUNCTION public.wit2_event(p_student uuid, p_kind text, p_value int) RETURNS void
 LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   INSERT INTO wit2_events (student_id, kind, value) VALUES (p_student, left(p_kind, 24), p_value);
+$$;
+
+CREATE OR REPLACE FUNCTION public.wit2_add_card(p_student uuid, p_card text, p_n int) RETURNS int
+LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  INSERT INTO wit2_cards (student_id, card_id, qty) VALUES (p_student, p_card, greatest(0, p_n))
+    ON CONFLICT (student_id, card_id) DO UPDATE SET qty = greatest(0, wit2_cards.qty + p_n)
+  RETURNING qty;
 $$;
 
 -- sorteio ponderado: [[valor, peso], ...]
@@ -163,11 +193,11 @@ BEGIN
 END $$;
 
 -- abre um pacote para o aluno (regras de src/game/packs.ts, com a garantia do 10º)
-CREATE OR REPLACE FUNCTION public.wit2_draw_pack(p_student uuid, p_pack text) RETURNS text[]
+CREATE OR REPLACE FUNCTION public.wit2_draw_pack(p_student uuid, p_pack text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   def wit2_pack_defs%ROWTYPE; r text; card text; cards text[] := '{}'; i int;
-  pity int; got_epic boolean := false;
+  pity int; got_epic boolean := false; forced boolean := false;
   rank CONSTANT text[] := ARRAY['common','uncommon','rare','epic','legendary','mythic','unknown'];
 BEGIN
   SELECT * INTO def FROM wit2_pack_defs WHERE id = p_pack;
@@ -178,17 +208,18 @@ BEGIN
     ELSE
       r := wit2_weighted(def.highlight);
       -- garantia: 10 pacotes sem Épica ou melhor → destaque Épica ou melhor
-      IF pity >= 9 AND array_position(rank, r) < 4 THEN r := 'epic'; END IF;
+      IF pity >= 9 AND NOT got_epic AND array_position(rank, r) < 4 THEN r := 'epic'; forced := true; END IF;
     END IF;
     IF array_position(rank, r) >= 4 THEN got_epic := true; END IF;
     SELECT id INTO card FROM wit2_card_catalog WHERE rarity = r ORDER BY random() LIMIT 1;
     cards := cards || card;
-    INSERT INTO wit2_cards (student_id, card_id, qty) VALUES (p_student, card, 1)
-      ON CONFLICT (student_id, card_id) DO UPDATE SET qty = wit2_cards.qty + 1;
+    PERFORM wit2_add_card(p_student, card, 1);
   END LOOP;
-  UPDATE wit2_wallet SET sem_epica = CASE WHEN got_epic THEN 0 ELSE sem_epica + 1 END, updated_at = now() WHERE student_id = p_student;
+  UPDATE wit2_wallet SET sem_epica = CASE WHEN got_epic THEN 0 ELSE sem_epica + 1 END, updated_at = now()
+    WHERE student_id = p_student RETURNING sem_epica INTO pity;
   PERFORM wit2_event(p_student, 'pacote:' || p_pack, 1);
-  RETURN cards;
+  RETURN jsonb_build_object('cards', to_jsonb(cards), 'pity', forced, 'semEpica', pity,
+    'coins', (SELECT coins FROM wit2_wallet WHERE student_id = p_student));
 END $$;
 
 -- ═══ funções do aluno ════════════════════════════════════════════════════════
@@ -204,33 +235,47 @@ BEGIN
     'coins', (SELECT coins FROM wit2_wallet WHERE student_id = me),
     'po', (SELECT po FROM wit2_wallet WHERE student_id = me),
     'semEpica', (SELECT sem_epica FROM wit2_wallet WHERE student_id = me),
+    'caminho', (SELECT caminho FROM wit2_wallet WHERE student_id = me),
     'collection', coalesce((SELECT jsonb_object_agg(card_id, qty) FROM wit2_cards WHERE student_id = me AND qty > 0), '{}'::jsonb),
     'pacotes', coalesce((SELECT jsonb_object_agg(pack_id, qty) FROM wit2_packs WHERE student_id = me AND qty > 0), '{}'::jsonb),
-    'tower', (SELECT jsonb_build_object('towerMax', tower_max, 'andar', andar, 'wins', wins) FROM wit2_tower WHERE student_id = me),
     'data', (SELECT data FROM wit2_progress WHERE student_id = me),
     'version', (SELECT version FROM wit2_progress WHERE student_id = me)
   );
 END $$;
 
--- grava o JSON do progresso (sem moedas, cartas, pacotes e Torre: essas só pelas funções)
-CREATE OR REPLACE FUNCTION public.wit2_save_progress(p_data jsonb, p_version int) RETURNS jsonb
+-- grava o JSON do progresso e a diferença de moedas desde a última vez.
+-- Ganho tem teto por dia; gasto não (mas o saldo nunca fica negativo).
+-- O JSON só entra se a versão bater (outro aparelho gravou antes: devolve o
+-- do banco para juntar); as moedas entram sempre (são diferença, não saldo).
+CREATE OR REPLACE FUNCTION public.wit2_sync(p_coins_delta int, p_data jsonb, p_version int) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE me uuid := my_student_id(); cur int; clean jsonb;
+DECLARE me uuid := my_student_id(); w wit2_wallet%ROWTYPE; cur int; give int; clean jsonb;
 BEGIN
   IF me IS NULL THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
-  IF octet_length(p_data::text) > 200000 THEN RAISE EXCEPTION 'progresso grande demais'; END IF;
+  IF p_data IS NOT NULL AND octet_length(p_data::text) > 200000 THEN RAISE EXCEPTION 'progresso grande demais'; END IF;
+  IF abs(p_coins_delta) > 100000 THEN RAISE EXCEPTION 'diferença de moedas inválida'; END IF;
   PERFORM wit2_ensure(me);
+  SELECT * INTO w FROM wit2_wallet WHERE student_id = me FOR UPDATE;
+  IF w.earned_day <> current_date THEN w.earned_day := current_date; w.earned_today := 0; END IF;
+  IF p_coins_delta > 0 THEN
+    give := least(p_coins_delta, greatest(0, wit2_daily_cap() - w.earned_today));
+    IF give < p_coins_delta THEN PERFORM wit2_event(me, 'suspeita', p_coins_delta - give); END IF;
+    w.coins := w.coins + give; w.earned_today := w.earned_today + give;
+  ELSIF p_coins_delta < 0 THEN
+    w.coins := greatest(0, w.coins + p_coins_delta);
+  END IF;
+  UPDATE wit2_wallet SET coins = w.coins, earned_day = w.earned_day, earned_today = w.earned_today, updated_at = now() WHERE student_id = me;
+  IF p_data IS NULL THEN RETURN jsonb_build_object('ok', true, 'coins', w.coins); END IF;
   SELECT version INTO cur FROM wit2_progress WHERE student_id = me FOR UPDATE;
   IF p_version <> cur THEN
-    -- outro aparelho gravou antes: devolve o do banco para juntar
-    RETURN jsonb_build_object('ok', false, 'version', cur, 'data', (SELECT data FROM wit2_progress WHERE student_id = me));
+    RETURN jsonb_build_object('ok', false, 'coins', w.coins, 'version', cur, 'data', (SELECT data FROM wit2_progress WHERE student_id = me));
   END IF;
-  clean := p_data - ARRAY['coins','collection','pacotes','po','semEpica','towerMax','andar','wins','tickets'];
+  clean := p_data - ARRAY['coins','collection','pacotes','po','semEpica','tickets'];
   UPDATE wit2_progress SET data = clean, version = cur + 1, updated_at = now() WHERE student_id = me;
-  RETURN jsonb_build_object('ok', true, 'version', cur + 1);
+  RETURN jsonb_build_object('ok', true, 'coins', w.coins, 'version', cur + 1);
 END $$;
 
-CREATE OR REPLACE FUNCTION public.wit2_buy_pack(p_pack text) RETURNS text[]
+CREATE OR REPLACE FUNCTION public.wit2_buy_pack(p_pack text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE me uuid := my_student_id(); cost int;
 BEGIN
@@ -243,7 +288,7 @@ BEGIN
   RETURN wit2_draw_pack(me, p_pack);
 END $$;
 
-CREATE OR REPLACE FUNCTION public.wit2_open_saved_pack(p_pack text) RETURNS text[]
+CREATE OR REPLACE FUNCTION public.wit2_open_saved_pack(p_pack text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE me uuid := my_student_id();
 BEGIN
@@ -253,47 +298,82 @@ BEGIN
   RETURN wit2_draw_pack(me, p_pack);
 END $$;
 
--- resultado de um duelo da Torre (regras de applyDuel/coinsFor em src/game/progress.ts e opponents.ts)
--- p_kind: 'mesa' ou 'chefe'; p_mesa: 1..8 (0 para o chefe)
-CREATE OR REPLACE FUNCTION public.wit2_duel_result(p_andar int, p_kind text, p_mesa int, p_won boolean) RETURNS jsonb
+-- Caminho (primeiro acesso): as cartas do deck dele entram na coleção, uma vez só
+CREATE OR REPLACE FUNCTION public.wit2_choose_path(p_path text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  me uuid := my_student_id(); t wit2_tower%ROWTYPE; foe text; before int; base int; v_coins int;
-  card text; unlocked int; last_hour int;
-  tier int; rar text;
+DECLARE me uuid := my_student_id(); r record;
 BEGIN
   IF me IS NULL THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
-  IF p_kind NOT IN ('mesa','chefe') OR p_andar NOT BETWEEN 1 AND 100 OR p_mesa NOT BETWEEN 0 AND 12 THEN RAISE EXCEPTION 'duelo inválido'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM wit2_path_cards WHERE path_id = p_path) THEN RAISE EXCEPTION 'caminho não existe'; END IF;
   PERFORM wit2_ensure(me);
-  SELECT * INTO t FROM wit2_tower WHERE student_id = me FOR UPDATE;
-  IF p_andar > t.tower_max THEN RAISE EXCEPTION 'andar ainda trancado'; END IF;
-  IF NOT p_won THEN RETURN jsonb_build_object('won', false, 'coins', 0); END IF;
-  -- teto: no máximo 40 vitórias pagas por hora (um duelo leva ~2 min)
-  SELECT count(*) INTO last_hour FROM wit2_events WHERE student_id = me AND kind = 'duelo' AND at > now() - interval '1 hour';
-  IF last_hour >= 40 THEN PERFORM wit2_event(me, 'suspeita', p_andar); RETURN jsonb_build_object('won', true, 'coins', 0, 'limite', true); END IF;
-  foe := 'torre-' || p_andar || '-' || CASE WHEN p_kind = 'chefe' THEN 'chefe' ELSE 'mesa-' || p_mesa END;
-  before := coalesce((t.wins->>foe)::int, 0);
-  base := 6 + round(p_andar * 0.4);
-  IF p_kind = 'chefe' THEN base := base * CASE WHEN p_andar % 10 = 0 THEN 6 ELSE 3 END; END IF;
-  v_coins := CASE WHEN before = 0 THEN base ELSE greatest(1, round(base * 0.2)) END;
-  UPDATE wit2_wallet SET coins = wit2_wallet.coins + v_coins, updated_at = now() WHERE student_id = me;
-  t.wins := jsonb_set(t.wins, ARRAY[foe], to_jsonb(before + 1));
-  IF p_kind = 'chefe' THEN
-    -- carta do chefe: uma carta da raridade do andar (o deck do chefe é gerado no jogo)
-    tier := CASE WHEN p_andar <= 10 THEN 1 WHEN p_andar <= 25 THEN 2 WHEN p_andar <= 45 THEN 3 WHEN p_andar <= 70 THEN 4 WHEN p_andar <= 90 THEN 5 ELSE 6 END;
-    rar := (ARRAY['uncommon','rare','epic','legendary','mythic','unknown'])[tier];
-    SELECT id INTO card FROM wit2_card_catalog WHERE rarity = rar ORDER BY random() LIMIT 1;
-    INSERT INTO wit2_cards (student_id, card_id, qty) VALUES (me, card, 1)
-      ON CONFLICT (student_id, card_id) DO UPDATE SET qty = wit2_cards.qty + 1;
-    IF t.tower_max <= p_andar AND p_andar < 100 THEN t.tower_max := p_andar + 1; unlocked := p_andar + 1; END IF;
+  UPDATE wit2_wallet SET caminho = p_path WHERE student_id = me AND caminho IS NULL;
+  IF NOT FOUND THEN RAISE EXCEPTION 'caminho já escolhido'; END IF;
+  FOR r IN SELECT card_id, qty FROM wit2_path_cards WHERE path_id = p_path LOOP
+    INSERT INTO wit2_cards (student_id, card_id, qty) VALUES (me, r.card_id, r.qty)
+      ON CONFLICT (student_id, card_id) DO UPDATE SET qty = greatest(wit2_cards.qty, EXCLUDED.qty);
+  END LOOP;
+  PERFORM wit2_event(me, 'caminho', 1);
+  RETURN coalesce((SELECT jsonb_object_agg(card_id, qty) FROM wit2_cards WHERE student_id = me AND qty > 0), '{}'::jsonb);
+END $$;
+
+-- carta do chefe: o jogo sorteia do deck do chefe; aqui confere que a carta é
+-- daquele deck, que o andar já foi aberto e o ritmo (no máximo 1 a cada 60 s)
+CREATE OR REPLACE FUNCTION public.wit2_boss_card(p_andar int, p_card text) RETURNS int
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE me uuid := my_student_id(); top int; n int;
+BEGIN
+  IF me IS NULL THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM wit2_boss_cards WHERE andar = p_andar AND card_id = p_card) THEN RAISE EXCEPTION 'carta não é do chefe'; END IF;
+  PERFORM wit2_ensure(me);
+  PERFORM 1 FROM wit2_wallet WHERE student_id = me FOR UPDATE;
+  SELECT coalesce((data->>'towerMax')::int, 1) INTO top FROM wit2_progress WHERE student_id = me;
+  IF p_andar > top THEN RAISE EXCEPTION 'andar ainda trancado'; END IF;
+  IF EXISTS (SELECT 1 FROM wit2_events WHERE student_id = me AND kind = 'chefe' AND at > now() - interval '60 seconds') THEN
+    PERFORM wit2_event(me, 'suspeita', p_andar);
+    RAISE EXCEPTION 'devagar';
   END IF;
-  UPDATE wit2_tower SET wins = t.wins, tower_max = t.tower_max WHERE student_id = me;
-  PERFORM wit2_event(me, 'duelo', v_coins);
-  RETURN jsonb_build_object('won', true, 'coins', v_coins, 'firstWin', before = 0, 'card', card, 'unlocked', unlocked);
+  n := wit2_add_card(me, p_card, 1);
+  PERFORM wit2_event(me, 'chefe', p_andar);
+  RETURN n;
+END $$;
+
+-- forja (src/game/forge.ts): desmanchar a cópia extra vira pó da raridade dela
+CREATE OR REPLACE FUNCTION public.wit2_dust(p_card text, p_n int) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE me uuid := my_student_id(); rar text; have int; k int; give int; bonus numeric := 1;
+BEGIN
+  IF me IS NULL THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
+  SELECT rarity INTO rar FROM wit2_card_catalog WHERE id = p_card;
+  IF rar IS NULL THEN RAISE EXCEPTION 'carta não existe'; END IF;
+  SELECT qty INTO have FROM wit2_cards WHERE student_id = me AND card_id = p_card FOR UPDATE;
+  k := least(greatest(p_n, 0), coalesce(have, 0) - 1);
+  IF k <= 0 THEN RAISE EXCEPTION 'só cartas repetidas'; END IF;
+  IF (SELECT data->'grimorio' ? 'po-extra' FROM wit2_progress WHERE student_id = me) THEN bonus := 1.25; END IF;
+  give := round((SELECT gives FROM wit2_dust_rules WHERE rarity = rar) * k * bonus);
+  UPDATE wit2_cards SET qty = qty - k WHERE student_id = me AND card_id = p_card;
+  UPDATE wit2_wallet SET po = jsonb_set(po, ARRAY[rar], to_jsonb(coalesce((po->>rar)::int, 0) + give)), updated_at = now() WHERE student_id = me;
+  PERFORM wit2_event(me, 'po', give);
+  RETURN jsonb_build_object('dust', give, 'rarity', rar, 'qty', have - k, 'po', (SELECT po FROM wit2_wallet WHERE student_id = me));
+END $$;
+
+CREATE OR REPLACE FUNCTION public.wit2_forge(p_card text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE me uuid := my_student_id(); rar text; cost int; have int;
+BEGIN
+  IF me IS NULL THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
+  SELECT c.rarity, d.costs INTO rar, cost FROM wit2_card_catalog c JOIN wit2_dust_rules d ON d.rarity = c.rarity WHERE c.id = p_card;
+  IF rar IS NULL THEN RAISE EXCEPTION 'carta não existe'; END IF;
+  IF cost IS NULL THEN RAISE EXCEPTION 'não se forja'; END IF;
+  PERFORM wit2_ensure(me);
+  SELECT coalesce((po->>rar)::int, 0) INTO have FROM wit2_wallet WHERE student_id = me FOR UPDATE;
+  IF have < cost THEN RAISE EXCEPTION 'pó insuficiente'; END IF;
+  UPDATE wit2_wallet SET po = jsonb_set(po, ARRAY[rar], to_jsonb(have - cost)), updated_at = now() WHERE student_id = me;
+  PERFORM wit2_event(me, 'forja', cost);
+  RETURN jsonb_build_object('qty', wit2_add_card(me, p_card, 1), 'po', (SELECT po FROM wit2_wallet WHERE student_id = me));
 END $$;
 
 -- Recompensas da Sala (src/game/room-rewards.ts): no máximo 3 esperando
-CREATE OR REPLACE FUNCTION public.wit2_buy_reward(p_reward text) RETURNS text
+CREATE OR REPLACE FUNCTION public.wit2_buy_reward(p_reward text) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE me uuid := my_student_id(); cost int; v_code text; alphabet CONSTANT text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; i int;
 BEGIN
@@ -311,7 +391,19 @@ BEGIN
   END LOOP;
   INSERT INTO wit2_tickets (code, student_id, reward_id, preco) VALUES (v_code, me, p_reward, cost);
   PERFORM wit2_event(me, 'recompensa', cost);
-  RETURN v_code;
+  RETURN jsonb_build_object('code', v_code, 'coins', (SELECT coins FROM wit2_wallet WHERE student_id = me));
+END $$;
+
+-- cancelar um ticket ainda não entregue devolve as moedas
+CREATE OR REPLACE FUNCTION public.wit2_cancel_ticket(p_code text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE me uuid := my_student_id(); back int;
+BEGIN
+  IF me IS NULL THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
+  DELETE FROM wit2_tickets WHERE code = p_code AND student_id = me AND delivered_at IS NULL RETURNING preco INTO back;
+  IF back IS NULL THEN RAISE EXCEPTION 'ticket não encontrado'; END IF;
+  UPDATE wit2_wallet SET coins = coins + back WHERE student_id = me;
+  RETURN jsonb_build_object('coins', (SELECT coins FROM wit2_wallet WHERE student_id = me));
 END $$;
 
 -- ═══ funções do professor ════════════════════════════════════════════════════
@@ -329,7 +421,8 @@ BEGIN
     'delivered', (SELECT delivered_at FROM wit2_lessons WHERE id = lesson),
     'students', coalesce((
       SELECT jsonb_agg(jsonb_build_object('id', s.id, 'nome', coalesce(s.character_name, s.name),
-        'status', a.status, 'pack', a.pack_id, 'viaCode', coalesce(a.via_code, false)) ORDER BY coalesce(s.character_name, s.name))
+        'status', a.status, 'pack', a.pack_id, 'viaCode', coalesce(a.via_code, false),
+          'andar', coalesce((SELECT (data->>'towerMax')::int FROM wit2_progress WHERE student_id = s.id), 1)) ORDER BY coalesce(s.character_name, s.name))
       FROM students s LEFT JOIN wit2_attendance a ON a.lesson_id = lesson AND a.student_id = s.id
       WHERE s.teacher_id = me), '[]'::jsonb),
     'tickets', coalesce((
@@ -407,11 +500,32 @@ BEGIN
 END $$;
 
 -- ── quem pode chamar o quê ───────────────────────────────────────────────────
-REVOKE ALL ON FUNCTION public.wit2_ensure(uuid), public.wit2_event(uuid, text, int), public.wit2_draw_pack(uuid, text), public.wit2_weighted(jsonb) FROM PUBLIC;
+-- (no Supabase, função nova nasce executável por todos: tira de todo mundo e
+-- devolve só as públicas para quem está logado)
+REVOKE ALL ON FUNCTION
+  public.wit2_ensure(uuid), public.wit2_event(uuid, text, int), public.wit2_draw_pack(uuid, text),
+  public.wit2_weighted(jsonb), public.wit2_add_card(uuid, text, int), public.wit2_daily_cap()
+FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION
+  public.wit2_load(), public.wit2_sync(int, jsonb, int), public.wit2_buy_pack(text), public.wit2_open_saved_pack(text),
+  public.wit2_choose_path(text), public.wit2_boss_card(int, text), public.wit2_dust(text, int), public.wit2_forge(text),
+  public.wit2_buy_reward(text), public.wit2_cancel_ticket(text), public.wit2_join_code(text),
+  public.wit2_teacher_lesson(date), public.wit2_teacher_deliver(uuid, jsonb), public.wit2_class_code(uuid), public.wit2_teacher_deliver_ticket(text)
+FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION
-  public.wit2_load(), public.wit2_save_progress(jsonb, int), public.wit2_buy_pack(text), public.wit2_open_saved_pack(text),
-  public.wit2_duel_result(int, text, int, boolean), public.wit2_buy_reward(text), public.wit2_join_code(text),
+  public.wit2_load(), public.wit2_sync(int, jsonb, int), public.wit2_buy_pack(text), public.wit2_open_saved_pack(text),
+  public.wit2_choose_path(text), public.wit2_boss_card(int, text), public.wit2_dust(text, int), public.wit2_forge(text),
+  public.wit2_buy_reward(text), public.wit2_cancel_ticket(text), public.wit2_join_code(text),
   public.wit2_teacher_lesson(date), public.wit2_teacher_deliver(uuid, jsonb), public.wit2_class_code(uuid), public.wit2_teacher_deliver_ticket(text)
 TO authenticated;
+-- tabelas: escrita só pelas funções (o RLS já barra; isto deixa explícito)
+REVOKE INSERT, UPDATE, DELETE ON
+  public.wit2_wallet, public.wit2_cards, public.wit2_packs, public.wit2_progress, public.wit2_tickets,
+  public.wit2_lessons, public.wit2_attendance, public.wit2_events,
+  public.wit2_card_catalog, public.wit2_pack_defs, public.wit2_room_rewards, public.wit2_starter,
+  public.wit2_path_cards, public.wit2_boss_cards, public.wit2_dust_rules
+FROM anon, authenticated;
+REVOKE ALL ON public.wit2_wallet, public.wit2_cards, public.wit2_packs, public.wit2_progress, public.wit2_tickets,
+  public.wit2_lessons, public.wit2_attendance, public.wit2_events FROM anon;
 
 COMMIT;

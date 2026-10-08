@@ -1,5 +1,5 @@
 /**
- * Gera docs/sql/wit2-seed.sql: o catálogo das cartas (id e raridade), os
+ * Gera supabase/migrations/20261008120100_wit2_seed.sql: o catálogo das cartas (id e raridade), os
  * pacotinhos e as Recompensas da Sala, a partir do TypeScript (uma fonte só).
  *
  *   npx vite-node scripts/sql/wit2-seed.ts
@@ -8,10 +8,14 @@ import { writeFileSync } from 'node:fs';
 import { CATALOG } from '../../src/lib/tcg/cards/catalog';
 import { PACKS } from '../../src/game/packs';
 import { ROOM_REWARDS } from '../../src/game/room-rewards';
+import { DUST } from '../../src/game/forge';
+import { starterCollection } from '../../src/lib/tcg/opponents';
+import { PATHS, pathDeck } from '../../src/lib/tcg/paths';
+import { towerBoss } from '../../src/lib/tcg/bosses';
 
 const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 const lines = [
-  '-- Gerado por scripts/sql/wit2-seed.ts (não editar à mão). Rodar depois de wit2-banco.sql.',
+  '-- Gerado por scripts/sql/wit2-seed.ts (não editar à mão). Vem depois de _wit2_core.sql.',
   'BEGIN;',
   'INSERT INTO public.wit2_card_catalog (id, rarity) VALUES',
   CATALOG.map(c => `  (${q(c.id)}, ${q(c.rarity)})`).join(',\n') + '\nON CONFLICT (id) DO UPDATE SET rarity = EXCLUDED.rarity;',
@@ -20,7 +24,23 @@ const lines = [
     + '\nON CONFLICT (id) DO UPDATE SET price = EXCLUDED.price, rarity = EXCLUDED.rarity, base = EXCLUDED.base, highlight = EXCLUDED.highlight;',
   'INSERT INTO public.wit2_room_rewards (id, nome, preco) VALUES',
   ROOM_REWARDS.map(r => `  (${q(r.id)}, ${q(r.nome)}, ${r.preco})`).join(',\n') + '\nON CONFLICT (id) DO UPDATE SET nome = EXCLUDED.nome, preco = EXCLUDED.preco;',
+  // coleção inicial (dada uma vez, quando o aluno entra no WIT 2)
+  'INSERT INTO public.wit2_starter (card_id, qty) VALUES',
+  Object.entries(starterCollection()).map(([id, n]) => `  (${q(id)}, ${n})`).join(',\n') + '\nON CONFLICT (card_id) DO UPDATE SET qty = EXCLUDED.qty;',
+  // deck de cada Caminho (escolhido uma vez)
+  'INSERT INTO public.wit2_path_cards (path_id, card_id, qty) VALUES',
+  PATHS.flatMap(pt => {
+    const n = new Map<string, number>();
+    for (const c of pathDeck(pt.id)) n.set(c.id, (n.get(c.id) ?? 0) + 1);
+    return [...n].map(([id, k]) => `  (${q(pt.id)}, ${q(id)}, ${k})`);
+  }).join(',\n') + '\nON CONFLICT (path_id, card_id) DO UPDATE SET qty = EXCLUDED.qty;',
+  // deck do chefe de cada andar (a carta ganha tem de sair daqui)
+  'INSERT INTO public.wit2_boss_cards (andar, card_id) VALUES',
+  Array.from({ length: 100 }, (_, i) => i + 1).flatMap(a => [...new Set(towerBoss(a).deck.map(c => c.id))].map(id => `  (${a}, ${q(id)})`)).join(',\n') + '\nON CONFLICT DO NOTHING;',
+  // regras da forja
+  'INSERT INTO public.wit2_dust_rules (rarity, gives, costs) VALUES',
+  Object.entries(DUST).map(([r, d]) => `  (${q(r)}, ${d.gives}, ${d.costs ?? 'NULL'})`).join(',\n') + '\nON CONFLICT (rarity) DO UPDATE SET gives = EXCLUDED.gives, costs = EXCLUDED.costs;',
   'COMMIT;',
 ];
-writeFileSync('docs/sql/wit2-seed.sql', lines.join('\n') + '\n');
-console.log(`docs/sql/wit2-seed.sql: ${CATALOG.length} cartas, ${PACKS.length} pacotes, ${ROOM_REWARDS.length} recompensas`);
+writeFileSync('supabase/migrations/20261008120100_wit2_seed.sql', lines.join('\n') + '\n');
+console.log(`supabase/migrations/20261008120100_wit2_seed.sql: ${CATALOG.length} cartas, ${PACKS.length} pacotes, ${ROOM_REWARDS.length} recompensas`);

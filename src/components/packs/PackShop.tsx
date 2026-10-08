@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { buyAndOpen, openSaved, PACK_BY_ID, PACKS, PITY, type PackId } from '@/game/packs';
 import { loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { cloudBuyPack, cloudEnabled, cloudOpenSaved } from '@/game/cloud';
 import { RARITY_PT } from '@/lib/tcg/labels';
 import type { CardDef } from '@/lib/tcg/types';
 import { play } from '@/game/sfx';
@@ -14,15 +15,16 @@ import { PackArt, PackOpening, RARITY_COLOR } from './PackOpening';
 export function PackShop({ progress, onClose }: { progress: Progress; onClose: () => void }) {
   const [opening, setOpening] = useState<{ id: PackId; cards: CardDef[]; fresh: Set<string>; saved?: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const buy = (id: PackId) => {
-    const r = buyAndOpen(loadProgress(), id, Math.random);
+  // com o banco ligado o sorteio é no servidor
+  const buy = async (id: PackId) => {
+    const r = cloudEnabled() ? await cloudBuyPack(loadProgress(), id) : buyAndOpen(loadProgress(), id, Math.random);
     if ('reason' in r) { setMsg(r.reason); play('lose'); return; }
     saveProgress(r.progress); play('coin');
     setOpening({ id, cards: r.result.cards, fresh: r.fresh });
   };
   // pacote guardado (do professor ou do legado do WIT 1): abre de graça
-  const openMine = (id: PackId) => {
-    const r = openSaved(loadProgress(), id, Math.random);
+  const openMine = async (id: PackId) => {
+    const r = cloudEnabled() ? await cloudOpenSaved(loadProgress(), id) : openSaved(loadProgress(), id, Math.random);
     if ('reason' in r) { setMsg(r.reason); play('lose'); return; }
     saveProgress(r.progress); play('flip');
     setOpening({ id, cards: r.result.cards, fresh: r.fresh, saved: true });
@@ -32,7 +34,7 @@ export function PackShop({ progress, onClose }: { progress: Progress; onClose: (
     const again = opening.saved ? (progress.pacotes[opening.id] ?? 0) > 0 : progress.coins >= pack.price;
     return (
       <PackOpening pack={pack} cards={opening.cards} fresh={opening.fresh} canAgain={again}
-        onAgain={() => (opening.saved ? openMine(opening.id) : buy(opening.id))} onClose={() => setOpening(null)} />
+        onAgain={() => { void (opening.saved ? openMine(opening.id) : buy(opening.id)); }} onClose={() => setOpening(null)} />
     );
   }
   const mine = PACKS.filter(p => (progress.pacotes[p.id] ?? 0) > 0);

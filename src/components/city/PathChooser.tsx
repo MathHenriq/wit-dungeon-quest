@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react';
 import { PATHS, pathDeck, type PathId } from '@/lib/tcg/paths';
 import { choosePath, loadProgress, saveProgress } from '@/game/progress';
+import { cloudChoosePath, cloudEnabled } from '@/game/cloud';
 import { TcgCard } from '@/components/tcg/TcgCard';
 import { play } from '@/game/sfx';
 
@@ -18,7 +19,10 @@ export function PathChooser({ onDone }: { onDone: () => void }) {
   const sample = (id: PathId) => [...new Map(decks[id].map(c => [c.id, c])).values()].filter(c => c.type !== 'attack').slice(0, 2).concat(decks[id].filter(c => c.type === 'attack').slice(0, 1));
   const confirm = () => {
     if (!sel) return;
-    saveProgress(choosePath(loadProgress(), sel));
+    const next = choosePath(loadProgress(), sel);
+    saveProgress(next);
+    // com o banco ligado, as cartas do Caminho entram no servidor (uma vez só)
+    if (cloudEnabled()) void cloudChoosePath(sel).then(col => { if (col) saveProgress({ ...loadProgress(), collection: col }); });
     play('win');
     onDone();
   };

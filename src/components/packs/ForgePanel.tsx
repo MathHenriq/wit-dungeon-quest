@@ -8,6 +8,7 @@ import type { CardDef, Rarity } from '@/lib/tcg/types';
 import { disenchant, DUST, dustOf, forge, spare } from '@/game/forge';
 import { RARITY_ORDER } from '@/game/packs';
 import { loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { cloudDust, cloudEnabled, cloudForge } from '@/game/cloud';
 import { play } from '@/game/sfx';
 import { TcgCard } from '@/components/tcg/TcgCard';
 import { RARITY_COLOR } from './PackOpening';
@@ -23,14 +24,15 @@ export function ForgePanel({ progress, onClose }: { progress: Progress; onClose:
   const missing = useMemo(() => CATALOG.filter(c => c.rarity === rar && !progress.collection[c.id]), [progress, rar]);
   const cost = DUST[rar].costs;
 
-  const doDis = (c: CardDef, all: boolean) => {
-    const r = disenchant(loadProgress(), c.id, all ? 99 : 1);
+  // com o banco ligado, pó e cartas mudam no servidor
+  const doDis = async (c: CardDef, all: boolean) => {
+    const r = cloudEnabled() ? await cloudDust(loadProgress(), c.id, all ? 99 : 1) : disenchant(loadProgress(), c.id, all ? 99 : 1);
     if ('reason' in r) { setMsg(r.reason); return; }
     saveProgress(r.progress); play('burn');
     setMsg(`+${r.dust} de pó ${RARITY_PT[r.rarity].toLowerCase()}`);
   };
-  const doForge = (c: CardDef) => {
-    const r = forge(loadProgress(), c.id);
+  const doForge = async (c: CardDef) => {
+    const r = cloudEnabled() ? await cloudForge(loadProgress(), c.id) : forge(loadProgress(), c.id);
     if ('reason' in r) { setMsg(r.reason); play('lose'); return; }
     saveProgress(r.progress); play('super');
     setFlash({ card: c, key: Date.now() });

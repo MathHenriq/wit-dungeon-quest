@@ -32,6 +32,7 @@ import { REPLAY_SHARE, tableFoe, TABLES_FOR_BOSS, type Foe } from '@/lib/tcg/opp
 import {
   activeDeckCards, applyDuel, bossUnlocked, canGoUp, loadProgress, saveProgress, tablesWon, winsOf, type DuelResult, type Progress,
 } from '@/game/progress';
+import { cloudBossCard, cloudEnabled } from '@/game/cloud';
 import {
   drawSeated, loadImage, loadLookFrames, loadNpcFrames, loadPetFrames, plateCanvas, R, type Frames,
 } from '@/game/world/sprites';
@@ -940,6 +941,14 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
             }
             const { progress: next, result } = applyDuel(progress, duel.foe, won, Math.random());
             if (next !== progress) { saveProgress(next); setProgress(next); }
+            // com o banco ligado, o servidor confere a carta do chefe e diz quantas o aluno tem
+            const won1 = result.card, andar = duel.foe.andar;
+            if (won1 && cloudEnabled()) void cloudBossCard(andar, won1.id).then(n => {
+              const cur = loadProgress();
+              const qty = n ?? Math.max(0, (cur.collection[won1.id] ?? 1) - 1);
+              const fixed = { ...cur, collection: { ...cur.collection, [won1.id]: qty } };
+              saveProgress(fixed); setProgress(fixed);
+            });
             setDuel(d => (d ? { ...d, result } : d));
           }}
           result={duel.result && <DuelResultPanel result={duel.result} coinsNow={progress.coins} onBack={() => setDuel(null)} />}

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Testa docs/sql/wit2-banco.sql + wit2-seed.sql num Postgres 16 local (temporário).
+# Testa as migrações do WIT 2 (supabase/migrations/*_wit2_*.sql, em ordem)
+# num Postgres 16 local (temporário), com dublês do Supabase.
 #   bash scripts/sql/testar-wit2.sh
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
@@ -13,9 +14,10 @@ trap 'run "$PGBIN/pg_ctl -D $DIR/db stop -m fast >/dev/null"; rm -rf "$DIR"' EXI
 sleep 2
 P="env PGOPTIONS=-cclient_min_messages=warning psql -h $DIR -p 54329 -U postgres -v ON_ERROR_STOP=1 -q"
 $P -f "$ROOT/scripts/sql/stubs-supabase.sql" >/dev/null
-$P -f "$ROOT/docs/sql/wit2-banco.sql" >/dev/null
-$P -f "$ROOT/docs/sql/wit2-seed.sql" >/dev/null
-OUT=$($P -t -A -f "$ROOT/scripts/sql/teste-wit2.sql" | grep -vE '^[0-9a-f-]{36}$')
+for f in "$ROOT"/supabase/migrations/*_wit2_*.sql; do $P -f "$f" >/dev/null; done
+OUT=""
+for t in "$ROOT"/scripts/sql/teste-wit2*.sql; do OUT="$OUT
+$($P -t -A -f "$t" | grep -vE '^[0-9a-f-]{36}$')"; done
 echo "$OUT" | grep -c '^t$' | xargs -I{} echo "{} verificações"
 if echo "$OUT" | grep -q '^f$'; then echo "FALHOU: alguma verificação deu falso"; echo "$OUT"; exit 1; fi
-echo "ok: wit2-banco.sql passou"
+echo "ok: migrações do WIT 2 passaram"

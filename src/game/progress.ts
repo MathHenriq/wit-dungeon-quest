@@ -423,8 +423,14 @@ export function loadProgress(): Progress {
 }
 export function saveProgress(p: Progress): void {
   try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* sem armazenamento */ }
-  // banco (desligado por padrão: VITE_WIT2_DB=1); conflito de aparelho → fica o do servidor
-  schedulePush(p, server => { try { localStorage.setItem(KEY, JSON.stringify(sanitizeProgress({ ...p, ...server }))); } catch { /* idem */ } });
+  // banco (desligado por padrão: VITE_WIT2_DB=1): o servidor corrige as moedas
+  // (teto do dia) e, se outro aparelho gravou antes, manda o JSON dele
+  schedulePush(p, (coinFix, server) => {
+    const cur = loadProgress();
+    const fixed = sanitizeProgress({ ...cur, ...(server ?? {}), coins: Math.max(0, cur.coins + coinFix), collection: cur.collection, po: cur.po, pacotes: cur.pacotes, semEpica: cur.semEpica });
+    try { localStorage.setItem(KEY, JSON.stringify(fixed)); } catch { /* idem */ }
+    window.dispatchEvent(new CustomEvent('wit-progresso', { detail: fixed }));
+  });
   window.dispatchEvent(new CustomEvent('wit-progresso', { detail: p }));
 }
 

@@ -1,4 +1,4 @@
--- Dublês mínimos do Supabase e das funções do WIT 1 para testar wit2-banco.sql
+-- Dublês mínimos do Supabase e das funções do WIT 1 para testar as migrações do WIT 2
 -- num Postgres local (scripts/sql/testar-wit2.sh). Não usar em produção.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS auth;

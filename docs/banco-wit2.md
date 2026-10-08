@@ -1,12 +1,11 @@
 # WIT 2: desenho do banco (proposta para aprovar)
 
-> **07/10: o SQL está escrito e testado, mas NÃO aplicado.**
-> `docs/sql/wit2-banco.sql` (tabelas, RLS, funções) + `docs/sql/wit2-seed.sql`
-> (catálogo gerado por `npx vite-node scripts/sql/wit2-seed.ts`). Teste num
-> Postgres local com dublês do Supabase: `bash scripts/sql/testar-wit2.sh`
-> (22 verificações). O jogo já tem a camada `src/game/cloud.ts`, desligada; liga
-> com `VITE_WIT2_DB=1` depois de aplicar. Ficou fora de `supabase/migrations`
-> de propósito, para não subir num deploy sem o OK.
+> **08/10: aprovado. As migrações estão em `supabase/migrations/2026100812*_wit2_*.sql`.**
+> O roteiro para aplicar, as checagens e como desfazer estão em `docs/sql/APLICAR.md`.
+> Teste local: `bash scripts/sql/testar-wit2.sh`.
+> Mudança em relação a este desenho: as moedas vão por diferença, com teto de ganho por dia
+> (`wit2_sync`), e a Torre fica no JSON. Cartas, pó e pacotes só mudam por função do servidor.
+> A chave `VITE_WIT2_DB=1` liga o jogo no banco.
 
 > **Só desenho.** Nada aqui foi aplicado no Supabase. RPC, LGPD e segurança
 > só mudam com pedido explícito do Matheus (ver `CLAUDE.md` e
