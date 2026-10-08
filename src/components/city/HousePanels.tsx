@@ -122,7 +122,7 @@ function PuzzlePanel({ progress, onClose }: { progress: Progress; onClose: () =>
         <PxButton color="#8a4ac8" onClick={() => restart(n, pickCard())}>OUTRA CARTA</PxButton>
         <PxButton color="#6a6a7a" onPointerDown={() => setPeek(true)} onPointerUp={() => setPeek(false)} onPointerLeave={() => setPeek(false)}>ESPIAR</PxButton>
       </div>
-      <div className="relative mx-auto w-full max-w-[480px] grid gap-[2px] bg-[#2e2a40] p-[2px]" style={{ gridTemplateColumns: `repeat(${n}, 1fr)`, aspectRatio: '768 / 528' }}>
+      <div className="relative mx-auto w-full grid gap-[2px] bg-[#2e2a40] p-[2px]" style={{ maxWidth: 'min(480px, calc((100dvh - 150px) * 768 / 528))', gridTemplateColumns: `repeat(${n}, 1fr)`, aspectRatio: '768 / 528' }}>
         {p.tiles.map((t, i) => (
           <button key={i} onClick={() => tap(i)} aria-label={`peça ${t + 1}`}
             className="relative" style={t === hole && !done ? { background: '#1e1b2c' } : {

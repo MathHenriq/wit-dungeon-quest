@@ -32,11 +32,12 @@ const URLS = [
   ...['', 'alunos', 'missoes', 'resgates', 'mural', 'eventos', 'denuncias', 'relatorio', 'virada'].map(a => [`prof-${a || 'aula'}`, `/professor/aula-demo${a ? `?aba=${a}` : ''}`]),
 ].filter(([n]) => n.includes(filtro));
 
-const IGNORE = /ERR_CERT|net::ERR|Failed to load resource|favicon|supabase|Download the React DevTools/i;
+const IGNORE = /ERR_CERT|net::ERR|Failed to load resource|favicon|supabase|Download the React DevTools|React Router Future Flag|AudioContext was not allowed|GPU stall/i;
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const report = [];
 for (const [name, url] of URLS) {
-  const ctx = await b.newContext({ viewport: { width: 1280, height: 760 } });
+  const [vw, vh] = (process.env.TELA ?? '1280x760').split('x').map(Number);
+  const ctx = await b.newContext({ viewport: { width: vw, height: vh }, hasTouch: !!process.env.TELA, isMobile: !!process.env.TELA });
   const pg = await ctx.newPage();
   const errs = [];
   pg.on('pageerror', e => errs.push(`pageerror: ${e.message}`));

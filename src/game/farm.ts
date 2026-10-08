@@ -122,8 +122,8 @@ export function newFarm(now: number): FarmState {
 export function starterFarm(now: number, field: { x0: number; y0: number }): FarmState {
   const f = newFarm(now);
   for (let x = 0; x < 6; x++) {
-    f.plots[`${field.x0 + 1 + x},${field.y0 + 1}`] = { wet: false, crop: 'cenoura', stage: 1, idle: 0 };
-    f.plots[`${field.x0 + 1 + x},${field.y0 + 2}`] = { wet: false, stage: 0, idle: 0 };
+    f.plots[`${field.x0 + 1 + x},${field.y0 + 1}`] = { wet: rainOn(f.day), crop: 'cenoura', stage: 1, idle: 0 };
+    f.plots[`${field.x0 + 1 + x},${field.y0 + 2}`] = { wet: rainOn(f.day), stage: 0, idle: 0 };
   }
   return f;
 }
@@ -160,17 +160,18 @@ export function actionAt(f: FarmState, tx: number, ty: number, seed: CropId | nu
 }
 
 /** Aplica a ação no bloco. Devolve o estado novo e o que foi colhido (se colheu). */
-export function applyAction(f: FarmState, tx: number, ty: number, a: Action): { farm: FarmState; harvested?: CropId; quality?: Quality; amount?: number } {
+export function applyAction(f: FarmState, tx: number, ty: number, a: Action, rain = false): { farm: FarmState; harvested?: CropId; quality?: Quality; amount?: number } {
   const k = key(tx, ty);
   const plots = { ...f.plots };
   const p = plots[k] ? { ...plots[k] } : undefined;
   switch (a.kind) {
     case 'arar':
-      plots[k] = { wet: false, stage: 0, idle: 0 };
+      // em dia de chuva a terra já nasce molhada (a chuva rega o que for plantado no dia)
+      plots[k] = { wet: rain, stage: 0, idle: 0 };
       return { farm: { ...f, plots } };
     case 'plantar':
       if (!p || p.crop) return { farm: f };
-      plots[k] = { ...p, crop: a.crop, stage: 0, idle: 0, adubo: false, dry: 0 };
+      plots[k] = { ...p, crop: a.crop, stage: 0, idle: 0, adubo: false, dry: 0, wet: p.wet || rain };
       return { farm: { ...f, plots } };
     case 'adubar':
       if (!p?.crop || p.adubo) return { farm: f };

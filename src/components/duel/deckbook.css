@@ -84,3 +84,20 @@
 }
 .bk-mark .lb { display: none; } .bk-mark.on .lb, .bk-mark:hover .lb { display: inline; }
 .bk-mark { font-size: 8px; padding: 5px 8px 8px; }
+/* celular deitado (pouca altura): o álbum usa a altura que sobra, o leque e a barra encolhem */
+@media (max-height: 520px) {
+  .dk-root { --cw: min(calc((100vh - 196px) / 4.4), calc((100vw - 240px) / 7.4), 140px); --tw: min(40px, calc((100vw - 260px) / 11)); }
+  .dk-top { padding-top: 4px; gap: 4px; }
+  .bk-area { padding: 18px 4px 0; gap: 18px; }
+  .bk-book { padding: 8px; }
+  .bk-page { padding: 6px 6px 10px; }
+  .bk-grid { gap: 5px; }
+  .bk-hint { display: none; }
+  .dk-tray { padding: 4px 10px 6px; }
+  .dk-info { width: 120px; gap: 2px; }
+  .dk-n { font-size: 16px; }
+  /* 12 abas de elemento não cabem numa coluna: viram duas */
+  .bk-marks.side { display: grid; grid-auto-flow: column; grid-template-rows: repeat(6, auto); left: 100%; right: auto; width: max-content; top: 10px; gap: 3px; }
+  .bk-mark.el { padding: 3px 5px 3px 3px; }
+  .bk-arrow.next { margin-left: 34px; }
+}

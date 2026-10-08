@@ -110,4 +110,11 @@ describe('fazenda, 2ª onda: estações, chuva, adubo, qualidade e feira', () =>
     const feira = nextDay({ ...newFarm(0), day: 6, bin: { ovo: 10 } }, 1).paid;
     expect(feira).toBe(Math.round(normal * 1.5));
   });
+  it('em dia de chuva o que for arado e plantado já fica regado', () => {
+    let f = applyAction(newFarm(0), 3, 3, { kind: 'arar' }, true).farm;
+    expect(f.plots['3,3'].wet).toBe(true);
+    f = applyAction(applyAction(newFarm(0), 4, 4, { kind: 'arar' }).farm, 4, 4, { kind: 'plantar', crop: 'cenoura' }, true).farm;
+    expect(f.plots['4,4'].wet).toBe(true);
+    expect(actionAt(f, 4, 4, 'cenoura', 1).kind).toBe('nada');
+  });
 });

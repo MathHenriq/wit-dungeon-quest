@@ -54,7 +54,7 @@ export function ArcadePlayer({ level, onWin, onClose, title }: { level: Level; o
         <PxButton color="#6a6a7a" onClick={() => setP(startPlay(level))}>RECOMEÇAR</PxButton>
         {onClose && <PxButton color="#6a6a7a" onClick={onClose}>VOLTAR</PxButton>}
       </div>
-      <div className="grid rounded overflow-hidden border-4 border-[#241c3a] max-w-[560px]" style={{ gridTemplateColumns: `repeat(${level.w}, 1fr)` }}>
+      <div className="grid content-start w-full mx-auto rounded overflow-hidden border-4 border-[#241c3a]" style={{ gridTemplateColumns: `repeat(${level.w}, 1fr)`, maxWidth: `min(560px, calc((100dvh - 190px) * ${level.w} / ${level.h}))` }}>
         {Array.from({ length: level.w * level.h }, (_, i) => <Cell key={i} t={tileAt(level, i % level.w, Math.floor(i / level.w))} me={p.x === i % level.w && p.y === Math.floor(i / level.w)} />)}
       </div>
       <div className="grid grid-cols-3 gap-1 w-[132px] mt-2">
@@ -86,7 +86,7 @@ export function ArcadeMaker({ onClose, onClassic }: { onClose: () => void; onCla
         <ArcadePlayer level={level} onWin={() => setBeaten(true)} onClose={() => setTesting(false)} title="TESTANDO A SUA FASE" />
       ) : (
         <div className="grid md:grid-cols-[1fr_200px] gap-3">
-          <div className="grid rounded overflow-hidden border-4 border-[#241c3a]" style={{ gridTemplateColumns: `repeat(${level.w}, 1fr)` }}>
+          <div className="grid self-start content-start w-full mx-auto rounded overflow-hidden border-4 border-[#241c3a]" style={{ gridTemplateColumns: `repeat(${level.w}, 1fr)`, maxWidth: `calc((100dvh - 150px) * ${level.w} / ${level.h})` }}>
             {Array.from({ length: level.w * level.h }, (_, i) => (
               <button key={i} onPointerDown={() => paint(i)} onPointerEnter={e => { if (e.buttons) paint(i); }} className="p-0"><Cell t={tileAt(level, i % level.w, Math.floor(i / level.w))} /></button>
             ))}

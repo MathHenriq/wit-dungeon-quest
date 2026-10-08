@@ -986,7 +986,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const seeds = s.seed ? pr.itens[`semente:${s.seed}`] ?? 0 : 0;
       const a = actionAt(s.farm, f.tx, f.ty, s.seed, seeds, pr.itens.adubo ?? 0);
       if (a.kind === 'nada') { toast(a.why); return; }
-      const r = applyAction(s.farm, f.tx, f.ty, a);
+      const r = applyAction(s.farm, f.tx, f.ty, a, rainOn(s.farm.day));
       s.farm = r.farm; saveFarm(r.farm);
       const after = a.kind === 'plantar' ? addItem(pr, `semente:${a.crop}`, -1) : a.kind === 'adubar' ? addItem(pr, 'adubo', -1)
         : r.harvested ? addItem(pr, `colheita:${r.harvested}`, r.amount ?? 1) : pr;

@@ -502,6 +502,23 @@ A pixel art sprite sheet of an ORIGINAL cute but imposing dungeon boss for a kid
 A pixel art sprite sheet, 4 by 2 grid, each cell 16x16: row 1 a small glowing yellow magic bolt in 4 animation frames, row 2 a small pink enemy energy ball in 4 animation frames. Clean outlines, no anti-aliasing, flat solid magenta background (#FF00FF).
 ```
 
+### P. Efeitos das cartas de Ataque Épica+ (masmorra nova) — 08/10
+
+Plano: `docs/plano-masmorra.md`. São **67 cartas**, cuja lista e ordem estão na tabela do fim
+do plano. Gere uma folha por carta e salve em `public/Novos assets/efeitos/<id>.png`, com o id
+da tabela.
+
+Troque `{CARTA}`, `{ELEMENTO}` e `{DESCRICAO}`. Na descrição, diga em uma frase o que o golpe
+**faz na tela**, sem nome de personagem. Exemplos:
+
+- "a giant thorny vine bursts from the ground and whips forward";
+- "a huge blue energy beam fired in a straight line";
+- "a black lightning spark that cracks the air".
+
+```
+A pixel art visual effect sprite sheet for a kids action RPG, 6 frames in a single row, each frame 96x96, top-down 3/4 view. The effect: {DESCRICAO}. Element colors: {ELEMENTO}. Frames go from wind-up to impact to fade-out. Only the effect itself, no character, no weapon holder, no blood, no gore, not scary. Clean dark outlines, limited palette, strong glow colors, no anti-aliasing, no text, no letters, flat solid magenta background (#FF00FF).
+```
+
 ---
 
 # 4. Tapetes do duelo
