@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PLAYMATS, matStyle, type MatTheme, type Playmat } from '@/game/playmats';
 import { buyMat, equipMat, saveProgress, type Progress } from '@/game/progress';
+import { MatAnim } from './MatAnim';
 
 /**
  * Tapetes do duelo: vitrine com a prévia de cada um (inclinado, como fica na
@@ -17,6 +18,7 @@ export function MatPreview({ mat, el = '#f97316', el2 = '#7c2d12' }: { mat: Play
     <div className="relative w-full aspect-[16/8]" style={{ perspective: 420, containerType: 'size', ['--el' as string]: el, ['--el2' as string]: el2 }}>
       <div className="absolute inset-[6%_4%_4%] rounded-[10px] border-[3px] shadow-[0_12px_20px_rgba(0,0,0,.55)]"
         style={{ transform: 'rotateX(28deg)', transformOrigin: '50% 100%', ...matStyle(mat, import.meta.env.BASE_URL) }}>
+        <MatAnim mat={mat} />
         {[0, 1].map(r => (
           <div key={r} className="absolute left-[4%] right-[4%] flex gap-[2%]" style={r ? { bottom: '8%' } : { top: '8%' }}>
             {Array.from({ length: 5 }, (_, i) => <div key={i} className="w-[9%] aspect-[5/7] rounded-[3px] border border-dashed border-white/35" />)}
@@ -59,6 +61,7 @@ export function MatShop({ progress }: { progress: Progress }) {
                     <div className={m.emBreve ? 'opacity-40 grayscale' : ''}><MatPreview mat={m} /></div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-[14px] font-semibold">{m.nome}</span>
+                      {m.anim && <span className={`text-[7px] px-1 py-0.5 rounded bg-[#8a4ac8] text-white ${pixel}`}>ANIMADO</span>}
                       {!have && !m.emBreve && <span className={`ml-auto text-[9px] text-yellow-200 ${pixel}`}>● {m.preco}</span>}
                     </div>
                     <p className="text-[12px] text-white/65 leading-4 min-h-[32px]">{m.descricao}</p>

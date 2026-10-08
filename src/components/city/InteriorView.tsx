@@ -197,7 +197,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const [arcade, setArcade] = useState(false);
   const [partyMsg, setPartyMsg] = useState<string | null>(null);
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
-  const [housePanel, setHousePanel] = useState<HousePanel | null>(null);
+  const [housePanel, setHousePanel] = useState<HousePanel | null>(() => (new URLSearchParams(window.location.search).get('painel') === 'quebra' ? { kind: 'quebra' } : null));
   /** Luzes da casa apagadas (a sala escurece). */
   const [lightsOff, setLightsOff] = useState(false);
   const music = useRef<{ stop: () => void; k: number } | null>(null);
@@ -210,7 +210,10 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     const npc = q && room.npcs.find(n => n.id === (q === 'chefe' ? 'chefe' : `mesa-${q}`));
     const d = npc ? npc.duel : undefined;
     if (!npc || !d) return;
-    setAsk({ npc, foe: foeFor(d, npc.name, loadProgress()) });
+    const foe = foeFor(d, npc.name, loadProgress());
+    // &jogar pula o convite e já abre o duelo (medir desempenho, prints)
+    if (new URLSearchParams(window.location.search).has('jogar')) setDuel({ foe, sprite: npc.sprite });
+    else setAsk({ npc, foe });
     // só ao abrir a sala
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -463,6 +466,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       case 'relogio': say(`O relógio marca ${String(Math.floor(hour)).padStart(2, '0')}:${String(Math.floor((hour % 1) * 60)).padStart(2, '0')}.`); return;
       case 'mural': setHousePanel({ kind: 'mochila', start: 'missoes' }); return;
       case 'banho': say('Banho tomado! Cheirosinho e pronto para a aula.'); return;
+      case 'quebra': setHousePanel({ kind: 'quebra' }); return;
       case 'brinquedos': say(['Você monta uma torre de blocos... e ela cai. De novo!', 'Abraço apertado na pelúcia preferida.', 'Achou uma carta perdida no fundo do baú! (Era só uma figurinha.)'][book.current++ % 3]); return;
       case 'planta': {
         const r = waterPlant(loadProgress(), plantKey(item.id, item.tx, item.ty), today());
@@ -1018,7 +1022,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
           foeSprite={duel.sprite}
           deck={activeDeckCards(progress)}
           look={look}
-          mat={progress.mat}
+          mat={new URLSearchParams(window.location.search).get('tapete') ?? progress.mat}
           talents={{ novaMao: hasTalent(progress, 'nova-mao'), espiar: hasTalent(progress, 'espiar') }}
           nick={look.apelido || 'Você'}
           remote={duel.remote ? { ...duel.remote, away: foeAway } : undefined}

@@ -11,10 +11,15 @@ import { Backpack, KitchenPanel, MarketPanel } from '@/components/work/LifePanel
 import { WorkPanel } from '@/components/work/WorkPanel';
 import { PxBox, PxButton, PxPanel } from '@/components/pixel/Pixel';
 import { Icon } from '@/components/Icon';
+import { useState } from 'react';
+import { isSolved, shuffled, slide, type Puzzle } from '@/game/puzzle';
+import { cardArtUrl } from '@/components/tcg/cardArt';
+import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
+import { play } from '@/game/sfx';
 import './house.css';
 
 export type HousePanel =
-  | { kind: 'cozinha' } | { kind: 'mercado' } | { kind: 'pc' } | { kind: 'quadros' } | { kind: 'aquario' }
+  | { kind: 'cozinha' } | { kind: 'mercado' } | { kind: 'pc' } | { kind: 'quadros' } | { kind: 'aquario' } | { kind: 'quebra' }
   | { kind: 'mochila'; start?: 'mochila' | 'cargos' | 'missoes' | 'titulos' }
   | { kind: 'work'; game: MinigameId };
 
@@ -65,6 +70,7 @@ export function HousePanels({ panel, progress, nick, onClose, onOpen, onDeck }: 
         </PxPanel>
       );
     }
+    case 'quebra': return <PuzzlePanel progress={progress} onClose={onClose} />;
     case 'aquario': {
       const fish = aquariumFish(progress);
       return (
@@ -81,4 +87,55 @@ export function HousePanels({ panel, progress, nick, onClose, onOpen, onDeck }: 
       );
     }
   }
+}
+
+// ─── baú de brinquedos: quebra-cabeça com a arte de uma carta do álbum ──────
+
+const BEST_KEY = 'wit.quebra';
+function PuzzlePanel({ progress, onClose }: { progress: Progress; onClose: () => void }) {
+  const owned = Object.keys(progress.collection).filter(id => (progress.collection[id] ?? 0) > 0 && CARD_BY_ID.has(id));
+  const pickCard = () => owned[Math.floor(Math.random() * owned.length)] ?? 'excalibur-de-arthur';
+  const [card, setCard] = useState(pickCard);
+  const [p, setP] = useState<Puzzle>(() => shuffled(3, Date.now()));
+  const [peek, setPeek] = useState(false);
+  const best = (() => { try { return JSON.parse(localStorage.getItem(BEST_KEY) ?? '{}') as Record<string, number>; } catch { return {}; } })();
+  const done = isSolved(p);
+  const restart = (n = p.n, c = card) => { setCard(c); setP(shuffled(n, Date.now())); };
+  const tap = (i: number) => {
+    if (done) return;
+    const q = slide(p, i);
+    if (q === p) return;
+    play('click');
+    setP(q);
+    if (isSolved(q)) {
+      play('win');
+      const k = `${q.n}`;
+      if (!best[k] || q.moves < best[k]) { try { localStorage.setItem(BEST_KEY, JSON.stringify({ ...best, [k]: q.moves })); } catch { /* sem armazenamento */ } }
+    }
+  };
+  const url = cardArtUrl(card), n = p.n, hole = n * n - 1;
+  return (
+    <PxPanel title="QUEBRA-CABEÇA" color="#c8762a" onClose={onClose} width={560}>
+      <div className="flex flex-wrap items-center gap-1.5 mb-2 text-[8px]">
+        <span className="flex-1">{CARD_BY_ID.get(card)?.name} · {p.moves} movimentos{best[`${n}`] ? ` · recorde ${best[`${n}`]}` : ''}</span>
+        <PxButton color="#3a78c8" onClick={() => restart(n === 3 ? 4 : 3)}>{n === 3 ? 'DIFÍCIL 4×4' : 'FÁCIL 3×3'}</PxButton>
+        <PxButton color="#8a4ac8" onClick={() => restart(n, pickCard())}>OUTRA CARTA</PxButton>
+        <PxButton color="#6a6a7a" onPointerDown={() => setPeek(true)} onPointerUp={() => setPeek(false)} onPointerLeave={() => setPeek(false)}>ESPIAR</PxButton>
+      </div>
+      <div className="relative mx-auto w-full max-w-[480px] grid gap-[2px] bg-[#2e2a40] p-[2px]" style={{ gridTemplateColumns: `repeat(${n}, 1fr)`, aspectRatio: '768 / 528' }}>
+        {p.tiles.map((t, i) => (
+          <button key={i} onClick={() => tap(i)} aria-label={`peça ${t + 1}`}
+            className="relative" style={t === hole && !done ? { background: '#1e1b2c' } : {
+              backgroundImage: `url(${url})`, backgroundSize: `${n * 100}% ${n * 100}%`,
+              backgroundPosition: `${((t % n) / (n - 1)) * 100}% ${(Math.floor(t / n) / (n - 1)) * 100}%`,
+            }} />
+        ))}
+        {peek && <div className="absolute inset-0" style={{ backgroundImage: `url(${url})`, backgroundSize: 'cover' }} />}
+      </div>
+      <div className="text-[8px] leading-4 text-[#6a4a2a] mt-2">
+        {done ? `Montou! ${p.moves} movimentos.` : 'Toque numa peça do lado do buraco para deslizar. Segure ESPIAR para ver a carta inteira.'}
+      </div>
+      {done && <PxButton color="#3a9a5a" className="mt-2" onClick={() => restart()}>DE NOVO</PxButton>}
+    </PxPanel>
+  );
 }

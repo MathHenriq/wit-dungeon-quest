@@ -14,4 +14,9 @@ describe('tapetes', () => {
       if (!m.arte) expect(m.fundo, m.id).toBeTruthy();
     }
   });
+  it('animados: pelo menos 5, cada um com cor e um dos 4 tipos', () => {
+    const a = PLAYMATS.filter(m => m.anim);
+    expect(a.length).toBeGreaterThanOrEqual(5);
+    for (const m of a) { expect(['brilho', 'faiscas', 'ondas', 'estrelas']).toContain(m.anim); expect(m.animCor, m.id).toMatch(/^#[0-9a-f]{6}$/); }
+  });
 });

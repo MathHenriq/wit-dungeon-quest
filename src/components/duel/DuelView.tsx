@@ -10,6 +10,7 @@ import { isMuted, play, setMuted } from '@/game/sfx';
 import { DEFAULT_PET, type Look } from '@/game/world/outfit';
 import { loadLookFrames, loadNpcFrames, loadReactionFrames } from '@/game/world/sprites';
 import { matOf, matStyle } from '@/game/playmats';
+import { MatAnim } from './MatAnim';
 import { diffMoves, type Move } from './moves';
 import type { PvpAction } from '@/game/pvp-online';
 import './DuelView.css';
@@ -693,6 +694,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         {/* mesa */}
         <div className={`dv-table ${drag ? (drag.over ? (playable.has(drag.uid) ? 'drop-ok' : 'drop-no') : 'dragging') : ''}`}>
           <div className="dv-mat" style={matStyle(matOf(mat), import.meta.env.BASE_URL)}>
+            <MatAnim mat={matOf(mat)} />
             <Row side="op" p={op} hidden open={c => setPreview({ card: c })} hold={hold[1]} openGrave={() => setGraveView(1)} />
             <div className="dv-field">
               <Slot label="CAMPO" card={state.field?.card.def} onOpen={state.field ? () => setPreview({ card: state.field!.card.def }) : undefined} />

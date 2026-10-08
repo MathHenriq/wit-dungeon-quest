@@ -8,7 +8,7 @@ import type { Progress } from '../progress';
 export type HouseAct =
   | 'dormir' | 'sentar' | 'cozinhar' | 'comer' | 'computador' | 'tv' | 'musica' | 'violao' | 'fliperama'
   | 'pintar' | 'quadros' | 'livros' | 'trofeus' | 'aquario' | 'telescopio' | 'visual' | 'pet-cama' | 'pet-comida'
-  | 'luz' | 'relogio' | 'mural' | 'banho' | 'brinquedos' | 'planta' | 'janela';
+  | 'luz' | 'relogio' | 'mural' | 'banho' | 'brinquedos' | 'quebra' | 'planta' | 'janela';
 
 /** Nome do sprite → ação e o que aparece no aviso. A primeira regra que casa vale. */
 const RULES: [RegExp, HouseAct, string][] = [
@@ -34,7 +34,8 @@ const RULES: [RegExp, HouseAct, string][] = [
   [/^relogio/, 'relogio', 'VER HORA'],
   [/^mural-cortica/, 'mural', 'MISSÕES'],
   [/^(banheira|chuveiro)/, 'banho', 'BANHO'],
-  [/^(bau-brinquedos|pelucias)/, 'brinquedos', 'BRINCAR'],
+  [/^bau-brinquedos/, 'quebra', 'QUEBRA-CABEÇA'],
+  [/^pelucias/, 'brinquedos', 'BRINCAR'],
   [/^(bonsai|cacto|costela-adao|limoeiro|palmeira|planta-|suculentas|vaso-)/, 'planta', 'REGAR'],
   [/^janela/, 'janela', 'OLHAR'],
 ];

@@ -19,7 +19,12 @@ export interface Playmat {
   arte?: boolean;
   /** Ainda sem arte: aparece na loja, mas não dá para comprar. */
   emBreve?: boolean;
+  /** Animação por cima do fundo (só transform/opacity: não pesa no celular) e a cor dela. */
+  anim?: MatAnim;
+  animCor?: string;
 }
+
+export type MatAnim = 'brilho' | 'faiscas' | 'ondas' | 'estrelas';
 
 export const DEFAULT_MAT = 'classico';
 
@@ -31,7 +36,7 @@ export const PLAYMATS: Playmat[] = [
       repeating-linear-gradient(45deg, color-mix(in srgb, var(--el2) 38%, transparent) 0 .8cqw, transparent .8cqw 1.6cqw), #150e14`,
   },
   {
-    id: 'circuito', nome: 'Circuito WIT', tema: 'WIT', preco: 600, borda: '#8cc63f',
+    id: 'circuito', nome: 'Circuito WIT', tema: 'WIT', preco: 600, borda: '#8cc63f', anim: 'brilho', animCor: '#b8f080',
     descricao: 'Placa de circuito no verde da WIT, com trilhas acesas.',
     fundo: `radial-gradient(circle at 20% 30%, #8cc63f 0 .25cqw, transparent .3cqw), radial-gradient(circle at 70% 60%, #8cc63f 0 .25cqw, transparent .3cqw),
       radial-gradient(circle at 45% 80%, #b8f080 0 .2cqw, transparent .25cqw),
@@ -47,7 +52,7 @@ export const PLAYMATS: Playmat[] = [
       radial-gradient(ellipse at center, #d9c48a, #a8904f 80%)`,
   },
   {
-    id: 'noite', nome: 'Noite Estrelada', tema: 'Natureza', preco: 800, borda: '#c7b8ff',
+    id: 'noite', nome: 'Noite Estrelada', tema: 'Natureza', preco: 800, borda: '#c7b8ff', anim: 'estrelas', animCor: '#ffffff',
     descricao: 'Céu de noite com estrelas e uma lua grande no canto.',
     fundo: `radial-gradient(circle at 86% 22%, #fff7d6 0 2.2cqw, rgba(255,247,214,.25) 2.4cqw 4cqw, transparent 4.2cqw),
       radial-gradient(circle at 12% 18%, #fff 0 .12cqw, transparent .16cqw), radial-gradient(circle at 34% 64%, #fff 0 .1cqw, transparent .14cqw),
@@ -64,19 +69,40 @@ export const PLAYMATS: Playmat[] = [
       radial-gradient(ellipse at center, #7a2c55, #3d1430 80%)`,
   },
   {
-    id: 'oceano', nome: 'Fundo do Mar', tema: 'Elementos', preco: 1000, borda: '#38bdf8',
+    id: 'oceano', nome: 'Fundo do Mar', tema: 'Elementos', preco: 1000, borda: '#38bdf8', anim: 'ondas', animCor: '#7dd3fc',
     descricao: 'Ondas em camadas e bolhas subindo.',
     fundo: `radial-gradient(circle at 20% 70%, rgba(255,255,255,.5) 0 .2cqw, transparent .25cqw) 0 0 / 4cqw 5cqw,
       repeating-radial-gradient(circle at 50% 110%, rgba(56,189,248,.28) 0 .4cqw, transparent .4cqw 1.6cqw),
       linear-gradient(#0d4f7a, #082a47 75%)`,
   },
   {
-    id: 'vulcao', nome: 'Coração do Vulcão', tema: 'Elementos', preco: 1200, borda: '#ff7a1a',
+    id: 'vulcao', nome: 'Coração do Vulcão', tema: 'Elementos', preco: 1200, borda: '#ff7a1a', anim: 'faiscas', animCor: '#ffb347',
     descricao: 'Rachaduras de lava brilhando na pedra escura.',
     fundo: `radial-gradient(ellipse at 50% 120%, rgba(255,120,30,.55), transparent 60%),
       repeating-linear-gradient(115deg, transparent 0 2.5cqw, rgba(255,110,20,.55) 2.5cqw 2.65cqw, transparent 2.65cqw 5cqw),
       repeating-linear-gradient(35deg, transparent 0 3.5cqw, rgba(255,160,40,.35) 3.5cqw 3.6cqw, transparent 3.6cqw 7cqw),
       radial-gradient(ellipse at center, #3a1510, #160806 80%)`,
+  },
+  // animados (novos)
+  {
+    id: 'aurora', nome: 'Aurora Boreal', tema: 'Natureza', preco: 1400, borda: '#6ee7b7', anim: 'ondas', animCor: '#a7f3d0',
+    descricao: 'Luzes do norte dançando devagar sobre a neve.',
+    fundo: `radial-gradient(ellipse 80% 40% at 50% 30%, rgba(110,231,183,.35), transparent 70%),
+      radial-gradient(ellipse 60% 30% at 30% 45%, rgba(167,139,250,.3), transparent 70%),
+      linear-gradient(#0b1f33 0 70%, #dbeafe 70% 72%, #94a3b8 72%)`,
+  },
+  {
+    id: 'tempestade', nome: 'Tempestade Elétrica', tema: 'Elementos', preco: 1400, borda: '#facc15', anim: 'faiscas', animCor: '#fde68a',
+    descricao: 'Nuvens carregadas com faíscas de raio subindo.',
+    fundo: `repeating-linear-gradient(160deg, transparent 0 4cqw, rgba(250,204,21,.18) 4cqw 4.15cqw, transparent 4.15cqw 9cqw),
+      radial-gradient(ellipse at 50% 0%, #4b5563, #1f2937 55%, #0f172a)`,
+  },
+  {
+    id: 'galaxia', nome: 'Galáxia', tema: 'Natureza', preco: 1600, borda: '#e879f9', anim: 'estrelas', animCor: '#f5d0fe',
+    descricao: 'Uma galáxia em espiral com estrelas piscando.',
+    fundo: `radial-gradient(ellipse 30% 18% at 50% 50%, rgba(255,255,255,.55), rgba(232,121,249,.35) 40%, transparent 70%),
+      conic-gradient(from 30deg at 50% 50%, rgba(232,121,249,.25), rgba(56,189,248,.2), rgba(232,121,249,.25), rgba(56,189,248,.2), rgba(232,121,249,.25)),
+      radial-gradient(ellipse at center, #2e1065, #0b0620 75%)`,
   },
   // arte em imagem (prompts em docs/PROMPTS-GPT.md): entram quando a arte for aprovada
   { id: 'arena-heroi', nome: 'Arena dos Heróis', tema: 'Anime', preco: 1500, borda: '#ffd45c', arte: true, descricao: 'Estádio de torneio shōnen com a plateia em volta.' },
