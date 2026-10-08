@@ -2,6 +2,7 @@
 // repórter, games). Cada um recebe o bônus do cargo (`perk`) e uma semente, e
 // devolve a nota (0–1), os acertos e (repórter) a manchete. As regras do que
 // cada nota rende ficam em src/game/minigames.ts.
+import { Sala3D } from './Sala3D';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { labelSet, litTiles, connected, makeCircuit, paintPattern, PAINT_COLORS, reporterQuiz, rng, shown, type Circuit } from '@/game/minigames';
 import type { MinigameId } from '@/game/professions';
@@ -530,5 +531,5 @@ function TesteJogo({ perk, seed, onDone }: GameProps) {
 
 export const GAMES: Record<MinigameId, (p: GameProps) => JSX.Element> = {
   compor: Composer, pao: BreadMaker, materia: Materia, programar: RobotCode, grafico: Grafico, afinar: Afinar, cores: Cores, regras: Regras, rota: Rota, coordenadas: Coordenadas, acuracia: Acuracia, calendario: Calendario, fermento: Fermento, barraca: Barraca, boato: Boato, logica: Logica, pixelart: PixelArt,
-  forno: Forno, ritmo: Ritmo, pintura: Pintura, rotular: Rotular, circuito: Circuito, pares: Pares, noticia: Noticia, 'teste-jogo': TesteJogo,
+  forno: Forno, ritmo: Ritmo, pintura: Pintura, rotular: Rotular, circuito: Circuito, pares: Pares, noticia: Noticia, 'teste-jogo': TesteJogo, sala3d: Sala3D,
 };

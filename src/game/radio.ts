@@ -22,13 +22,37 @@ export const RADIO_SONGS: Song[] = [
     bateria: grid([[0, [0]], [8, [1]]]) },
 ];
 
-/** A fila da rádio: músicas dos alunos (as mais novas primeiro) entre as vinhetas. */
-export function playlist(alunos: Song[]): Song[] {
-  const out: Song[] = [];
+/**
+ * Música da cidade: o tema de cada área, gerado da mesma semente (cada área
+ * tem a sua melodia) e com o clima da hora: de dia mais rápido e alegre, de
+ * noite mais lento, no teclado e com menos bateria.
+ */
+export const AREA_NAMES: Record<string, string> = { cidade: 'Centro', lago: 'Lago Azul', fazenda: 'Fazenda do Vale', wit: 'Cidade WIT' };
+export function areaTheme(zone: string, hour: number): Song {
+  let h = 2166136261;
+  for (const c of zone) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  const rnd = () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; };
+  const night = hour >= 19 || hour < 6;
+  const inst = night ? 'teclado' : (['xilofone', 'violao', 'flauta', 'teclado'] as const)[Math.floor(rnd() * 4)];
+  const notas: number[][] = Array.from({ length: 16 }, () => []);
+  // melodia que anda por graus vizinhos (soa como música, não como sorteio)
+  let n = 2 + Math.floor(rnd() * 3);
+  for (let t = 0; t < 16; t += rnd() < 0.7 ? 2 : 1) {
+    n = Math.max(0, Math.min(7, n + (rnd() < 0.5 ? -1 : 1) * (rnd() < 0.75 ? 1 : 2)));
+    notas[t] = t % 8 === 0 ? [n, Math.max(0, n - 2)] : [n];
+  }
+  const bateria: number[][] = Array.from({ length: 16 }, (_, t) => (t % 8 === 0 ? [0] : !night && t % 8 === 4 ? [1] : !night && t % 2 === 0 ? [2] : []));
+  return { id: `tema-${zone}-${night ? 'noite' : 'dia'}`, nome: `Tema: ${AREA_NAMES[zone] ?? zone}${night ? ' (noite)' : ''}`, inst, bpm: night ? 80 : 100 + Math.floor(rnd() * 12), notas, bateria };
+}
+
+/** A fila da rádio: o tema da área, músicas dos alunos (as mais novas primeiro) entre as vinhetas. */
+export function playlist(alunos: Song[], theme?: Song): Song[] {
+  const out: Song[] = theme ? [theme] : [];
   const mine = alunos.slice(0, 12);
   for (let i = 0; i < Math.max(mine.length, RADIO_SONGS.length); i++) {
     if (i < RADIO_SONGS.length) out.push(RADIO_SONGS[i]);
     if (i < mine.length) out.push(mine[i]);
+    if (theme && i % 2 === 1) out.push(theme);
   }
   return out;
 }

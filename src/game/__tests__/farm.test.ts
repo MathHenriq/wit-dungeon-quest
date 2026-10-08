@@ -91,14 +91,14 @@ describe('fazenda, 2ª onda: estações, chuva, adubo, qualidade e feira', () =>
   });
   it('regado todo dia = prata; e adubado = ouro (colhe 2); esqueceu um dia = normal', async () => {
     const { applyAction, nextDay, newFarm } = await import('../farm');
-    let f = { ...newFarm(0), plots: { '1,1': { wet: false, stage: 0, idle: 0 } } };
+    let f: import('../farm').FarmState = { ...newFarm(0), plots: { '1,1': { wet: false, stage: 0, idle: 0 } } };
     f = applyAction(f, 1, 1, { kind: 'plantar', crop: 'cenoura' }).farm;
     f = applyAction(f, 1, 1, { kind: 'adubar' }).farm;
     for (let d = 0; d < 3; d++) { f = applyAction(f, 1, 1, { kind: 'regar' }).farm; f = { ...nextDay(f, d).farm, water: 20 }; }
     const r = applyAction(f, 1, 1, { kind: 'colher', crop: 'cenoura' });
     expect(r.quality).toBe('ouro');
     expect(r.amount).toBe(2);
-    let g = { ...newFarm(0), plots: { '1,1': { wet: false, stage: 0, idle: 0 } } };
+    let g: import('../farm').FarmState = { ...newFarm(0), plots: { '1,1': { wet: false, stage: 0, idle: 0 } } };
     g = applyAction(g, 1, 1, { kind: 'plantar', crop: 'cenoura' }).farm;
     g = nextDay(g, 0).farm;   // esqueceu de regar
     for (let d = 0; d < 3; d++) { g = applyAction(g, 1, 1, { kind: 'regar' }).farm; g = { ...nextDay(g, d).farm, water: 20 }; }

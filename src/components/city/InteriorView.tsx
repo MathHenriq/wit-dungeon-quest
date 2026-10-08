@@ -33,7 +33,8 @@ import {
   activeDeckCards, applyDuel, bossUnlocked, canGoUp, loadProgress, saveProgress, tablesWon, winsOf, type DuelResult, type Progress,
 } from '@/game/progress';
 import { cloudBossCard, cloudEnabled } from '@/game/cloud';
-import { guildHit, saveHouse, socialMe } from '@/game/social';
+import { guildHit, party, saveHouse, socialError, socialMe, socialOn } from '@/game/social';
+import { ArcadeMaker } from '@/components/social/Arcade';
 import { buildMatch, joinTable, reportPvp, validDeck, WO_MS, type PvpAction, type PvpHello, type TableLink } from '@/game/pvp-online';
 import { tabId } from '@/game/presence';
 import { GuildPanel } from '@/components/social/GuildPanel';
@@ -192,6 +193,9 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     const q = new URLSearchParams(window.location.search).get('painel');
     return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' || q === 'trocas' || q === 'moveis' ? q : null;
   });
+  /** Fliperama da casa: criar fase (ou jogar o caça-bugs). */
+  const [arcade, setArcade] = useState(false);
+  const [partyMsg, setPartyMsg] = useState<string | null>(null);
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
   const [housePanel, setHousePanel] = useState<HousePanel | null>(null);
   /** Luzes da casa apagadas (a sala escurece). */
@@ -444,7 +448,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
         return;
       }
       case 'violao': setHousePanel({ kind: 'work', game: 'afinar' }); return;
-      case 'fliperama': setHousePanel({ kind: 'work', game: 'teste-jogo' }); return;
+      case 'fliperama': setArcade(true); return;
       case 'pintar': setHousePanel({ kind: 'work', game: 'pixelart' }); return;
       case 'quadros': setHousePanel({ kind: 'quadros' }); return;
       case 'livros': say(BOOK_TIPS[book.current++ % BOOK_TIPS.length]); return;
@@ -919,6 +923,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'recompensas' && <RoomRewards progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
+      {arcade && <ArcadeMaker onClose={() => setArcade(false)} onClassic={() => { setArcade(false); setHousePanel({ kind: 'work', game: 'teste-jogo' }); }} />}
       {panelOpen === 'moveis' && m && <FurnitureShop m={m} onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {panelOpen === 'trocas' && <TradeHub onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {shopOf && (
@@ -968,6 +973,11 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
         </div>
       )}
 
+      {room.id === 'casa' && !visiting && socialOn() && !decor && (
+        <button onClick={() => { party().then(n => setPartyMsg(n ? `Convite enviado para ${n} amigo${n > 1 ? 's' : ''}! Eles veem ao abrir o jogo.` : 'Você ainda não tem amigos para convidar.')).catch(e => setPartyMsg(socialError(e))); }}
+          className={`absolute top-2 right-[110px] px-3 py-2 rounded-md bg-[#c84a8a]/90 border-2 border-[#ffb0d8] text-white text-[10px] ${pixelFont}`}>FESTA</button>
+      )}
+      {partyMsg && <div onClick={() => setPartyMsg(null)} className={`absolute top-14 right-2 max-w-[320px] px-3 py-2 rounded-md bg-black/70 text-white text-[8px] leading-4 ${pixelFont}`}>{partyMsg}</div>}
       {room.id === 'casa' && !visiting && (
         <button
           onClick={() => { if (decor) { cancelHold(); setDecor(false); } else { setDialog(null); setDecor(true); } }}

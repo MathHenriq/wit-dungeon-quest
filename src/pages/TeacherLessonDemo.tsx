@@ -4,7 +4,7 @@
 // alunos em risco, retorno depois da falta, CSV).
 // Sem o banco ligado (VITE_WIT2_DB) é DEMONSTRAÇÃO com alunos de mentira;
 // ligado, usa as funções do servidor (src/game/cloud.ts).
-import { MissionsTab, ReportsTab, StudentsTab } from '@/components/teacher/TeacherTabs';
+import { MissionsTab, PostsTab, ReportsTab, StudentsTab } from '@/components/teacher/TeacherTabs';
 import { masterTeachers, type TeacherOpt } from '@/game/teacher-cloud';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -32,14 +32,14 @@ const FAKE_TICKETS = [
   { code: 'K7QZ', student: 'aluno-3', reward: 'musica' }, { code: 'B3MX', student: 'aluno-8', reward: 'tablet-15' },
   { code: 'R9TD', student: 'aluno-12', reward: 'vr-10' }, { code: 'H2WP', student: 'aluno-5', reward: 'lugar' },
 ];
-type Tab = 'aula' | 'alunos' | 'missoes' | 'resgates' | 'denuncias' | 'relatorio';
+type Tab = 'aula' | 'alunos' | 'missoes' | 'resgates' | 'mural' | 'denuncias' | 'relatorio';
 
 export default function TeacherLessonDemo() {
   const today = new Date().toLocaleDateString('pt-BR');
   const live = cloudEnabled();
   const [tab, setTab] = useState<Tab>(() => {
     const q = new URLSearchParams(window.location.search).get('aba');
-    return (['alunos', 'missoes', 'resgates', 'denuncias', 'relatorio'] as string[]).includes(q ?? '') ? q as Tab : 'aula';
+    return (['alunos', 'missoes', 'resgates', 'mural', 'denuncias', 'relatorio'] as string[]).includes(q ?? '') ? q as Tab : 'aula';
   });
   // master (e-mail na lista do banco): escolhe de qual professor ver
   const [masters, setMasters] = useState<TeacherOpt[]>([]);
@@ -114,7 +114,7 @@ export default function TeacherLessonDemo() {
         </div>}
         {err && <div className="rounded-lg bg-[#fde8e8] border border-[#e8a0a0] px-3 py-2 text-[12px] mb-3">Erro do servidor: {err}</div>}
         <div className="flex flex-wrap gap-1 mb-3">
-          {([['aula', 'Aula de hoje'], ['alunos', 'Alunos'], ['missoes', 'Missões da sala'], ['resgates', `Resgates (${tickets.filter(t => !t.done).length})`], ['denuncias', 'Denúncias'], ['relatorio', 'Relatório']] as [Tab, string][]).map(([k, l]) => (
+          {([['aula', 'Aula de hoje'], ['alunos', 'Alunos'], ['missoes', 'Missões da sala'], ['resgates', `Resgates (${tickets.filter(t => !t.done).length})`], ['mural', 'Mural'], ['denuncias', 'Denúncias'], ['relatorio', 'Relatório']] as [Tab, string][]).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={`px-4 py-2 rounded-lg text-[14px] border ${tab === k ? 'bg-[#1e1b2c] text-white border-[#1e1b2c]' : 'bg-white border-[#d8d4cc]'}`}>{l}</button>
           ))}
         </div>
@@ -129,6 +129,7 @@ export default function TeacherLessonDemo() {
         {tab === 'alunos' && <StudentsTab teacher={viewOf} />}
         {tab === 'missoes' && <MissionsTab teacher={viewOf} />}
         {tab === 'denuncias' && <ReportsTab />}
+        {tab === 'mural' && <PostsTab />}
         {tab === 'resgates' && <Tickets tickets={tickets} nameOf={nameOf} onGive={giveTicket} />}
         {tab === 'relatorio' && <Report names={students.map(x => x.name)} saved={saved} />}
         {tab === 'aula' && <>

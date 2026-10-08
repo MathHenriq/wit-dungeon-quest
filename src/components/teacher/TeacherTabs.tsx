@@ -3,7 +3,7 @@
 // grandes para tablet), não o pixel do jogo.
 import { useEffect, useState } from 'react';
 import { createMission, endMission, kindLabel, MISSION_KINDS, missionPct, teacherMissions, teacherStudent, teacherStudents, type Mission, type MissionKind, type StudentCard, type StudentRow } from '@/game/teacher-cloud';
-import { teacherReports, teacherResolve, REPORT_REASONS, type ReportRow } from '@/game/social';
+import { moderatePost, MURAL_FRASES, teacherPosts, teacherReports, teacherResolve, REPORT_REASONS, type ReportRow, type TeacherPost } from '@/game/social';
 import { PACK_BY_ID, PACKS, type PackId } from '@/game/packs';
 import { RARITY_PT } from '@/lib/tcg/labels';
 import { cloudEnabled } from '@/game/cloud';
@@ -182,6 +182,38 @@ export function ReportsTab() {
         </div>
       ))}
       {rows && !rows.length && <div className="text-[14px] text-[#6a6680]">Nenhuma denúncia aberta.</div>}
+    </div>
+  );
+}
+
+const DEMO_POSTS: TeacherPost[] = [
+  { id: 1, kind: 'foto', frase: null, foto: null, at: new Date().toISOString(), esperando: true, aluno: 'Beto Lima' },
+  { id: 2, kind: 'frase', frase: 4, foto: null, at: new Date().toISOString(), esperando: false, aluno: 'Ana Souza' },
+];
+/** Mural da turma: fotos esperando aprovação e o que já está no mural (esconder). */
+export function PostsTab() {
+  const live = cloudEnabled();
+  const [rows, setRows] = useState<TeacherPost[] | null>(null);
+  const load = () => { (live ? teacherPosts() : Promise.resolve(DEMO_POSTS)).then(setRows).catch(() => setRows([])); };
+  useEffect(load, [live]);
+  const act = async (id: number, ok: boolean) => { if (live) { await moderatePost(id, ok); load(); } else setRows(r => (r ?? []).map(x => (x.id === id ? { ...x, esperando: false } : x)).filter(x => ok || x.id !== id)); };
+  return (
+    <div className="grid gap-2">
+      <div className="text-[12px] text-[#6a6680]">Frases e fases aparecem direto (são da lista pronta). Foto só aparece no mural depois que você aprovar.</div>
+      {!rows && <div>Carregando...</div>}
+      {rows?.map(p => (
+        <div key={p.id} className={`${box} p-3 flex flex-wrap items-center gap-3`}>
+          {p.kind === 'foto' && (p.foto ? <img src={p.foto} alt="" className="w-[160px] rounded" /> : <div className="w-[160px] h-[90px] rounded bg-[#e8e4dc] flex items-center justify-center text-[12px] text-[#6a6680]">foto</div>)}
+          <div className="flex-1 min-w-[200px]">
+            <div className="text-[15px] font-semibold">{p.aluno}</div>
+            <div className="text-[13px]">{p.kind === 'frase' ? `"${MURAL_FRASES[p.frase ?? 0]}"` : p.kind === 'fase' ? 'publicou uma fase de fliperama' : 'mandou uma foto do álbum do jogo'}</div>
+            {p.esperando && <div className="text-[12px] text-[#c8862a]">esperando a sua aprovação</div>}
+          </div>
+          {p.esperando && <button className={btnOn} onClick={() => void act(p.id, true)}>Aprovar</button>}
+          <button className={btn} onClick={() => void act(p.id, false)}>{p.esperando ? 'Recusar' : 'Esconder'}</button>
+        </div>
+      ))}
+      {rows && !rows.length && <div className="text-[14px] text-[#6a6680]">Nada no mural ainda.</div>}
     </div>
   );
 }

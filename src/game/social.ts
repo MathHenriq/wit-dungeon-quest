@@ -5,6 +5,7 @@
 // mostram "precisa estar online"; `?social=demo` usa dados de mentira (prints).
 import type { Look } from './world/outfit';
 import { cloudEnabled, rpc, rpcTeacher } from './cloud';
+import type { Level } from './arcade';
 
 export interface PublicProfile {
   handle: string;
@@ -153,3 +154,31 @@ export const buyListing = (id: number) => call<{ card: string; coins: number }>(
 /** Mercado da turma: quanto cada item está "cheio" hoje (null offline). */
 export const marketState = () => (cloudEnabled() ? rpc<{ day: number; sat: Record<string, number> }>('wit2_market_state').catch(() => null) : Promise.resolve(null));
 export const marketSold = (item: string, n: number) => (cloudEnabled() ? rpc<{ day: number; sat: Record<string, number> }>('wit2_market_sold', { p_item: item, p_n: Math.min(50, n) }).catch(() => null) : Promise.resolve(null));
+
+// ─── mural da turma, fases do fliperama e festa (supabase/migrations/*_wit2_world.sql) ──
+/** Frases prontas do mural (sem texto livre). */
+export const MURAL_FRASES = [
+  'Subi de andar na Torre!', 'Abri um pacotinho incrível!', 'Quem quer trocar cartas?', 'Alguém para um PvP?', 'Pesquei um peixe raro!',
+  'Minha fazenda está linda!', 'Compus uma música nova no Estúdio!', 'Minha casa ficou demais!', 'Bora fazer a missão da sala!', 'Obrigado pela troca!',
+  'Criei uma fase no fliperama!', 'Venci o chefe da guilda!', 'Bom dia, turma!', 'Boa aula, pessoal!', 'Quem chega no andar 10 primeiro?',
+];
+export interface Post {
+  id: number; kind: 'frase' | 'foto' | 'fase'; frase: number | null; foto: string | null; fase: Level | null; titulo: number | null;
+  plays: number; at: string; minha: boolean; esperando: boolean; nick: string | null; handle: string | null;
+}
+const DEMO_POSTS: Post[] = [
+  { id: 1, kind: 'fase', frase: null, foto: null, fase: { w: 12, h: 8, t: '#############s..o.#...o##.##.#.#.#.##.o#...x...##.##.###.#.##.....o..#.##.#####...e#############' }, titulo: 0, plays: 7, at: '', minha: false, esperando: false, nick: 'Rafa', handle: 'demo-rafa' },
+  { id: 2, kind: 'frase', frase: 4, foto: null, fase: null, titulo: null, plays: 0, at: '', minha: false, esperando: false, nick: 'Lia', handle: 'demo-lia' },
+  { id: 3, kind: 'frase', frase: 3, foto: null, fase: null, titulo: null, plays: 0, at: '', minha: true, esperando: false, nick: 'Você', handle: 'demo-eu' },
+];
+export const muralPosts = () => call<Post[]>('wit2_mural', undefined, () => DEMO_POSTS);
+export const postFrase = (i: number) => call<number>('wit2_post', { p_kind: 'frase', p_frase: i, p_foto: null, p_fase: null, p_titulo: null }, () => 9);
+export const postFoto = (data: string) => call<number>('wit2_post', { p_kind: 'foto', p_frase: null, p_foto: data, p_fase: null, p_titulo: null }, () => 9);
+export const postFase = (l: Level, titulo: number) => call<number>('wit2_post', { p_kind: 'fase', p_frase: null, p_foto: null, p_fase: l, p_titulo: titulo }, () => 9);
+export const deletePost = (id: number) => call<boolean>('wit2_post_delete', { p_id: id }, () => true);
+export const levelPlayed = (id: number) => (cloudEnabled() ? rpc<null>('wit2_level_played', { p_id: id }).catch(() => null) : Promise.resolve(null));
+export const party = () => call<number>('wit2_party', undefined, () => 2);
+export const noticesMine = () => (cloudEnabled() ? rpc<{ kind: 'festa'; handle: string; nick: string; at: string }[]>('wit2_notices_mine').catch(() => []) : Promise.resolve([]));
+export interface TeacherPost { id: number; kind: Post['kind']; frase: number | null; foto: string | null; at: string; esperando: boolean; aluno: string }
+export const teacherPosts = () => (cloudEnabled() ? rpcTeacher<TeacherPost[]>('wit2_teacher_posts') : Promise.resolve<TeacherPost[]>([]));
+export const moderatePost = (id: number, ok: boolean) => rpcTeacher<boolean>('wit2_teacher_post_moderate', { p_id: id, p_ok: ok });

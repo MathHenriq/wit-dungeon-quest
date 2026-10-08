@@ -18,7 +18,7 @@ const AREAS: Record<ZoneId, { icon: string; color: string; text: string }> = {
   wit: { icon: 'sensor', color: '#8a4ac8', text: 'Os cursos do Núcleo WIT e as profissões.' },
 };
 
-export function WorldMap({ zone, pos, ready, pending, onClose, onTravel }: {
+export function WorldMap({ zone, pos, ready, pending, onClose, onTravel, plane }: {
   zone: ZoneId;
   pos: { tx: number; ty: number };
   /** (não usado: o tamanho de cada área vem de world-map.ts) */
@@ -29,8 +29,17 @@ export function WorldMap({ zone, pos, ready, pending, onClose, onTravel }: {
   pending?: Partial<Record<ZoneId, number>>;
   onClose: () => void;
   onTravel: (to: ZoneId) => void;
+  /** Tem o Aviãozinho: a viagem vira um voo pelo mapa (linha tracejada até o destino). */
+  plane?: boolean;
 }) {
   const [hover, setHover] = useState<ZoneId | null>(null);
+  const [flight, setFlight] = useState<ZoneId | null>(null);
+  const go = (z: ZoneId) => {
+    if (!plane) { onTravel(z); return; }
+    setFlight(z);
+    window.setTimeout(() => onTravel(z), 1900);
+  };
+  const dest = flight ? zoneRect(flight) : null;
   const me = worldPoint(zone, pos.tx, pos.ty);
   const pick = hover ?? zone;
   return (
@@ -44,13 +53,19 @@ export function WorldMap({ zone, pos, ready, pending, onClose, onTravel }: {
               <button key={z} className={`wm-area ${here ? 'here' : ''} ${hover === z ? 'hov' : ''}`}
                 style={{ left: `${r.x * 100}%`, top: `${r.y * 100}%`, width: `${r.w * 100}%`, height: `${r.h * 100}%`, ['--c' as string]: a.color }}
                 onMouseEnter={() => setHover(z)} onMouseLeave={() => setHover(h => (h === z ? null : h))}
-                onClick={() => { if (!here && open) onTravel(z); }}>
+                onClick={() => { if (!here && open && !flight) go(z); }}>
                 <span className="wm-name"><Ribbon color={a.color}>{ZONE_NAMES[z].toUpperCase()}</Ribbon></span>
                 {!!pending?.[z] && <span className="wm-job"><Icon id="mapa" size={14} /> {pending[z]}</span>}
               </button>
             );
           })}
           <span className="wm-me" style={{ left: `${me.x * 100}%`, top: `${me.y * 100}%` }}><i /><b>VOCÊ</b></span>
+          {dest && (
+            <svg className="wm-flight" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <line x1={me.x * 100} y1={me.y * 100} x2={(dest.x + dest.w / 2) * 100} y2={(dest.y + dest.h / 2) * 100} />
+            </svg>
+          )}
+          {dest && <span className="wm-plane" style={{ ['--x0' as string]: `${me.x * 100}%`, ['--y0' as string]: `${me.y * 100}%`, ['--x1' as string]: `${(dest.x + dest.w / 2) * 100}%`, ['--y1' as string]: `${(dest.y + dest.h / 2) * 100}%` }}><Icon id="estrela" size={22} /></span>}
           <svg className="wm-rose" viewBox="0 0 15 15" shapeRendering="crispEdges">
             <path d="M7 0h1v6h-1zM6 2h3v1h-3zM7 9h1v6h-1zM0 7h6v1h-6zM9 7h6v1h-6zM6 6h3v3h-3z" fill="#3a2414" />
             <path d="M7 1h1v5h-1z" fill="#e8485a" />
@@ -63,7 +78,8 @@ export function WorldMap({ zone, pos, ready, pending, onClose, onTravel }: {
           <div className="text-[10px] mb-1" style={{ color: AREAS[pick].color }}>{ZONE_NAMES[pick].toUpperCase()}{pick === zone ? ' · VOCÊ ESTÁ AQUI' : ''}</div>
           <div className="text-[8px] leading-4 text-[#6a4a2a]">{AREAS[pick].text}</div>
         </div>
-        {pick !== zone && ready.includes(pick) && <PxButton color={AREAS[pick].color} onClick={() => onTravel(pick)}>VIAJAR</PxButton>}
+        {pick !== zone && ready.includes(pick) && !flight && <PxButton color={AREAS[pick].color} onClick={() => go(pick)}>{plane ? 'VOAR' : 'VIAJAR'}</PxButton>}
+        {flight && <span className="text-[9px] text-[#3c56b0]">VOANDO PARA {ZONE_NAMES[flight].toUpperCase()}...</span>}
       </div>
       <div className="mt-2 text-[7px] leading-4 text-[#7a5a34]">Clique numa área para viajar até a entrada dela. Andando até a borda de uma área você passa para a do lado.</div>
     </PxPanel>

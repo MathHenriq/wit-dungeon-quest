@@ -39,9 +39,11 @@ import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanv
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
 import { cloudEnabled, pullProgress } from '@/game/cloud';
 import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
-import { DEMO_PEOPLE, nickOk, setProfile, socialDemo, socialError, socialOn, visit } from '@/game/social';
+import { DEMO_PEOPLE, nickOk, noticesMine, setProfile, socialDemo, socialError, socialOn, visit } from '@/game/social';
 import { ProfileCard } from '@/components/social/ProfileCard';
 import { TradeHub } from '@/components/social/TradeHub';
+import { Mural } from '@/components/social/Mural';
+import { ArcadeMaker } from '@/components/social/Arcade';
 import { Radio } from '@/components/city/Radio';
 import { VehicleShop } from '@/components/city/VehicleShop';
 import { poseFrames } from '@/game/world/model-sprite';
@@ -84,7 +86,7 @@ const WORK_DOORS: Record<string, { game: MinigameId; also?: MinigameId[]; shop?:
   'npc-artista': { game: 'pixelart', also: ['cores', 'pintura'] }, atelie: { game: 'pixelart', also: ['cores', 'pintura'] },
   'lab-ia': { game: 'programar', also: ['acuracia', 'rotular'] },
   'casa-iot': { game: 'regras', also: ['circuito'] },
-  metaverso: { game: 'coordenadas', also: ['pares'] },
+  metaverso: { game: 'coordenadas', also: ['sala3d', 'pares'] },
   estudio: { game: 'materia', also: ['boato', 'noticia'] },
   'oficina-games': { game: 'logica', also: ['teste-jogo'] },
   // sem porta própria: abre pela aba GRÁFICOS do Mercado (e por ?trabalho=analista)
@@ -450,6 +452,15 @@ function CityView({ town, start, startHour, onTravel }: {
     }).catch(err => console.error('banco', err));
   }, []);
 
+  // convite de festa de um amigo (vale 30 min)
+  useEffect(() => {
+    void noticesMine().then(list => {
+      const f = list.find(n => n.kind === 'festa');
+      if (f) setFishUi({ kind: 'toast', text: `${f.nick} está dando uma festa em casa! Visite pela MOCHILA, aba AMIGOS.` });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // cidade compartilhada (só com VITE_WIT2_DB=1): publica o perfil (apelido,
   // visual, título), entra no canal da turma e cada colega da área vira um boneco.
   // ?social=demo põe 2 colegas de mentira perto (prints do cartão de perfil).
@@ -522,6 +533,9 @@ function CityView({ town, start, startHour, onTravel }: {
   const [muted, setMuted] = useState(false);
   /** Cartão de perfil de um colega (tocou nele). */
   const [card, setCard] = useState<string | null>(null);
+  /** Mural da turma e o editor de fases do fliperama. */
+  const [mural, setMural] = useState(() => new URLSearchParams(window.location.search).has('mural'));
+  const [maker, setMaker] = useState(() => new URLSearchParams(window.location.search).has('fase'));
   /** Central de trocas aberta pelo cartão (com quem). */
   const [tradeWith, setTradeWith] = useState<string | null>(null);
   const say = useCallback((i: number) => {
@@ -862,7 +876,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const lines = spot.data?.lines as string[] | undefined;
       switch (spot.kind) {
         case 'placa': if (lines) { setDialog({ lines, i: 0 }); return; } break;
-        case 'mural': setBag('missoes'); return;
+        case 'mural': setMural(true); return;
         case 'correio':
           setDialog({ lines: spot.data?.own ? ['Sua caixa de correio. Nenhuma carta nova.', 'Em breve: recados dos colegas e do professor chegam aqui.'] : ['A caixa de correio de um morador. Não é sua!'], i: 0 });
           return;
@@ -1899,7 +1913,7 @@ function CityView({ town, start, startHour, onTravel }: {
         </span>
         <button onClick={() => emote()} title="Emote (teclas 1 a 4)"
           className={`px-3 py-2 rounded-md bg-[#b0721e]/90 border-2 border-[#f0c870] text-white text-[10px] ${pixelFont}`}>EMOTE</button>
-        <Radio className={`px-3 py-2 rounded-md bg-[#6a2a8a]/90 border-2 border-[#d0a0f0] text-white text-[10px] ${pixelFont}`} />
+        <Radio className={`px-3 py-2 rounded-md bg-[#6a2a8a]/90 border-2 border-[#d0a0f0] text-white text-[10px] ${pixelFont}`} zone={town.id} hour={Math.floor(clock)} />
         <button onClick={() => setMapOpen(true)}
           className={`px-3 py-2 rounded-md bg-[#8a5a2e]/90 border-2 border-[#e8c690] text-white text-[10px] ${pixelFont}`}>MAPA</button>
         <button onClick={() => setDeckOpen(true)}
@@ -1917,6 +1931,8 @@ function CityView({ town, start, startHour, onTravel }: {
         onChallenge={() => { setCard(null); setBag(null); setInside({ kind: 'sala', id: 'arena' }); setFishUi({ kind: 'toast', text: 'Sente numa mesa LIVRE e troquem os códigos do deck.' }); }}
         onTrade={() => { setTradeWith(card); setCard(null); setBag(null); }} />}
       {tradeWith && <TradeHub target={tradeWith} onClose={() => setTradeWith(null)} />}
+      {mural && <Mural onClose={() => setMural(false)} onMissions={() => { setMural(false); setBag('missoes'); }} onMaker={() => { setMural(false); setMaker(true); }} />}
+      {maker && <ArcadeMaker onClose={() => setMaker(false)} />}
 
       {banner && (
         <div className={`absolute top-[22%] left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg border-4 border-[#e8c690] bg-[#2e2a40]/90 text-[#fff4d0] text-[14px] tracking-wider pointer-events-none ${pixelFont}`}>
@@ -2007,7 +2023,7 @@ function CityView({ town, start, startHour, onTravel }: {
       })()}
       {vehicleShop && <VehicleShop onClose={() => setVehicleShop(false)} onChange={() => setProgress(loadProgress())} />}
       {mapOpen && (
-        <WorldMap zone={town.id} pos={{ tx: g.current.player.tx, ty: g.current.player.ty }} size={{ w: town.solid[0].length, h: town.solid.length }}
+        <WorldMap zone={town.id} pos={{ tx: g.current.player.tx, ty: g.current.player.ty }} size={{ w: town.solid[0].length, h: town.solid.length }} plane={progress.veiculos.includes('aviao')}
           ready={ZONES} pending={progress.campo ? pendingByZone(progress.campo) : undefined} onClose={() => setMapOpen(false)}
           onTravel={to => { setMapOpen(false); g.current.leaving = true; onTravel(to, undefined, g.current.hour); }} />
       )}

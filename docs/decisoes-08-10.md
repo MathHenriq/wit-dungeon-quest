@@ -10,3 +10,5 @@ Cada uma segue a proposta que já estava nos documentos. Para mudar, basta dizer
 | 4 | Lote próprio da fazenda | O campo já é de cada aluno (cada um tem o seu); não fiz um lote separado | `farm.ts` |
 | 5 | Estações e chuva | Estação de 7 dias, chuva em 1 a cada 4 dias (no verão, 1 a cada 10), feira aos sábados com +50% | `farm.ts` |
 | 6 | Preço dos móveis | De 60 a 760 moedas, pelo tipo e pelo tamanho; os da casa inicial são de graça | `furniture.ts` |
+| 7 | Aviãozinho | A viagem pelo mapa continua grátis para todo mundo; com o avião ela vira um voo animado (cosmético) | `WorldMap.tsx` |
+| 8 | Mural da turma | Só frases da lista e fotos do álbum do jogo; foto só aparece com aprovação do professor; até 6 postagens por dia | `_wit2_world.sql` |
