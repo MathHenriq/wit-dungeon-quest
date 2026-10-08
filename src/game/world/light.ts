@@ -15,15 +15,15 @@ export interface TimeOfDay {
 }
 
 const KEYS: { h: number; tint: string; light: number }[] = [
-  { h: 0, tint: '#646ebc', light: 1 },
-  { h: 4.5, tint: '#646ebc', light: 1 },
+  { h: 0, tint: '#5e68a8', light: 1 },
+  { h: 4.5, tint: '#5e68a8', light: 1 },
   { h: 5.75, tint: '#e6b8c8', light: 0.45 },
   { h: 7, tint: '#ffffff', light: 0 },
   { h: 16.5, tint: '#ffffff', light: 0 },
   { h: 18, tint: '#ffcf9c', light: 0.3 },
   { h: 19.25, tint: '#a08ccc', light: 0.8 },
-  { h: 20.5, tint: '#646ebc', light: 1 },
-  { h: 24, tint: '#646ebc', light: 1 },
+  { h: 20.5, tint: '#5e68a8', light: 1 },
+  { h: 24, tint: '#5e68a8', light: 1 },
 ];
 
 export function timeOfDay(hour: number): TimeOfDay {

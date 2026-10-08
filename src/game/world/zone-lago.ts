@@ -76,8 +76,8 @@ export function buildLago(assets?: WorldAssets, opts: ZoneOptions = {}): Town {
   const bench = sprite('banco', () => ({ pix: P.bench() }));
   z.putLit('banco-praca', bench, 16, 23, 2, 1);
   const sign = sprite('placa', () => ({ pix: P.signPost() }));
-  z.putLit('placa-entrada', sign, 2, 19, 1, 1);
-  z.spot('placa', 2, 19, { lines: ['LAGO AZUL', 'Pesque de qualquer margem ou píer: fique de frente para a água e aperte ESPAÇO.', '← Centro'] });
+  z.putLit('placa-entrada', sign, 3, 22, 1, 1);
+  z.spot('placa', 3, 22, { lines: ['LAGO AZUL', 'Pesque de qualquer margem ou píer: fique de frente para a água e aperte ESPAÇO.', '← Centro'] });
   z.lamp(5, 19); z.lamp(11, 23); z.lamp(19, 18); z.lamp(22, 23); z.lamp(23, 11); z.lamp(8, 31);
 
   // ── cais do barquinho: sai da praia na altura da estrada ──
