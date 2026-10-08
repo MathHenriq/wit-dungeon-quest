@@ -19,6 +19,10 @@ Cada uma segue a proposta que já estava nos documentos. Para mudar, basta dizer
 | 13 | Tarefas de profissão que faltavam | Entraram as que não precisam de arte nem de servidor: Conserto dos postes (IoT, no mapa), Pesquisa de mercado (Comerciante, no mapa) e Compra e venda (Comerciante, tabela de preços). As outras esperam arte ou servidor (lista abaixo) | `fieldwork.ts`, `lessons2.ts` |
 | 14 | Pacotes de Legado | 1 Comum a cada 5 níveis, 1 Raro a cada 15, 1 Épico a cada 30 (nível 20 = 4 Comuns + 1 Raro). Ficam guardados para abrir quando quiser | `legacyPacks` em `migration.ts` e `wit2_legacy_packs` (as duas juntas) |
 | 15 | A virada | Fica pronta e desligada. Ela só roda pelo botão do master, e o botão só liga com `VIRADA_LIGADA = true`. Aplicar o banco não migra ninguém | `teacher-cloud.ts`, `_wit2_virada.sql` |
+| 16 | Votação da turma | O professor escolhe de 2 a 4 temas de uma lista pronta de 12 (sem texto livre). Cada aluno tem 1 voto e pode trocar enquanto a votação está aberta. Abrir uma nova fecha a anterior. O resultado só orienta: a coleção nova continua sendo decisão do Matheus | `class-events.ts` (`VOTE_THEMES`), `_wit2_events.sql` |
+| 17 | Carta da Aula | 3 sugestões por semana (uma Comum, uma Incomum, uma Rara), sempre as mesmas na semana. Quem não faltou ganha 1 cópia, uma vez por aula. Depois da primeira entrega, a carta da aula não muda mais | `weekCards`, `wit2_teacher_lesson_card` |
+| 18 | Masmorra | Fica no telão da Arena. Andar = o mais alto da Torre. 3 masmorras pagas por dia: até 60 moedas cada (perdeu, metade) e, vencendo o chefe, 1 carta do deck do chefe do andar. Com o banco, a carta sai do servidor (no máximo 1 a cada 90 s) | `dungeon.ts` (`DUNGEON_PAID`, `DUNGEON_MAX_COINS`), `_wit2_dungeon.sql` |
+| 19 | Tapetes animados | Quatro animações (brilho, faíscas, ondas, estrelas), só com `transform`/`opacity` numa camada isolada. Medido no celular simulado: sem perda de fps | `playmats.ts` (`anim`), `MatAnim.tsx` |
 
 ## Proposta: 3 profissões novas (decisão 12)
 

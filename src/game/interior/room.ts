@@ -85,7 +85,7 @@ export interface Exit { tx: number; ty: number; to: ExitKind }
 export interface Talk {
   tiles: [number, number][]; lines: string[];
   /** Abre uma tela em vez de só falar: o elevador da Torre, sentar numa mesa vazia (PvP). */
-  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas' | 'moveis';
+  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas' | 'moveis' | 'masmorra';
   /** Mesa vazia: o bloco da cadeira (onde o aluno senta). */
   seat?: [number, number];
 }
@@ -526,7 +526,7 @@ export function arenaRoom(): Room {
   ];
   const talks: Talk[] = [
     { tiles: area(2, 3, 3, 1), lines: ['Placar do ranking: os melhores da semana aparecem aqui.'] },
-    { tiles: area(20, 3, 3, 1), lines: ['No telão passam os duelos ao vivo (em breve).'] },
+    { tiles: area(20, 3, 3, 1), lines: ['Masmorra: salas cheias de monstrinhos e um chefe no fim.'], action: 'masmorra' },
   ];
   ARENA_TABLES.forEach((t, k) => {
     items.push({ id: t.table, tx: t.tx, ty: t.ty });

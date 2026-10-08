@@ -458,6 +458,50 @@ Using the attached sprite sheet as the exact reference for this character (same 
 A pixel art sprite sheet of a small cute propeller plane seen from above, 4 rows (flying down, left, right, up) by 4 animation frames (propeller spinning), top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, clean dark outlines, limited palette, no anti-aliasing, no people, no text, no logos. Flat solid magenta background (#FF00FF).
 ```
 
+### O. Masmorra (estilo Soul Knight) — 08/10
+
+A masmorra já é jogável com arte **provisória**: o piso e a parede do
+castelo, os pets como monstrinhos e um desafiante como chefe
+(`src/game/dungeon.ts`, tela `src/components/dungeon/DungeonView.tsx`,
+`?sala=arena&masmorra`). A sala tem 15 × 9 blocos de 32 px (em hd), vista de
+cima em 3/4 como a cidade. Salve em `public/Novos assets/masmorra/` com o
+nome do título.
+
+- Tudo **original** (sem criatura de obra nenhuma), fofo e nada assustador
+  demais: o público é infantil. Sem sangue, sem texto.
+- Fundo **magenta (#FF00FF)** nos sprites; os pisos e paredes cobrem a
+  imagem toda.
+
+**masmorra-piso.png** (piso que se repete)
+```
+A seamless tileable pixel art floor texture for a cute fantasy dungeon, old mossy stone tiles with small cracks and a few glowing blue crystals, top-down view like Pokémon HeartGold/SoulSilver, 256x256 pixels that tile perfectly on all sides, limited palette, no anti-aliasing, no text.
+```
+
+**masmorra-parede.png** (faixa de parede, repete na horizontal)
+```
+A seamless horizontal pixel art wall strip for a cute fantasy dungeon seen in top-down 3/4 view like Pokémon HeartGold/SoulSilver, dark stone bricks with torches and hanging vines, 288x96 pixels, tiles left to right, limited palette, no anti-aliasing, no text.
+```
+
+**masmorra-objetos.png** (folha 4 × 4, um objeto por quadro de 64 × 64)
+```
+A pixel art sprite sheet, 4 by 4 grid, each cell 64x64, of cute fantasy dungeon objects seen in top-down 3/4 view like Pokémon HeartGold/SoulSilver: stone pillar, broken pillar, wooden barrel, crate, pile of rocks, crystal cluster, small campfire, wooden treasure chest closed, the same chest open with gold glow, locked iron gate (horizontal), locked iron gate (vertical), magic portal swirl, spike trap, potion bottle red, heart pickup, gold coin pile. Clean dark outlines, limited palette, no anti-aliasing, no text, flat solid magenta background (#FF00FF).
+```
+
+**masmorra-monstros.png** (folha 4 × 4 por monstro: baixo, esquerda, direita, cima × 4 quadros; quadro de 48 × 48)
+```
+Three separate pixel art sprite sheets of ORIGINAL cute dungeon monsters for a kids game, each 4 rows (facing down, left, right, up) by 4 walking frames, each frame 48x48, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites: (1) a bouncy green jelly slime with a leaf on top, (2) a small purple bat with big ears flapping, (3) a little hooded mushroom archer holding a tiny bow. Friendly faces, not scary, clean dark outlines, limited palette, no anti-aliasing, no text, flat solid magenta background (#FF00FF).
+```
+
+**masmorra-chefe.png** (4 linhas × 4 quadros; quadro de 96 × 96)
+```
+A pixel art sprite sheet of an ORIGINAL cute but imposing dungeon boss for a kids game: a big stone golem knight with glowing crystal eyes and a mossy shield, 4 rows (facing down, left, right, up) by 4 walking frames, each frame 96x96, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, friendly cartoon proportions, not scary, clean dark outlines, limited palette, no anti-aliasing, no text, flat solid magenta background (#FF00FF).
+```
+
+**masmorra-tiros.png** (folha 4 × 2, quadro de 16 × 16)
+```
+A pixel art sprite sheet, 4 by 2 grid, each cell 16x16: row 1 a small glowing yellow magic bolt in 4 animation frames, row 2 a small pink enemy energy ball in 4 animation frames. Clean outlines, no anti-aliasing, flat solid magenta background (#FF00FF).
+```
+
 ---
 
 # 4. Tapetes do duelo

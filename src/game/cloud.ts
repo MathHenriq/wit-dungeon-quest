@@ -206,6 +206,10 @@ export async function cloudEvolve(p: Progress, id: string): Promise<{ ok: true; 
 export async function cloudBossCard(andar: number, card: string): Promise<number | null> {
   try { await flush(); return await rpc<number>('wit2_boss_card', { p_andar: andar, p_card: card }); } catch { return null; }
 }
+/** Carta da masmorra (o servidor sorteia do deck do chefe do andar; 3 por dia). */
+export async function cloudDungeonCard(): Promise<string | null> {
+  try { await flush(); return await rpc<string>('wit2_dungeon_claim'); } catch { return null; }
+}
 export async function cloudChoosePath(path: string): Promise<Record<string, number> | null> {
   try { return await rpc<Record<string, number>>('wit2_choose_path', { p_path: path }); } catch { return null; }
 }

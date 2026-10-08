@@ -43,7 +43,7 @@ FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace AND p.proname LIKE 
 SELECT bool_and(NOT has_function_privilege('authenticated', p.oid, 'EXECUTE'))
 FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace
   AND p.proname IN ('wit2_ensure','wit2_event','wit2_draw_pack','wit2_weighted','wit2_add_card','wit2_daily_cap',
-                    'wit2_migrate_one','wit2_legacy_packs','wit2_path_of_class','wit2_level_ok');
+                    'wit2_migrate_one','wit2_legacy_packs','wit2_path_of_class','wit2_level_ok','wit2_vote_json');
 
 -- ninguém logado escreve direto nas tabelas de valor
 SELECT bool_and(NOT has_table_privilege('authenticated', c.oid, 'INSERT')
