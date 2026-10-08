@@ -22,7 +22,7 @@ import { cut, loadAtlas, loadInteriorManifest, sprite } from './interior-atlas';
 import { loopSong } from '@/components/work/synth';
 import { CLOTH, MOLDE, type Look } from '@/game/world/outfit';
 import { PLATE_NPC, PLATE_PLAYER } from '@/game/world/nameplate';
-import { DuelView } from '@/components/duel/DuelView';
+import { DuelView, type RemoteDuel } from '@/components/duel/DuelView';
 import { DeckBuilder } from '@/components/duel/DeckBuilder';
 import { DuelResult as DuelResultPanel } from '@/components/duel/DuelResult';
 import { TcgCard } from '@/components/tcg/TcgCard';
@@ -33,7 +33,9 @@ import {
   activeDeckCards, applyDuel, bossUnlocked, canGoUp, loadProgress, saveProgress, tablesWon, winsOf, type DuelResult, type Progress,
 } from '@/game/progress';
 import { cloudBossCard, cloudEnabled } from '@/game/cloud';
-import { guildHit, saveHouse } from '@/game/social';
+import { guildHit, saveHouse, socialMe } from '@/game/social';
+import { buildMatch, joinTable, reportPvp, validDeck, WO_MS, type PvpAction, type PvpHello, type TableLink } from '@/game/pvp-online';
+import { tabId } from '@/game/presence';
 import { GuildPanel } from '@/components/social/GuildPanel';
 import { TradeHub } from '@/components/social/TradeHub';
 import {
@@ -165,7 +167,11 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const [cat, setCat] = useState(HOUSE_CATS[0].id);
   const [progress, setProgress] = useState<Progress>(loadProgress);
   const [ask, setAsk] = useState<{ npc: RoomNpc; foe: Foe } | null>(null);
-  const [duel, setDuel] = useState<{ foe: Foe; sprite: string; result?: DuelResult } | null>(null);
+  const [duel, setDuel] = useState<{ foe: Foe; sprite: string; result?: DuelResult; remote?: RemoteDuel; online?: { key: string; foeHandle?: string } } | null>(null);
+  /** PvP online: esperando na mesa, o canal da mesa e se o colega saiu (W.O.). */
+  const [online, setOnline] = useState<'off' | 'esperando'>('off');
+  const tableLink = useRef<TableLink | null>(null);
+  const [foeAway, setFoeAway] = useState(false);
   const [deckOpen, setDeckOpen] = useState(false);
   /** Elevador da Torre aberto (escolher o andar). */
   const [lift, setLift] = useState(false);
@@ -228,12 +234,55 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   const S = g.current;
   if (import.meta.env.DEV) (window as unknown as { __interior: unknown }).__interior = S;
   S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen || !!housePanel;
+  // senta na mesa online: o primeiro colega que sentar na mesma mesa vira o adversário
+  const waitOnline = async () => {
+    const me = socialMe();
+    if (!cloudEnabled() || !me?.sala || !S.sit) { setPvpMsg('O duelo online precisa estar online (com o banco ligado). Use o código do deck enquanto isso.'); return; }
+    const deckIds = (progress.decks[progress.activeDeck] ?? []).slice(0, 20);
+    if (deckIds.length !== 20) { setPvpMsg('Monte um deck de 20 cartas antes.'); return; }
+    const listeners = new Set<(a: PvpAction) => void>();
+    const hello: PvpHello = { tab: tabId(), handle: me.handle, nick: look.apelido || 'Desafiante', look, deck: deckIds };
+    setOnline('esperando'); setPvpMsg(null);
+    const link = await joinTable(me.sala, `${room.id}-${S.sit.tx}-${S.sit.ty}`, hello, {
+      onStart: (st, iAmHost) => {
+        const initial = buildMatch(st, iAmHost);
+        const other = iAmHost ? st.guest : st.host;
+        if (!initial) { setPvpMsg('O deck do colega não é válido.'); leaveTable(); return; }
+        const remote: RemoteDuel = { initial, send: a => tableLink.current?.send(a), subscribe: fn => { listeners.add(fn); return () => { listeners.delete(fn); }; } };
+        const deck = validDeck(other.deck)!;
+        const counts = new Map<string, number>();
+        for (const c of deck) counts.set(c.element, (counts.get(c.element) ?? 0) + 1);
+        const element = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0] as Foe['element'];
+        setDuel({ sprite: 'npc-desafiante-07', foe: { id: `online-${st.key}`, name: other.nick, kind: 'mesa', andar: progress.andar, element, life: 150, ai: 3, deck, coins: 0 }, remote, online: { key: st.key, foeHandle: other.handle } });
+      },
+      onAction: a => listeners.forEach(f => f(a)),
+      onAway: away => setFoeAway(away),
+    });
+    if (!link) { setOnline('off'); return; }
+    tableLink.current = link;
+  };
+  const leaveTable = () => { tableLink.current?.leave(); tableLink.current = null; setOnline('off'); setFoeAway(false); };
   const standUp = () => {
     const st = S.sit;
     if (!st) return;
+    leaveTable();
     S.sit = null; setWaiting(false);
     S.player = newWalker(st.from.tx, st.from.ty, st.from.dir);
   };
+  // W.O.: o colega saiu da mesa no meio do duelo e não voltou em 1 minuto
+  useEffect(() => {
+    if (!foeAway || !duel?.online || duel.result) return;
+    const t = window.setTimeout(() => {
+      const cur = loadProgress();
+      const next = { ...cur, stats: { ...cur.stats, pvpVitorias: (cur.stats.pvpVitorias ?? 0) + 1 } };
+      saveProgress(next); setProgress(next);
+      void reportPvp(duel.online!.key, duel.online!.foeHandle, true);
+      setDuel(d => (d ? { ...d, result: { won: true, coins: 0, firstWin: false } } : d));
+      leaveTable();
+    }, WO_MS);
+    return () => window.clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foeAway, duel?.online, duel?.result]);
   S.progress = progress;
   // ?sentar=1 (prints e testes): senta na 1ª mesa livre da sala ao abrir
   useEffect(() => {
@@ -838,6 +887,14 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
               }} className="px-3 py-2 rounded bg-[#e8485a] text-[9px]">DESAFIAR</button>
             </div>
           )}
+          {room.id !== 'oficina' && (
+            <div className="mt-2 flex flex-wrap gap-2 items-center">
+              {online === 'off'
+                ? <button onClick={() => void waitOnline()} className="px-3 py-2 rounded bg-[#3a9a5a] text-[9px]">ESPERAR ONLINE</button>
+                : <span className="text-[8px] text-[#b8ff7a]">Esperando um colega sentar nesta mesa<span className="animate-pulse">...</span></span>}
+              <span className="text-[7px] text-white/60">Duelo ao vivo: cada um joga do seu aparelho.</span>
+            </div>
+          )}
           {pvpMsg && <div className="mt-2 text-[8px] text-[#ffd84a]">{pvpMsg}</div>}
           <button onClick={standUp} className="mt-3 px-3 py-2 rounded bg-[#4a4660] text-[9px]">LEVANTAR</button>
         </div>
@@ -942,12 +999,14 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
           mat={progress.mat}
           talents={{ novaMao: hasTalent(progress, 'nova-mao'), espiar: hasTalent(progress, 'espiar') }}
           nick={look.apelido || 'Você'}
-          onQuit={() => setDuel(null)}
+          remote={duel.remote ? { ...duel.remote, away: foeAway } : undefined}
+          onQuit={() => { if (duel.online) leaveTable(); setDuel(null); }}
           onEnd={won => {
-            // duelo contra o deck de um colega (código): não rende moedas, conta no placar de PvP
-            if (duel.foe.id.startsWith('pvp-')) {
+            // duelo contra um colega (código do deck ou online): não rende moedas, conta no placar de PvP
+            if (duel.foe.id.startsWith('pvp-') || duel.online) {
               const next = { ...progress, stats: { ...progress.stats, [won ? 'pvpVitorias' : 'pvpDerrotas']: (progress.stats[won ? 'pvpVitorias' : 'pvpDerrotas'] ?? 0) + 1 } };
               saveProgress(next); setProgress(next);
+              if (duel.online) { void reportPvp(duel.online.key, duel.online.foeHandle, won); leaveTable(); }
               setDuel(d => (d ? { ...d, result: { won, coins: 0, firstWin: false } } : d));
               return;
             }

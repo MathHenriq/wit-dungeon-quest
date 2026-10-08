@@ -11,6 +11,7 @@ import type { Look } from '@/game/world/outfit';
 import { loadLookFrames, loadNpcFrames, loadReactionFrames } from '@/game/world/sprites';
 import { matOf, matStyle } from '@/game/playmats';
 import { diffMoves, type Move } from './moves';
+import type { PvpAction } from '@/game/pvp-online';
 import './DuelView.css';
 
 /**
@@ -43,6 +44,16 @@ interface Props {
   mat?: string;
   /** Talentos de duelo do Grimório: trocar a mão inicial e espiar o topo do deck (uma vez cada). */
   talents?: { novaMao?: boolean; espiar?: boolean };
+  /** PvP online: a partida já montada (eu no lugar 0), as jogadas do colega chegam por `subscribe` e as minhas saem por `send`. */
+  remote?: RemoteDuel;
+}
+
+export interface RemoteDuel {
+  initial: GameState;
+  send: (a: PvpAction) => void;
+  subscribe: (onAction: (a: PvpAction) => void) => () => void;
+  /** O colega saiu da mesa (contando para o W.O.). */
+  away?: boolean;
 }
 
 
@@ -294,9 +305,10 @@ function CalcPanel({ c }: { c: DamageCalc }) {
   );
 }
 
-export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result, mat, talents }: Props) {
+export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, result, mat, talents, remote }: Props) {
   const [peek, setPeek] = useState<'pronto' | 'aberto' | 'usado'>('pronto');
   const [state, setState] = useState<GameState>(() => {
+    if (remote) return remote.initial;
     // ?mao=id1,id2 põe essas cartas na mão e ?comeca=eu|ele escolhe quem começa (prints e testes)
     const q = new URLSearchParams(window.location.search);
     const first = q.get('comeca') === 'eu' ? 0 : q.get('comeca') === 'ele' ? 1 : Math.random() < 0.5 ? 0 : 1;
@@ -523,8 +535,42 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.active, state.turn, intro]);
 
+  // PvP online: as jogadas do colega chegam pela rede e entram uma por vez,
+  // com a mesma animação do turno do inimigo
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const inbox = useRef<PvpAction[]>([]);
+  const [inboxTick, setInboxTick] = useState(0);
+  useEffect(() => {
+    if (!remote) return;
+    return remote.subscribe(a => { inbox.current.push(a); setInboxTick(t => t + 1); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remote?.subscribe]);
+  useEffect(() => {
+    if (!remote || intro || !inbox.current.length) return;
+    const a = inbox.current.shift()!;
+    const s = stateRef.current;
+    try {
+      if (a.t === 'play') {
+        const card = s.players[1].hand.find(c => c.uid === a.uid);
+        const next = playCard(s, a.uid, a.discard ? { discard: a.discard } : {});
+        const secret = card?.def.type === 'trap';
+        if (card) { setShown({ card: card.def, by: 1, key: Date.now(), uid: a.uid, secret }); if (!secret) setFocus(card.def); playedUid.current = a.uid; play('card'); }
+        setFoeMood('throw');
+        window.setTimeout(() => setFoeMood(m => (m === 'throw' ? 'think' : m)), 420);
+        setState(next);
+      } else if (a.t === 'end') { setShown(null); setFoeMood('idle'); if (s.winner === null) setState(endTurn(s)); }
+      else if (a.t === 'mull') setState(mulligan(s, 1));
+    } catch (e) { if (!(e instanceof IllegalPlay)) throw e; }
+    // a próxima espera a animação desta
+    const t = window.setTimeout(() => setInboxTick(x => x + 1), a.t === 'play' ? AI_STEP_MS + 420 : 200);
+    return () => window.clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inboxTick, intro]);
+
   // turno do inimigo: uma carta por vez
   useEffect(() => {
+    if (remote) { if (state.active === 1 && state.winner === null) setFoeMood('think'); return; }
     if (state.active !== 1 || state.winner !== null || intro) return;
     let alive = true;
     setFoeMood('think');
@@ -571,6 +617,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     try {
       const card = state.players[0].hand.find(c => c.uid === uid);
       const next = playCard(state, uid, discard ? { discard } : {});
+      remote?.send(discard ? { t: 'play', uid, discard } : { t: 'play', uid });
       if (card) { setShown({ card: card.def, by: 0, key: Date.now(), uid }); play('card'); }
       playedUid.current = uid;
       window.setTimeout(() => setShown(s => (s?.uid === uid ? null : s)), PLAYED_MS + 400);
@@ -579,7 +626,7 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     } catch (e) {
       if (e instanceof IllegalPlay) setError(e.message); else throw e;
     }
-  }, [state]);
+  }, [state, remote]);
 
   const tryPlay = (uid: string) => {
     const card = me.hand.find(c => c.uid === uid);
@@ -604,8 +651,9 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
     if (!myTurn || picking) return;
     setError(null);
     play('click');
+    remote?.send({ t: 'end' });
     setState(endTurn(state));
-  }, [myTurn, picking, state]);
+  }, [myTurn, picking, state, remote]);
 
   // espaço encerra o turno
   useEffect(() => {
@@ -804,12 +852,13 @@ export function DuelView({ foe, foeSprite, deck, look, nick, onEnd, onQuit, resu
         </div>
 
         <div className="dv-tools dv-px">
-          {talents?.novaMao && canMulligan(state, 0) && <button title="Grimório: Embaralhar de Novo" onClick={() => { setState(mulligan(state, 0)); play('draw'); }}>NOVA MÃO</button>}
+          {talents?.novaMao && canMulligan(state, 0) && <button title="Grimório: Embaralhar de Novo" onClick={() => { remote?.send({ t: 'mull' }); setState(mulligan(state, 0)); play('draw'); }}>NOVA MÃO</button>}
           {talents?.espiar && peek === 'pronto' && myTurn && state.players[0].deck.length > 0 && <button title="Grimório: Olho do Oráculo" onClick={() => { setPeek('aberto'); play('flip'); }}>ESPIAR</button>}
           <button onClick={() => setShowLog(v => !v)}>LOG</button>
           <button onClick={() => { setMuted(!muted); setMutedState(!muted); if (muted) play('click'); }} aria-label={muted ? 'Ligar o som' : 'Desligar o som'}>{muted ? 'MUDO' : 'SOM'}</button>
           <button onClick={onQuit}>SAIR</button>
         </div>
+        {remote?.away && state.winner === null && <div className="dv-away dv-px">O colega saiu da mesa. Se não voltar em 1 minuto, a vitória é sua.</div>}
         {showLog && (
           <div ref={logRef} className="dv-log">
             {lastLog.map((l, i) => (

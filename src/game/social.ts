@@ -82,8 +82,12 @@ export function socialError(e: unknown): string {
   return 'Sem conexão com o servidor. Tente de novo.';
 }
 
+let myself: Me | null = null;
+/** O meu perfil público (handle e turma), depois que a cidade publicou. */
+export const socialMe = () => myself;
 export const setProfile = (nick: string, title: string | undefined, look: Look, favs: string[]) =>
-  call<Me>('wit2_set_profile', { p_nick: nick, p_title: title ?? null, p_look: look, p_favs: favs.slice(0, 3) }, () => ({ handle: 'demo-eu', muted: false, sala: null }));
+  call<Me>('wit2_set_profile', { p_nick: nick, p_title: title ?? null, p_look: look, p_favs: favs.slice(0, 3) }, () => ({ handle: 'demo-eu', muted: false, sala: null }))
+    .then(m => { myself = m; return m; });
 export const profileOf = (handle: string) =>
   call<PublicProfile | null>('wit2_profile_of', { p_handle: handle }, () => DEMO_PEOPLE.find(p => p.handle === handle) ?? null);
 export const friendRequest = (handle: string) => call<'enviado' | 'amigos'>('wit2_friend_request', { p_handle: handle }, () => 'enviado');

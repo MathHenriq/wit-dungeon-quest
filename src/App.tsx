@@ -28,6 +28,7 @@ const FloorMapDemo      = lazy(() => import("./pages/FloorMapDemo"));
 const FloorSelectDemo   = lazy(() => import("./pages/FloorSelectDemo"));
 const CardsDemo         = lazy(() => import("./pages/CardsDemo"));
 const CityDemo          = lazy(() => import("./pages/CityDemo"));
+const PvpDemo           = lazy(() => import("./pages/PvpDemo"));
 const TeacherLessonDemo = lazy(() => import("./pages/TeacherLessonDemo"));
 const NotFound          = lazy(() => import("./pages/NotFound"));
 
@@ -106,6 +107,7 @@ function AppRoutes() {
           <Route path="/floor-select-demo"      element={<FloorSelectDemo />} />
           <Route path="/cartas-demo"            element={<CardsDemo />} />
           <Route path="/cidade-demo"            element={<CityDemo />} />
+          <Route path="/pvp-demo"               element={<PvpDemo />} />
           <Route path="/professor/aula-demo"    element={<TeacherLessonDemo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*"                       element={<NotFound />} />
