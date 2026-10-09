@@ -1,139 +1,132 @@
 # Os professores do WIT dentro do jogo
 
-> Atualizado em 09/10/2026 com o retorno do Matheus: **todos os professores são moradores
-> que andam pela cidade todos os dias**, e o visual de cada um é feito **a partir da foto
-> real** (uso autorizado por todos).
+> Atualizado em 09/10/2026. Já está no jogo (branch `claude/fazenda-lago-casa-lore`):
+> os 12 professores andam pela cidade com rotina por hora, entregam as tarefas do curso,
+> almoçam juntos, têm passatempo e casa. Falta só o visual de cada um (feito a partir da
+> foto, §5). Código: `src/game/world/professores.ts` (+ testes).
 
 ---
 
-## 1. O que existe hoje
+## 1. Quem é quem
 
-Na Cidade WIT, a porta de cada prédio de curso abre direto o painel de trabalho
-(`WORK_DOORS` em `CityDemo.tsx`): não há sala por dentro nem ninguém entregando a tarefa.
-O único "professor" é um morador genérico chamado "Professor" na praça (`content.ts`),
-que sai quando os professores de verdade entrarem.
+O curso de cada um é **proposta lógica** (o Matheus disse "faça da forma lógica"): IA
+como ele tinha dito; os três gamers na Oficina de Games; foto, leitura e música na
+Comunicação Digital. Trocar é uma linha em `professores.ts`.
 
----
-
-## 2. Quem é quem
-
-| Sala (prédio que já existe) | Curso | Professores | Tarefas que entregam (já existem) |
+| Professor | Curso (proposta) | Mora em | Passatempo |
 |---|---|---|---|
-| Estúdio de Comunicação (`estudio`) | Comunicação Digital | **Prof. Gabriel, Prof. Matheus Camilo, Profa. Joyce** | escrever matéria, jornalzinho, fato ou boato, notícia, entrevista |
-| Laboratório de IA (`lab-ia`) | IA | **Prof. Matheus Macedo, Profa. Mayara, Prof. Dante** *(a confirmar)* | programar o robô, testar o modelo, rotular dados, caça aos dados |
-| Casa Inteligente (`casa-iot`) | IoT | *faltam os nomes* | regra SE/ENTÃO, circuito, sensores, conserto dos postes |
-| Metaverso (`metaverso`) | Metaverso | *faltam os nomes* | coordenadas 3D, Sala Virtual, pares 3D, escanear a cidade |
-| Oficina de Games (`oficina-games`) | Oficina de Games | *faltam os nomes* | lógica do jogo, teste de jogo, caça-bugs |
-
-Trabalhos de fora do WIT (Padaria da Dona Rosa, Doces da Dona Ana, Casa de Pesca, Fazenda)
-continuam com um morador só.
+| Prof. Dante | IA | Centro, casa laranja | **anda de moto** com o Wellington (casaco preto) |
+| Prof. Wellington | IoT | Centro, casa roxa | **anda de moto** com o Dante |
+| Profa. Mayara | IA | Cidade WIT, Moradia 3 | **jiu-jitsu** em casa |
+| Prof. Matheus Macedo | IA | Centro, casa verde | **PC gamer** e, no fim da tarde, **churrasco** |
+| Prof. Guilherme Rodrigues | IoT | Cidade WIT, Moradia 4 | **muay thai** em casa |
+| Prof. Matheus Servilha | Oficina de Games | Centro, casa vermelha | **joga games em casa** (o Vitor e o Miguel vão para lá) |
+| Prof. Vitor | Oficina de Games | Cidade WIT, Moradia 1 (divide com o Miguel) | joga na casa do Servilha |
+| Prof. Miguel | Oficina de Games | Cidade WIT, Moradia 1 | joga com o Vitor e o Servilha |
+| Profa. Leticia | Comunicação Digital | Centro, casa azul | **lê livros** na praia do Lago |
+| Prof. Felipe Oliveira | Comunicação Digital | Centro, Casa do Músico | **toca guitarra** na praça |
+| Prof. Maycon | Metaverso | Cidade WIT, Moradia 2 | **vende cachorro-quente** na praça |
+| Profa. Grazyelle | Comunicação Digital | Centro, Ateliê | **tira fotos** pelo Lago |
 
 ---
 
-## 3. A rotina de cada professor (todos os dias)
+## 2. A rotina (relógio do jogo)
 
-Como os moradores do Stardew: cada professor tem **horário**. O motor da cidade já move
-moradores por rotas entre áreas (`job.route` em `content.ts`, `zona` para a área).
-
-| Hora do jogo | Onde está | O que faz |
+| Hora | Onde | O que acontece quando o aluno fala com ele |
 |---|---|---|
-| 7h–8h | sai de casa (Bairro Novo) | passa pela padaria, cumprimenta quem encontra |
-| 8h–12h | **na sala do curso**, na mesa dele | entrega as tarefas do curso |
-| 12h–14h | almoço: praça, padaria ou quiosque do lago | conversa |
-| 14h–18h | **o passatempo dele**, em qualquer área | ver abaixo |
-| 18h–20h | volta pela cidade | |
-| 20h–7h | em casa (cada um tem uma casa no Bairro Novo, com interior) | |
+| 0h–8h | em casa | bater na porta: ele atende |
+| **8h–12h** | **na porta do prédio do curso**, na Cidade WIT | **abre as tarefas do curso** (o professor entrega o trabalho) |
+| 12h–14h | **almoço em volta do carrinho do Maycon**, na praça do Centro | conversa |
+| 14h–19h | **passatempo** (no mapa ou em casa) | fala do passatempo; o Maycon **vende cachorro-quente** (enche a barriga); a Grazyelle **tira uma foto sua** (vai para o álbum) |
+| 19h–24h | em casa | bater na porta: ele atende |
 
-**Passatempo de cada um, escolhido pelo próprio professor:** pescar no cais, cuidar da
-horta na fazenda, duelar na Arena, correr em volta do lago, desenhar no Ateliê, tocar no
-Estúdio de Música, passear de bicicleta... Encontrar o professor no lugar favorito dele
-vira assunto na escola ("o Prof. Dante pesca toda tarde no cais!").
+- A jogatina na casa do Servilha vai até as 22h, com o Vitor e o Miguel.
+- **Bater na porta** de quem não está em casa diz onde ele está ("Ninguém atende. A Profa.
+  Mayara deve estar dando aula de Inteligência Artificial na Cidade WIT."). Os alunos
+  aprendem a rotina e vão atrás.
+- A Casa do Músico e o Ateliê continuam abrindo os trabalhos de música e de arte; quando o
+  dono está em casa, aparece "Prof. Felipe Oliveira está aqui: toca guitarra".
+- O "Professor" genérico que ficava na praça da Cidade WIT saiu.
 
-### O que o aluno ganha falando com eles
-- **Tarefas** na sala do curso (o painel de hoje, agora entregue por uma pessoa).
-- **O professor da turma do aluno reconhece ele** e cumprimenta pelo apelido (o banco já
-  separa os alunos por professor): "E aí, <apelido>! Bom te ver depois da aula de terça."
-- **Recado da semana:** um campo novo no painel do professor; o boneco fala o recado para
-  a turma dele.
-- As **Missões da sala** (já existem) passam a ser entregues pela boca do professor.
-- **Amizade** como com qualquer morador (corações, presentes, aniversário), com cenas
-  curtas escritas junto com cada professor.
-- **Falas do dia** que mudam com a estação, o clima e o capítulo da história, sempre
-  aprovadas pelo próprio professor.
+### Na história (`docs/historia.md`)
+Sempre do bem: nunca suspeitos, nunca vilões, nunca viram carta. No Ato 2 percebem que a
+turma anda esquecendo as aulas; no Ato 3 os de IoT ajudam a consertar o farol; no final,
+quando o Vale vira carta, a Cidade WIT é o último lugar aceso e **os professores
+comandam a resistência**.
 
 ---
 
-## 4. O visual a partir da foto
+## 3. O que ainda falta
 
-O boneco segue o padrão dos moradores que já existem: **uma folha 4 × 4 do GPT** (16
-quadros de andar: frente, esquerda, direita, costas), cores de verdade, importada para
-`public/game/sprites/npcs/` como os desafiantes (`npc-desafiante-XX`, quadros de 64 × 80).
-
-### Passo a passo
-1. Cada professor manda **uma foto de frente e uma de corpo inteiro**, com a roupa que
-   costuma usar.
-2. O Matheus anexa no GPT: a foto + `public/game/sprites/modelos/modelo-01.png` (para o
-   tamanho e a grade) e usa o prompt abaixo.
-3. A folha vai para `public/Novos assets/personagem/prontos/prof-<nome>.png` e passa pelo
-   importador do personagem, como as outras.
-4. **Revisão com o próprio professor:** ele aprova o boneco antes de entrar no jogo.
-5. Opcional: um **retrato** (busto) para a caixa de diálogo, no mesmo estilo.
-
-### Prompt da folha (um por professor)
-```
-Using the attached sprite sheet ONLY as a reference for grid, frame size, proportions, poses and walk cycle, and the attached photo ONLY as a reference for the person's look, draw a friendly chibi pixel-art version of this adult teacher: same skin tone, hair style and hair color, facial hair, glasses and typical clothing style as in the photo, simplified and cute, respectful and recognizable, not a caricature. Slightly taller than the kid in the reference, still big-head chibi proportions. Modest everyday clothing. Exactly the same grid as the reference: 4 rows and 4 columns, 16 frames, same positions, same size, same poses frame by frame. Row 1 walking toward the viewer (facing down), row 2 walking to the LEFT, row 3 walking to the RIGHT, row 4 walking away from the viewer (back view). Each walk cycle: frame 1 standing, frame 2 left foot forward, frame 3 standing, frame 4 right foot forward, with clearly visible leg movement in every row. Crisp pixel art like Pokémon HeartGold/SoulSilver overworld sprites, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No shadow, no text, no ground.
-```
-
-### Prompt do retrato (opcional)
-```
-Using the attached photo ONLY as a reference for the person's look and the attached sprite sheet for the art style, draw a bust portrait of this adult teacher in the same crisp pixel-art style (Pokémon HeartGold/SoulSilver), friendly smile, facing the viewer, same skin tone, hair, facial hair, glasses and clothing style, respectful and recognizable, not a caricature. Square image, flat solid magenta background (#FF00FF). No text.
-```
-
-### Cuidado com as fotos
-- **As fotos não entram no repositório**, nem em `public/`. Só o boneco gerado entra.
-  Ficam com o Matheus (ou no rascunho de Release `Assets`, como os zips da arte, se ele
-  preferir).
-- O boneco não leva sobrenome nem nada além do nome que o professor escolher na
-  plaquinha.
-
----
-
-## 5. Na história (`docs/historia.md`)
-
-Os professores são **sempre do bem**: nunca suspeitos, nunca vilões, nunca viram carta.
-- **Ato 2:** são os primeiros a perceber que "metade da turma esqueceu a aula de ontem"
-  e viram aliados contra o chá do esquecimento.
-- **Ato 3:** os de IoT ajudam a consertar o circuito do farol.
-- **Final:** quando o Vale inteiro vira carta, **a Cidade WIT é o último lugar aceso** e os
-  professores comandam **a resistência**. É o QG do aluno no capítulo final.
-
----
-
-## 6. Regras
-
-1. Autorização de cada professor (o Matheus confirmou que todos autorizaram).
-2. **Professor saiu do WIT?** `ativo: false` no arquivo de configuração tira o boneco na
-   hora.
-3. Falas fixas aprovadas pelo próprio professor; o recado da semana é escrito por ele.
-
----
-
-## 7. Construção
-
-| Passo | O quê |
+| Falta | Por quê |
 |---|---|
-| 1 | `src/game/world/professores.ts`: nome, curso, sala, sprite, casa, rotina por hora, passatempo, falas, `ativo` |
-| 2 | Moradores da cidade aceitarem **sprite próprio** (hoje os da rua usam o `Look` com recolor; os de sala já usam `npc-desafiante-XX`) e **rotina por hora** (hoje a rota não depende da hora) |
-| 3 | Interior das 5 salas do WIT e das casas dos professores no Bairro Novo (atlas de móveis) |
-| 4 | Porta do curso leva à sala; falar com o professor abre as tarefas |
-| 5 | Cumprimento do professor da turma pelo apelido; "Recado no jogo" no painel do professor; Missões da sala pelo boneco |
+| **O boneco de cada um, feito pela foto** | hoje usam os modelos recoloridos (provisório) |
+| As **ações** (moto, jiu-jitsu, muay thai, PC, churrasco, guitarra, leitura, câmera, carrinho) | precisa da arte; hoje eles ficam parados ou andando, e a ação aparece na fala |
+| Ver o professor **dentro de casa** fazendo a atividade | com a arte da ação, ele aparece na sala da casa; hoje a porta conta |
+| "**Seu** professor te reconhece pelo apelido" e o recado da semana | precisa do banco ligado (saber de qual professor é a turma) |
+| Moto de verdade (andando rápido pela rua) | a arte da moto com o boneco (§5) |
 
 ---
 
-## 8. O que ainda preciso
+## 4. As fotos: onde colocar
 
-1. Confirmar: "no dia A" = "**na de IA**" (Prof. Matheus Macedo, Profa. Mayara, Prof.
-   Dante no Lab de IA)?
-2. Os professores de **IoT, Metaverso e Oficina de Games**.
-3. O **passatempo** que cada professor quer ter no jogo.
-4. As fotos (por fora do repositório).
+**Direto no GPT.** A arte do jogo já sai do GPT; a foto só serve de referência lá.
+1. No seu computador, uma pasta `fotos-professores/` com uma pasta por professor
+   (`dante/`, `mayara/`...). Uma foto de rosto e uma de corpo inteiro bastam.
+2. Uma conversa no GPT por professor: anexe a foto + a folha de referência
+   (`public/game/sprites/modelos/modelo-01.png`) e cole o prompt do §5.
+3. **As fotos nunca entram no repositório** (nem em `public/`): só o boneco pronto.
+4. Cada professor vê o próprio boneco antes de entrar no jogo.
+
+A pasta no Cowork não ajuda: quem gera a imagem é o GPT.
+
+---
+
+## 5. Prompts (um professor por vez)
+
+Salve em `public/Novos assets/personagem/professores/` com o nome indicado. Fundo
+magenta, como todo o resto. Depois eu importo e troco o visual provisório.
+
+### 5.1 O boneco andando — `prof-<id>.png` (todos os 12)
+Troque o `[detalhe]` pelo que está na linha de cada um abaixo.
+```
+Using the attached sprite sheet ONLY as a reference for grid, frame size, proportions, poses and walk cycle, and the attached photo ONLY as a reference for the person's look, draw a friendly chibi pixel-art version of this adult teacher: same skin tone, hair style and hair color, facial hair, glasses and typical clothing style as in the photo, simplified and cute, respectful and recognizable, not a caricature. [detalhe]. Slightly taller than the kid in the reference, still big-head chibi proportions. Modest everyday clothing. Exactly the same grid as the reference: 4 rows and 4 columns, 16 frames, same positions, same size, same poses frame by frame. Row 1 walking toward the viewer (facing down), row 2 walking to the LEFT, row 3 walking to the RIGHT, row 4 walking away from the viewer (back view). Each walk cycle: frame 1 standing, frame 2 left foot forward, frame 3 standing, frame 4 right foot forward, with clearly visible leg movement in every row. Crisp pixel art like Pokémon HeartGold/SoulSilver overworld sprites, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No shadow, no text, no ground.
+```
+| Arquivo | `[detalhe]` |
+|---|---|
+| `prof-dante.png` | Wearing a black jacket |
+| `prof-wellington.png` | Everyday clothes as in the photo |
+| `prof-mayara.png` | Everyday clothes as in the photo |
+| `prof-macedo.png` | Everyday clothes as in the photo |
+| `prof-guilherme.png` | Everyday clothes as in the photo |
+| `prof-servilha.png` | Everyday clothes as in the photo, headphones around the neck |
+| `prof-vitor.png` | Everyday clothes as in the photo |
+| `prof-miguel.png` | Everyday clothes as in the photo |
+| `prof-leticia.png` | Everyday clothes as in the photo |
+| `prof-felipe.png` | Everyday clothes as in the photo |
+| `prof-maycon.png` | Everyday clothes as in the photo |
+| `prof-grazyelle.png` | Everyday clothes as in the photo, a camera strap on the shoulder |
+
+### 5.2 A ação — `prof-<id>-acao.png` (anexe a folha do boneco pronta, não a foto)
+```
+Using the attached character sprite sheet as the exact reference for this character (same face, hair, skin, clothes, proportions and outline), draw a pixel-art animation of the SAME character [ação], 1 row of 4 frames, facing the viewer at a slight 3/4 angle, same frame size and scale as the reference, a simple looping motion. Crisp pixel art like Pokémon HeartGold/SoulSilver, clean dark outlines, no anti-aliasing, friendly and modest. Flat solid magenta background (#FF00FF). No text, no ground, no shadow.
+```
+| Arquivo | `[ação]` |
+|---|---|
+| `prof-mayara-acao.png` | practicing jiu-jitsu on a blue mat, wearing a white gi with a belt, doing a drill |
+| `prof-guilherme-acao.png` | training muay thai, kicking and punching a hanging heavy bag, wearing hand wraps |
+| `prof-macedo-acao.png` | sitting at a gaming PC with RGB lights, playing with keyboard and mouse |
+| `prof-macedo-churrasco.png` | grilling skewers at a small brick barbecue grill, a little smoke rising |
+| `prof-servilha-acao.png` | sitting on a couch playing a video game with a controller, excited |
+| `prof-vitor-acao.png` | sitting on a couch playing a video game with a controller |
+| `prof-miguel-acao.png` | sitting on a couch playing a video game with a controller, cheering |
+| `prof-leticia-acao.png` | sitting and reading a book, turning a page |
+| `prof-felipe-acao.png` | playing an electric guitar, music notes floating |
+| `prof-maycon-acao.png` | behind a small red hot dog cart with an umbrella, handing out a hot dog |
+| `prof-grazyelle-acao.png` | taking a photo with a camera, a small flash |
+
+### 5.3 Na moto — `prof-dante-moto.png` e `prof-wellington-moto.png`
+```
+Using the attached character sprite sheet as the exact reference for this character (same face, hair, skin, clothes, proportions and outline), draw a pixel art sprite sheet of the SAME character riding a motorcycle and wearing a helmet, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokémon HeartGold/SoulSilver overworld sprites, same scale as the reference character, clean dark outlines, limited palette, no anti-aliasing. Friendly, original, no text, no logos. Flat solid magenta background (#FF00FF).
+```
+(O Dante de casaco preto.)

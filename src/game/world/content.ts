@@ -174,9 +174,6 @@ NPCS.push(
     look: { modelo: 'modelo-05', pele: 'pele-3', cabelo: 'castanho', cima: 'rosa', baixo: 'jeans', acc: { cabeca: { id: 'laco', cor: 'amarelo' } } },
     lines: ['Os patinhos da lagoa são meus amigos!', 'Dá para pescar na lagoa também. E encher o regador!'] },
   // Cidade WIT
-  { id: 'professor', zona: 'wit', name: 'Professor', title: 'Núcleo WIT', tx: 33, ty: 13, dir: 'south',
-    look: { modelo: 'modelo-08', pele: 'pele-3', cabelo: 'preto', cima: 'verde', baixo: 'jeans', acc: { rosto: { id: 'oculos', cor: 'preto' } } },
-    lines: ['Bem-vindo à Cidade WIT!', 'Aqui ficam os cursos do Núcleo: IA, IoT, Metaverso, Comunicação Digital e Oficina de Games.', 'Entre no Núcleo para ver as profissões de cada curso.'] },
   { id: 'monitora-ia', zona: 'wit', name: 'Yasmin', title: 'Monitora de IA', tx: 16, ty: 13, dir: 'south',
     look: { modelo: 'modelo-06', pele: 'pele-5', cabelo: 'preto', cima: 'marinho', baixo: 'preto', acc: { cabeca: { id: 'fone', cor: 'marinho' } } },
     lines: ['O WIT-Bot anda pela praça. Fale com ele!', 'Ele aprendeu a conversar com os exemplos que a gente deu.'] },

@@ -75,6 +75,7 @@ import {
   storyTalk, storyTick, storyVisible,
 } from '@/game/story/runtime';
 import { Caderno, StoryChoice, StoryHud } from '@/components/story/StoryUi';
+import { bateNaPorta, CURSO, emCasa, profNpcs, profOf, profVisible } from '@/game/world/professores';
 
 /**
  * Protótipo jogável da Cidade WIT: andar pela cidade (setas/WASD ou toque),
@@ -251,7 +252,8 @@ function CityView({ town, start, startHour, onTravel }: {
 }) {
   const START = start ?? { ...startTile(town), dir: 'north' as Dir };
   // moradores desta área
-  const [npcDefs] = useState(() => NPCS.filter(n => (n.zona ?? 'cidade') === town.id));
+  // moradores da área + os professores (cada parte do dia deles é um morador que aparece na hora certa)
+  const [npcDefs] = useState(() => [...NPCS, ...profNpcs()].filter(n => (n.zona ?? 'cidade') === town.id));
   const firstQuery = useRef(!start);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [panel, setPanel] = useState<{ title: string; text: string } | null>(null);
@@ -423,7 +425,7 @@ function CityView({ town, start, startHour, onTravel }: {
   const refreshStory = useCallback(() => {
     const s = g.current;
     const c = storyCtx(town.id, s.hour, s.farm.day);
-    s.npcs = s.allNpcs.filter(n => storyVisible(n.def.id, c));
+    s.npcs = s.allNpcs.filter(n => storyVisible(n.def.id, c) && profVisible(n.def.id, s.hour));
     s.story = { ...storyMarks(town.id), fog: storyFog(c) };
     s.dirty = true;
   }, [town]);
@@ -882,6 +884,22 @@ function CityView({ town, start, startHour, onTravel }: {
       const st = storyTalk(npc.def.id, sctx());
       if (st.escolha) { setChoice(st.escolha); return; }
       if (st.falas) { setDialog({ lines: st.falas, i: 0 }); return; }
+      // professor: na aula entrega as tarefas do curso; o Maycon vende cachorro-quente; a Grazyelle tira a sua foto
+      const pf = profOf(npc.def.id);
+      if (pf) {
+        const { prof, parte } = pf;
+        if (parte === 'aula' && WORK_DOORS[CURSO[prof.curso].predio]) { toast(npc.def.lines[0]); setWork(WORK_DOORS[CURSO[prof.curso].predio]); return; }
+        if (prof.acao === 'cachorro-quente' && parte !== 'aula') {
+          const r = buy(loadProgress(), 'cachorro-quente');
+          if ('reason' in r) { setDialog({ lines: [...npc.def.lines, `(${r.reason})`], i: 0 }); return; }
+          saveProgress(r.progress); play('coin');
+          setDialog({ lines: [...npc.def.lines, 'Saiu um cachorro-quente! Está na mochila.'], i: 0 });
+          return;
+        }
+        if (prof.acao === 'foto' && parte === 'passatempo') { setDialog({ lines: npc.def.lines, i: 0 }); window.setTimeout(takePhoto, 60); return; }
+        setDialog({ lines: npc.def.lines, i: 0 });
+        return;
+      }
       // entrevista do trabalho de campo
       const ft = fieldNow().find(t => t.npc === npc.def.id);
       const c = loadProgress().campo;
@@ -1152,7 +1170,15 @@ function CityView({ town, start, startHour, onTravel }: {
           s.player.ty += 1; s.player.dir = 'south';
           return;
         }
-        if (WORK_DOORS[door.building]) { setWork(WORK_DOORS[door.building]); s.player.ty += 1; s.player.dir = 'south'; return; }
+        // porta de trabalho (a Casa do Músico e o Ateliê são casas de professor também): abre o trabalho e avisa quem está lá
+        if (WORK_DOORS[door.building]) {
+          const prof = emCasa(door.building, s.hour)[0];
+          if (prof) toast(`${prof.nome} está aqui: ${prof.passatempo.texto}.`);
+          setWork(WORK_DOORS[door.building]); s.player.ty += 1; s.player.dir = 'south'; return;
+        }
+        // casa de professor: bate na porta (quem está em casa responde; senão, diz onde ele está)
+        const knock = bateNaPorta(door.building, s.hour);
+        if (knock) { setDialog({ lines: knock, i: 0 }); s.player.ty += 1; s.player.dir = 'south'; return; }
         if (door.building === 'mercado' || door.building === 'casa-fazenda' || door.building === 'entregas') {
           setShopUi(door.building === 'mercado' ? 'mercado' : door.building === 'casa-fazenda' ? 'cozinha' : 'entregas');
           s.player.ty += 1; s.player.dir = 'south';

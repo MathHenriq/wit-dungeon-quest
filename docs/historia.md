@@ -499,13 +499,46 @@ Um capítulo por semana, para a turma viver junto. Quem entra depois faz no seu 
 
 ---
 
-## 13. Decisões para o Matheus
+## 13. No jogo (estado em 09/10)
+
+**O Prólogo e o Ato 1 inteiros estão no jogo** e jogáveis do começo ao fim (27 passos).
+- Motor: `src/game/story/engine.ts` (passos: falar, vários, porta, lugar, pegar, esperar,
+  pergunta, escolha), capítulos em dados em `chapters.ts`, gravação em `runtime.ts`
+  (`wit.historia` no navegador). Testes: `src/game/story/__tests__/story.test.ts`.
+- Tela: rastreador no alto (some durante a conversa e pode ser escondido por hoje),
+  Caderno (História, Pistas, Desaparecidos com a carta selada da Mari, perguntas),
+  escolha do Seu Joca, Alerta da Ordem, "!" em quem tem passo, brilho no bloco de pegar,
+  "!" na porta, neblina no Lago, a Mari que some, o Homem da Neblina que só aparece na
+  neblina. Componentes: `src/components/story/StoryUi.tsx`.
+- Testar: `?historia=cap3` começa no capítulo 3 (`zero` recomeça).
+  `node scripts/mapa/historia-robo.mjs <pasta>` joga o Ato 1 inteiro pelo navegador e tira
+  print de cada momento.
+
+## 14. A ordem de construção dos Atos 2 e 3
+
+A história segue exatamente o roteiro do §6. Cada capítulo precisa de alguma peça nova; a
+ordem abaixo é a ordem dos capítulos, e cada peça entra antes do capítulo que a usa.
+
+| Capítulo | Peça nova que o capítulo precisa | Depende de |
+|---|---|---|
+| 6 · O símbolo | passo **foto** (fotografar um morador e achar o broche na foto); **Quadro de suspeitos** no mural de cortiça da casa | câmera (já existe) |
+| 7 · O que a Dona Ana sabe | passo **interrogar** (mostrar a pista certa do Caderno para desmentir); a Dona Ana some (o motor já esconde moradores) | — |
+| 8 · Seguindo o Guardião | **seguir sem ser visto** (o Kaio anda uma rota à noite; o campo de visão dele aparece no chão); passo **pescar** um peixe específico (o Bagre Velho, isca de queijo) | rota de morador (já existe), pesca (já existe) |
+| 9 · O Baile de Máscaras | **traje da Ordem** (capa, máscara, broche) no VISUAL; o passo confere o traje | arte de 3 acessórios (GPT) |
+| 10 · O fundo do lago | **mergulho** até a escola afundada; **cozinhar o antídoto** | mergulho (`lago-2.md`, onda L2), cozinha (já existe) |
+| 11 · O Fundador | **Museu** com o retrato de 1926; passo **comparar** (achar 5 detalhes iguais) | prédio do Museu |
+| 12 · Acender o farol | lente (Gaspar), óleo de girassol (prensa da fazenda), circuito (minijogo de IoT, já existe), cristal (fundo do lago); libertar as cartas na luz do farol | máquinas da fazenda (onda 3c), gemas (L3) |
+| 13 · Os traidores | passo **duelo de história** (Duda e Kaio com cartas ??? no deck; a 1ª vitória dá a carta ???, decidido em 09/10); casa revirada pelo Alerta | duelo (já existe) |
+| 14 · O escritório | **cofre da turma** (cada aluno tem 1 dos 4 números) | banco ligado |
+| 15 · A Subida | andar 100 da Torre ou **Escada do Farol** (10 provas); a Aurora | Torre (já existe) |
+| 16 · O Vale de Papel | cidade cinza com cartas no chão, sombras que patrulham, **duelo final** com o Sir Téo, a Carta em Branco | tudo acima |
+
+## 15. Decisões para o Matheus
 
 1. **Aprovar o tom** das cenas do §9 e o nome "Cartas Marcadas".
-2. **Carta ??? de vilão.** Vencer um membro da Ordem no duelo dá a carta ??? que ele usa
-   (é chefe, então segue a regra "carta só de chefe ou pacotinho"). Proposta: **só na
-   primeira vitória**, para a raridade mais alta não virar enxurrada. Quem resolve pelo
-   caminho sem duelo ganha outra coisa (roupa, título, móvel), **não a carta**.
+2. ~~Carta ??? de vilão~~ **Decidido (09/10): derrotar vilão dá carta.** Vencer um membro
+   da Ordem no duelo dá a carta ??? que ele usa (só na primeira vitória). Quem resolve
+   pelo caminho sem duelo ganha outra coisa (roupa, título, móvel).
 3. **Quais moradores podem ser vilões.** Usei Sir Téo, Lia, Kaio, Duda, Dona Ana e Seu
    Joca. Se algum deles for inspirado em gente de verdade, troco.
 4. **Pistas da turma** (cada aluno com um pedaço diferente): exige o banco ligado.

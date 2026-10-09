@@ -146,19 +146,25 @@ Cada tela nova passa pelo de sempre: prints para o Matheus aprovar antes da pró
 - **Nomes repetidos:** trocados no jogo (estudante Léo → Enzo, monitora Ana → Yasmin,
   mensageiro Téo → Nico; nas salas, Rafa → Luna, Caio → Ravi, Iris → Sofia).
 - **Fazenda e lago:** direção aprovada; mais funções e ajuste visual entraram.
+- **História no jogo:** o Prólogo e o Ato 1 já estão jogáveis (`historia.md` §13); Atos 2
+  e 3 na ordem do §14 de lá.
+- **Vilão derrotado dá carta** (a ??? dele, na primeira vitória).
+- **Professores:** os 12 da lista (Dante, Mayara, Matheus Macedo, Guilherme Rodrigues,
+  Matheus Servilha, Leticia, Vitor, Felipe Oliveira, Maycon, Grazyelle, Wellington,
+  Miguel) já andam pela cidade com rotina, casa e passatempo; falta o boneco pela foto
+  (`professores-no-jogo.md`).
 
 ### Pendentes
 | # | Decisão | Minha proposta |
 |---|---|---|
-| 1 | Tom e nome da história | "Cartas Marcadas"; cenas para aprovar em `historia.md` §9 |
-| 2 | Vencer um vilão da história no duelo dá a carta ??? dele? E quem resolve sem duelo? | Duelo: dá a carta ??? **só na 1ª vitória**. Sem duelo: outro prêmio (roupa, título, móvel), não a carta. Assim a regra "carta só de chefe ou pacotinho" fica como está |
+| 1 | Cursos dos professores (proposta lógica em `professores-no-jogo.md` §1) | Confirmar ou trocar |
 | 3 | Quais moradores são vilões (Sir Téo, Lia, Kaio, Duda, Dona Ana, Seu Joca) | Trocar algum se for inspirado em gente de verdade |
 | 4 | Dois relógios na fazenda (árvores, café, mel e obras em dias de verdade) | Sim |
 | 5 | Móvel por unidade, kit de 3 estilos, quem já jogou mantém o que tem | Sim |
 | 6 | Preço das casas (até 50 mil) e parcelas que nunca tomam a casa | Sim |
 | 7 | Gema mais cara: Turmalina Paraíba lapidada a 2.400, 1 a cada ~90 h de mergulho, sorteada no servidor | Sim |
 | 8 | Passarela: voto entre alunos ligado, o professor pode desligar | Sim |
-| 9 | Professores: confirmar "na de IA"; nomes de IoT, Metaverso e Games; passatempo de cada um; fotos | Preciso dos dados |
+| 9 | Fotos dos professores (direto no GPT, `professores-no-jogo.md` §4) | Quando tiver |
 | 10 | Ordem do §5 | Fase 1 já |
 
 ---
