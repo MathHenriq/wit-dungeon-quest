@@ -84,7 +84,7 @@ export function socialError(e: unknown): string {
 }
 
 let myself: Me | null = null;
-/** O meu perfil público (handle e turma), depois que a cidade publicou. */
+/** O meu perfil público (handle e canal da cidade), depois que a cidade publicou. */
 export const socialMe = () => myself;
 export const setProfile = (nick: string, title: string | undefined, look: Look, favs: string[]) =>
   call<Me>('wit2_set_profile', { p_nick: nick, p_title: title ?? null, p_look: look, p_favs: favs.slice(0, 3) }, () => ({ handle: 'demo-eu', muted: false, sala: null }))

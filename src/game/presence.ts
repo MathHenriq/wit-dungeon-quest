@@ -42,10 +42,10 @@ export function tabId(): string {
 
 export interface ZoneLink { move: (tx: number, ty: number, dir: Dir) => void; say: (i: number) => void; leave: () => void }
 
-/** Nome do canal: só a turma do mesmo professor (`sala`) entra (política em _wit2_social.sql). */
+/** Nome do canal: `sala` é 'todos' (todo aluno logado entra, de qualquer professor; política em _wit2_cidade_aberta.sql). */
 export const zoneTopic = (sala: string, zone: string) => `wit2-${sala}-${zone}`;
 
-/** Entra no canal da área. Sem o banco ligado (ou sem turma) devolve null (a cidade fica só com os moradores). */
+/** Entra no canal da área. Sem o banco ligado (ou sem perfil) devolve null (a cidade fica só com os moradores). */
 export async function joinZone(zone: string, me: PeerState, onPeers: (peers: PeerState[]) => void, sala: string | null): Promise<ZoneLink | null> {
   if (!cloudEnabled() || !sala) return null;
   const { supabaseStudent } = await import('@/integrations/supabase/studentClient');

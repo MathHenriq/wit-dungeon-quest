@@ -473,7 +473,7 @@ function CityView({ town, start, startHour, onTravel }: {
   }, []);
 
   // cidade compartilhada (só com VITE_WIT2_DB=1): publica o perfil (apelido,
-  // visual, título), entra no canal da turma e cada colega da área vira um boneco.
+  // visual, título), entra no canal de todos os alunos e cada um que está na área vira um boneco.
   // ?social=demo põe 2 colegas de mentira perto (prints do cartão de perfil).
   useEffect(() => {
     if (!socialOn()) return;

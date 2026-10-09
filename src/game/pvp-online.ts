@@ -5,7 +5,7 @@
 // "eu" no lugar 0, e as jogadas valem igual dos dois lados (o motor é
 // simétrico: src/lib/tcg/__tests__/mirror.test.ts).
 //
-// Canal: 'wit2-<professor>-mesa-<n>' (privado da turma, como a cidade).
+// Canal: 'wit2-todos-mesa-<n>' (aberto a todo aluno logado, como a cidade).
 // Mensagens perdidas: cada jogada tem número; faltou uma, pede de novo.
 // Saiu da mesa no meio: 60 s para voltar, depois vitória por W.O.
 import { createGame } from '@/lib/tcg/engine';
@@ -74,7 +74,7 @@ export interface TableHandlers {
 }
 export interface TableLink { send: (a: PvpAction) => void; leave: () => void }
 
-/** Senta na mesa online. Sem o banco ligado (ou sem turma) devolve null. */
+/** Senta na mesa online. Sem o banco ligado (ou sem perfil) devolve null. */
 export async function joinTable(sala: string | null, mesa: string, me: PvpHello, h: TableHandlers): Promise<TableLink | null> {
   if (!cloudEnabled() || !sala) return null;
   const { supabaseStudent } = await import('@/integrations/supabase/studentClient');

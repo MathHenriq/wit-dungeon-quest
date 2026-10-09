@@ -13,7 +13,7 @@ SELECT set_config('test.uid', '33333333-3333-3333-3333-333333333333', false);
 SELECT wit2_set_profile('Betao', NULL, '{}', '{}') IS NOT NULL AS "perfil do Beto";
 SELECT set_config('test.uid', '55555555-5555-5555-5555-555555555555', false);
 SELECT wit2_set_profile('Caio', NULL, '{}', '{}') IS NOT NULL AS "perfil do Caio";
-SELECT wit2_profile_of((SELECT handle FROM wit2_profile WHERE nick = 'Aninha')) IS NULL AS "outra turma não vê o perfil";
+SELECT (wit2_profile_of((SELECT handle FROM wit2_profile WHERE nick = 'Aninha'))->>'nick') = 'Aninha' AS "outra turma vê o cartão (cidade aberta)";
 DO $$ BEGIN PERFORM wit2_friend_request((SELECT handle FROM wit2_profile WHERE nick = 'Aninha')); RAISE EXCEPTION 'devia recusar'; EXCEPTION WHEN others THEN IF SQLERRM <> 'colega não encontrado' THEN RAISE; END IF; END $$;
 -- Beto vê a Ana sem dado pessoal e pede amizade
 SELECT set_config('test.uid', '33333333-3333-3333-3333-333333333333', false);

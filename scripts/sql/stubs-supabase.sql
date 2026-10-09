@@ -32,3 +32,11 @@ CREATE TABLE public.student_attribute_points (student_id uuid PRIMARY KEY REFERE
   forca int DEFAULT 0, destreza int DEFAULT 0, inteligencia int DEFAULT 0, carisma int DEFAULT 0, agilidade int DEFAULT 0, resistencia int DEFAULT 0);
 CREATE TABLE public.student_skill_points (student_id uuid PRIMARY KEY REFERENCES public.students(id) ON DELETE CASCADE, available_points int DEFAULT 0, total_earned int DEFAULT 0);
 CREATE TABLE public.student_titles (student_id uuid REFERENCES public.students(id) ON DELETE CASCADE, title_type text NOT NULL);
+-- Realtime: só o que as policies dos canais usam (topic() lê o canal da sessão de teste)
+CREATE SCHEMA IF NOT EXISTS realtime;
+GRANT USAGE ON SCHEMA realtime TO authenticated, anon;
+CREATE TABLE realtime.messages (id bigserial PRIMARY KEY, topic text NOT NULL, payload jsonb);
+ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT ON realtime.messages TO authenticated, anon;
+GRANT USAGE ON SEQUENCE realtime.messages_id_seq TO authenticated, anon;
+CREATE OR REPLACE FUNCTION realtime.topic() RETURNS text LANGUAGE sql STABLE AS $$ SELECT current_setting('test.topic', true) $$;
