@@ -16,7 +16,8 @@ funções de segurança que já existem: `my_student_id`, `can_act_for_student`,
      pelo botão "Virar todos agora" na aba Virada do painel (só o master), que fica desligado
      (`VIRADA_LIGADA` em `src/game/teacher-cloud.ts`) até o Matheus escolher o dia.
    - **Branch `claude/masmorra`:** tem mais uma, `20261009120000_wit2_masmorra.sql` (carta do chefe
-     do portal por rank, `wit2_dungeon_claim(p_rank)`). Ela troca a `wit2_dungeon_claim()` sem
+     do portal por rank, `wit2_dungeon_claim(p_rank)`; o portal só abre com o chefe do anterior
+     vencido, em `masmorra.vitorias`). Ela troca a `wit2_dungeon_claim()` sem
      argumento. Só aplicar quando a masmorra nova for para a branch oficial; antes disso, o jogo
      oficial ainda chama a versão sem argumento.
 3. **Rodar as checagens abaixo no SQL Editor (ou pelo `execute_sql` do conector).** Todas têm
