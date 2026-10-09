@@ -36,6 +36,7 @@ import { cloudBossCard, cloudEnabled } from '@/game/cloud';
 import { guildHit, party, saveHouse, socialError, socialMe, socialOn } from '@/game/social';
 import { ArcadeMaker } from '@/components/social/Arcade';
 import { DungeonView } from '@/components/dungeon/DungeonView';
+import { AssociationPanel, type AssocTab } from '@/components/dungeon/AssociationPanel';
 import { buildMatch, joinTable, reportPvp, validDeck, WO_MS, type PvpAction, type PvpHello, type TableLink } from '@/game/pvp-online';
 import { tabId } from '@/game/presence';
 import { GuildPanel } from '@/components/social/GuildPanel';
@@ -197,7 +198,10 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   /** Fliperama da casa: criar fase (ou jogar o caça-bugs). */
   const [arcade, setArcade] = useState(false);
   /** Masmorra (telão da Arena; ?masmorra abre direto). */
-  const [dungeon, setDungeon] = useState(() => new URLSearchParams(window.location.search).has('masmorra'));
+  /** Masmorra: o portal escolhido (rank 0…5) ou nada. `?masmorra=2` abre o portal C direto. */
+  const [dungeon, setDungeon] = useState<number | null>(() => { const q = new URLSearchParams(window.location.search); return q.has('masmorra') ? Math.max(0, Math.min(5, Number(q.get('masmorra')) || 0)) : null; });
+  /** Associação dos Caçadores (portões da Associação e telão da Arena; `?associacao=armas` abre direto). */
+  const [assoc, setAssoc] = useState<AssocTab | null>(() => { const q = new URLSearchParams(window.location.search).get('associacao'); return q === null ? null : (['portais', 'cacador', 'armas', 'boticaria', 'bau'].includes(q) ? q as AssocTab : 'portais'); });
   const covered = useRef(false);
   const [partyMsg, setPartyMsg] = useState<string | null>(null);
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
@@ -259,7 +263,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   if (import.meta.env.DEV) (window as unknown as { __interior: unknown }).__interior = S;
   S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen || !!housePanel;
   // duelo ou masmorra cobrem a tela toda: a sala para de desenhar por baixo
-  covered.current = !!duel || dungeon;
+  covered.current = !!duel || dungeon !== null;
   // senta na mesa online: o primeiro colega que sentar na mesma mesa vira o adversário
   const waitOnline = async () => {
     const me = socialMe();
@@ -534,7 +538,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     if (talk?.action === 'recompensas') { S.held = []; setPanelOpen('recompensas'); return; }
     if (talk?.action === 'trocas') { S.held = []; setPanelOpen('trocas'); return; }
     if (talk?.action === 'moveis') { S.held = []; setPanelOpen('moveis'); return; }
-    if (talk?.action === 'masmorra') { S.held = []; setDungeon(true); return; }
+    if (talk?.action === 'masmorra') { S.held = []; setAssoc('portais'); return; }
+    if (talk?.action === 'associacao') { S.held = []; setAssoc(talk.tab ?? 'portais'); return; }
     if (talk?.action === 'sentar' && talk.seat) {
       // senta na cadeira da mesa vazia e espera um colega sentar na frente
       S.sit = { tx: talk.seat[0], ty: talk.seat[1], from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
@@ -876,7 +881,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
         {title}{room.id.startsWith('torre') ? <span className="ml-2 text-yellow-200 inline-flex items-center gap-1"><Icon id="moeda" size={12} /> {progress.coins}</span> : null}
-        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir · painel: elevador' : ''}{room.id === 'arena' ? ' · portal: treino' : ''}</div>}
+        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir · painel: elevador' : ''}{room.id === 'arena' ? ' · portal: Associação dos Caçadores' : ''}</div>}
         {decor && <div className="text-lime-300 mt-1">{holding ? 'toque para pôr · R gira · ESC devolve' : 'escolha um móvel ou toque num para mover'}</div>}
       </div>
 
@@ -943,7 +948,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'recompensas' && <RoomRewards progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
-      {dungeon && <DungeonView look={look} onClose={() => setDungeon(false)} />}
+      {assoc && dungeon === null && <AssociationPanel tab={assoc} onClose={() => setAssoc(null)} onEnter={r => { setDungeon(r); }} />}
+      {dungeon !== null && <DungeonView look={look} rank={dungeon} onClose={() => setDungeon(null)} />}
       {arcade && <ArcadeMaker onClose={() => setArcade(false)} onClassic={() => { setArcade(false); setHousePanel({ kind: 'work', game: 'teste-jogo' }); }} />}
       {panelOpen === 'moveis' && m && <FurnitureShop m={m} onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {panelOpen === 'trocas' && <TradeHub onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}

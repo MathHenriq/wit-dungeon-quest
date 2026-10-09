@@ -9,7 +9,7 @@ por uma antes de subir (público infantil).
 
 | O quê | Quantas | Prompt | Até lá, o jogo usa |
 |---|---|---|---|
-| Masmorra: piso, parede, objetos, 3 monstros, chefe, tiros | 7 folhas | §O | piso e parede do castelo, pets como monstros, um desafiante como chefe |
+| Masmorra nova (branch `claude/masmorra`): inimigos, chefes E–S, boneco em combate, armas, lugares, saguão, ícones, sombras, efeitos das 67 cartas | ~95 folhas | `docs/gpt-masmorra.md` (importador `importar-masmorra.py`) | pets como monstros, desafiante como chefe, armas e efeitos desenhados em código |
 | Veículos com o boneco montado (anexar `modelo-01.png`) | 4 folhas + avião | §N | só o rastro do veículo |
 | Poses dos modelos 03 a 10 (sentar, carregar, emotes) | 8 folhas | §A | a pose do modelo 01 adaptada |
 | Ícones definitivos | 4 folhas (127 ícones) | §G | ícones CC0 provisórios |

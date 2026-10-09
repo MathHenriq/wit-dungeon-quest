@@ -85,7 +85,10 @@ export interface Exit { tx: number; ty: number; to: ExitKind }
 export interface Talk {
   tiles: [number, number][]; lines: string[];
   /** Abre uma tela em vez de só falar: o elevador da Torre, sentar numa mesa vazia (PvP). */
-  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas' | 'moveis' | 'masmorra';
+  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas' | 'moveis' | 'masmorra' | 'associacao';
+  /** Associação dos Caçadores: qual aba abre (portais, cacador, armas, boticaria, bau) e o rank do portão. */
+  tab?: 'portais' | 'cacador' | 'armas' | 'boticaria' | 'bau';
+  rank?: number;
   /** Mesa vazia: o bloco da cadeira (onde o aluno senta). */
   seat?: [number, number];
 }
@@ -521,12 +524,12 @@ export function arenaRoom(): Room {
   const npcs: RoomNpc[] = [
     npc('recepcao', 'npc-desafiante-10', 13, 3, 'Rafa', 'Recepção da Arena', [
       'Bem-vinda à Arena! Mesa com alguém sentado: pode desafiar. Mesa LIVRE: sente e espere um colega.',
-      'O portal azul leva ao Salão de Treino dos Rank S. Só entra quem tem coragem!',
+      'O portal azul leva à Associação dos Caçadores: os portões da masmorra, do rank E ao S.',
     ], { talk: [[13, 3], ...area(12, 4, 3, 1)], seated: true }),
   ];
   const talks: Talk[] = [
     { tiles: area(2, 3, 3, 1), lines: ['Placar do ranking: os melhores da semana aparecem aqui.'] },
-    { tiles: area(20, 3, 3, 1), lines: ['Masmorra: salas cheias de monstrinhos e um chefe no fim.'], action: 'masmorra' },
+    { tiles: area(20, 3, 3, 1), lines: ['Telão da Associação: os portais abertos hoje.'], action: 'associacao', tab: 'portais' },
   ];
   ARENA_TABLES.forEach((t, k) => {
     items.push({ id: t.table, tx: t.tx, ty: t.ty });
@@ -548,7 +551,12 @@ export function arenaRoom(): Room {
   };
 }
 
-/** Salão de Treino Rank S: escuro, portões de rank e uma mesa de runas no meio. */
+/**
+ * Associação dos Caçadores (masmorra, tema Solo Leveling): os 6 portões de
+ * rank E…S na parede do fundo, o SISTEMA na mesa de runas (cartas, sombras,
+ * missão), o ferreiro de armas na bigorna, a boticária na prateleira e o baú
+ * do pet. Era o "Salão de Treino Rank S" (o id da sala continua `treino`).
+ */
 export function trainingRoom(): Room {
   const items: Placed[] = [
     { id: 'portao-e', tx: 0, ty: 3 }, { id: 'portao-d', tx: 3, ty: 3 }, { id: 'portao-c', tx: 6, ty: 3 },
@@ -556,23 +564,28 @@ export function trainingRoom(): Room {
     { id: 'plataforma-runas', tx: 7, ty: 8 }, { id: 'mesa-runas', tx: 7, ty: 11 },
     { id: 'pilar-cristal', tx: 1, ty: 7 }, { id: 'pilar-cristal', tx: 16, ty: 7 },
     { id: 'braseiro-azul', tx: 1, ty: 11 }, { id: 'braseiro-azul', tx: 16, ty: 11 },
-    { id: 'boneco-cristal', tx: 3, ty: 8 }, { id: 'boneco-cristal', tx: 13, ty: 8 },
-    { id: 'orbe-luz', tx: 4, ty: 12 }, { id: 'orbe-luz', tx: 13, ty: 12 },
+    { id: 'bigorna', tx: 3, ty: 9 }, { id: 'bau-tesouro', tx: 13, ty: 9 },
+    { id: 'orbe-luz', tx: 4, ty: 12 }, { id: 'prateleira-potes', tx: 13, ty: 12 },
     { id: 'quadro-rank', tx: 0, ty: 14 }, { id: 'rack-capas', tx: 15, ty: 14 },
     { id: 'estandarte-escuro', tx: 5, ty: 6 }, { id: 'estandarte-escuro', tx: 12, ty: 6 },
   ];
+  const RANK = ['E', 'D', 'C', 'B', 'A', 'S'];
   return {
-    id: 'treino', title: 'Arena · Salão de Treino Rank S', w: 18, h: 16, wallRows: 3,
+    id: 'treino', title: 'Associação dos Caçadores', w: 18, h: 16, wallRows: 3,
     piso: 'piso-arena-piso-2', parede: 'parede-arena-parede-2', items,
     npcs: [
-      seatedAt('rank-s', 'npc-desafiante-06', 7, 11, 'Sombra', 'Rank S', [
-        'Aqui treinam os Rank S antes das expedições.',
-        'Cada portão é um rank, do E ao S. Ganhe no seu rank para abrir o próximo. (Em breve.)',
+      seatedAt('rank-s', 'npc-desafiante-06', 7, 11, 'Sombra', 'Guia do SISTEMA', [
+        '[SISTEMA] Bem-vindo, caçador. Cada portão é um rank, do E ao S.',
+        'Escolha as cartas que viram poder, a sua sombra e veja a missão do dia na mesa de runas.',
       ]),
     ],
     talks: [
-      { tiles: area(0, 3, 18, 2), lines: ['Um portão de rank. Ainda está selado.'] },
-      { tiles: area(7, 8, 3, 2), lines: ['A plataforma de runas vibra quando alguém duela aqui.'] },
+      ...RANK.map((r, k) => ({ tiles: area(k * 3, 3, 3, 2), lines: [`Portão de rank ${r}.`], action: 'associacao' as const, tab: 'portais' as const, rank: k })),
+      { tiles: area(7, 8, 3, 2), lines: ['[SISTEMA] Status do caçador.'], action: 'associacao', tab: 'cacador' },
+      { tiles: area(3, 9, 2, 1), lines: ['Ferreiro: forje e melhore armas com minério.'], action: 'associacao', tab: 'armas' },
+      { tiles: area(13, 9, 2, 1), lines: ['Baú do pet: o que ele catou na masmorra.'], action: 'associacao', tab: 'bau' },
+      { tiles: area(13, 12, 2, 1), lines: ['Boticária: ervas viram poções.'], action: 'associacao', tab: 'boticaria' },
+      { tiles: area(0, 14, 3, 1), lines: ['Quadro de ranks dos caçadores.'], action: 'associacao', tab: 'cacador' },
     ],
     spawn: { tx: 8, ty: 14, dir: 'north' },
     exits: [{ tx: 8, ty: 15, to: 'sala:arena' }, { tx: 9, ty: 15, to: 'sala:arena' }],

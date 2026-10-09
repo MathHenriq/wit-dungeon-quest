@@ -10,6 +10,37 @@ limpar, esquiva, chefe, recompensa com limite por dia; com testes) e
 `src/components/dungeon/DungeonView.tsx` (canvas, teclado, toque). Hoje ele é de **tiro**
 (estilo Soul Knight). O plano troca o tiro por **golpe corpo a corpo + habilidades de carta**.
 
+## Situação (09/10)
+
+Pronto e jogável na branch `claude/masmorra` (o robô `scripts/mapa/masmorra-robo.mjs` vence o portal E inteiro):
+
+- **Motor** (`src/game/dungeon.ts`, testes em `__tests__/dungeon.test.ts`):
+  - portal E–S com 3 andares e 2 ondas por sala;
+  - avisos no chão antes de todo golpe;
+  - espada (corta tiros) e arma longa (gasta mana), troca com Q;
+  - esquiva, escudo que volta, cartas como habilidade;
+  - pedras e veios que quebram, pet coletor com afinidade;
+  - baú com arma, loja do SISTEMA, escada com 1 de 3 bênçãos;
+  - chefe em 3 fases, Arise (sombras).
+- **Regras de valor** (`src/game/hunter.ts`):
+  - rank de caçador e portais;
+  - missão do SISTEMA;
+  - prêmio: carta do chefe nas 3 pagas, moedas com teto, itens do pet;
+  - ferreiro, boticária, cristal vira pó.
+- **Telas:**
+  - `DungeonView` (HUD do SISTEMA, efeitos por elemento em `dungeon-vfx.ts`, sprite próprio das cartas Épica+ quando existir);
+  - `AssociationPanel` (portais, caçador, ferreiro, boticária, baú).
+  - A **Associação dos Caçadores** é a antiga sala de treino: portal azul da Arena ou `?sala=treino`. Atalhos: `&associacao=armas` abre o painel, `&masmorra=0` abre o portal E direto.
+- **Banco:** `supabase/migrations/20261009120000_wit2_masmorra.sql`, com `wit2_dungeon_claim(p_rank)` testado no `testar-wit2.sh`. Só aplicar quando esta branch for para a oficial.
+- **Dificuldade:** `npx vite-node scripts/masmorra-sim.ts 20`. A espada limpa o E em ~1,6 min levando ~7 golpes; o tiro, em ~3,5 min levando ~2; o rank S fica difícil.
+
+Falta só arte do GPT (`docs/gpt-masmorra.md`). O importador `scripts/arte/importar-masmorra.py` corta tudo, e o jogo troca sozinho quando o arquivo existe.
+
+Mudança em relação ao plano abaixo:
+- o andar a andar ficou como Soul Knight (3 andares por portal), sem elevador;
+- o pet cata minério, erva, cristal e troféus (pena e pelo); a moeda vai direto para o aluno;
+- osso virou pena de goblin.
+
 ## 1. O que o aluno vê
 
 1. **Portal** na Cidade (praça do Centro ou atrás da Arena): um portal azul que pulsa, como os

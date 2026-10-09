@@ -223,7 +223,7 @@ A pixel art sprite sheet of furniture for the lobby of a hunters' association in
 
 Pasta `icones/`. Folha **4 × 3, quadro 32 × 32** (mesmo estilo de `public/game/icons/itens/`).
 ```
-A pixel art icon sheet for a kids RPG inventory, grid of 4 columns and 3 rows, each icon exactly 32x32, centered, with a 1-pixel dark outline: row 1: copper ore chunk, iron ore chunk, gold ore chunk, healing herb leaf; row 2: blue glowing herb, small blue mana crystal, purple mana crystal, golden mana crystal; row 3: folded animal hide, a cartoon bone, a red health potion bottle, a blue mana potion bottle. Clean pixel art, limited palette, no anti-aliasing, no text. Flat solid magenta background (#FF00FF).
+A pixel art icon sheet for a kids RPG inventory, grid of 4 columns and 3 rows, each icon exactly 32x32, centered, with a 1-pixel dark outline: row 1: copper ore chunk, iron ore chunk, gold ore chunk, healing herb leaf; row 2: blue glowing herb, small blue mana crystal, purple mana crystal, golden mana crystal; row 3: soft dark wolf fur tuft, a green goblin feather, a red health potion bottle, a blue mana potion bottle. Clean pixel art, limited palette, no anti-aliasing, no text. Flat solid magenta background (#FF00FF).
 ```
 
 ---
