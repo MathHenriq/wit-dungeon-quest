@@ -1,7 +1,10 @@
 // A história na tela: o rastreador no alto (uma linha que só some por hoje),
 // o Caderno (missão, pistas, desaparecidos e as perguntas) e a escolha.
 // Tudo lê `src/game/story/runtime.ts` e se atualiza pelo evento `wit-historia`.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { NPCS } from '@/game/world/content';
+import { normalizeLook } from '@/game/world/outfit';
+import { loadLookFrames } from '@/game/world/sprites';
 import { Icon } from '@/components/Icon';
 import { PxBox, PxButton, PxPanel, PxTabs } from '@/components/pixel/Pixel';
 import { ALERTA_MAX } from '@/game/story/engine';
@@ -58,13 +61,34 @@ export function StoryHud({ onOpen }: { onOpen: () => void }) {
 function Alerta({ n }: { n: number }) {
   return (
     <span className={`story-eye ${n >= 4 ? 'hot' : ''}`} title="Alerta da Ordem: bisbilhotar na frente deles faz subir; agir normal faz baixar">
-      <span className="eye" aria-hidden>◉</span>
+      <span className="eye">ALERTA</span>
       {Array.from({ length: ALERTA_MAX }, (_, i) => <i key={i} className={i < n ? 'on' : ''} />)}
     </span>
   );
 }
 
 type Tab = 'missao' | 'pistas' | 'sumidos';
+
+/** A fonte pixel não tem maiúscula com acento: os nomes ficam como estão. */
+const capName = (num: number) => (num === 0 ? 'Prólogo' : `Capítulo ${num}`);
+
+/** O rosto do morador na carta selada (o quadro de frente dele, em cinza). */
+function Portrait({ npc }: { npc: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const def = NPCS.find(n => n.id === npc);
+    if (!def) return;
+    let alive = true;
+    loadLookFrames(normalizeLook(def.look)).then(f => {
+      const cv = ref.current, img = f.walk.south[0];
+      if (!alive || !cv || !img) return;
+      cv.width = img.width; cv.height = img.height;
+      cv.getContext('2d')!.drawImage(img, 0, 0);
+    }).catch(() => { /* sem sprite: fica o espaço */ });
+    return () => { alive = false; };
+  }, [npc]);
+  return <canvas ref={ref} className="story-face" />;
+}
 
 export function Caderno({ ctx, onClose, onLines }: { ctx: () => Ctx; onClose: () => void; onLines: (lines: string[]) => void }) {
   useStory();
@@ -78,13 +102,13 @@ export function Caderno({ ctx, onClose, onLines }: { ctx: () => Ctx; onClose: ()
   return (
     <PxPanel title="CADERNO" color="#6a4aa8" onClose={onClose}>
       <PxTabs<Tab> color="#6a4aa8" value={tab} onChange={t => { setTab(t); setMsg(null); }}
-        tabs={[['missao', 'HISTÓRIA', 'livro'], ['pistas', `PISTAS (${h.pistas.length})`, 'lupa'], ['sumidos', 'DESAPARECIDOS', 'carta-verso']]} />
+        tabs={[['missao', 'História', 'livro'], ['pistas', `Pistas (${h.pistas.length})`, 'lupa'], ['sumidos', 'Desaparecidos', 'carta-verso']]} />
 
       {tab === 'missao' && (
         <div className="story-col">
           {now && goal && (
             <PxBox color="#f3e2ff" className="story-now">
-              <div className="story-cap">{now.cap.num === 0 ? 'PRÓLOGO' : `CAPÍTULO ${now.cap.num}`} · {now.cap.titulo.toUpperCase()}</div>
+              <div className="story-cap">{capName(now.cap.num)} · {now.cap.titulo}</div>
               {now.passo.tipo === 'pergunta' ? (
                 <>
                   <div className="story-q">{now.passo.pergunta}</div>
@@ -111,7 +135,7 @@ export function Caderno({ ctx, onClose, onLines }: { ctx: () => Ctx; onClose: ()
           {!now && <PxBox color="#f3e2ff"><div className="story-goal">Fim do Ato 1. O Ato 2, "A Ordem do Verso", vem aí.</div></PxBox>}
           {doneCaps.slice().reverse().map(c => (
             <PxBox key={c.id} className="story-past">
-              <div className="story-cap">{c.num === 0 ? 'PRÓLOGO' : `CAPÍTULO ${c.num}`} · {c.titulo.toUpperCase()}</div>
+              <div className="story-cap">{capName(c.num)} · {c.titulo}</div>
               <div className="story-sum">{c.resumo}</div>
             </PxBox>
           ))}
@@ -137,6 +161,7 @@ export function Caderno({ ctx, onClose, onLines }: { ctx: () => Ctx; onClose: ()
             const got = s && h.pistas.includes(s.pista);
             return got ? (
               <div key={i} className="story-card" style={{ ['--c' as string]: s.cor }}>
+                <Portrait npc={s.npc} />
                 <span className="who">{s.quem}</span>
                 <span className="name">{s.nome}</span>
                 <span className="sel">CARTA SELADA</span>

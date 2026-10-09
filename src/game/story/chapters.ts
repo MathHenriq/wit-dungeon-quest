@@ -284,8 +284,8 @@ export const PISTAS: Record<string, { nome: string; texto: string }> = {
 };
 
 /** Cartas Seladas (página "Desaparecidos" do Caderno): gente que virou carta. */
-export const SELADAS: { pista: string; nome: string; quem: string; cor: string }[] = [
-  { pista: 'carta-mari', nome: 'Garota do Cabelo Lilás', quem: 'Mari', cor: '#9474d0' },
+export const SELADAS: { pista: string; nome: string; quem: string; npc: string; cor: string }[] = [
+  { pista: 'carta-mari', nome: 'Garota do Cabelo Lilás', quem: 'Mari', npc: 'passeio-2', cor: '#9474d0' },
 ];
 
 const LIA_DOCE = ['Lia: Bom dia! Bem-vindo ao Vale!', 'Lia: Precisa de ajuda com alguma coisa?'];

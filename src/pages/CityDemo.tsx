@@ -72,7 +72,7 @@ import { PLATE_FALA, PLATE_NPC, PLATE_OTHER, PLATE_PLAYER } from '@/game/world/n
 import { drawJob, jobBob, propsBehind } from '@/game/world/jobs';
 import {
   storyArrive, storyChoose, storyCtx, storyDoor, storyExtra, storyFog, storyFromQuery, storyMarks, storyNewDay, storySpot,
-  storyTalk, storyTick, storyVisible, STORY_EVENT,
+  storyTalk, storyTick, storyVisible,
 } from '@/game/story/runtime';
 import { Caderno, StoryChoice, StoryHud } from '@/components/story/StoryUi';
 
@@ -427,11 +427,11 @@ function CityView({ town, start, startHour, onTravel }: {
     s.story = { ...storyMarks(town.id), fog: storyFog(c) };
     s.dirty = true;
   }, [town]);
+  // muda quem aparece (e a neblina) só quando a fala fecha: ninguém some no meio da própria fala.
+  // Toda mudança da história vem com uma fala (ou com a troca de hora, que também chama).
   useEffect(() => {
-    refreshStory();
-    window.addEventListener(STORY_EVENT, refreshStory);
-    return () => window.removeEventListener(STORY_EVENT, refreshStory);
-  }, [refreshStory]);
+    if (!dialog && !choice && !caderno) refreshStory();
+  }, [refreshStory, dialog, choice, caderno, inside]);
   // o tempo da história (esperar, a noite, o dia seguinte): só com nada aberto na tela
   useEffect(() => {
     if (dialog || panel || choice || caderno || inside || pathOpen) return;
@@ -1658,7 +1658,7 @@ function CityView({ town, start, startHour, onTravel }: {
         for (const id of s.story.quem) {
           const n = s.npcs.find(nn => nn.def.id === id);
           if (!n) continue;
-          const np = pixelPos(n.w, TILE), mx = np.x + 8 - camX, my = np.y - 28 - camY + bob;
+          const np = pixelPos(n.w, TILE), mx = np.x + 8 - camX, my = np.y - 46 - camY + bob;
           if (mx < -20 || mx > vw + 20 || my < -20 || my > vh + 40) continue;
           list.push({ baseY: np.y + 40, draw: () => bang(mx, my) });
         }
@@ -2005,7 +2005,7 @@ function CityView({ town, start, startHour, onTravel }: {
         {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar{town.id === 'fazenda' ? '/plantar · Q E semente' : ''} · M mapa · F foto · 1-4 emote · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
-      {!inside && !pathOpen && <StoryHud onOpen={() => setCaderno(true)} />}
+      {!inside && !pathOpen && !dialog && !choice && <StoryHud onOpen={() => setCaderno(true)} />}
 
       <div className="absolute top-2 right-2 flex flex-wrap justify-end items-center gap-1.5 max-w-[calc(100vw-150px)] sm:max-w-none">
         <span className={`px-2 py-1.5 rounded-md bg-black/55 text-[10px] ${pixelFont}`}><HungerBar v={progress.fome} compact /></span>

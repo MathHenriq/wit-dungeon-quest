@@ -1103,7 +1103,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
         />
       )}
 
-      {!duel && !panelOpen && !decor && !shopOf && <StoryHud onOpen={() => setCaderno(true)} />}
+      {!duel && !panelOpen && !decor && !shopOf && !dialog && <StoryHud onOpen={() => setCaderno(true)} />}
       {caderno && <Caderno ctx={sctx} onClose={() => setCaderno(false)} onLines={l => setDialog({ lines: l, i: 0 })} />}
 
       {dialog && (
