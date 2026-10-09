@@ -29,7 +29,7 @@ SELECT (SELECT count(*) FROM realtime.messages) > 0 AS "aluno escuta o canal ger
 INSERT INTO realtime.messages (topic) VALUES ('wit2-todos-praca');
 SELECT true AS "aluno manda no canal geral";
 SELECT set_config('test.topic', 'wit2-aaaaaaaa-0000-0000-0000-000000000001-praca', false);
-SELECT (SELECT count(*) FROM realtime.messages) = 0 AS "canal antigo por turma: fechado";
+SELECT (SELECT count(*) FROM realtime.messages) = 0 AS "canal de outra turma: fechado";
 DO $$ BEGIN INSERT INTO realtime.messages (topic) VALUES ('x'); RAISE EXCEPTION 'devia recusar'; EXCEPTION WHEN insufficient_privilege THEN NULL; END $$;
 SELECT set_config('test.topic', 'wit2-todos-praca', false);
 SELECT set_config('test.uid', '11111111-1111-1111-1111-111111111111', false);

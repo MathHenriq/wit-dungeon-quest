@@ -11,10 +11,10 @@
 --  * denúncia vai para o professor do aluno DENUNCIADO (wit2_teacher_reports);
 --  * na cidade só aparecem apelido, título e visual; o balão só tem frases
 --    prontas (src/game/presence.ts). Nada de texto livre nem dado pessoal;
---  * amizade, visita, trocas, vitrine, guilda, mural e votação seguem por
---    turma (wit2_classmate) até o Matheus decidir.
+--  * amizade, visita, trocas, vitrine, guilda e mural: abertos depois, em
+--    _wit2_tudo_global.sql.
 --
--- Sem DROP: as policies do Realtime mudam com ALTER POLICY.
+-- Policies do Realtime: só criar (o Supabase não deixa alterar nem apagar lá).
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
 
@@ -79,26 +79,17 @@ END $$;
 
 -- canais em tempo real (cidade, balão, mesas da Arena): todo aluno logado entra
 -- nos 'wit2-todos-...'; professor e anônimo não. my_student_id() é SECURITY DEFINER.
+-- Policies NOVAS: no Supabase dá para criar policy em realtime.messages, mas não
+-- alterar nem apagar (a tabela é do supabase_realtime_admin). As antigas
+-- wit2_turma_* ficam: só liberam o canal 'wit2-<professor>-...', que o jogo não usa mais.
 DO $$
 BEGIN
   IF to_regclass('realtime.messages') IS NOT NULL THEN
-    IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'realtime' AND tablename = 'messages' AND policyname = 'wit2_turma_le') THEN
-      EXECUTE 'ALTER POLICY wit2_turma_le ON realtime.messages RENAME TO wit2_todos_le';
-    END IF;
-    IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'realtime' AND tablename = 'messages' AND policyname = 'wit2_turma_manda') THEN
-      EXECUTE 'ALTER POLICY wit2_turma_manda ON realtime.messages RENAME TO wit2_todos_manda';
-    END IF;
-    IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'realtime' AND tablename = 'messages' AND policyname = 'wit2_todos_le') THEN
-      EXECUTE $p$ALTER POLICY wit2_todos_le ON realtime.messages TO authenticated
-        USING (realtime.topic() LIKE 'wit2-todos-%' AND public.my_student_id() IS NOT NULL)$p$;
-    ELSE
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'realtime' AND tablename = 'messages' AND policyname = 'wit2_todos_le') THEN
       EXECUTE $p$CREATE POLICY wit2_todos_le ON realtime.messages FOR SELECT TO authenticated
         USING (realtime.topic() LIKE 'wit2-todos-%' AND public.my_student_id() IS NOT NULL)$p$;
     END IF;
-    IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'realtime' AND tablename = 'messages' AND policyname = 'wit2_todos_manda') THEN
-      EXECUTE $p$ALTER POLICY wit2_todos_manda ON realtime.messages TO authenticated
-        WITH CHECK (realtime.topic() LIKE 'wit2-todos-%' AND public.my_student_id() IS NOT NULL)$p$;
-    ELSE
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'realtime' AND tablename = 'messages' AND policyname = 'wit2_todos_manda') THEN
       EXECUTE $p$CREATE POLICY wit2_todos_manda ON realtime.messages FOR INSERT TO authenticated
         WITH CHECK (realtime.topic() LIKE 'wit2-todos-%' AND public.my_student_id() IS NOT NULL)$p$;
     END IF;
