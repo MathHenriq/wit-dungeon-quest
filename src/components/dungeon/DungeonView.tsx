@@ -57,6 +57,9 @@ export function DungeonView({ look, onClose }: { look: Look; onClose: () => void
     return () => { alive = false; };
   }, [look, andar]);
 
+  // a sala de fora re-renderiza à toa: o teclado não pode ser refeito (perderia as teclas seguradas)
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   // teclado e mouse
   useEffect(() => {
     const keys = new Set<string>();
@@ -67,7 +70,7 @@ export function DungeonView({ look, onClose }: { look: Look; onClose: () => void
       i.shoot = keys.has('j') || keys.has('mouse');
       i.dodge = keys.has(' ') || keys.has('k') || keys.has('shift');
     };
-    const down = (e: KeyboardEvent) => { const k = e.key.toLowerCase(); if (k === 'escape') return onClose(); keys.add(k); if (k === ' ' || k.startsWith('arrow')) e.preventDefault(); sync(); };
+    const down = (e: KeyboardEvent) => { const k = e.key.toLowerCase(); if (k === 'escape') return closeRef.current(); keys.add(k); if (k === ' ' || k.startsWith('arrow')) e.preventDefault(); sync(); };
     const up = (e: KeyboardEvent) => { keys.delete(e.key.toLowerCase()); sync(); };
     const cv = canvas.current!;
     const aim = (e: PointerEvent) => {
@@ -81,7 +84,7 @@ export function DungeonView({ look, onClose }: { look: Look; onClose: () => void
     window.addEventListener('keydown', down); window.addEventListener('keyup', up);
     cv.addEventListener('pointermove', aim); cv.addEventListener('pointerdown', md); window.addEventListener('pointerup', mu);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); cv.removeEventListener('pointermove', aim); cv.removeEventListener('pointerdown', md); window.removeEventListener('pointerup', mu); };
-  }, [onClose]);
+  }, []);
 
   // laço: passo da regra + desenho
   useEffect(() => {
