@@ -160,10 +160,10 @@ A pixel art sprite sheet of an ORIGINAL dungeon boss for a kids game: {CHEFE}. G
 | Arquivo | Rank | {CHEFE} |
 |---|---|---|
 | chefe-e.png | E | a big goblin king with a tiny golden crown, a red cape and a huge spiked wooden club |
-| chefe-d.png | D | a giant spider-like crypt guardian made of bones and lanterns (cute skull-less design, made of wood and glowing lanterns) |
+| chefe-d.png | D | a floating hooded crypt guardian ghost in a long violet robe, carrying four small glowing lanterns on chains (cute, no skull) |
 | chefe-c.png | C | an ice troll with frosty blue fur and a giant icicle club |
 | chefe-b.png | B | a lava golem with cracked black rock skin and glowing orange lava veins |
-| chefe-a.png | A | a giant tree spirit knight with bark armor, a leaf cape and a thorny vine whip |
+| chefe-a.png | A | a giant floating forest spirit with a body of twisted roots and leaves, a flower crown and glowing green eyes |
 | chefe-s.png | S | a tall shadow monarch knight (original design) with black and violet armor, glowing purple eyes and a cape of smoke |
 
 ---
@@ -235,3 +235,36 @@ Pasta `sombras/`. Igual aos inimigos comuns (**4 × 4, quadro 48 × 48**).
 A pixel art sprite sheet of an ORIGINAL friendly shadow soldier ally for a kids game: {SOMBRA}, made of dark navy blue shadow with glowing violet eyes and a wispy smoky outline. Grid of 4 columns and 4 rows, each frame exactly 48x48. Row 1 facing the viewer, row 2 facing left, row 3 facing right, row 4 facing away. Frames 1-2 walking, frames 3-4 attacking. Top-down 3/4 view like Pokémon HeartGold/SoulSilver, cool and heroic, not scary, clean outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). No shadow on the ground, no text.
 ```
 `sombra-soldado.png` = a shadow knight with a sword and shield · `sombra-arqueira.png` = a shadow archer with a long bow · `sombra-tanque.png` = a big shadow warrior with a huge shield.
+
+
+---
+
+## 9. Masmorra 2.0: inimigos novos, perigos e salas
+
+Chegou com a Masmorra 2.0 (5 andares, chefes com mecânica própria, salas novas). Mesmas regras de cima. Enquanto a arte não chega, o jogo usa pets pintados e desenho em código.
+
+**Inimigos novos** (pasta `inimigos/`, **4 × 4, quadro 48 × 48**, mesmo prompt base do §3; o jogo já procura estes nomes):
+
+| Arquivo | {BICHO} |
+|---|---|
+| goblin-escudeiro.png | a stocky green goblin holding a big round wooden shield with metal rim in front of him and a short spear; attack frames bash forward with the shield |
+| goblin-bombardeiro.png | a small green goblin with goggles and a bag of round black cartoon bombs with short fuses; attack frames throw a bomb in an arc |
+| goblin-mago.png | a small green goblin wizard with a pointy purple hat and a floating glowing playing card above his hand; attack frames flip the card |
+| invocador.png | a hooded goblin summoner with a staff topped by a glowing violet orb and a small magic circle at his feet; attack frames raise the staff with sparkles |
+| toupeira-cavadora.png | a grumpy brown mole with a tiny miner helmet and big claws; frames 1-2 walking, frame 3 half buried with only the helmet showing, frame 4 popping out of a dirt mound |
+| espirito.png | a small round floating ghost wisp, pale lilac with a cute angry face and a wavy tail; attack frames lunge forward |
+| planta-torreta.png | a rooted carnivorous-looking flower turret (cute, not scary) with a big round bud that opens to shoot leaves; frames 1-2 swaying, frames 3-4 opening and shooting |
+
+Os 6 chefes continuam no §3 (`chefe-e` … `chefe-s`). O do rank D agora é um guardião fantasma com 4 lampiões e o do rank A é um espírito de raízes. As descrições da tabela do §3 já foram atualizadas.
+
+**perigos.png** (pasta `lugares/`, **4 × 2, quadro 32 × 32**)
+```
+A pixel art tileset of dungeon floor hazards for a kids game, grid of 4 columns and 2 rows, each tile exactly 32x32, top-down 3/4 view: row 1: (1) floor plate with small holes (spikes hidden), (2) the same plate glowing red (spikes about to rise), (3) the same plate with sharp silver spikes up, (4) a bubbling purple poison puddle; row 2: (1) a slippery light blue ice patch with shine, (2) a glowing orange lava tile with bubbles, (3) the same lava tile in a second bubble frame, (4) a red explosive barrel with a yellow warning stripe (no letters). Clean dark outlines, limited palette, no anti-aliasing, no text. Flat solid magenta background (#FF00FF) only around the barrel.
+```
+
+**salas.png** (pasta `lugares/`, **4 × 2, quadro 64 × 64**)
+```
+A pixel art sprite sheet of special dungeon room objects for a kids fantasy game, grid of 4 columns and 2 rows, each cell exactly 64x64, top-down 3/4 view: row 1: (1) a stone blessing statue of a kneeling knight holding a glowing blue orb, (2) a mysterious hooded merchant with glowing yellow eyes sitting behind a small rug with items (friendly, not scary), (3) a standing iron lantern with a bright warm flame, (4) the same lantern with the flame out and a wisp of smoke; row 2: (1) a golden resurrection stone, a shiny gem with a small white cross of light inside (no letters), (2) a cracked stone wall section with light coming through the cracks, (3) a red challenge chest with a gold lock, (4) a round dark trapdoor with glowing blue runes (no letters). Clean dark outlines, limited palette, no anti-aliasing, no text. Flat solid magenta background (#FF00FF).
+```
+
+As cópias de sombra que o Monarca cria usam o próprio boneco do aluno pintado de sombra: não precisam de arte nova.

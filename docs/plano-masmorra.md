@@ -10,7 +10,60 @@ limpar, esquiva, chefe, recompensa com limite por dia; com testes) e
 `src/components/dungeon/DungeonView.tsx` (canvas, teclado, toque). Hoje ele é de **tiro**
 (estilo Soul Knight). O plano troca o tiro por **golpe corpo a corpo + habilidades de carta**.
 
-## Situação (09/10)
+## Masmorra 2.0 (09/10): hack and slash de verdade
+
+Pedido do Matheus: cada carta com golpe e função próprios, inimigos e chefes usando cartas, chefes com mecânica, difícil como Soul Knight (o aluno sofre e testa outras cartas).
+
+**Golpes das cartas** (`dungeon-moves.ts` peças e estados; `dungeon-kits.ts` uma linha por carta; motor em `dungeon-cast.ts`):
+- 20 peças: projétil (reto, onda, espiral, volta, persegue, quica), tornado, raio (varre, cone, carrega segurando a tecla), zona, chuva, investida (e teleporte), rajada, órbita, invocar, transformar, marca, armadilha, vórtice, onda de choque, prender, bênção, parar tiros, cena, golpe, área, cadeia;
+- as **168 cartas de Ataque** têm kit à mão, todos diferentes (teste). Exemplos: o Howitzer Impact é o tornado de fogo que anda girando e queima; o Titã Colossal deixa o caçador 2,2× maior, sem esquiva, com pisadas e vapor no fim; o Zoltraak tem a cena do círculo mágico e 3 feixes; o Kamehameha carrega; a Amaterasu é chama negra que passa para o vizinho; o Beru é a formiga sombra;
+- 16 estados e 10 **reações** pelo estado que o alvo já tem (não é fraqueza): molhado + gelo congela, molhado + raio dá choque em cadeia, semente + fogo vira incêndio, veneno + fogo explode, fogo derrete gelo, golpe pesado estilhaça, vento espalha, molhado + terra vira lama, queimando + água vira vapor, 3 raios paralisam;
+- **maestria** 0–5 por carta (inimigos derrotados com ela): +5% por nível, extra no 3, recarga menor no 5; **Códex** na aba CARTAS.
+
+**Jogabilidade** (`dungeon.ts`):
+- combo de 3 com finalizador; segurar e soltar = golpe pesado (giro ou estocada); atacar logo depois da esquiva = investida;
+- **esquiva perfeita** (começar a esquiva dentro do golpe, no último instante): câmera lenta e próximo crítico;
+- a espada devolve tiros; parada no impacto, tremida, empurrão por peso, bater na parede machuca, **postura**;
+- contador de acertos e **nota da sala** (C, B, A, S) que multiplica XP e moedas;
+- **habilidade do Caminho** (tecla L): Investida Dupla, Eco Arcano, Fúria, Muralha, Nuvem Alquímica, Colheita, Clone, Torreta;
+- **pontos de status** (1 por nível de caçador): Força, Agilidade, Vitalidade, Inteligência, Percepção (aba STATUS).
+
+**Inimigos** (`dungeon-ai.ts`): escudeiro (escudo na frente), bombardeiro, goblin mago (sempre com carta), invocador, toupeira cavadora, espírito; elites com modificador (Veloz, Blindado, Explosivo, Vampiro, Gêmeo, Refletor, Gelado, Venenoso, Fantasma); **inimigos com carta**: a carta vira em cima da cabeça e o kit sai com aviso (portal E andar 1: nenhum; S: ~60%).
+
+**Chefes** (`dungeon-boss.ts`, todos com 3 fases, postura, 3 cartas do chefe da Torre e fúria aos 3 min; nenhum golpe tira mais de 8% da vida deles):
+
+| Rank | Chefe | Mecânica |
+|---|---|---|
+| E | Rei Goblin | investida, porrete que volta (3 na fase 3), chama goblins, pedras |
+| D | Guardião da Cripta | sala escura; 4 lampiões dão escudo e soltam espíritos; reacende 2 na fase 3 |
+| C | Troll de Gelo | chão escorrega, estalactites, armadura de gelo que só cai com fogo ou golpe pesado |
+| B | Golem de Lava | linhas de lava, núcleo exposto nas costas depois do pisão, anel de lava na fase 3 |
+| A | Espírito da Floresta | raízes prendem (esquivar solta), plantas torreta curam o chefe |
+| S | Monarca das Sombras | cópias que usam as cartas do aluno, teleporte, escuridão, mortos que levantam se ninguém pisar |
+
+**Estrutura** (`dungeon-map.ts`, `hunter.ts`):
+- portal de **5 andares**: mini-chefe (2 elites) no 3º, chefe no 5º;
+- salas novas: estátua (bênção por moedas), desafio (porta vermelha, 3 ondas), armadilha, secreta (parede rachada), mercador (Pedra da Ressurreição, afiar, cristal);
+- perigos do chão por tema: espinhos (com aviso), barril explosivo, veneno, gelo, lava;
+- o próximo portal só abre **vencendo o chefe do anterior** (o SQL confere igual); XP de rank 3× mais lenta;
+- **Modo Pesadelo** depois do S; **Portal da Semana** (mesma semente da turma, recorde local); 3 títulos novos.
+
+**Números da simulação** (`npx vite-node scripts/masmorra-sim.ts 16 0,1,2,3,4,5`; `CARTAS=comum|rara|lendaria`, `MELHORIAS=1` dá ao robô a arma, os pontos e a maestria de quem chega naquele rank; `REACAO` e `ERRO` simulam o aluno). Vitória do robô "bom aluno" (reação de 0,3 s, perde 20% dos avisos):
+
+| Rank | Sem melhorias | Com as melhorias do rank |
+|---|---|---|
+| E | ~50% | 63–75% |
+| D | 6–31% | 69–94% |
+| C | 19–38% | 88–94% |
+| B | 0% | 38–56% |
+| A | 0% | 44–56% |
+| S | 6–13% | 44–69% |
+
+Partida de 4 a 10 min para o robô (o aluno leva mais). Luta direta com o chefe: `npx vite-node scripts/masmorra-chefe.ts <rank> <raridade> [partidas]` (com `MELHORIAS=1`), de 30 s a 2 min.
+
+**Robô no navegador:** `node scripts/mapa/masmorra-robo.mjs <pasta> [rank] [LxA] [jogar|vitrine]`. O modo `vitrine` tira prints dos golpes marcantes e de cada chefe (o dev expõe `window.__dungeonEdit`).
+
+## Situação (09/10, primeira versão)
 
 Pronto e jogável na branch `claude/masmorra` (o robô `scripts/mapa/masmorra-robo.mjs` vence o portal E inteiro):
 
