@@ -14,7 +14,7 @@ import './hall-of-fame.css';
 export type Board = 'guildas' | 'pvp' | 'jogadores';
 
 const BOARDS: Record<Board, { title: string; sub: string; icon: string; metric: string }> = {
-  guildas: { title: 'TORNEIO DAS GUILDAS', sub: 'Golpes no chefe da guilda nesta semana. Zera toda segunda!', icon: 'escudo', metric: 'golpes' },
+  guildas: { title: 'TORNEIO DAS GUILDAS', sub: 'Pontos das metas da semana (PvP, Torre, trabalhos, aula...). Zera toda segunda!', icon: 'escudo', metric: 'pontos' },
   pvp: { title: 'CAMPEÕES DA ARENA', sub: 'Vitórias no PvP ao vivo, contra alunos de toda a escola.', icon: 'espadas', metric: 'vitórias' },
   jogadores: { title: 'DESAFIANTES DA TORRE', sub: 'O andar mais alto da Torre. Empate: quem tem mais cartas.', icon: 'coroa', metric: 'andar' },
 };
@@ -22,13 +22,13 @@ const BOARDS: Record<Board, { title: string; sub: string; icon: string; metric: 
 type Row = { key: string; pos: number; name: string; sub?: string | null; value: number; extra?: string; mine: boolean; avatar: ReactNode };
 type Data = { rows: Row[]; me: { pos: number; value: number; label?: string } | null; total: number };
 
-function toData(b: Board, r: Ranking<RankGuild, { pos: number; golpes: number; name: string }> | Ranking<RankDuelist, { pos: number; vitorias: number; semana: number }> | Ranking<RankPlayer, { pos: number; andar: number; cartas: number }>): Data {
+function toData(b: Board, r: Ranking<RankGuild, { pos: number; pontos: number; name: string }> | Ranking<RankDuelist, { pos: number; vitorias: number; semana: number }> | Ranking<RankPlayer, { pos: number; andar: number; cartas: number }>): Data {
   if (b === 'guildas') {
-    const g = r as Ranking<RankGuild, { pos: number; golpes: number; name: string }>;
+    const g = r as Ranking<RankGuild, { pos: number; pontos: number; name: string }>;
     return {
-      rows: g.top.map(x => ({ key: `${x.pos}-${x.name}`, pos: x.pos, name: x.name, sub: `${x.membros} membro${x.membros === 1 ? '' : 's'}${x.chefeCaiu ? ' · chefe derrubado!' : ''}`,
-        value: x.golpes, mine: x.minha, avatar: <GuildEmblem i={x.emblem} size={56} /> })),
-      me: g.eu ? { pos: g.eu.pos, value: g.eu.golpes, label: g.eu.name } : null, total: g.total,
+      rows: g.top.map(x => ({ key: `${x.pos}-${x.name}`, pos: x.pos, name: x.name, sub: `${x.membros} membro${x.membros === 1 ? '' : 's'}`,
+        extra: `${x.metas}/${x.totalMetas} metas`, value: x.pontos, mine: x.minha, avatar: <GuildEmblem i={x.emblem} size={56} /> })),
+      me: g.eu ? { pos: g.eu.pos, value: g.eu.pontos, label: g.eu.name } : null, total: g.total,
     };
   }
   if (b === 'pvp') {
@@ -102,7 +102,7 @@ export function HallOfFame({ board: first, onClose }: { board: Board; onClose: (
             <div className="hof-empty">
               <Icon id="trofeu" size={48} />
               <div>Ninguém no placar ainda.</div>
-              <div className="hof-empty-sub">{board === 'guildas' ? 'Crie ou entre numa guilda no Castelo e vença na Torre!' : board === 'pvp' ? 'Sente numa mesa livre da Arena e vença um duelo ao vivo!' : 'Suba a Torre para aparecer aqui!'}</div>
+              <div className="hof-empty-sub">{board === 'guildas' ? 'Crie ou entre numa guilda no Castelo e cumpra as metas da semana!' : board === 'pvp' ? 'Sente numa mesa livre da Arena e vença um duelo ao vivo!' : 'Suba a Torre para aparecer aqui!'}</div>
             </div>
           )}
           {d && d.rows.length > 0 && (
@@ -185,5 +185,5 @@ function Portrait({ look }: { look: Partial<Look> }) {
 
 function fmt(b: Board, v: number): string {
   if (b === 'jogadores') return `Andar ${v}`;
-  return `${v} ${b === 'pvp' ? (v === 1 ? 'vitória' : 'vitórias') : (v === 1 ? 'golpe' : 'golpes')}`;
+  return `${v} ${b === 'pvp' ? (v === 1 ? 'vitória' : 'vitórias') : (v === 1 ? 'ponto' : 'pontos')}`;
 }

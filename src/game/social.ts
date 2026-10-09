@@ -78,7 +78,8 @@ async function call<T>(fn: string, args: Record<string, unknown> | undefined, de
 export function socialError(e: unknown): string {
   const m = e instanceof Error ? e.message : String(e);
   const known = ['apelido não permitido', 'colega não encontrado', 'pedidos demais', 'só amigos visitam', 'já está numa guilda', 'nome não permitido',
-    'guilda não encontrada', 'guilda cheia', 'mentor precisa ser da guilda', 'mentor precisa estar 5 andares acima', 'o chefe ainda está de pé'];
+    'guilda não encontrada', 'guilda cheia', 'mentor precisa ser da guilda', 'mentor precisa estar 5 andares acima', 'o chefe ainda está de pé',
+    'meta ainda não cumprida', 'já resgatou', 'meta não existe'];
   if (m === OFFLINE || known.includes(m)) return m.charAt(0).toUpperCase() + m.slice(1) + (m.endsWith('.') ? '' : '.');
   return 'Sem conexão com o servidor. Tente de novo.';
 }
@@ -114,7 +115,7 @@ export const guildHit = () => (cloudEnabled() ? rpc<{ bossHp: number } | null>('
 export interface RankPerson { pos: number; handle: string; nick: string; title?: string | null; look: Partial<Look>; eu: boolean }
 export interface RankPlayer extends RankPerson { andar: number; cartas: number; guilda?: string | null }
 export interface RankDuelist extends RankPerson { vitorias: number; semana: number; duelos: number }
-export interface RankGuild { pos: number; name: string; emblem: number; membros: number; golpes: number; chefeCaiu: boolean; minha: boolean }
+export interface RankGuild { pos: number; name: string; emblem: number; membros: number; pontos: number; metas: number; totalMetas: number; minha: boolean }
 export interface Ranking<T, Me> { top: T[]; eu: Me | null; total: number }
 
 const DEMO_NICKS = ['Rafa', 'Lia', 'Kaio', 'Nina', 'Theo', 'Bia', 'Enzo', 'Luna', 'Davi', 'Maya', 'Ravi', 'Iris', 'Noah', 'Clara', 'Ian', 'Sofia', 'Leo', 'Duda'];
@@ -132,12 +133,33 @@ export const rankPvp = () => call<Ranking<RankDuelist, { pos: number; vitorias: 
   top: demoPeople(k => ({ vitorias: Math.max(1, 48 - k * 3 + (k % 2)), semana: Math.max(0, 9 - k), duelos: 70 - k * 3 })),
   eu: { pos: 7, vitorias: 30, semana: 3 }, total: 96,
 }));
-export const rankGuilds = () => call<Ranking<RankGuild, { pos: number; golpes: number; name: string }>>('wit2_rank_guilds', undefined, () => ({
+export const rankGuilds = () => call<Ranking<RankGuild, { pos: number; pontos: number; name: string }>>('wit2_rank_guilds', undefined, () => ({
   top: ['Os Brabos', 'Dragões de Fogo', 'Lobos da Torre', 'Guardiões', 'Os Magos', 'Tempestade', 'Estrelas WIT', 'Os Piratas'].map((name, k) => ({
-    pos: k + 1, name, emblem: (k * 5) % 12, membros: 12 - k, golpes: 140 - k * 16, chefeCaiu: k < 2, minha: k === 0,
+    pos: k + 1, name, emblem: (k * 5) % 12, membros: 12 - k, pontos: [170, 145, 130, 105, 85, 60, 40, 20][k], metas: 7 - Math.min(6, k), totalMetas: 8, minha: k === 0,
   })),
-  eu: { pos: 1, golpes: 140, name: 'Os Brabos' }, total: 23,
+  eu: { pos: 1, pontos: 170, name: 'Os Brabos' }, total: 23,
 }));
+
+// ─── metas da guilda (supabase/migrations/*_wit2_guild_metas.sql) ────────────
+// Iguais para todas as guildas, zeram na segunda. Meta cumprida = pontos para
+// o ranking + 1 pacotinho que cada membro resgata.
+export interface GuildGoal { id: string; titulo: string; icone: string; valor: number; meta: number; pontos: number; pack: string; feita: boolean; resgatada: boolean }
+export interface GuildGoals { pontos: number; metas: GuildGoal[] }
+const DEMO_GOALS: GuildGoals = {
+  pontos: 60,
+  metas: [
+    { id: 'pvp', titulo: 'Vencer 20 duelos no PvP', icone: 'espadas', valor: 13, meta: 20, pontos: 30, pack: 'incomum', feita: false, resgatada: false },
+    { id: 'andares', titulo: 'Subir 5 andares da Torre', icone: 'coroa', valor: 5, meta: 5, pontos: 20, pack: 'comum', feita: true, resgatada: true },
+    { id: 'trabalhos', titulo: 'Terminar 30 trabalhos', icone: 'martelo', valor: 22, meta: 30, pontos: 20, pack: 'comum', feita: false, resgatada: false },
+    { id: 'aula', titulo: 'Somar 8 presenças na aula', icone: 'livro', valor: 8, meta: 8, pontos: 25, pack: 'incomum', feita: true, resgatada: false },
+    { id: 'chefe', titulo: 'Derrubar o chefe da guilda', icone: 'caveira', valor: 0, meta: 1, pontos: 40, pack: 'raro', feita: false, resgatada: false },
+    { id: 'mesas', titulo: 'Vencer 25 duelos nas mesas', icone: 'carta-verso', valor: 25, meta: 25, pontos: 15, pack: 'comum', feita: true, resgatada: false },
+    { id: 'peixes', titulo: 'Pescar 40 peixes', icone: 'peixe', valor: 31, meta: 40, pontos: 10, pack: 'comum', feita: false, resgatada: false },
+    { id: 'colheitas', titulo: 'Fazer 40 colheitas', icone: 'colheita_milho', valor: 9, meta: 40, pontos: 10, pack: 'comum', feita: false, resgatada: false },
+  ],
+};
+export const guildGoals = () => call<GuildGoals | null>('wit2_guild_goals', undefined, () => DEMO_GOALS);
+export const guildGoalClaim = (goal: string) => call<{ pack: string }>('wit2_guild_goal_claim', { p_goal: goal }, () => ({ pack: DEMO_GOALS.metas.find(m => m.id === goal)?.pack ?? 'comum' }));
 
 // professor
 export interface ReportRow { id: number; reason: ReportReason; at: string; alvo: string; alvoApelido: string | null; quem: string }

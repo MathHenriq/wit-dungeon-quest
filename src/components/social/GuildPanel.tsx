@@ -3,7 +3,9 @@
 // membro tira 1 de vida; derrubou, todo mundo pega 1 Pacotinho Comum), mentoria
 // (escolher um colega 5 andares acima: ele ganha moedas quando você sobe).
 import { useEffect, useState } from 'react';
-import { bossShare, guildClaim, guildCreate, guildInfo, guildJoin, guildLeave, guildMentor, nickOk, presenceGoal, socialError, socialOn, type GuildInfo } from '@/game/social';
+import { bossShare, guildClaim, guildCreate, guildGoalClaim, guildGoals, guildInfo, guildJoin, guildLeave, guildMentor, nickOk, presenceGoal, socialError, socialOn, type GuildGoals, type GuildInfo } from '@/game/social';
+import { PACK_BY_ID, type PackId } from '@/game/packs';
+import { Icon } from '@/components/Icon';
 import { ELEMENT_STYLE } from '@/components/tcg/TcgCard';
 import { Symbol } from '@/components/Icon';
 import { PxBar, PxBox, PxButton, PxPanel } from '@/components/pixel/Pixel';
@@ -27,7 +29,11 @@ export function GuildPanel({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('');
   const [emblem, setEmblem] = useState(0);
   const [code, setCode] = useState('');
-  const load = () => { guildInfo().then(setG).catch(e => { setG(null); setMsg(socialError(e)); }); };
+  const [goals, setGoals] = useState<GuildGoals | null>(null);
+  const load = () => {
+    guildInfo().then(setG).catch(e => { setG(null); setMsg(socialError(e)); });
+    guildGoals().then(setGoals).catch(() => setGoals(null));
+  };
   useEffect(load, []);
   const run = async (f: () => Promise<unknown>, ok: string) => {
     try { await f(); setMsg(ok); play('coin'); load(); } catch (e) { setMsg(socialError(e)); play('lose'); }
@@ -58,7 +64,7 @@ export function GuildPanel({ onClose }: { onClose: () => void }) {
             <input value={code} maxLength={5} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="ex.: K7P2Q"
               className="w-full px-2 py-1.5 mb-2 text-[12px] tracking-[4px] rounded border-2 border-[#c8a86e] bg-white" />
             <PxButton color="#3a78c8" disabled={code.length !== 5} onClick={() => void run(() => guildJoin(code), 'Você entrou na guilda!')}>ENTRAR</PxButton>
-            <div className="text-[7px] leading-4 text-[#6a4a2a] mt-2">Peça o código para quem criou a guilda. Até 12 colegas da sua turma.</div>
+            <div className="text-[7px] leading-4 text-[#6a4a2a] mt-2">Peça o código para quem criou a guilda. Até 12 alunos, de qualquer turma.</div>
           </PxBox>
         </div>
       )}
@@ -90,6 +96,32 @@ export function GuildPanel({ onClose }: { onClose: () => void }) {
               <div className="text-[7px] leading-4 text-[#6a4a2a] mt-1">{presenceGoal(g).done} de {presenceGoal(g).total} vieram em pelo menos 1 aula nesta semana.</div>
             </PxBox>
           </div>
+          {goals && (
+            <PxBox>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[10px]">METAS DA SEMANA</div>
+                <div className="text-[9px] text-[#8a2a3a]">{goals.pontos} PONTOS</div>
+              </div>
+              <div className="text-[7px] leading-4 text-[#6a4a2a] mb-2">A guilda inteira soma. Cada meta cumprida dá pontos no ranking do Salão dos Campeões e 1 pacotinho para cada membro. Zera toda segunda.</div>
+              <div className="flex flex-col gap-1.5">
+                {goals.metas.map(mt => (
+                  <div key={mt.id} className="flex items-center gap-2">
+                    <Icon id={mt.icone} size={22} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex justify-between gap-2 text-[8px] leading-3 mb-0.5"><span>{mt.titulo}</span><span className="shrink-0 text-[#8a2a3a]">+{mt.pontos}</span></div>
+                      <PxBar value={mt.valor / mt.meta} color={mt.feita ? '#3a9a5a' : '#e8a020'} />
+                      <div className="text-[7px] text-[#6a4a2a]">{mt.valor}/{mt.meta}</div>
+                    </div>
+                    <span title={PACK_BY_ID.get(mt.pack as PackId)?.name}><Icon id={`pacote-${mt.pack}`} size={22} /></span>
+                    <PxButton color={mt.resgatada ? '#6a6a7a' : '#c8861a'} disabled={!mt.feita || mt.resgatada}
+                      onClick={() => void run(() => guildGoalClaim(mt.id), `${PACK_BY_ID.get(mt.pack as PackId)?.name ?? 'Pacotinho'} guardado em MEUS PACOTES, na Loja.`)}>
+                      {mt.resgatada ? 'PEGOU' : 'PEGAR'}
+                    </PxButton>
+                  </div>
+                ))}
+              </div>
+            </PxBox>
+          )}
           <div className="grid sm:grid-cols-2 gap-1.5">
             {g.members.map(mb => {
               const canMentor = me && !mb.eu && mb.andar >= me.andar + 5;
