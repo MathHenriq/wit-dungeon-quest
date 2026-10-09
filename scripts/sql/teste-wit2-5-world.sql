@@ -15,7 +15,7 @@ SELECT wit2_teacher_post_moderate((SELECT id FROM wit2_posts WHERE kind = 'foto'
 SELECT set_config('test.uid', '22222222-2222-2222-2222-222222222222', false);
 SELECT jsonb_array_length(wit2_mural()) = 3 AS "Ana vê a foto aprovada";
 SELECT set_config('test.uid', '55555555-5555-5555-5555-555555555555', false);
-SELECT jsonb_array_length(wit2_mural()) = 0 AS "outra turma não vê o mural";
+SELECT jsonb_array_length(wit2_mural()) = 3 AS "outra turma também vê o mural (global)";
 -- festa: Ana avisa os amigos (o Beto)
 SELECT set_config('test.uid', '22222222-2222-2222-2222-222222222222', false);
 SELECT wit2_set_profile('Aninha', NULL, '{}', '{}') IS NOT NULL AS "Ana com apelido de volta";

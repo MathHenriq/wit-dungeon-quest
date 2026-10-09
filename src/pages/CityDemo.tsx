@@ -38,7 +38,7 @@ import {
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
 import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
-import { cloudEnabled, pullProgress } from '@/game/cloud';
+import { cloudEnabled, pullProgress, studentSignedIn } from '@/game/cloud';
 import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
 import { DEMO_PEOPLE, nickOk, noticesMine, setProfile, socialDemo, socialError, socialOn, visit } from '@/game/social';
 import { ProfileCard } from '@/components/social/ProfileCard';
@@ -445,7 +445,7 @@ function CityView({ town, start, startHour, onTravel }: {
   useEffect(() => {
     if (!cloudEnabled()) return;
     const before = loadProgress();
-    pullProgress(before).then(p => {
+    void studentSignedIn().then(ok => ok && pullProgress(before).then(p => {
       saveProgress(p); setProgress(p);
       // o professor mandou pacotes (aula, missão da sala) desde a última vez: avisa
       const got = Object.entries(p.pacotes).filter(([id, n]) => n > (before.pacotes[id] ?? 0));
@@ -460,7 +460,7 @@ function CityView({ town, start, startHour, onTravel }: {
         const text = `Carta da Aula: ${CARD_BY_ID.get(c.card)?.name ?? c.card} entrou no seu álbum!`;
         setFishUi({ kind: 'toast', text: packsText ? `${packsText} ${text}` : text });
       });
-    }).catch(err => console.error('banco', err));
+    }).catch(err => console.error('banco', err)));
   }, []);
 
   // convite de festa de um amigo (vale 30 min)
@@ -493,8 +493,8 @@ function CityView({ town, start, startHour, onTravel }: {
     const pr = loadProgress();
     const favs = Object.keys(pr.collection).sort((a, b) => RANKS.indexOf(CARD_BY_ID.get(b)?.rarity ?? 'common') - RANKS.indexOf(CARD_BY_ID.get(a)?.rarity ?? 'common')).slice(0, 3);
     const nick = nickOk(s.nick) ? s.nick : 'Desafiante';
-    setProfile(nick, s.playerTitle, look, favs).then(meP => {
-      if (!alive) return;
+    studentSignedIn().then(ok => (ok ? setProfile(nick, s.playerTitle, look, favs) : null)).then(meP => {
+      if (!alive || !meP) return;
       s.muted = meP.muted;
       setMuted(meP.muted);
       const me: PeerState = { id: tabId(), handle: meP.handle, nick, title: s.playerTitle, look, tx: s.player.tx, ty: s.player.ty, dir: s.player.dir };

@@ -109,6 +109,36 @@ export const guildClaim = () => call<boolean>('wit2_guild_claim', undefined, () 
 /** Vitória na Torre bate no chefe da guilda (sem guilda ou offline: nada). */
 export const guildHit = () => (cloudEnabled() ? rpc<{ bossHp: number } | null>('wit2_guild_hit').catch(() => null) : Promise.resolve(null));
 
+// ─── rankings do Salão dos Campeões (supabase/migrations/*_wit2_tudo_global.sql) ──
+// Todos os alunos de todos os professores; contas de teste ficam fora.
+export interface RankPerson { pos: number; handle: string; nick: string; title?: string | null; look: Partial<Look>; eu: boolean }
+export interface RankPlayer extends RankPerson { andar: number; cartas: number; guilda?: string | null }
+export interface RankDuelist extends RankPerson { vitorias: number; semana: number; duelos: number }
+export interface RankGuild { pos: number; name: string; emblem: number; membros: number; golpes: number; chefeCaiu: boolean; minha: boolean }
+export interface Ranking<T, Me> { top: T[]; eu: Me | null; total: number }
+
+const DEMO_NICKS = ['Rafa', 'Lia', 'Kaio', 'Nina', 'Theo', 'Bia', 'Enzo', 'Luna', 'Davi', 'Maya', 'Ravi', 'Iris', 'Noah', 'Clara', 'Ian', 'Sofia', 'Leo', 'Duda'];
+const DEMO_TITLES = ['Duelista', 'Pescadora', 'Mestre da Torre', 'Novato', 'Lenda', null, 'Colecionador', 'Rank S'];
+const demoLook = (k: number): Partial<Look> => DEMO_LOOK(`modelo-${String((k * 3) % 10 + 1).padStart(2, '0')}`, ['azul', 'rosa', 'verde', 'vermelho', 'amarelo', 'roxo'][k % 6]);
+const demoPeople = <T,>(f: (k: number) => T) => DEMO_NICKS.map((nick, k) => ({
+  pos: k + 1, handle: `demo-${k}`, nick, title: DEMO_TITLES[k % DEMO_TITLES.length], look: demoLook(k), eu: k === 6, ...f(k),
+}));
+
+export const rankPlayers = () => call<Ranking<RankPlayer, { pos: number; andar: number; cartas: number }>>('wit2_rank_players', undefined, () => ({
+  top: demoPeople(k => ({ andar: Math.max(1, 87 - k * 5 - (k % 3)), cartas: 260 - k * 9, guilda: ['Os Brabos', 'Dragões', null, 'Lobos da Torre'][k % 4] })),
+  eu: { pos: 7, andar: 55, cartas: 206 }, total: 214,
+}));
+export const rankPvp = () => call<Ranking<RankDuelist, { pos: number; vitorias: number; semana: number }>>('wit2_rank_pvp', undefined, () => ({
+  top: demoPeople(k => ({ vitorias: Math.max(1, 48 - k * 3 + (k % 2)), semana: Math.max(0, 9 - k), duelos: 70 - k * 3 })),
+  eu: { pos: 7, vitorias: 30, semana: 3 }, total: 96,
+}));
+export const rankGuilds = () => call<Ranking<RankGuild, { pos: number; golpes: number; name: string }>>('wit2_rank_guilds', undefined, () => ({
+  top: ['Os Brabos', 'Dragões de Fogo', 'Lobos da Torre', 'Guardiões', 'Os Magos', 'Tempestade', 'Estrelas WIT', 'Os Piratas'].map((name, k) => ({
+    pos: k + 1, name, emblem: (k * 5) % 12, membros: 12 - k, golpes: 140 - k * 16, chefeCaiu: k < 2, minha: k === 0,
+  })),
+  eu: { pos: 1, golpes: 140, name: 'Os Brabos' }, total: 23,
+}));
+
 // professor
 export interface ReportRow { id: number; reason: ReportReason; at: string; alvo: string; alvoApelido: string | null; quem: string }
 export const teacherReports = () => (cloudEnabled() ? rpcTeacher<ReportRow[]>('wit2_teacher_reports') : Promise.resolve<ReportRow[]>([]));

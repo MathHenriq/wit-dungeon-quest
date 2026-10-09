@@ -39,6 +39,7 @@ import { DungeonView } from '@/components/dungeon/DungeonView';
 import { buildMatch, joinTable, reportPvp, validDeck, WO_MS, type PvpAction, type PvpHello, type TableLink } from '@/game/pvp-online';
 import { tabId } from '@/game/presence';
 import { GuildPanel } from '@/components/social/GuildPanel';
+import { HallOfFame, type Board } from '@/components/social/HallOfFame';
 import { TradeHub } from '@/components/social/TradeHub';
 import { FurnitureShop } from './FurnitureShop';
 import { plantKey, waterPlant } from '@/game/house-life';
@@ -194,6 +195,11 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     const q = new URLSearchParams(window.location.search).get('painel');
     return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' || q === 'trocas' || q === 'moveis' ? q : null;
   });
+  /** Ranking aberto (placares do Salão dos Campeões, da Arena e do Castelo; ?ranking=pvp abre direto). */
+  const [ranking, setRanking] = useState<Board | null>(() => {
+    const q = new URLSearchParams(window.location.search).get('ranking');
+    return q === 'guildas' || q === 'pvp' || q === 'jogadores' ? q : null;
+  });
   /** Fliperama da casa: criar fase (ou jogar o caça-bugs). */
   const [arcade, setArcade] = useState(false);
   /** Masmorra (telão da Arena; ?masmorra abre direto). */
@@ -257,7 +263,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   });
   const S = g.current;
   if (import.meta.env.DEV) (window as unknown as { __interior: unknown }).__interior = S;
-  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen || !!housePanel;
+  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen || !!housePanel || !!ranking;
   // duelo ou masmorra cobrem a tela toda: a sala para de desenhar por baixo
   covered.current = !!duel || dungeon;
   // senta na mesa online: o primeiro colega que sentar na mesma mesa vira o adversário
@@ -535,6 +541,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     if (talk?.action === 'trocas') { S.held = []; setPanelOpen('trocas'); return; }
     if (talk?.action === 'moveis') { S.held = []; setPanelOpen('moveis'); return; }
     if (talk?.action === 'masmorra') { S.held = []; setDungeon(true); return; }
+    if (talk?.action?.startsWith('rank-')) { S.held = []; play('super'); setRanking(talk.action.slice(5) as Board); return; }
     if (talk?.action === 'sentar' && talk.seat) {
       // senta na cadeira da mesa vazia e espera um colega sentar na frente
       S.sit = { tx: talk.seat[0], ty: talk.seat[1], from: { tx: S.player.tx, ty: S.player.ty, dir: S.player.dir } };
@@ -943,6 +950,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'recompensas' && <RoomRewards progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
+      {ranking && <HallOfFame board={ranking} onClose={() => setRanking(null)} />}
       {dungeon && <DungeonView look={look} onClose={() => setDungeon(false)} />}
       {arcade && <ArcadeMaker onClose={() => setArcade(false)} onClassic={() => { setArcade(false); setHousePanel({ kind: 'work', game: 'teste-jogo' }); }} />}
       {panelOpen === 'moveis' && m && <FurnitureShop m={m} onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}

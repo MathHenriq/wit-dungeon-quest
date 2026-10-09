@@ -14,7 +14,7 @@ SELECT wit2_set_profile('Betao', NULL, '{}', '{}') IS NOT NULL AS "perfil do Bet
 SELECT set_config('test.uid', '55555555-5555-5555-5555-555555555555', false);
 SELECT wit2_set_profile('Caio', NULL, '{}', '{}') IS NOT NULL AS "perfil do Caio";
 SELECT (wit2_profile_of((SELECT handle FROM wit2_profile WHERE nick = 'Aninha'))->>'nick') = 'Aninha' AS "outra turma vê o cartão (cidade aberta)";
-DO $$ BEGIN PERFORM wit2_friend_request((SELECT handle FROM wit2_profile WHERE nick = 'Aninha')); RAISE EXCEPTION 'devia recusar'; EXCEPTION WHEN others THEN IF SQLERRM <> 'colega não encontrado' THEN RAISE; END IF; END $$;
+DO $$ BEGIN PERFORM wit2_friend_request((SELECT handle FROM wit2_profile WHERE handle = 'nao-existe')); RAISE EXCEPTION 'devia recusar'; EXCEPTION WHEN others THEN IF SQLERRM <> 'colega não encontrado' THEN RAISE; END IF; END $$;
 -- Beto vê a Ana sem dado pessoal e pede amizade
 SELECT set_config('test.uid', '33333333-3333-3333-3333-333333333333', false);
 SELECT (wit2_profile_of((SELECT handle FROM wit2_profile WHERE nick = 'Aninha'))->>'nick') = 'Aninha'
@@ -31,7 +31,7 @@ SELECT wit2_report((SELECT handle FROM wit2_profile WHERE nick = 'Aninha'), 'ape
 -- guilda
 SELECT length(wit2_guild_create('Os Brabos', 3)->>'code') = 5 AS "Beto cria a guilda";
 SELECT set_config('test.uid', '55555555-5555-5555-5555-555555555555', false);
-DO $$ BEGIN PERFORM wit2_guild_join((SELECT code FROM wit2_guilds LIMIT 1)); RAISE EXCEPTION 'devia recusar'; EXCEPTION WHEN others THEN IF SQLERRM <> 'guilda não encontrada' THEN RAISE; END IF; END $$;
+DO $$ BEGIN PERFORM wit2_guild_join('ZZZZZ'); RAISE EXCEPTION 'devia recusar'; EXCEPTION WHEN others THEN IF SQLERRM <> 'guilda não encontrada' THEN RAISE; END IF; END $$;
 SELECT set_config('test.uid', '22222222-2222-2222-2222-222222222222', false);
 SELECT wit2_guild_join((SELECT code FROM wit2_guilds LIMIT 1)) AS "Ana entra";
 SELECT jsonb_array_length(wit2_guild_info()->'members') = 2 AND (wit2_guild_info()->>'bossMax')::int = 60 AS "guilda com 2 e chefe de 60";

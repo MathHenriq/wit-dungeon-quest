@@ -85,10 +85,12 @@ export interface Exit { tx: number; ty: number; to: ExitKind }
 export interface Talk {
   tiles: [number, number][]; lines: string[];
   /** Abre uma tela em vez de só falar: o elevador da Torre, sentar numa mesa vazia (PvP). */
-  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas' | 'moveis' | 'masmorra';
+  action?: 'elevador' | 'sentar' | 'pacotes' | 'recompensas' | 'trocas' | 'moveis' | 'masmorra' | RankAction;
   /** Mesa vazia: o bloco da cadeira (onde o aluno senta). */
   seat?: [number, number];
 }
+/** Placares do Salão dos Campeões (abrem o ranking daquele placar). */
+export type RankAction = 'rank-guildas' | 'rank-pvp' | 'rank-jogadores';
 /** Faixa de outro piso por cima do piso da sala (tapete vermelho do castelo). */
 export interface Patch { piso: string; tx: number; ty: number; w: number; h: number }
 
@@ -511,7 +513,7 @@ export const ARENA_TABLES: { tx: number; ty: number; table: string; npc?: { spri
 export function arenaRoom(): Room {
   const W = 28, H = 20, WALL = 3;
   const items: Placed[] = [
-    { id: 'placar-ranking', tx: 2, ty: 3 }, { id: 'trofeu-pedestal', tx: 7, ty: 3 },
+    { id: 'placar-ranking', tx: 2, ty: 3 }, { id: 'trofeu-pedestal', tx: 7, ty: 3 }, { id: 'arco-pedra', tx: 8, ty: 3 },
     { id: 'recepcao', tx: 12, ty: 4 }, { id: 'trofeu-pedestal', tx: 18, ty: 3 }, { id: 'telao', tx: 20, ty: 3 },
     { id: 'refletor', tx: 0, ty: 3 }, { id: 'refletor', tx: 27, ty: 3 },
     { id: 'portal-azul', tx: 24, ty: 3 },
@@ -522,10 +524,11 @@ export function arenaRoom(): Room {
     npc('recepcao', 'npc-desafiante-10', 13, 3, 'Rafa', 'Recepção da Arena', [
       'Bem-vinda à Arena! Mesa com alguém sentado: pode desafiar. Mesa LIVRE: sente e espere um colega.',
       'O portal azul leva ao Salão de Treino dos Rank S. Só entra quem tem coragem!',
+      'O arco de pedra leva ao Salão dos Campeões: os rankings de toda a escola!',
     ], { talk: [[13, 3], ...area(12, 4, 3, 1)], seated: true }),
   ];
   const talks: Talk[] = [
-    { tiles: area(2, 3, 3, 1), lines: ['Placar do ranking: os melhores da semana aparecem aqui.'] },
+    { tiles: area(2, 3, 3, 1), lines: ['Placar do PvP: os campeões da Arena.'], action: 'rank-pvp' },
     { tiles: area(20, 3, 3, 1), lines: ['Masmorra: salas cheias de monstrinhos e um chefe no fim.'], action: 'masmorra' },
   ];
   ARENA_TABLES.forEach((t, k) => {
@@ -543,8 +546,9 @@ export function arenaRoom(): Room {
     id: 'arena', title: 'Arena · Saguão', w: W, h: H, wallRows: WALL,
     piso: 'piso-arena-piso-1', parede: 'parede-arena-parede-1', items, npcs, talks,
     spawn: { tx: 13, ty: 18, dir: 'north' },
-    exits: [{ tx: 13, ty: 19, to: 'cidade' }, { tx: 14, ty: 19, to: 'cidade' }, ...[24, 25, 26].map(tx => ({ tx, ty: 4, to: 'sala:treino' as const }))],
-    entries: { treino: { tx: 25, ty: 5, dir: 'south' } },
+    exits: [{ tx: 13, ty: 19, to: 'cidade' }, { tx: 14, ty: 19, to: 'cidade' }, ...[24, 25, 26].map(tx => ({ tx, ty: 4, to: 'sala:treino' as const })),
+      ...[8, 9, 10].map(tx => ({ tx, ty: 4, to: 'sala:campeoes' as const }))],
+    entries: { treino: { tx: 25, ty: 5, dir: 'south' }, campeoes: { tx: 9, ty: 5, dir: 'south' } },
   };
 }
 
@@ -699,7 +703,7 @@ export function castleRoom(): Room {
       npc('guilda-verde', 'npc-desafiante-08', 16, 8, 'Iris', 'Guilda Verde', ['Estamos juntando pacotinhos no baú da guilda.']),
     ],
     talks: [
-      { tiles: area(18, 3, 3, 1), lines: ['Ranking das guildas da semana (em breve).'] },
+      { tiles: area(18, 3, 3, 1), lines: ['Ranking das guildas da semana.'], action: 'rank-guildas' },
       { tiles: area(7, 8, 3, 2), lines: ['Um mapa com as missões da guilda marcadas.'] },
       { tiles: area(5, 16, 3, 1), lines: ['O baú da guilda: as recompensas coletivas ficam guardadas aqui.'] },
     ],
@@ -708,13 +712,54 @@ export function castleRoom(): Room {
   };
 }
 
+/**
+ * Salão dos Campeões (pelo arco de pedra da Arena): os 3 rankings de toda a
+ * escola, cada um no seu placar. Guildas à esquerda (estandartes do castelo),
+ * Desafiantes da Torre no meio (pilares de ouro e a estátua) e PvP à direita.
+ */
+export function championsRoom(): Room {
+  const W = 21, H = 16;
+  const items: Placed[] = [
+    { id: 'refletor', tx: 0, ty: 3 },
+    { id: 'estandarte-azul', tx: 2, ty: 3 }, { id: 'ranking-guildas', tx: 3, ty: 3 }, { id: 'estandarte-vermelho', tx: 6, ty: 3 },
+    { id: 'pilar-ouro', tx: 8, ty: 3 }, { id: 'quadro-rank', tx: 9, ty: 3 }, { id: 'pilar-ouro', tx: 12, ty: 3 },
+    { id: 'estandarte-espadas', tx: 14, ty: 3 }, { id: 'placar-ranking', tx: 15, ty: 3 }, { id: 'estandarte-espadas', tx: 18, ty: 3 },
+    { id: 'refletor', tx: 20, ty: 3 },
+    { id: 'estatua-campeao', tx: 10, ty: 8 },
+    { id: 'trofeu-pedestal', tx: 7, ty: 8 }, { id: 'trofeu-pedestal', tx: 13, ty: 8 },
+    { id: 'estante-trofeus', tx: 1, ty: 9 }, { id: 'estante-medalhas', tx: 17, ty: 9 },
+    { id: 'banco-espera', tx: 4, ty: 13 }, { id: 'banco-espera', tx: 15, ty: 13 },
+    { id: 'planta-saguao', tx: 0, ty: 14 }, { id: 'planta-saguao', tx: 20, ty: 14 },
+  ];
+  const npcs: RoomNpc[] = [
+    npc('guardiao-salao', 'npc-desafiante-11', 16, 6, 'Mestre Honório', 'Guardião do Salão', [
+      'Bem-vindo ao Salão dos Campeões! Aqui aparecem os melhores de TODA a escola.',
+      'À esquerda, as guildas da semana. No meio, quem subiu mais alto na Torre. À direita, os campeões do PvP.',
+      'Chegue perto de um placar e aperte para ver o ranking inteiro.',
+    ]),
+  ];
+  const talks: Talk[] = [
+    { tiles: area(3, 3, 3, 1), lines: ['Torneio das Guildas.'], action: 'rank-guildas' },
+    { tiles: area(9, 3, 3, 1), lines: ['Desafiantes da Torre.'], action: 'rank-jogadores' },
+    { tiles: area(15, 3, 3, 1), lines: ['Campeões da Arena.'], action: 'rank-pvp' },
+    { tiles: [[10, 8]], lines: ['A estátua do campeão. Quem chegar ao andar 100 da Torre vira lenda.'] },
+  ];
+  return {
+    id: 'campeoes', title: 'Salão dos Campeões', w: W, h: H, wallRows: 3,
+    piso: 'piso-arena-piso-2', parede: 'parede-arena-parede-2', items, npcs, talks,
+    patches: [{ piso: 'piso-castelo-tapete', tx: 9, ty: 9, w: 3, h: 7 }],
+    spawn: { tx: 10, ty: 14, dir: 'north' },
+    exits: [9, 10, 11].map(tx => ({ tx, ty: 15, to: 'sala:arena' as const })),
+  };
+}
+
 /** Salas por id (as dos prédios da cidade). */
 export const ROOMS: Record<string, () => Room> = {
-  arena: arenaRoom, treino: trainingRoom, loja: shopRoom, oficina: workshopRoom, castelo: castleRoom,
+  arena: arenaRoom, treino: trainingRoom, campeoes: championsRoom, loja: shopRoom, oficina: workshopRoom, castelo: castleRoom,
 };
 /** Qual porta da cidade leva a cada sala (ids de town.ts). */
 export const ROOM_BUILDING: Record<string, string> = {
-  arena: 'arena', treino: 'arena', loja: 'loja', oficina: 'centro', castelo: 'guildas',
+  arena: 'arena', treino: 'arena', campeoes: 'arena', loja: 'loja', oficina: 'centro', castelo: 'guildas',
 };
 
 // ─── casas dos moradores (Lago, Fazenda, Cidade WIT, Bairro Novo) ─────────────
