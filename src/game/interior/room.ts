@@ -638,7 +638,7 @@ export function shopRoom(): Room {
     npc('cliente-1', 'npc-desafiante-02', 6, 9, 'Lia', 'Fazendo compras', ['Juntei moedas a semana inteira para um Pacotinho Raro!'], { wander: [3, 7, 12, 10] }),
     npc('cliente-2', 'npc-desafiante-07', 24, 16, 'Duda', 'Fazendo compras', ['Saiu uma Épica no meu último pacotinho!!'], { wander: [21, 15, 30, 21] }),
     npc('cliente-3', 'npc-desafiante-05', 16, 9, 'Theo', 'Olhando as vitrines', ['Será que hoje sai uma Mítica?'], { wander: [12, 6, 21, 10] }),
-    npc('cliente-4', 'npc-desafiante-12', 4, 21, 'Rafa', 'Passeando', ['Esse shopping é enorme!'], { wander: [2, 21, 11, 22] }),
+    npc('cliente-4', 'npc-desafiante-12', 4, 21, 'Luna', 'Passeando', ['Esse shopping é enorme!'], { wander: [2, 21, 11, 22] }),
   ];
   return {
     id: 'loja', title: 'Loja de Pacotinhos', w: W, h: H, wallRows: 3,
@@ -708,8 +708,8 @@ export function castleRoom(): Room {
       { ...npc('rei', 'npc-desafiante-07', 11, 5, 'Sir Téo', 'Mestre das Guildas', [
         'Bem-vindo ao Castelo! Cada guilda é uma equipe da turma.',
       ]), action: 'guilda' },
-      npc('guilda-azul', 'npc-desafiante-05', 5, 8, 'Caio', 'Guilda Azul', ['A Guilda Azul está a 2 presenças da meta da semana!']),
-      npc('guilda-verde', 'npc-desafiante-08', 16, 8, 'Iris', 'Guilda Verde', ['Estamos juntando pacotinhos no baú da guilda.']),
+      npc('guilda-azul', 'npc-desafiante-05', 5, 8, 'Ravi', 'Guilda Azul', ['A Guilda Azul está a 2 presenças da meta da semana!']),
+      npc('guilda-verde', 'npc-desafiante-08', 16, 8, 'Sofia', 'Guilda Verde', ['Estamos juntando pacotinhos no baú da guilda.']),
     ],
     talks: [
       { tiles: area(18, 3, 3, 1), lines: ['Ranking das guildas da semana (em breve).'] },
