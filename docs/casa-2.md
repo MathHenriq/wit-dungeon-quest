@@ -50,7 +50,7 @@ nota, coleção, visita que conte, nem motivo para voltar amanhã.
 | Lago | aquário maior, peixe na placa (recorde), geodo de ametista, luminária de cristal |
 | Torre e Masmorra | troféu de chefe a cada 10 andares (já previsto), espada na parede |
 | Festas do ano | móveis exclusivos da estação (fogueira junina, árvore de Natal, abóbora de Halloween) |
-| História | móveis únicos: Relógio do Farol, Espelho da Geada, Baú da Aurora |
+| História | móveis únicos: Relógio do Farol, Retrato de 1926, Capa da Ordem (troféu) |
 | Ateliê de Arte | quadros pintados por alunos (o cavalete já faz pixel art) |
 | Caminhão do Seu Bento | móveis raros de "outras cidades" |
 
@@ -95,8 +95,8 @@ casa nunca é tomada**. Ensina a conta "à vista ou parcelado?" sem assustar.
   outro (o motor dos interiores já tem saída `subir` na Torre, `room.ts`).
 - Cada andar tem o seu piso e a sua parede.
 - **Porão:** adega para curar queijo e doce (vale mais a cada semana), despensa.
-- **Sótão** (fachadas com telhado alto): onde a história esconde o **Baú da Aurora**
-  (`docs/historia.md`, Ato 2).
+- **Sótão** (fachadas com telhado alto): onde a história esconde Páginas do Diário da
+  Aurora (`docs/historia.md`).
 
 ### Reformas (sem trocar de casa)
 Cozinha completa, banheiro, varanda, cômodo extra, **quintal** (horta pequena, flores,
@@ -135,6 +135,13 @@ chefe, medalhas das festas, fotos do álbum em porta-retrato, prêmio do desfile
 A caixa de correio na frente da casa (já desenhada no mapa) passa a receber **cartas**:
 receitas, presentes de aniversário dos moradores, convites de festa, e as cartas da
 **história**. É o canal principal da lore: o aluno abre a porta e tem carta nova.
+
+### A casa na história (`docs/historia.md`)
+- O **Quadro de suspeitos** fica no mural de cortiça (o móvel já existe): fotos, pistas e
+  fios ligando os suspeitos.
+- O **chá-antídoto** é cozinhado no fogão de casa.
+- Com o **Alerta da Ordem** no máximo, a casa é revirada à noite: móveis fora do lugar,
+  uma pista some e um bilhete chega no correio.
 
 ### Calendário na parede
 Aniversários dos moradores, festas do ano, dia da feira.

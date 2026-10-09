@@ -55,7 +55,7 @@ Decisões já tomadas (não reabrir sem o Matheus pedir):
 
 **Plano completo do WIT 2 (fases, economia, cidade, professor): `docs/plano-wit2.md`.**
 **Masmorra nova (Solo Leveling + Stardew, pets coletores, efeito próprio nas 67 cartas de Ataque Épica+): `docs/plano-masmorra.md`, na branch `claude/masmorra`; a branch oficial segue sem ela até o Matheus aprovar.**
-**Frentes de vida (09/10, só plano, nada programado): Fazenda 3ª onda, Lago 2 (mergulho e gemas), Casa 2 (comprar casa, andares), Passarela WIT (o "Dress to Impress"), a história "O Eco do Vale" e os professores do WIT nas salas. Índice e decisões pendentes: `docs/frentes-vida.md`, na branch `claude/fazenda-lago-casa-lore`.**
+**Frentes de vida (09/10, só plano, nada programado): Fazenda 3ª onda, Lago 2 (mergulho e gemas), Casa 2 (comprar casa, andares), Passarela WIT (o "Dress to Impress"), a história "Cartas Marcadas" (Ordem do Verso, vilões entre os moradores) e os professores do WIT andando pela cidade (visual pelas fotos). Índice e decisões pendentes: `docs/frentes-vida.md`, na branch `claude/fazenda-lago-casa-lore`.**
 Prompts do GPT: personagem `docs/prompts-personagem.md`; interiores e pets `docs/prompts-interiores.md`; mundo grande (lago, fazenda, Cidade WIT) `docs/PROMPTS-GPT.md`.
 Regras completas: `docs/regras-tcg.md`. Lista das cartas: `docs/cartas-tcg.md`.
 

@@ -50,7 +50,7 @@ veios que quebram, pet que cata) **sem combate**: o perigo é o oxigênio, não 
 | Raso | 0–5 m | Bronze | não | conchas, caramujos, pedrinhas, moedas antigas, garrafas |
 | Médio | 5–15 m | Bronze | pouco | mexilhões (pérolas), plantas aquáticas, ruínas, veios de cobre e quartzo |
 | Fundo | 15–30 m | Prata | sim (lanterna) | veios de ferro, prata e gemas, fósseis, artefatos da escola antiga |
-| Fossa | 30 m+ | Mestre + história | muito | gemas raríssimas, **Lascas do Cristal-Mãe**, a porta do Andar Zero (§9) |
+| Fossa | 30 m+ | Mestre + história | muito | gemas raríssimas, **Lascas do Cristal-Mãe** (de onde a Aurora fazia as cartas, §9) |
 
 - Cada mergulho é uma sequência de 3 a 6 salas, cada uma mais funda.
 - **Barra de oxigênio**; **bolsões de ar** nas rochas repõem um pouco.
@@ -173,11 +173,11 @@ tambaqui, pintado, pirarara, arraia de rio, poraquê (peixe-elétrico: só em te
 | Lendário | Quando | Liga com a história |
 |---|---|---|
 | Dourado-Rei | verão, sol, água funda | |
-| Pirarucu Ancião | outono, chuva | já viu o Vale antes do Silêncio |
+| Pirarucu Ancião | outono, chuva | nada em volta da escola afundada |
 | Peixe-Lua | inverno, debaixo do gelo | |
 | Tucunaré-Relâmpago | tempestade | |
 | Peixe-Cristal (existe) | noite | tem uma Lasca na barriga (Ato 1) |
-| **Koi Dourada** (existe) | ? | **era a carpa da Aurora**. Carpas koi vivem muito: uma famosa no Japão teria passado de 200 anos. Pegou: soltar devolve uma Memória |
+| **Koi Dourada** (existe) | ? | **era a carpa da Aurora**, de 1926. Carpas koi vivem muito: uma famosa no Japão teria passado de 200 anos. Pegou e soltou: uma Página do Diário da Aurora |
 
 ### Mutações de peixe (Fisch)
 Albino, Gigante (≥95% do tamanho máximo), Dourado, Cristalino (perto de Lasca),
@@ -267,17 +267,100 @@ brasileira · leitura de dados (o Diário do Lago já tem gráficos).
 
 ## 9. Ligações com a história (roteiro em `docs/historia.md`)
 
-- **A garrafa na praia** abre o Ato 1: uma página do Diário da Aurora.
-- **O Peixe-Cristal** tem uma Lasca do Cristal-Mãe na barriga.
-- **O farol** se apagou na noite do Grande Silêncio; o Seu Tião se culpa há 40 anos.
-- **O fundo do lago** esconde a escola antiga, inundada depois do Silêncio.
-- **A Fossa** é a raiz da Torre: lá fica a porta do **Andar Zero**, a cena final.
-- **Guardiã Iara** (Água) espera no fundo; **Guardião Lodo** (Veneno) na lagoa poluída,
-  que só se acalma quando a turma bate a meta do Lago Limpo.
+- **O farol** pisca na primeira noite do aluno: é quando ele e o faroleiro Amaro saem das
+  cartas. Acender o farol de novo é o que liberta os encartados (Cap. 12).
+- **O Homem da Neblina** (Amaro) aparece no fim do cais em manhãs de neblina (Cap. 3).
+- **O Bagre Velho** engoliu a chave da cripta do Castelo: só morde à noite, com isca de
+  queijo (Cap. 8).
+- **O fundo do lago** esconde a escola da Aurora, que o Teodoro afundou: lá crescem a
+  **Flor-da-Lembrança** (o antídoto do chá) e está a **foto rasgada de 1926** (Cap. 10).
+- **O Cristal-Mãe**: o farol precisa de uma Lasca para acender (Cap. 12).
+- **Garrafas na praia, barriga de peixe, mergulho**: Páginas do Diário da Aurora.
+- **Mistério paralelo, o Monstro do Lago Azul:** uma sombra enorme vista à noite. Fotos
+  borradas, pegadas de óleo na areia. No Ato 2 se descobre que é o **mini-submarino da
+  Ordem** indo até a escola afundada.
 
 ---
 
-## 10. Ordem de construção
+## 10. Mais coisas para fazer (rodada 2, 09/10)
+
+### Pesca de outros jeitos
+| Jeito | Como |
+|---|---|
+| **Tarrafa** (rede de arremesso) | girar e soltar na hora certa; a rede abre em círculo e pega vários peixinhos de isca |
+| **Arremesso** | força e direção: da margem, alcançar a água funda |
+| **Pesca no gelo** | inverno: furar o gelo da borda e pescar o Peixe-Lua |
+| **Pesca noturna com lanterna** | peixes que só sobem com luz |
+| **Pesque e solte** | pontos por peixe devolvido; ranking da turma |
+
+### Peixes de aquário e cruzamento
+Betta, guppy, acará-disco e neon (peixes da Amazônia). Criados num **tanque** em casa ou
+no lago; o filhote mistura as cores dos pais; raros como o **betta dragão** e o **guppy
+dourado**. Vender ao Aquário e a colegas. É a "flor de cruzamento" do lago: meta de meses.
+
+### Aquário Público do Vale
+Prédio novo no lago. A turma **doa peixes vivos**; quando a turma bate metas, o aquário
+ganha tanques novos (o tanque dos lendários, o túnel de vidro). O nome de quem doou cada
+peixe fica na placa.
+
+### Praia
+| Atividade | Como |
+|---|---|
+| **Detector de metais** (feito na Casa IoT) | varrer a areia: moedas antigas, anéis, chaves, cápsulas do tempo e **broches da Ordem** (história) |
+| **Concurso de castelo de areia** | montar com blocos de areia; voto da turma (o castelo de areia já está desenhado no mapa) |
+| **Vôlei de praia** | 2 contra 2 com amigos |
+| **Natação** | corrida até a boia |
+| **Salto do píer** | manobras no ar, nota dos amigos |
+| **Stand-up e pedalinho de cisne** | passeio com um amigo |
+| **Quiosque da praia** | no fim de semana o aluno assume o quiosque: clientes pedem peixe assado, pastel, suco, açaí; ele prepara contra o relógio com o que tem da fazenda e do lago |
+
+### A ilha
+**Acampamento:** a barraca e a fogueira já estão desenhadas. Dormir na ilha, contar
+histórias na fogueira (os boatos da história), ver a **chuva de meteoros** (evento).
+
+### Barcos
+Barco **personalizado** (cor, nome, vela, adesivos). **Regata** da turma (evento). Barco
+maior com amigo: um pilota, o outro pesca.
+
+### Resgate de bichos
+Uma tartaruga presa numa rede velha, uma garça com linha no pé: soltar com cuidado
+(minijogo), levar ao centro da Lúcia, devolver ao lago depois. **Álbum de resgates.**
+
+### Peixe marcado
+A Lúcia põe anel em peixes. O aluno solta um marcado e, dias depois, chega carta: "seu
+peixe foi pescado pelo <colega> do outro lado do lago, 12 cm maior".
+
+### Lixo vira material
+O lixo pescado (bota, lata, que já existem) vai para a reciclagem: plástico e alumínio
+viram peças para o Inventor e móveis de material reciclado.
+
+### Mergulho noturno
+Peixes que brilham, mais chance de Lascas, fundo azul-escuro com pontos de luz.
+
+---
+
+## 11. Visual: o que ajustar
+
+Prints de hoje em `docs/prints-frentes/lago-*-antes.webp`.
+
+| O que se vê hoje | Ajuste |
+|---|---|
+| A água é igual do píer até o meio do lago | **degradê de profundidade**: raso turquesa com areia aparecendo no fundo, médio azul, fundo azul-escuro. A "água funda" da pesca passa a ser visível |
+| Margem com recorte limpo, sem vida | espuma na beira, areia molhada mais escura, pedras e juncos, taboas e vitórias-régias (já existem) espalhadas |
+| Peixe invisível até morder | **sombras de cardume** e bolhas onde há peixe (como as bolhas do Stardew); peixe pulando |
+| A vila do lago é uma praça de areia vazia, com **postes tecnológicos do WIT** e banco de praça da cidade | **vila de pescadores**: deck de madeira, redes penduradas, barcos virados na areia, covos, baldes, palafitas coloridas, coqueiros, lampião de madeira |
+| Píer curto | píer comprido com barcos amarrados, pescadores sentados na ponta |
+| Farol pouco presente | o farol como **marco visível de longe** (silhueta no horizonte), luz que gira quando aceso |
+| Lago igual o ano todo | borda congelada no inverno, flores aquáticas na primavera |
+| Barra de cima com instruções e "protótipo" | igual à fazenda: relógio no canto, dicas só no primeiro acesso |
+
+Mesmo processo da fazenda: guia de estilo da área (azul-turquesa, areia, madeira de barco,
+corda), folha de revisão (`folha-mundo.ts ... lago`), objetos novos pelo GPT, prints antes
+e depois para aprovar.
+
+---
+
+## 12. Ordem de construção
 
 | Onda | Entrega | Arte nova |
 |---|---|---|
@@ -285,6 +368,9 @@ brasileira · leitura de dados (o Diário do Lago já tem gráficos).
 | L2 | Escola de Mergulho, bolhas, Fundo do Lago (motor da masmorra sem inimigos), Raso e Médio, pérolas, quartzo a citrino | chão e paredes do fundo, veios, mexilhão, roupa de mergulho no boneco |
 | L3 | Fundo, lanterna, gemas, Dona Jade (lapidação, joias), garimpo, Museu | casa da Jade, museu, gemas |
 | L4 | Fossa, lendários, piracema, Lago Limpo da turma, Festival das Lanternas | Fossa, Lascas, lanternas |
+| Lv | **Visual** (§11): profundidade da água, margem viva, cardumes, vila de pescadores, píer, farol de marco | água em degradê, objetos da vila |
+| L5 | Tarrafa, arremesso, pesque e solte, detector de metais, castelo de areia, quiosque, resgate | tarrafa, detector, quiosque |
+| L6 | Peixes de aquário e cruzamento, Aquário Público, esportes de praia, acampamento, barco personalizado e regata, peixe marcado | aquário, barcos |
 
 Código: `fishing.ts` ganha `seasons`, `weather`, `places`, `bait` em cada peixe (o
 `fishWeight` já é o lugar certo); mergulho em `src/game/dive.ts` usando `generate` e

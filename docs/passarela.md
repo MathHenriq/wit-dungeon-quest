@@ -38,7 +38,7 @@ a história faz a comunidade investigar junto.
 | Voto aberto, às vezes cruel | voto às cegas, nota aparada, júri de moradores, professor pode desligar o voto | proteger as crianças |
 | Precisa de servidor cheio | também funciona com pouca gente (modo do dia e júri, §4) | a turma não está online junta fora da aula |
 | Moda isolada | tecido da fazenda, joia do lago, costura em casa | as frentes se alimentam |
-| Lore de terror | mistério, sem susto (Guardiã Geada, §9) | idade dos alunos |
+| Lore de terror | mistério com vilões, sem susto (Baile de Máscaras da Ordem, §9) | idade dos alunos |
 | "Jogo de menina" | aberto a todos, com muita coisa que os meninos gostam (§5) | pedido do Matheus |
 
 ---
@@ -201,15 +201,14 @@ existe peça inadequada. **Brechó:** trocar duas peças repetidas por uma nova
 
 ## 9. Passarela e história
 
-- **Guardiã Geada** (Gelo) está presa no **espelho grande do camarim**. Para soltá-la, o
-  aluno reconstrói o vestido que a Aurora fez para ela, a partir de uma foto antiga: as
-  peças estão espalhadas (chapéu no farol, broche no fundo do lago, seda da fazenda).
-  Depois, um **desfile especial** com o tema "Memórias do Vale" (prova) ou um duelo.
-- A **Casa de Moda era o ateliê de figurinos da Aurora**: as roupas das cerimônias da
-  Torre eram feitas aqui. No sótão há moldes antigos (peças lendárias para recriar).
-- Lulu tem o seu pequeno mistério (por que nunca tira os óculos escuros?) para virar
-  boato, investigação e uma resposta boba e simpática (ela é fotossensível, igual a
-  muita gente de verdade).
+- **O Baile de Máscaras da Ordem** (Cap. 9) acontece na Casa de Moda. Para entrar, o
+  aluno deduz pelas fotos o traje dos membros (capa roxa, máscara dourada, broche de
+  espiral, luvas pretas) e monta o disfarce no camarim. Traje errado: barrado na porta.
+  Depois do Ato 3, a capa vira troféu e peça Lendária.
+- **Pista falsa:** todo mundo desconfia da **Lulu** (óculos escuros sempre, vai a todo
+  baile). É inocente: é fotossensível, igual a muita gente de verdade.
+- A Casa de Moda guarda **moldes de 1926** no sótão: roupas da turma da Aurora para
+  recriar no Ateliê (peças Lendárias).
 - Roteiro completo: `docs/historia.md`.
 
 ---
@@ -257,7 +256,7 @@ orçamento (clientes) · moda sustentável (brechó, reaproveitar) · profissõe
 | M2 | Desfile do Dia (voto assíncrono), rank, Boutique, poses e caminhadas |
 | M3 | Desfile ao vivo e **Desfile da Aula** (painel do professor) |
 | M4 | Ateliê (tecido e corante da fazenda, joias do lago), vitrine da turma, capas de revista |
-| M5 | Clientes (profissão Estilista), desfiles de festa, Guardiã Geada |
+| M5 | Clientes (profissão Estilista), desfiles de festa, traje da Ordem para o Baile de Máscaras |
 
 Código: `src/game/fashion/` (peças, etiquetas, júri, rank: funções puras com testes),
 `src/components/fashion/` (camarim, passarela); banco: voto e "de grife" no servidor

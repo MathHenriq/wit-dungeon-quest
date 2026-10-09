@@ -46,8 +46,8 @@ sabe para que serve. (Ela resolve o final.)
 ## 3. A verdade (só para nós)
 
 ### 1926: a escola da Aurora
-- A **Professora Aurora** descobriu, no cristal do fundo do vale, um jeito de guardar um
-  talento numa carta. Cada carta era um presente: o padeiro guardava a mão boa para o
+- A **Professora Aurora** descobriu, no **Cristal-Mãe** do fundo do vale, um jeito de guardar
+  um talento numa carta. Cada carta era um presente: o padeiro guardava a mão boa para o
   pão, a pescadora o faro para peixe raro. Ela ensinava crianças a duelar com essas
   cartas. As cartas eram brincadeira e escola.
 - O sócio dela, **Teodoro Valença**, descobriu o outro lado: **dá para guardar uma pessoa
@@ -68,6 +68,8 @@ sabe para que serve. (Ela resolve o final.)
   Desafiante forte que vença os 100 andares. Por isso criou a cultura da Torre, as
   **guildas** e o boato de que "quem chegar ao andar 100 ganha um desejo". Hoje ele se
   chama **Sir Téo**, o simpático Mestre das Guildas. Tem 130 anos e aparenta 60.
+- Ele fechou a represa e **afundou a escola da Aurora** para esconder o que havia lá: assim
+  nasceu o Lago Azul.
 - Ele montou a **Ordem do Verso**. O símbolo é a **espiral do verso das cartas**: está nas
   costas de toda carta do jogo, inclusive nas do aluno.
 - A Ordem usa a **Flor-do-Esquecimento**, plantada escondida na estufa trancada da
@@ -170,6 +172,19 @@ Um olho no canto da tela, de 0 a 5.
   protegia o Núcleo (ela tinha dado aula ali). Quando o Vale inteiro vira carta, os
   professores ficam e viram **a resistência**: o QG do aluno no Ato final.
 - Nunca suspeitos, nunca encartados, nunca vilões.
+
+### 5.6 Mistérios paralelos (menores, abertos a qualquer hora)
+Para quem quer mais coisa para investigar entre um capítulo e outro. Cada um tem de 3 a 5
+etapas e dá título e móvel.
+
+| Mistério | O que se vê | A verdade |
+|---|---|---|
+| **O Monstro do Lago Azul** | uma sombra enorme no lago à noite; fotos borradas; marcas de óleo na areia | o mini-submarino da Ordem indo à escola afundada |
+| **O espantalho que anda** | o espantalho da fazenda muda de lugar de madrugada | o Seu Joca, de capa, indo à estufa |
+| **A luz no sótão do Museu** | uma janela acesa à noite no Museu fechado | o Amaro escondido lá no Ato 1 |
+| **O andar que o elevador pula** | o elevador da Torre vai do 12 ao 14 | o 13º andar é a sala de reunião da Ordem |
+| **As mensagens do SISTEMA** | as missões da Masmorra têm frases esquisitas | a primeira letra de cada uma forma **PARE DE SUBIR**: a Aurora tentando avisar |
+| **Os ovos dourados que somem** | ovos dourados somem do galinheiro | o Pipo guardando para dar de presente à Mari quando ela voltar |
 
 ---
 

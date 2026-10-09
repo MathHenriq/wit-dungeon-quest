@@ -199,7 +199,7 @@ da fazenda na sua estação. Não precisa regar.
 
 ### Sementes antigas (vêm da história, §13)
 
-Achadas no Banco de Sementes da Aurora. Começam com **1 semente** cada; o aluno
+Guardadas no Banco de Sementes da avó da Tina, que volta no Ato 3 da história. Começam com **1 semente** cada; o aluno
 multiplica na Máquina de Sementes. Só existem no jogo assim.
 
 | Semente | O que tem de especial |
@@ -263,7 +263,7 @@ na turma ganha "Descoberta por <apelido>" (o mesmo esquema das cartas Lendárias
 | Geada (inverno) | Cristalizada |
 | Arco-íris (depois da chuva, raro) | Arco-Íris |
 | Lua cheia (a cada 7 dias) | Lunar; bichos mais felizes à noite |
-| Neblina | dia da história: o Sr. Neblina aparece (§13) |
+| Neblina | dia de mistério: o Homem da Neblina aparece no cais (história) |
 
 **Previsão de 2 dias** na TV da casa e na estação do tempo da Cidade WIT (que já existe).
 Saber o clima de amanhã muda o que plantar hoje.
@@ -317,7 +317,7 @@ paga o dobro". Ligado às encomendas que já existem (`deliveries.ts`).
 | Composteira | mato, cascas, colheita estragada, esterco do chiqueiro | composto (adubo bom) | 2 dias | Início |
 | Minhocário | composto | **minhocas (isca do Lago)** + húmus | 2 dias | Nível 3 |
 | Chocadeira | ovo fértil | pintinho / patinho | 3 dias | Galinheiro 2 |
-| Moinho (prédio) | trigo, milho, mandioca | farinha, fubá, polvilho | 1 dia | História (Guardiã Brisa) |
+| Moinho (prédio) | trigo, milho, mandioca | farinha, fubá, polvilho | 1 dia | Cestas da Cooperativa (Verão) |
 | Tacho de doce | fruta + açúcar | geleia, doce | 1 dia | Nível 6 |
 | Prensa de suco | fruta, legume | suco | ½ dia | Nível 8 |
 | Queijeira | leite | queijo (curar na adega da casa: vale mais a cada semana, até 3) | 1 dia | Nível 10 |
@@ -369,7 +369,7 @@ A obra leva **1 a 3 dias de verdade**: o aluno vê o andaime e espera (a espera 
 | Estábulo | cavalo | | |
 | Apiário | 2 colmeias | 4 | 8 |
 | Tanque de peixes | 1 | 2 | 3 |
-| Estufa | restaurada pela história | ampliada | |
+| Estufa | vira do aluno quando o Seu Joca sai da Ordem (história) | ampliada | |
 | Armazém | 200 itens | 500 | câmara fria |
 
 ### O lote
@@ -436,19 +436,22 @@ ação da fazenda.
 
 | Capítulo | O que acontece na fazenda |
 |---|---|
-| Ato 1 · Terra Cansada | Seu Joca diz que a terra está fraca; o **Sr. Neblina** quer comprar o Vale. As **Cestas da Cooperativa** (como o Centro Comunitário do Stardew) consertam o Vale aos poucos |
-| Ato 1 · A Guardiã da Estufa | Duelo (ou prova) com a Guardiã Ipê; a carta dela vai para o Seu Joca e **a estufa volta a funcionar** |
-| Ato 2 · O Moinho | Guardiã Brisa; o moinho volta a girar: farinha e fubá |
-| Ato 2 · O Banco de Sementes | Guardião Barro, debaixo do silo velho: as **sementes antigas** |
-| Ato 2 · O Homem que Não Molha | Numa feira de sábado com chuva, o Sr. Neblina some — ele é um holograma |
+| Cap. 2 · O café | a Tina reconhece as pétalas roxas: "isso só nasce numa estufa" |
+| Cap. 4 · A estufa | soltar as vacas do Beto para tirar o Seu Joca da frente; a estufa trancada esconde a **Flor-do-Esquecimento** da Ordem |
+| Depois do Cap. 4 | se o aluno guardou o segredo, o Seu Joca vira informante. As **Cestas da Cooperativa** juntam o dinheiro da dívida dele com o Sir Téo; paga a dívida, ele sai da Ordem e **a estufa passa a ser do aluno** |
+| Cap. 8 | o Seu Joca conta que perdeu a chave da cripta no lago: o Bagre Velho só morde **isca de queijo** da fazenda |
+| Cap. 12 | o **óleo de girassol** da prensa acende o farol |
+| Cap. 12 | a avó da Tina volta e entrega o **Banco de Sementes**: as sementes antigas |
+| Mistério paralelo | "o espantalho que anda à noite": é o Seu Joca indo à estufa de madrugada |
 
-### Cestas da Cooperativa (a espinha dorsal do Ato 1)
-Doar colheitas e produtos completa cestas; cada grupo de cestas conserta algo no Vale.
+### Cestas da Cooperativa (a meta de longo prazo da fazenda)
+Doar colheitas e produtos completa cestas; cada grupo de cestas conserta algo no Vale (e,
+na história, paga a dívida do Seu Joca).
 
 | Grupo | Exemplo de cesta | Conserta |
 |---|---|---|
 | Primavera | 5 cenouras, 5 alfaces, 3 morangos, 1 couve-flor | a ponte para a ilha do farol |
-| Verão | 3 milhos, 1 melancia, 5 tomates, 1 girassol de ouro | o moinho (com a Guardiã Brisa) |
+| Verão | 3 milhos, 1 melancia, 5 tomates, 1 girassol de ouro | o moinho |
 | Outono | 1 abóbora de ouro, 5 trigos, 3 uvas | o armazém |
 | Inverno | 5 couves, 3 brócolis, 1 queijo | o caminho de trem do Seu Bento |
 | Bichos | ovo grande, leite grande, lã, pena | o celeiro velho |
@@ -494,7 +497,130 @@ Doar colheitas e produtos completa cestas; cada grupo de cestas conserta algo no
 
 ---
 
-## 17. Ordem de construção
+## 17. Mais coisas para fazer (rodada 2, 09/10)
+
+O Matheus achou pouco. Isto vem em cima de tudo acima.
+
+### O sítio com a cara do aluno
+- **Nome do sítio** numa placa na entrada ("Sítio Estrela da <apelido>"), aparece no perfil.
+- Decorar o lote: caminhos de pedra ou madeira, cercas de vários tipos, canteiros de
+  flores, lampiões, banco, **balanço na árvore**, caixa de correio do sítio, bandeirinhas.
+- **Espantalho personalizado:** vestir com roupas do closet da Passarela. **Concurso de
+  espantalho** no outono, com voto da turma.
+- **Sítio da Semana:** colegas visitam e dão estrelas (o mesmo voto da Casa da Semana).
+
+### Coleta na mata (como o Stardew)
+Na borda da fazenda, a cada dia da fazenda, nascem coisas para colher sem plantar:
+amora, pitanga, goiaba, caju, cogumelos (mais depois da chuva), ervas (hortelã,
+capim-santo, camomila), flores do campo, penas, ninhos vazios. Muda com a estação. Vai
+para o **Livro de Coleta**.
+
+### Madeira, pedra e construção
+- **Machado:** corta árvore da mata; o toco vira muda se replantar.
+- **Picareta:** quebra pedras do terreno.
+- Madeira, pedra e carvão servem para **cercas, caminhos, móveis da carpintaria e
+  máquinas**. A fazenda vira a fonte de material da casa.
+
+### Minijogos de cuidado (no palco comum `GameStage`, que já existe)
+| Minijogo | Como |
+|---|---|
+| Ordenha | apertar no ritmo, sem pressa |
+| Tosa | contornar a lã com o dedo |
+| Banho no porquinho | mangueira nos pontos de lama |
+| Mel | fumaça devagar para acalmar as abelhas, depois tirar o favo |
+| **Pastoreio** | guiar as ovelhas com o cachorro até o curral antes de escurecer |
+| Galinha fujona | correr atrás dela pela fazenda |
+| Ovo na palha | achar os ovos escondidos no feno (galinhas soltas botam fora do ninho) |
+
+### Raças e cruzamento de bichos
+| Bicho | Raças |
+|---|---|
+| Galinha | caipira, carijó, d'angola, **sedosa** (a fofinha de pena de algodão), dourada (rara) |
+| Vaca | holandesa, jersey, gir |
+| Ovelha | lã branca, preta, marrom, **rosada** (rara) |
+| Coelho | branco, cinza, malhado, angorá, **lilás** (raro) |
+
+O filhote mistura as raças e cores dos pais. **Álbum de raças.** Raças raras valem muito
+para vender a colegas (§ barraca abaixo).
+
+### Flores de cruzamento (como o Animal Crossing)
+Rosas, tulipas, lírios, cravos e orquídeas (estas na estufa). **Duas flores vizinhas podem
+gerar uma muda de cor nova**: vermelha + amarela → laranja; raras como **rosa azul,
+tulipa preta, orquídea dourada**. Coleção de ~60 cores. Buquês viram presente para
+moradores (amizade) e decoração da casa; a Florista paga muito pelas raras. É uma meta de
+meses e pede planejamento do canteiro.
+
+### Desfile de Bichos
+Laço, chapéu e roupinha no bicho; concurso **Bicho Mais Fofo** na Feira, com o voto da
+Passarela. Liga a moda com a fazenda.
+
+### Festas e competições a mais
+Corrida de porquinhos (inscreve o seu), corrida de cavalo com saltos, concurso de bolo,
+de queijo e de mel, concurso de espantalho, Bicho Mais Fofo.
+
+### Barraca na feira de sábado
+O aluno monta **a própria barraca**: escolhe o que expor e o preço. Moradores compram
+pela curva da procura (a lição "minha barraca" já tem a regra) e **colegas também
+compram**: ovos de raça rara, flores raras, mudas, queijo curado. Um mercado entre
+alunos além das cartas (no servidor, como a vitrine de cartas de `trades.ts`).
+
+### Contratos da Cooperativa
+Um pedido grande por mês ("200 milhos e 50 queijos até o dia 30"), com nota bronze,
+prata ou ouro pela qualidade entregue. Prêmio: ferramenta, máquina ou pacotinho.
+
+### Trator e caminhonete
+Trator (nível 22) ara e planta 3×3 de uma vez; caminhonete leva a colheita direto ao
+Mercado. Os dois entram no sistema de veículos que já existe.
+
+### Noite na fazenda
+Vaga-lumes no pote (vira luminária da casa; os vaga-lumes já voam no mapa), coruja no
+celeiro, cogumelos que brilham, estrela cadente (fazer um pedido: um pouco mais de sorte
+no dia seguinte).
+
+### Clima forte vira evento
+| Evento | O que fazer |
+|---|---|
+| Granizo | cobrir os canteiros com lona antes (a previsão avisa) ou eles perdem 1 dia |
+| Seca | o poço baixa: caixa d'água ou poço artesiano |
+| Ventania | cerca cai: consertar; sementes voam e nascem plantas surpresa |
+
+Moradores e colegas podem ajudar (mutirão).
+
+### Energia do sítio
+**Biodigestor** (esterco vira gás para a cozinha da Casa da Fazenda: 2 receitas por vez);
+**painel solar** para as máquinas da IoT.
+
+### Receitas da roça (Casa da Fazenda)
+Pão de queijo (polvilho da mandioca), bolo de fubá, pamonha, curau, canjica, doce de
+leite, queijo minas, cocada, brigadeiro (cacau da estufa), paçoca, suco de caju.
+Concurso de receita nas festas.
+
+---
+
+## 18. Visual: o que ajustar
+
+Prints de hoje em `docs/prints-frentes/fazenda-*-antes.webp`.
+
+| O que se vê hoje | Ajuste |
+|---|---|
+| Grama verde-água igual em toda a área, com o mesmo enfeite repetido | grama mais quente (verde-amarelado), com manchas de terra, trevo, flores do campo e capim; **muda com a estação** (primavera florida, verão mais seco, outono com folhas laranja no chão, inverno com geada) |
+| **Cerca branca de condomínio** ao lado de cerca de madeira | só madeira rústica na fazenda; cerca branca fica no Centro |
+| **Postes tecnológicos do WIT** no meio da fazenda | lampião de madeira ou poste com lanterna; o visual tech fica só na Cidade WIT |
+| Canteiros em fileiras longas e chapadas | terra arada com sulcos, **terra molhada mais escura** (como o Stardew), plaquinha com o nome da planta, espantalho à vista |
+| Bichos pequenos, soltos, e as vacas somem no capim alto | pasto cercado com cocho, bebedouro e fardo de feno; bichos um pouco maiores, com sombra e animação de comer e deitar |
+| Prédios "boiando" na grama | terreiro de terra batida em volta, palha, sacos, barris, carrinho de mão, enxada encostada, trilha de pedra até a porta |
+| Muito espaço vazio | objetos de fazenda: fardos de feno, lenha empilhada, caixotes de colheita, varal, tonéis, galinhas ciscando fora |
+| Barra de cima com duas linhas de instruções e a palavra "protótipo" cobrindo o cenário | hora, clima, estação e moedas num relógio no canto (como o Stardew); dicas só no primeiro acesso |
+| A luz é igual o dia todo (só existe a noite) | amanhecer dourado e fim de tarde laranja |
+
+Como fazer: guia de estilo da área (paleta, materiais: madeira, palha, terra), folha de
+revisão com `npx vite-node scripts/mapa/folha-mundo.ts -- saida.png 2 dia fazenda`, e os
+objetos que faltam pedidos ao GPT (prompts em `docs/PROMPTS-GPT.md`). Prints antes e
+depois para o Matheus aprovar.
+
+---
+
+## 19. Ordem de construção
 
 | Onda | Entrega | Arte nova |
 |---|---|---|
@@ -502,6 +628,9 @@ Doar colheitas e produtos completa cestas; cada grupo de cestas conserta algo no
 | 3b | 25 plantas novas, força da terra, preço por época, armazém, validade, compradores, pré-venda, quadro de pedidos | ícones das plantas e estágios |
 | 3c | Máquinas (composteira, queijeira, tear, tinturaria, moinho...), ferramentas com melhoria, Carpintaria | máquinas, andaime |
 | 3d | Clima novo, variedades, gigantes, Feira, árvores de dia de verdade, sementes antigas | efeitos das variedades, plantas gigantes |
+| 3v | **Visual** (§18): grama por estação, cercas e lampiões rústicos, terra arada, terreiro e objetos de fazenda, relógio no canto | objetos de fazenda, grama por estação |
+| 3e | Sítio com a cara do aluno, coleta na mata, madeira e pedra, minijogos de cuidado, receitas da roça | ferramentas, frutas da mata |
+| 3f | Raças e cruzamento, flores de cruzamento, Desfile de Bichos, barraca na feira, contratos, trator, clima forte | raças, flores, trator |
 
 Código: estende `farm.ts` (`animals`, `silo`, `machines`, `plots[].forca`, variedades)
 mantendo as funções puras e os testes; `sanitizeFarm` aceita o formato antigo.

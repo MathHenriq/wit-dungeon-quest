@@ -1,18 +1,20 @@
 # Frentes de vida do Vale — Fazenda, Lago, Casa, Passarela e História
 
-> Escrito em 09/10/2026, a pedido do Matheus: dar à fazenda, ao lago, à casa e a uma área
+> Escrito em 09/10/2026 e revisto no mesmo dia com o retorno do Matheus (história refeita,
+> professores andando pela cidade, mais funções na fazenda e no lago, ajuste visual). Pedido: dar à fazenda, ao lago, à casa e a uma área
 > de moda o mesmo peso da Torre de cartas, com uma história que passe por tudo. Base: o
 > código da branch `claude/masmorra` e a pesquisa abaixo (§8). Este arquivo é o índice;
 > o detalhe está em cada documento.
 
 | Documento | O quê |
 |---|---|
-| `docs/fazenda-3.md` | bichos com nome e afeto, silo e silagem, ~55 plantas, máquinas, preço por época, quem compra o quê, variedades raras, Feira |
-| `docs/lago-2.md` | **mergulho**, gemas brasileiras raríssimas, lapidação e joias, pesca 2.0, lendários, piracema, Museu |
+| `docs/fazenda-3.md` | bichos com nome e afeto, silo e silagem, ~55 plantas, máquinas, preço por época, quem compra o quê, variedades raras, Feira; **rodada 2**: sítio personalizado, coleta na mata, raças e flores de cruzamento, barraca na feira, trator, clima forte; **visual** (§18) |
+| `docs/lago-2.md` | **mergulho**, gemas brasileiras raríssimas, lapidação e joias, pesca 2.0, lendários, piracema, Museu; **rodada 2**: tarrafa, peixes de aquário e cruzamento, Aquário Público, praia (detector, quiosque, esportes), acampamento, resgate; **visual** (§11) |
 | `docs/casa-2.md` | móvel por unidade, kit inicial, **comprar e trocar de casa, andares com escada**, nota da casa, festa 2.0, correio |
 | `docs/passarela.md` | o "Dress to Impress" do Vale: camarim, temas, voto seguro, rank, Ateliê de estilista |
-| `docs/historia.md` | **O Eco do Vale**: roteiro em 3 atos, 12 Guardiões, 6 reviravoltas, amizade com os moradores |
-| `docs/professores-no-jogo.md` | os professores do WIT de verdade nas salas da Cidade WIT |
+| `docs/historia.md` | **Cartas Marcadas**: a Ordem do Verso, traidores entre os moradores, 7 reviravoltas, investigação (caderno, suspeitos, alerta, disfarce, pistas da turma), mistérios paralelos |
+| `docs/professores-no-jogo.md` | os professores do WIT andando pela cidade todo dia, com visual feito a partir da foto |
+| `docs/prints-frentes/` | prints de hoje da fazenda e do lago (o "antes" do ajuste visual) |
 
 ---
 
@@ -52,7 +54,7 @@ Mansão) e **coleções** que só fecham com estação, clima e sorte.
     │                                                                        │
     └── cozinha: comida dá fôlego no mergulho e sorte na pesca ──────────────┘
  Tudo raro ──▶ MUSEU ◀── insetos da fazenda, fósseis, artefatos
- Tudo ──▶ HISTÓRIA (presentes para moradores, Guardiões em cada área, Memórias)
+ Tudo ──▶ HISTÓRIA (pistas em todas as áreas, presentes para moradores, disfarce na Passarela)
 ```
 O minério do lago (e o da Masmorra) melhora as ferramentas da fazenda. O minhocário da
 fazenda faz a isca do lago. A seda da fazenda e a gema do lago fazem a roupa mais nobre
@@ -75,7 +77,8 @@ precisa ser **sorteado e guardado no servidor**, no molde da carta do chefe
 ### 2.5 Público infantil
 Nada morre, nada se perde para sempre (bicho com fome só não produz; oxigênio acabou, o
 Marinho resgata). Voto sem crueldade (ninguém vê quem deu quanto; professor pode
-desligar). Peças de roupa adequadas por construção. Sem texto livre. História sem terror.
+desligar). Peças de roupa adequadas por construção. Sem texto livre. História com vilões
+de verdade, mas sem sangue nem susto de terror.
 
 ### 2.6 O que ensina (sem virar aula)
 | Frente | Temas |
@@ -84,7 +87,6 @@ desligar). Peças de roupa adequadas por construção. Sem texto livre. Históri
 | Lago | pressão, densidade, geologia e geografia do Brasil, simetria, ecologia, piracema |
 | Casa | orçamento, à vista ou parcelado, círculo de cores, área e perímetro, automação |
 | Passarela | teoria das cores, proporção, história da moda, cultura brasileira, moda sustentável |
-| História | IA aprende com exemplos (e com exemplos ruins), vídeo falso e holograma, checar boato, códigos e cifras |
 
 ---
 
@@ -105,9 +107,9 @@ na casa e título **Lenda do Vale**. É a meta para quem já fez tudo.
 | Março/abril | **Caça aos Ovos** (Páscoa) | Fazenda |
 | Maio | Dia das Mães: flores valem mais | Fazenda, Casa |
 | Junho | **Festa Junina** + **Festa do Farol** (final do Ato 3): quadrilha, comidas, Desfile Caipira, correio elegante | todas |
-| 22 de agosto | **Dia do Folclore**: Saci, Curupira, Iara (a Guardiã da Água) | Lago, Passarela |
+| 22 de agosto | **Dia do Folclore**: Saci, Curupira, Iara | Lago, Passarela |
 | Setembro | **Festa das Flores** (primavera) | Fazenda, Passarela |
-| 12 de outubro | Dia das Crianças = **aniversário do Grande Silêncio** na história | História |
+| 12 de outubro | Dia das Crianças: teaser da história (o farol pisca uma vez à noite) | História |
 | 31 de outubro | Dia do Saci: desfile de folclore | Passarela |
 | Novembro | **Feira Agropecuária** | Fazenda |
 | Dezembro | **Festival das Lanternas** (fim do Ato 1), casa decorada de Natal, amigo secreto | Lago, Casa |
@@ -124,40 +126,50 @@ novos e ligar no fim.
 
 | Fase | O quê | Arte nova | Por quê nessa ordem |
 |---|---|---|---|
-| **1** | Casa C1–C2 (móvel por unidade, kit, comprar casa e fachada) · motor da história + rastreador + amizade + correio · professores nas salas do WIT · **pedir ao GPT** a arte das fases 2–3 · **protótipo da Passarela (M0)** | quase nenhuma | responde às reclamações de hoje; a história liga tudo; a arte demora para voltar |
-| **2** | Fazenda 3a (bichos, silo, tarefas) e 3b (plantas, preços, compradores) · **Ato 1** da história | bichos, plantas | a fazenda é o foco; o Ato 1 sai em novembro |
+| **1** | Casa C1–C2 (móvel por unidade, kit, comprar casa e fachada) · motor da história (rastreador, caderno, quadro de suspeitos, alerta) + amizade + correio · **professores andando pela cidade** (bonecos pelas fotos) · **pedir ao GPT** a arte das fases 2–3 · **protótipo da Passarela (M0)** | bonecos dos professores | responde às reclamações de hoje; a história liga tudo; a arte demora para voltar |
+| **2** | **Visual da fazenda e do lago** (3v, Lv) · Fazenda 3a (bichos, silo, tarefas) e 3b (plantas, preços, compradores) · **Ato 1** da história | objetos de fazenda e da vila, água, bichos, plantas | a fazenda é o foco; o Ato 1 sai em novembro |
 | **3** | Lago L1–L2 (iscas, varas, mergulho raso) · Casa C3–C4 (sobrado, nota) · Passarela M1–M2 (se a M0 for aprovada) | fundo do lago, escada, camarim | |
 | **4** | Fazenda 3c–3d (máquinas, variedades, Feira) · Lago L3–L4 (gemas, Museu, Fossa) · Passarela M3–M5 · **Ato 2** | máquinas, gemas, museu | fevereiro |
-| **5** | **Ato 3** e Final · Festa 2.0 · Livro do Vale | Guardiões soltos, Aurora | junho |
+| **5** | **Ato 3** e Final · Festa 2.0 · Livro do Vale | Aurora, o Vale de papel, encartados libertados | junho |
 
 Cada tela nova passa pelo de sempre: prints para o Matheus aprovar antes da próxima.
 
 ---
 
-## 6. Decisões que preciso do Matheus
+## 6. Decisões
 
+### Já decididas (09/10)
+- **História:** a versão "O Eco do Vale" saiu; entrou **Cartas Marcadas**, com vilões entre
+  os moradores e investigação longa.
+- **Professores:** todos andam pela cidade todo dia, com visual a partir das fotos
+  (autorizado).
+- **Nomes repetidos:** trocados no jogo (estudante Léo → Enzo, monitora Ana → Yasmin,
+  mensageiro Téo → Nico; nas salas, Rafa → Luna, Caio → Ravi, Iris → Sofia).
+- **Fazenda e lago:** direção aprovada; mais funções e ajuste visual entraram.
+
+### Pendentes
 | # | Decisão | Minha proposta |
 |---|---|---|
-| 1 | Tom e nome da história | "O Eco do Vale"; cenas para aprovar em `historia.md` §8 |
-| 2 | Guardião vencido pela **prova do ofício** (sem duelo) também dá a Carta-Selo? | Sim: a prova conta como "conquistar o chefe". Mexe na regra "carta só de chefe ou pacotinho", por isso pergunto |
-| 3 | Dois relógios na fazenda (árvores, café, mel e obras em dias de verdade) | Sim |
-| 4 | Móvel por unidade, kit de 3 estilos, quem já jogou mantém o que tem | Sim |
-| 5 | Preço das casas (até 50 mil) e parcelas sem juros que nunca tomam a casa | Sim |
-| 6 | Gema mais cara: Turmalina Paraíba lapidada a 2.400, 1 a cada ~90 h de mergulho, sorteada no servidor | Sim |
-| 7 | Passarela: voto entre alunos ligado, com o professor podendo desligar | Sim |
-| 8 | Lista dos professores (IA, Comunicação, IoT, Metaverso, Games) e dias de aula | Preciso dos nomes que faltam |
-| 9 | Nomes repetidos: dois Léo, duas Ana, dois Téo | Trocar o estudante Léo, a monitora Ana e o mensageiro Téo |
-| 10 | Teaser em 12/10: o farol pisca uma vez à noite | Sim, se der tempo de subir |
-| 11 | Ordem do §5 | Fase 1 já |
+| 1 | Tom e nome da história | "Cartas Marcadas"; cenas para aprovar em `historia.md` §9 |
+| 2 | Vencer um vilão da história no duelo dá a carta ??? dele? E quem resolve sem duelo? | Duelo: dá a carta ??? **só na 1ª vitória**. Sem duelo: outro prêmio (roupa, título, móvel), não a carta. Assim a regra "carta só de chefe ou pacotinho" fica como está |
+| 3 | Quais moradores são vilões (Sir Téo, Lia, Kaio, Duda, Dona Ana, Seu Joca) | Trocar algum se for inspirado em gente de verdade |
+| 4 | Dois relógios na fazenda (árvores, café, mel e obras em dias de verdade) | Sim |
+| 5 | Móvel por unidade, kit de 3 estilos, quem já jogou mantém o que tem | Sim |
+| 6 | Preço das casas (até 50 mil) e parcelas que nunca tomam a casa | Sim |
+| 7 | Gema mais cara: Turmalina Paraíba lapidada a 2.400, 1 a cada ~90 h de mergulho, sorteada no servidor | Sim |
+| 8 | Passarela: voto entre alunos ligado, o professor pode desligar | Sim |
+| 9 | Professores: confirmar "na de IA"; nomes de IoT, Metaverso e Games; passatempo de cada um; fotos | Preciso dos dados |
+| 10 | Ordem do §5 | Fase 1 já |
 
 ---
 
 ## 7. O que este plano não resolve
 
 - **Volume de arte.** Bichos, plantas, máquinas, fundo do lago, gemas, camarim, peças de
-  roupa, 12 Guardiões, novos moradores e prédios. Tudo pela pipeline gratuita que já
+  roupa, bonecos dos professores, novos moradores (Amaro, Aurora) e prédios. Tudo pela pipeline gratuita que já
   existe (GPT + importadores), com revisão de cada imagem (público infantil).
-- **Volume de escrita.** ~1.400 falas (`historia.md` §12). Escrevo ato por ato.
+- **Volume de escrita.** Mais de mil falas (história, moradores, professores). Escrevo
+  ato por ato, sempre antes de programar o ato.
 - **A Passarela depende de um boneco grande que ainda não existe.** Se o protótipo não
   ficar bom, a Passarela não sai (regra do projeto).
 - **Números.** Todo preço e chance aqui é proposta; passa por `scripts/economia.ts` e por
