@@ -7,7 +7,7 @@ import { dps, WEAPONS, weapon } from '../dungeon-weapons';
 import { skillOf } from '../dungeon-skills';
 import {
   DUNGEON_PAID, finishPortal, forgeWeapon, hunterLevel, hunterRank, portalOpen, RANK_XP, ARISE_WINS, brew, crystalsToDust, setSkills, portalRun,
-  upgradeWeapon, spendPoint, pointsFree, weekSeed,
+  upgradeWeapon, spendPoint, pointsFree, weekSeed, testRun, readyHunter, READY_WEAPON,
 } from '../hunter';
 import { addItem, newProgress } from '../progress';
 import { CATALOG, CARD_BY_ID } from '@/lib/tcg/cards/catalog';
@@ -363,6 +363,15 @@ describe('caçador', () => {
     for (let k = 0; k < 6; k++) p = spendPoint(p, 'vitalidade');
     expect(p.masmorra.pontos.vitalidade).toBe(4); expect(pointsFree(p.masmorra)).toBe(0);
     expect(portalRun(p, 0, 1, 'pet-x').options.hearts).toBe(portalRun(newProgress(), 0, 1, 'pet-x').options.hearts + 1);
+  });
+  it('modo teste: caçador pronto para o rank (arma, maestria, pontos, poções) sem tocar no progresso', () => {
+    const p = newProgress(), before = JSON.stringify(p);
+    const o = testRun(p, 4, 7, 'pet-x'), r = readyHunter(4);
+    expect(o.rank).toBe(4); expect(o.arms!.every(a => a.lvl === READY_WEAPON[4])).toBe(true);
+    expect(o.hearts).toBe(r.hearts); expect(o.potions).toEqual(r.potions); expect(o.stats).toEqual(r.stats);
+    expect(o.skills!.length).toBeGreaterThan(0); expect(o.skills!.every(s => s.lvl === r.mastery)).toBe(true);
+    expect(JSON.stringify(p)).toBe(before);
+    expect(readyHunter(5).hearts).toBeGreaterThan(readyHunter(0).hearts);
   });
   it('prêmio: carta do chefe e moedas (× nota) com teto nas 3 pagas; perdeu, metade; maestria e chefe vencido abre o próximo', () => {
     const now = Date.UTC(2026, 9, 9, 15);

@@ -5,12 +5,16 @@
  * (segura as que carregam), habilidade do Caminho, desce a escada e escolhe a
  * 1ª bênção. Mostra vitória, duração, andar médio, golpes levados e nota.
  *   npx vite-node scripts/masmorra-sim.ts [partidas] [ranks, ex.: 0,2,5]
+ *   VIDA=1.5,2.5,4,4.3,4.6,6.3 CHEFE=1.6,... testam outra curva antes de mudar o jogo
  * ESTILO=espada|tiro|misto · CARTAS=comum|rara|lendaria · DBG=1
  * Ajustar: ENEMY/hpMult em src/game/dungeon-core.ts, chefes em dungeon-boss.ts.
  */
-import { chooseBuff, gradeMult, startRun, stepRun } from '../src/game/dungeon';
+import { BOSS_HP, HP_RANK, chooseBuff, gradeMult, startRun, stepRun } from '../src/game/dungeon';
 import { bot, loadout, newMem, type Style } from './masmorra-bot';
 
+// VIDA=1.5,2.5,... e CHEFE=1.6,... testam outra curva (E…S) sem mexer no jogo
+if (process.env.VIDA) process.env.VIDA.split(',').forEach((v, i) => { HP_RANK[i] = Number(v); });
+if (process.env.CHEFE) process.env.CHEFE.split(',').forEach((v, i) => { BOSS_HP[i] = Number(v); });
 
 const N = Number(process.argv[2] ?? 10);
 const RANKS = (process.argv[3] ?? '0,1,2,3,4,5').split(',').map(Number);

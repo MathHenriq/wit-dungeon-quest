@@ -48,20 +48,30 @@ Pedido do Matheus: cada carta com golpe e função próprios, inimigos e chefes 
 - o próximo portal só abre **vencendo o chefe do anterior** (o SQL confere igual); XP de rank 3× mais lenta;
 - **Modo Pesadelo** depois do S; **Portal da Semana** (mesma semente da turma, recorde local); 3 títulos novos.
 
-**Números da simulação** (`npx vite-node scripts/masmorra-sim.ts 16 0,1,2,3,4,5`; `CARTAS=comum|rara|lendaria`, `MELHORIAS=1` dá ao robô a arma, os pontos e a maestria de quem chega naquele rank; `REACAO` e `ERRO` simulam o aluno). Vitória do robô "bom aluno" (reação de 0,3 s, perde 20% dos avisos):
+**Números da simulação** (`npx vite-node scripts/masmorra-sim.ts 32 0,1,2,3,4,5`; `CARTAS=comum|rara|lendaria`; `MELHORIAS=1` dá ao robô o caçador pronto para o rank, igual ao modo teste: arma, pontos, maestria e poções; `REACAO` e `ERRO` simulam o aluno; `VIDA=` e `CHEFE=` testam outra curva sem mudar o jogo). Vitória do robô "bom aluno" (reação de 0,3 s, perde 20% dos avisos), 32 partidas por portal, depois do ajuste de 09/10 (`HP_RANK` e `BOSS_HP` em `dungeon-core.ts`, elite subindo 4% por rank):
 
-| Rank | Sem melhorias | Com as melhorias do rank |
-|---|---|---|
-| E | ~50% | 63–75% |
-| D | 6–31% | 69–94% |
-| C | 19–38% | 88–94% |
-| B | 0% | 38–56% |
-| A | 0% | 44–56% |
-| S | 6–13% | 44–69% |
+| Portal | Com as melhorias do rank | Sem melhorias | Chefe vencido quando alcançado | Luta com o chefe |
+|---|---|---|---|---|
+| E | 72% | 72% | 88% | ~50 s |
+| D | 78% | 6% | 89% | ~55 s |
+| C | 66% | 0% | 72% | ~1,4 min |
+| B | 50% | 0% | 89% | ~50 s |
+| A | 41% | 0% | 76% | ~1 min |
+| S | 34% | 0% | 85% | ~2,1 min |
 
-Partida de 4 a 10 min para o robô (o aluno leva mais). Luta direta com o chefe: `npx vite-node scripts/masmorra-chefe.ts <rank> <raridade> [partidas]` (com `MELHORIAS=1`), de 30 s a 2 min.
+Como ler:
+- **Com melhorias** cai a cada portal: mesmo equipado, o S é mais difícil que o E.
+- **Sem melhorias** só passa no E: do D em diante é preciso melhorar arma, cartas (maestria) e pontos antes de ir.
+- Com 32 partidas, a margem é de cerca de ±15 pontos. Por isso D (78%) e E (72%) estão empatados.
+
+Partida de 6 a 11 min para o robô (o aluno leva mais). Luta direta com o chefe: `npx vite-node scripts/masmorra-chefe.ts <rank> <raridade> [partidas]` (com `MELHORIAS=1`), de 30 s a 2 min.
 
 **Robô no navegador:** `node scripts/mapa/masmorra-robo.mjs <pasta> [rank] [LxA] [jogar|vitrine]`. O modo `vitrine` tira prints dos golpes marcantes e de cada chefe (o dev expõe `window.__dungeonEdit`).
+
+**Testar só a masmorra** (sem passar pela cidade):
+- `/cidade-demo?sala=treino&associacao=portais`: a Associação, como o aluno vê (só abre o portal do chefe já vencido).
+- `/cidade-demo?sala=treino&masmorra=N`: entra direto no portal N (0 = E … 5 = S) com o caçador do próprio navegador.
+- `&teste` no fim (`?sala=treino&masmorra=4&teste`): **modo teste**, com o caçador pronto para aquele rank (o mesmo "com melhorias" da simulação: arma, maestria, pontos e poções; `readyHunter` em `hunter.ts`). Não gasta poção e **não salva nada** no fim (sem XP, moedas, itens ou carta), por isso não vale como trapaça.
 
 ## Situação (09/10, primeira versão)
 

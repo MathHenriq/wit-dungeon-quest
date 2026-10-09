@@ -187,10 +187,13 @@ export const ENEMY: Record<EnemyKind, EnemyDef> = {
   espiritoFloresta: { hp: 420, speed: 1.1, r: 0.95, gold: 30, touch: true, weight: 'chefe', fly: true, name: 'Espírito da Floresta' },
   monarca: { hp: 900, speed: 1.6, r: 0.9, gold: 30, touch: true, weight: 'chefe', name: 'Monarca das Sombras' },
 };
-/** Vida dos inimigos cresce com o rank e o andar. */
-export const hpMult = (rank: number, floor: number) => [1.5, 2.3, 3.3, 3.9, 5, 6.3][Math.min(5, rank)] * (1 + (floor - 1) * 0.12);
-/** Vida extra dos chefes do topo (quem chega lá está equipado). */
-export const BOSS_HP = [1, 1, 1.4, 1.4, 1.8, 2.2];
+/** Vida dos inimigos por rank (E…S); cresce 12% a cada andar. Ajustada pela simulação
+ *  (`scripts/masmorra-sim.ts`) para a vitória cair a cada portal; o A não sobe porque os
+ *  inimigos dele já são os mais duros (xamã que cura, golem, invocador). */
+export const HP_RANK = [1.5, 2.5, 4.6, 4.6, 4.4, 7.5];
+export const hpMult = (rank: number, floor: number) => HP_RANK[Math.min(5, rank)] * (1 + (floor - 1) * 0.12);
+/** Vida extra dos chefes (luta de ~1 a 3 min; o do A cura com as plantas, por isso menos). */
+export const BOSS_HP = [1.5, 1.5, 2.0, 1.8, 1.5, 2.5];
 export const KB_MULT: Record<Weight, number> = { leve: 1, medio: 0.6, pesado: 0.25, chefe: 0.05 };
 const POISE: Record<Weight, number> = { leve: 0.35, medio: 0.45, pesado: 0.35, chefe: 0.18 };
 export const SPEED = 4.6, DASH = 13, DASH_T = 0.17, DASH_CD = 0.8, PR = 0.3, ESHOT = 5.2, ARROW = 9.5, INV = 0.8;

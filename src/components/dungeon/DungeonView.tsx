@@ -13,7 +13,7 @@ import {
   type BuffId, type Enemy, type EnemyKind, type Grade, type Input, type LootCat, type Run, type Side,
 } from '@/game/dungeon';
 import { weapon } from '@/game/dungeon-weapons';
-import { finishPortal, portalRun, rankName, type PortalMode, type PortalPrize } from '@/game/hunter';
+import { finishPortal, portalRun, rankName, testRun, type PortalMode, type PortalPrize } from '@/game/hunter';
 import { loadProgress, saveProgress } from '@/game/progress';
 import { cloudDungeonCard, cloudEnabled } from '@/game/cloud';
 import { loadLookFrames, loadNpcFrames, loadPetFrames, type Frames } from '@/game/world/sprites';
@@ -82,7 +82,8 @@ interface Art {
   player: Frames | null; pet: Frames | null; mobs: Partial<Record<EnemyKind, Frames>>; gpt: Partial<Record<EnemyKind, Grid>>; icons: Map<string, HTMLImageElement>;
 }
 
-export function DungeonView({ look, rank, mode = {}, onClose }: { look: Look; rank: number; mode?: PortalMode; onClose: () => void }) {
+/** `teste`: caçador pronto para o rank e nada é salvo no fim (`?masmorra=N&teste`). */
+export function DungeonView({ look, rank, mode = {}, teste = false, onClose }: { look: Look; rank: number; mode?: PortalMode; teste?: boolean; onClose: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const pet = look.pet ?? DEFAULT_PET;
   const [seed, setSeed] = useState(() => Date.now() % 1e9);
@@ -90,6 +91,7 @@ export function DungeonView({ look, rank, mode = {}, onClose }: { look: Look; ra
   /** Progresso a gravar fora do render (as poções levadas saem da mochila). */
   const pending = useRef<ReturnType<typeof loadProgress> | null>(null);
   const begin = (s: number) => {
+    if (teste) return startRun(testRun(loadProgress(), rank, s, pet));
     const r = portalRun(loadProgress(), rank, s, pet, mode);
     pending.current = r.progress;
     return startRun(r.options);
@@ -238,6 +240,7 @@ export function DungeonView({ look, rank, mode = {}, onClose }: { look: Look; ra
     if (!hud.result || finished.current) return;
     finished.current = true;
     play(hud.result === 'win' ? 'win' : 'lose');
+    if (teste) return;
     const r = finishPortal(loadProgress(), run.current);
     if (cloudEnabled() && r.card) {
       // com o banco, a carta vem do servidor (moedas e itens vão pelo sync)
@@ -341,9 +344,10 @@ export function DungeonView({ look, rank, mode = {}, onClose }: { look: Look; ra
       )}
       {hud.result && (
         <div className="dg-end">
-          <SystemWindow title={hud.result === 'win' ? 'PORTAL LIMPO' : 'VOCÊ CAIU'} sub={hud.result === 'win' ? `O chefe do portal ${rankName(rank)} foi derrotado.` : `Caiu no andar ${hud.floor}. O pet trouxe metade do que carregava.`} danger={hud.result !== 'win'}>
-            {!prize && <div className="sys-line">Calculando a recompensa...</div>}
-            {prize && <>
+          <SystemWindow title={hud.result === 'win' ? 'PORTAL LIMPO' : 'VOCÊ CAIU'} sub={hud.result === 'win' ? `O chefe do portal ${rankName(rank)} foi derrotado.` : teste ? `Caiu no andar ${hud.floor}.` : `Caiu no andar ${hud.floor}. O pet trouxe metade do que carregava.`} danger={hud.result !== 'win'}>
+            {teste && <div className="sys-line sys-up">MODO TESTE: nada foi salvo (sem XP, moedas, itens ou carta).</div>}
+            {!teste && !prize && <div className="sys-line">Calculando a recompensa...</div>}
+            {!teste && prize && <>
               <div className="sys-line">+{prize.xp} XP de caçador{prize.grade > 1.01 && <span> (nota ×{prize.grade.toFixed(2)})</span>}{prize.rankUp !== undefined && <b className="sys-up"> · SUBIU PARA O RANK {rankName(prize.rankUp)}!</b>}{prize.levelUp !== undefined && <b className="sys-up"> · NÍVEL {prize.levelUp}: ponto de status!</b>}</div>
               <div className="sys-line"><Icon id="moeda" size={14} /> {prize.paid ? `+${prize.coins} moedas` : 'Hoje os 3 portais pagos já foram: este valeu XP e itens.'}</div>
               {prize.abriu !== undefined && <div className="sys-line sys-up">[SISTEMA] O PORTAL {rankName(prize.abriu)} FOI ABERTO!</div>}
@@ -353,8 +357,8 @@ export function DungeonView({ look, rank, mode = {}, onClose }: { look: Look; ra
               {prize.missao && <div className={`sys-line ${prize.missao.completou ? 'sys-up' : ''}`}>[MISSÃO DIÁRIA] {prize.missao.label}: {prize.missao.feito}/{prize.missao.alvo}{prize.missao.completou ? ' · CUMPRIDA (+40 moedas, +120 XP)' : ''}</div>}
               {prize.sombra && <div className="sys-arise">ARISE! Uma sombra {prize.sombra} agora acompanha você.</div>}
               {prize.card && CARD_BY_ID.get(prize.card) && <div className="sys-card"><TcgCard card={CARD_BY_ID.get(prize.card)!} /><span>Carta do chefe: {CARD_BY_ID.get(prize.card)?.name}</span></div>}
-              <div className="sys-actions"><button className="sys-btn" onClick={again}>ENTRAR DE NOVO</button><button className="sys-btn alt" onClick={onClose}>VOLTAR À ASSOCIAÇÃO</button></div>
             </>}
+            {(teste || prize) && <div className="sys-actions"><button className="sys-btn" onClick={again}>ENTRAR DE NOVO</button><button className="sys-btn alt" onClick={onClose}>VOLTAR À ASSOCIAÇÃO</button></div>}
           </SystemWindow>
         </div>
       )}

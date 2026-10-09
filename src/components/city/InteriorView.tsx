@@ -204,6 +204,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   /** Associação dos Caçadores (portões da Associação e telão da Arena; `?associacao=armas` abre direto). */
   const [assoc, setAssoc] = useState<AssocTab | null>(() => { const q = new URLSearchParams(window.location.search).get('associacao'); return q === null ? null : (ASSOC_TABS.includes(q as AssocTab) ? q as AssocTab : 'portais'); });
   const [dungeonMode, setDungeonMode] = useState<PortalMode>({});
+  /** `?masmorra=N&teste`: caçador pronto para o rank, nada é salvo (para o professor experimentar). */
+  const [dungeonTest] = useState(() => new URLSearchParams(window.location.search).has('teste'));
   const covered = useRef(false);
   const [partyMsg, setPartyMsg] = useState<string | null>(null);
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
@@ -951,7 +953,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
       {assoc && dungeon === null && <AssociationPanel tab={assoc} onClose={() => setAssoc(null)} onEnter={(r, m) => { setDungeonMode(m ?? {}); setDungeon(r); }} />}
-      {dungeon !== null && <DungeonView look={look} rank={dungeon} mode={dungeonMode} onClose={() => setDungeon(null)} />}
+      {dungeon !== null && <DungeonView look={look} rank={dungeon} mode={dungeonMode} teste={dungeonTest} onClose={() => setDungeon(null)} />}
       {arcade && <ArcadeMaker onClose={() => setArcade(false)} onClassic={() => { setArcade(false); setHousePanel({ kind: 'work', game: 'teste-jogo' }); }} />}
       {panelOpen === 'moveis' && m && <FurnitureShop m={m} onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {panelOpen === 'trocas' && <TradeHub onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
