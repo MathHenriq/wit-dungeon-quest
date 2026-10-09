@@ -33,6 +33,9 @@ export const TITLES_LIST: TitleDef[] = [
   { id: 'mestre-oficio', name: 'Mestre de Ofício', how: 'Chegar ao nível 5 numa profissão.', ...at(5, bestProf) },
   { id: 'reporter', name: 'Repórter Estrela', how: 'Publicar 5 matérias no jornalzinho.', ...at(5, p => p.materias.length) },
   { id: 'entregador', name: 'Sempre no Prazo', how: 'Fazer 20 entregas.', ...at(20, p => stat(p, 'entregas')) },
+  { id: 'despertado', name: 'Caçador Despertado', how: 'Vencer o chefe do portal E da masmorra.', has: p => (p.masmorra?.vitorias[0] ?? 0) > 0 },
+  { id: 'rank-s', name: 'Caçador Rank S', how: 'Vencer o Monarca das Sombras (portal S).', has: p => (p.masmorra?.vitorias[5] ?? 0) > 0 },
+  { id: 'pesadelo', name: 'Sobrevivente do Pesadelo', how: 'Vencer o Modo Pesadelo da masmorra.', has: p => (p.masmorra?.pesadelo ?? 0) > 0 },
   // do WIT 1 (migration.ts): aparecem só para quem tinha
   { id: 'veterano', legacy: true, name: 'Veterano WIT 1', how: 'Jogou o WIT Dungeon 1.', has: p => !!p.legado?.titulos.includes('veterano') },
   { id: 'ajudante-semana', legacy: true, name: 'Ajudante da Semana', how: 'Título do WIT 1.', has: p => !!p.legado?.titulos.includes('ajudante-semana') },

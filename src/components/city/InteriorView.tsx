@@ -36,7 +36,8 @@ import { cloudBossCard, cloudEnabled } from '@/game/cloud';
 import { guildHit, party, saveHouse, socialError, socialMe, socialOn } from '@/game/social';
 import { ArcadeMaker } from '@/components/social/Arcade';
 import { DungeonView } from '@/components/dungeon/DungeonView';
-import { AssociationPanel, type AssocTab } from '@/components/dungeon/AssociationPanel';
+import { AssociationPanel, ASSOC_TABS, type AssocTab } from '@/components/dungeon/AssociationPanel';
+import type { PortalMode } from '@/game/hunter';
 import { buildMatch, joinTable, reportPvp, validDeck, WO_MS, type PvpAction, type PvpHello, type TableLink } from '@/game/pvp-online';
 import { tabId } from '@/game/presence';
 import { GuildPanel } from '@/components/social/GuildPanel';
@@ -201,7 +202,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   /** Masmorra: o portal escolhido (rank 0…5) ou nada. `?masmorra=2` abre o portal C direto. */
   const [dungeon, setDungeon] = useState<number | null>(() => { const q = new URLSearchParams(window.location.search); return q.has('masmorra') ? Math.max(0, Math.min(5, Number(q.get('masmorra')) || 0)) : null; });
   /** Associação dos Caçadores (portões da Associação e telão da Arena; `?associacao=armas` abre direto). */
-  const [assoc, setAssoc] = useState<AssocTab | null>(() => { const q = new URLSearchParams(window.location.search).get('associacao'); return q === null ? null : (['portais', 'cacador', 'armas', 'boticaria', 'bau'].includes(q) ? q as AssocTab : 'portais'); });
+  const [assoc, setAssoc] = useState<AssocTab | null>(() => { const q = new URLSearchParams(window.location.search).get('associacao'); return q === null ? null : (ASSOC_TABS.includes(q as AssocTab) ? q as AssocTab : 'portais'); });
+  const [dungeonMode, setDungeonMode] = useState<PortalMode>({});
   const covered = useRef(false);
   const [partyMsg, setPartyMsg] = useState<string | null>(null);
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
@@ -948,8 +950,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'recompensas' && <RoomRewards progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'forja' && <ForgePanel progress={progress} onClose={() => setPanelOpen(null)} />}
       {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
-      {assoc && dungeon === null && <AssociationPanel tab={assoc} onClose={() => setAssoc(null)} onEnter={r => { setDungeon(r); }} />}
-      {dungeon !== null && <DungeonView look={look} rank={dungeon} onClose={() => setDungeon(null)} />}
+      {assoc && dungeon === null && <AssociationPanel tab={assoc} onClose={() => setAssoc(null)} onEnter={(r, m) => { setDungeonMode(m ?? {}); setDungeon(r); }} />}
+      {dungeon !== null && <DungeonView look={look} rank={dungeon} mode={dungeonMode} onClose={() => setDungeon(null)} />}
       {arcade && <ArcadeMaker onClose={() => setArcade(false)} onClassic={() => { setArcade(false); setHousePanel({ kind: 'work', game: 'teste-jogo' }); }} />}
       {panelOpen === 'moveis' && m && <FurnitureShop m={m} onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {panelOpen === 'trocas' && <TradeHub onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}

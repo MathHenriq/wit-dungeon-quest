@@ -12,7 +12,7 @@ existe; sem ele, continua a provisória.
   inimigos/    4 × 4   48       public/game/masmorra/inimigos/<nome>.png   (chefe-*: 4 × 3, 96)
   sombras/     4 × 4   48       public/game/masmorra/sombras/<nome>.png
   armas/       4 × 2   48       public/game/masmorra/armas/<nome>.png      (tiros: 4 × 4, 16)
-  lugares/     portal 4 × 1 (96 × 128) · piso-parede-* 4 × 3 (32) · objetos 4 × 4 (64)
+  lugares/     portal 4 × 1 (96 × 128) · piso-parede-* 4 × 3 (32) · perigos 4 × 2 (32) · salas 4 × 2 (64) · objetos 4 × 4 (64)
   saguao/      4 × 2   128      public/game/masmorra/saguao/<nome>.png
   icones/      4 × 3   32       public/game/icons/itens/<id>.png (um arquivo por ícone)
   personagem/  4 × 4 (combate, esquiva) · 4 × 1 (magia), quadro do modelo → public/game/sprites/poses/
@@ -98,7 +98,10 @@ def main():
         ('sombras', '*.png', lambda f: (4, 4, 48, 48, True, GAME / 'masmorra/sombras' / f.name)),
         ('armas', '*.png', lambda f: (4, 4, 16, 16, False, GAME / 'masmorra/armas' / f.name) if f.stem == 'tiros' else (4, 2, 48, 48, False, GAME / 'masmorra/armas' / f.name)),
         ('lugares', '*.png', lambda f: (4, 1, 96, 128, True, GAME / 'masmorra/lugares' / f.name) if f.stem == 'portal'
-            else (4, 3, 32, 32, False, GAME / 'masmorra/lugares' / f.name) if f.stem.startswith('piso-parede') else (4, 4, 64, 64, True, GAME / 'masmorra/lugares' / f.name)),
+            else (4, 3, 32, 32, False, GAME / 'masmorra/lugares' / f.name) if f.stem.startswith('piso-parede')
+            else (4, 2, 32, 32, False, GAME / 'masmorra/lugares' / f.name) if f.stem == 'perigos'
+            else (4, 2, 64, 64, True, GAME / 'masmorra/lugares' / f.name) if f.stem == 'salas'
+            else (4, 4, 64, 64, True, GAME / 'masmorra/lugares' / f.name)),
         ('saguao', '*.png', lambda f: (4, 2, 128, 128, True, GAME / 'masmorra/saguao' / f.name)),
     ]
     for folder, pat, spec in groups:
