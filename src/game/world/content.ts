@@ -153,6 +153,10 @@ NPCS.push(
   { id: 'marinho', zona: 'lago', name: 'Marinho', title: 'Barqueiro', tx: 26, ty: 22, dir: 'east',
     look: { modelo: 'modelo-08', pele: 'pele-2', cabelo: 'ruivo', cima: 'branco', baixo: 'marinho', acc: { cabeca: { id: 'bandana', cor: 'vermelho' } } },
     lines: ['O barquinho está no fim do cais. Pode usar!', 'De frente para o barco, aperte ESPAÇO. Para descer, encoste na terra.'] },
+  // o Homem da Neblina (história, docs/historia.md): só aparece quando a história chama (src/game/story)
+  { id: 'amaro', zona: 'lago', name: 'Homem da Neblina', title: '???', tx: 32, ty: 20, dir: 'east',
+    look: { modelo: 'modelo-04', pele: 'pele-3', cabelo: 'preto', cima: 'branco', baixo: 'preto', acc: { cabeca: { id: 'chapeu', cor: 'preto' } } },
+    lines: ['...'] },
   { id: 'pipo', zona: 'lago', name: 'Pipo', title: 'Estudante', tx: 22, ty: 30, dir: 'south', job: { kind: 'passear', route: [[22, 30, 'south'], [34, 39, 'east'], [50, 40, 'north'], [23, 25, 'west']], pause: [2500, 6000] },
     look: { modelo: 'modelo-07', pele: 'pele-4', cabelo: 'loiro', cima: 'laranja', baixo: 'jeans' },
     lines: ['Fiz um castelo de areia! Não pisa, hein!', 'O farol fica numa ilha. Só dá para ir de barco.'] },
