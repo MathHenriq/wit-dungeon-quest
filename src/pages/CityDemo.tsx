@@ -38,7 +38,7 @@ import {
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
 import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
-import { cloudEnabled, pullProgress, studentSignedIn } from '@/game/cloud';
+import { cloudEnabled, myNickname, pullProgress, studentSignedIn } from '@/game/cloud';
 import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
 import { DEMO_PEOPLE, nickOk, noticesMine, setProfile, socialDemo, socialError, socialOn, visit } from '@/game/social';
 import { ProfileCard } from '@/components/social/ProfileCard';
@@ -492,12 +492,22 @@ function CityView({ town, start, startHour, onTravel }: {
     let alive = true;
     const pr = loadProgress();
     const favs = Object.keys(pr.collection).sort((a, b) => RANKS.indexOf(CARD_BY_ID.get(b)?.rarity ?? 'common') - RANKS.indexOf(CARD_BY_ID.get(a)?.rarity ?? 'common')).slice(0, 3);
-    const nick = nickOk(s.nick) ? s.nick : 'Desafiante';
-    studentSignedIn().then(ok => (ok ? setProfile(nick, s.playerTitle, look, favs) : null)).then(meP => {
+    // sem apelido escolhido, vale o nickname do cadastro (nunca "Você" para os outros)
+    studentSignedIn().then(async ok => {
+      if (!ok) return null;
+      let nick = look.apelido && nickOk(look.apelido) ? look.apelido : 'Desafiante';
+      if (!look.apelido) {
+        // o apelido tem até 14 letras: nickname maior é cortado na palavra
+        const full = (await myNickname())?.replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim() ?? '';
+        const n = full.length <= 14 ? full : (full.slice(0, 15).replace(/\s+\S*$/, '') || full.slice(0, 14));
+        if (n && nickOk(n)) { nick = n; s.nick = n; setLook(l => (l.apelido ? l : normalizeLook({ ...l, apelido: n }))); }
+      }
+      return setProfile(nick, s.playerTitle, look, favs);
+    }).then(meP => {
       if (!alive || !meP) return;
       s.muted = meP.muted;
       setMuted(meP.muted);
-      const me: PeerState = { id: tabId(), handle: meP.handle, nick, title: s.playerTitle, look, tx: s.player.tx, ty: s.player.ty, dir: s.player.dir };
+      const me: PeerState = { id: tabId(), handle: meP.handle, nick: nickOk(s.nick) && s.nick !== 'Você' ? s.nick : 'Desafiante', title: s.playerTitle, look, tx: s.player.tx, ty: s.player.ty, dir: s.player.dir };
       return joinZone(town.id, me, list => {
       const seen = new Set<string>();
       for (const st of list) {
