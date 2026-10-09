@@ -70,6 +70,11 @@ import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 import { drawAmbient } from '@/game/world/ambient';
 import { PLATE_FALA, PLATE_NPC, PLATE_OTHER, PLATE_PLAYER } from '@/game/world/nameplate';
 import { drawJob, jobBob, propsBehind } from '@/game/world/jobs';
+import {
+  storyArrive, storyChoose, storyCtx, storyDoor, storyExtra, storyFog, storyFromQuery, storyMarks, storyNewDay, storySpot,
+  storyTalk, storyTick, storyVisible, STORY_EVENT,
+} from '@/game/story/runtime';
+import { Caderno, StoryChoice, StoryHud } from '@/components/story/StoryUi';
 
 /**
  * Protótipo jogável da Cidade WIT: andar pela cidade (setas/WASD ou toque),
@@ -192,6 +197,8 @@ const BASE = import.meta.env.BASE_URL;
 export default function CityDemo() {
   // a cidade cobre a tela inteira: o fundo 3D do app não precisa desenhar
   useOccludesBackdrop();
+  // ?historia=cap3 começa a história naquele capítulo (prints e testes)
+  useState(() => { storyFromQuery(); return 0; });
   const [world, setWorld] = useState<{ town: Town; start?: Arrival; hour: number; n: number } | null>(null);
   const [fade, setFade] = useState(false);
   const assets = useRef<WorldAssets | null | undefined>(undefined);
@@ -249,6 +256,9 @@ function CityView({ town, start, startHour, onTravel }: {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [panel, setPanel] = useState<{ title: string; text: string } | null>(null);
   const [dialog, setDialog] = useState<{ lines: string[]; i: number } | null>(null);
+  /** História: o Caderno aberto e a escolha de um passo. */
+  const [caderno, setCaderno] = useState(false);
+  const [choice, setChoice] = useState<{ pergunta: string[]; opcoes: string[] } | null>(null);
   const [ready, setReady] = useState(false);
   const [touch] = useState(() => typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
   const [view, setView] = useState({ w: 320, h: 208, scale: 3 });
@@ -310,7 +320,11 @@ function CityView({ town, start, startHour, onTravel }: {
     // ?pos=tx,ty começa em outro lugar (para prints e testes)
     player: newWalker(START.tx, START.ty, START.dir),
     pet: newWalker(START.tx - DELTA[START.dir][0], START.ty - DELTA[START.dir][1], START.dir),
-    npcs: npcDefs.map((def, i) => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, goal: null, path: [], wait: 800 + i * 700, stop: 0, seed: (i * 0.618034) % 1 })) as Npc[],
+    npcs: [] as Npc[],
+    /** Todos os moradores da área; `npcs` são os que aparecem agora (a história esconde alguns). */
+    allNpcs: npcDefs.map((def, i) => ({ def, w: newWalker(def.tx, def.ty, def.dir), frames: null, goal: null, path: [], wait: 800 + i * 700, stop: 0, seed: (i * 0.618034) % 1 })) as Npc[],
+    /** O que a história marca nesta área ("!" nos moradores, brilho nos blocos, portas). */
+    story: { quem: [] as string[], blocos: [] as [number, number][], portas: [] as string[], fog: false },
     /** Navegando no barquinho (e onde ele fica amarrado quando não está). */
     sailing: false,
     boat: ((): { tx: number; ty: number; dir: Dir } | null => {
@@ -400,9 +414,35 @@ function CityView({ town, start, startHour, onTravel }: {
   });
 
   useEffect(() => {
-    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses || !!work || !!bag || !!shopUi || pathOpen || vehicleShop;
+    g.current.modal = !!panel || !!dialog || editing || !!inside || deckOpen || mapOpen || !!fishHouse || fishUi?.kind === 'catch' || !!farmPanel || courses || !!work || !!bag || !!shopUi || pathOpen || vehicleShop || caderno || !!choice;
     g.current.inside = !!inside; g.current.dirty = true;
-  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel, courses, work, bag, shopUi, vehicleShop]);
+  }, [panel, dialog, editing, inside, deckOpen, mapOpen, fishHouse, fishUi, farmPanel, courses, work, bag, shopUi, vehicleShop, caderno, choice, pathOpen]);
+
+  // história (src/game/story): quem aparece nesta área, os marcadores e a neblina
+  const sctx = useCallback(() => storyCtx(town.id, g.current.hour, g.current.farm.day), [town]);
+  const refreshStory = useCallback(() => {
+    const s = g.current;
+    const c = storyCtx(town.id, s.hour, s.farm.day);
+    s.npcs = s.allNpcs.filter(n => storyVisible(n.def.id, c));
+    s.story = { ...storyMarks(town.id), fog: storyFog(c) };
+    s.dirty = true;
+  }, [town]);
+  useEffect(() => {
+    refreshStory();
+    window.addEventListener(STORY_EVENT, refreshStory);
+    return () => window.removeEventListener(STORY_EVENT, refreshStory);
+  }, [refreshStory]);
+  // o tempo da história (esperar, a noite, o dia seguinte): só com nada aberto na tela
+  useEffect(() => {
+    if (dialog || panel || choice || caderno || inside || pathOpen) return;
+    const id = window.setInterval(() => {
+      const s = g.current;
+      if (s.modal || s.fish) return;
+      const r = storyTick(sctx(), 500);
+      if (r.falas) { s.path = []; s.held = []; setDialog({ lines: r.falas, i: 0 }); }
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [dialog, panel, choice, caderno, inside, pathOpen, sctx]);
 
   // título do cargo na plaquinha; com fome não corre
   useEffect(() => {
@@ -671,7 +711,7 @@ function CityView({ town, start, startHour, onTravel }: {
       if (!alive) return;
       g.current.playerFrames = pf;
       g.current.petFrames = pet;
-      g.current.npcs.forEach((n, i) => { n.frames = npcFrames[i]; });
+      g.current.allNpcs.forEach((n, i) => { n.frames = npcFrames[i]; });
       g.current.dirty = true;
       setReady(true);
     })().catch(err => console.error('sprites', err));
@@ -838,6 +878,10 @@ function CityView({ town, start, startHour, onTravel }: {
     if (npc) {
       const back: Record<Dir, Dir> = { north: 'south', south: 'north', west: 'east', east: 'west' };
       npc.w.dir = back[p.dir];
+      // história: o passo com este morador (ou a escolha)
+      const st = storyTalk(npc.def.id, sctx());
+      if (st.escolha) { setChoice(st.escolha); return; }
+      if (st.falas) { setDialog({ lines: st.falas, i: 0 }); return; }
       // entrevista do trabalho de campo
       const ft = fieldNow().find(t => t.npc === npc.def.id);
       const c = loadProgress().campo;
@@ -847,7 +891,7 @@ function CityView({ town, start, startHour, onTravel }: {
         setDialog({ lines: [`${npc.def.name}: "${said}"`, ...(lines ?? [])], i: 0 });
         return;
       }
-      setDialog({ lines: npc.def.lines, i: 0 });
+      setDialog({ lines: storyExtra(npc.def.id) ?? npc.def.lines, i: 0 });
       return;
     }
     const startFishing = () => {
@@ -859,6 +903,13 @@ function CityView({ town, start, startHour, onTravel }: {
       play('draw');
     };
     if (p.from) return;
+    // história: pegar alguma coisa no bloco da frente (ou no que está pisando)
+    if (!s.sailing) {
+      const c = sctx();
+      const r = storySpot(c, f.tx, f.ty);
+      const r2 = r.falas ? r : storySpot(c, p.tx, p.ty);
+      if (r2.falas) { setDialog({ lines: r2.falas, i: 0 }); return; }
+    }
     // no barco: desce se estiver de frente para a terra; senão, pesca
     if (s.sailing) {
       if (inMap(f.tx, f.ty) && !town.solid[f.ty][f.tx] && !npcAt(f.tx, f.ty)) {
@@ -1082,9 +1133,14 @@ function CityView({ town, start, startHour, onTravel }: {
 
     const onStepDone = () => {
       const s = g.current;
+      const sa = storyArrive(storyCtx(town.id, s.hour, s.farm.day), s.player.tx, s.player.ty);
+      if (sa.falas) { s.path = []; s.held = []; setDialog({ lines: sa.falas, i: 0 }); return; }
       const door = town.doors.find(d => d.tx === s.player.tx && d.ty === s.player.ty);
       if (door && s.player.dir === 'north') {
         s.path = []; s.held = [];
+        // história: a porta pode contar uma coisa (e segurar o aluno do lado de fora)
+        const sd = storyDoor(door.building, storyCtx(town.id, s.hour, s.farm.day));
+        if (sd.falas) { setDialog({ lines: sd.falas, i: 0 }); s.player.ty += 1; s.player.dir = 'south'; return; }
         // entrega para esta porta: entrega e não entra
         const pe = loadProgress();
         if (pe.entrega && pe.entrega.zona === town.id && pe.entrega.porta === door.building) {
@@ -1142,6 +1198,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const s = g.current;
       const r = nextDay(s.farm, Date.now(), rainOn(s.farm.day + 1), irrigPlots(loadProgress()));
       s.farm = r.farm; saveFarm(r.farm);
+      storyNewDay();
       if (r.paid) { const pr = loadProgress(); r.paid = Math.round(r.paid * shipBonus(pr)); saveProgress({ ...pr, coins: pr.coins + r.paid }); play('coin'); }
       if (r.paid || town.id === 'fazenda') setFishUi({ kind: 'toast', text: `Dia ${r.farm.day}!${r.paid ? ` A caixa de envio pagou ${r.paid} moedas.` : ''}${r.grown ? ` ${r.grown} planta${r.grown > 1 ? 's' : ''} cresce${r.grown > 1 ? 'ram' : 'u'}.` : ''}` });
       setFarmHud(n => n + 1);
@@ -1294,7 +1351,7 @@ function CityView({ town, start, startHour, onTravel }: {
       const todKey = Math.round(s.hour * 30);
       if (todKey !== lastTodKey) { lastTodKey = todKey; s.dirty = true; }
       if (tod.light > 0) { const pk = Math.floor(now / 60); if (pk !== lastPulse) { lastPulse = pk; s.dirty = true; } }
-      if (Math.floor(s.hour) !== lastHourShown) { lastHourShown = Math.floor(s.hour); setClock(s.hour); }
+      if (Math.floor(s.hour) !== lastHourShown) { lastHourShown = Math.floor(s.hour); setClock(s.hour); refreshStory(); }
       // nome do lugar quando o jogador chega perto de uma porta
       if (p.tx !== lastNearTile.x || p.ty !== lastNearTile.y) {
         lastNearTile = { x: p.tx, y: p.ty };
@@ -1590,6 +1647,41 @@ function CityView({ town, start, startHour, onTravel }: {
           ctx.fillStyle = '#fff'; ctx.fillRect(mx - 1, top - 1, 2, 2);
         } });
       }
+      // história: "!" em quem tem passo, brilho no bloco de pegar, "!" na porta
+      {
+        const bang = (x: number, y: number) => {
+          ctx.fillStyle = '#2e2a40'; ctx.fillRect(x - 4, y - 11, 8, 14);
+          ctx.fillStyle = '#ffd84a'; ctx.fillRect(x - 3, y - 10, 6, 12);
+          ctx.fillStyle = '#2e2a40'; ctx.fillRect(x - 1, y - 8, 2, 6); ctx.fillRect(x - 1, y - 1, 2, 2);
+        };
+        const bob = Math.sin(now / 220) * 2;
+        for (const id of s.story.quem) {
+          const n = s.npcs.find(nn => nn.def.id === id);
+          if (!n) continue;
+          const np = pixelPos(n.w, TILE), mx = np.x + 8 - camX, my = np.y - 28 - camY + bob;
+          if (mx < -20 || mx > vw + 20 || my < -20 || my > vh + 40) continue;
+          list.push({ baseY: np.y + 40, draw: () => bang(mx, my) });
+        }
+        for (const [tx, ty] of s.story.blocos) {
+          const cx = tx * TILE + 8 - camX, cy = ty * TILE + 8 - camY;
+          if (cx < -20 || cx > vw + 20 || cy < -20 || cy > vh + 20) continue;
+          list.push({ baseY: ty * TILE + 30, draw: () => {
+            const k = 0.5 + 0.5 * Math.sin(now / 250);
+            ctx.strokeStyle = '#ffd84a'; ctx.globalAlpha = 0.45 + 0.35 * k; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.ellipse(cx, cy + 4, 7, 3.5, 0, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = 0.7 + 0.3 * k; ctx.fillStyle = '#fff4b0';
+            ctx.fillRect(cx - 0.5, cy - 6 - k * 2, 1, 12 + k * 4); ctx.fillRect(cx - 6 - k * 2, cy - 0.5, 12 + k * 4, 1); ctx.fillRect(cx - 1.5, cy - 1.5, 3, 3);
+            ctx.globalAlpha = 1;
+          } });
+        }
+        for (const b of s.story.portas) {
+          const d = town.doors.find(dd => dd.building === b);
+          if (!d) continue;
+          const mx = d.tx * TILE + 8 - camX, my = d.ty * TILE - 30 - camY + bob;
+          if (mx < -20 || mx > vw + 20 || my < -20 || my > vh + 40) continue;
+          list.push({ baseY: d.ty * TILE + 60, draw: () => bang(mx, my) });
+        }
+      }
       for (const pp of s.pops) {
         const k = (now - pp.t) / 600, px = pp.x - camX, py = pp.y - camY;
         list.push({ baseY: pp.y + 20, draw: () => {
@@ -1782,6 +1874,15 @@ function CityView({ town, start, startHour, onTravel }: {
         ctx.stroke();
         s.dirty = true;
       }
+      // neblina da história (manhã no Lago, quando o passo pede): véu claro e faixas passando
+      if (s.story.fog) {
+        ctx.fillStyle = 'rgba(214,222,232,0.42)'; ctx.fillRect(0, 0, vw, vh);
+        for (let i = 0; i < 5; i++) {
+          const y = ((i * 61 + now * 0.004 * (i % 2 ? 1 : -1)) % (vh + 40)) - 20;
+          ctx.fillStyle = 'rgba(236,240,246,0.22)'; ctx.fillRect(0, y, vw, 18 + (i % 3) * 8);
+        }
+        s.dirty = true;
+      }
       // plaquinhas: a do jogador sempre; a dos moradores quando o jogador chega perto
       // (a do jogador primeiro; a de quem estiver colado sobe até não cobrir)
       const placed: { x: number; y: number; w: number; h: number }[] = [];
@@ -1904,6 +2005,7 @@ function CityView({ town, start, startHour, onTravel }: {
         {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar{town.id === 'fazenda' ? '/plantar · Q E semente' : ''} · M mapa · F foto · 1-4 emote · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
       </div>
+      {!inside && !pathOpen && <StoryHud onOpen={() => setCaderno(true)} />}
 
       <div className="absolute top-2 right-2 flex flex-wrap justify-end items-center gap-1.5 max-w-[calc(100vw-150px)] sm:max-w-none">
         <span className={`px-2 py-1.5 rounded-md bg-black/55 text-[10px] ${pixelFont}`}><HungerBar v={progress.fome} compact /></span>
@@ -2097,6 +2199,14 @@ function CityView({ town, start, startHour, onTravel }: {
           }} />
       )}
       {inside && editing && <LookEditor value={look} onChange={setLook} onClose={() => setEditing(false)} />}
+      {caderno && !inside && <Caderno ctx={sctx} onClose={() => setCaderno(false)} onLines={l => setDialog({ lines: l, i: 0 })} />}
+      {choice && !inside && (
+        <StoryChoice pergunta={choice.pergunta} opcoes={choice.opcoes} onPick={i => {
+          const r = storyChoose(i, sctx());
+          setChoice(null);
+          if (r.falas) setDialog({ lines: r.falas, i: 0 });
+        }} />
+      )}
     </div>
   );
 }

@@ -1,0 +1,53 @@
+/* História: rastreador, Caderno e escolha. Sem blur nem blend (desempenho no celular). */
+.story-hud { position: absolute; left: 8px; top: 62px; z-index: 20; display: flex; align-items: center; gap: 4px;
+  max-width: min(640px, calc(100vw - 16px)); font-family: 'Press Start 2P', monospace; pointer-events: auto; }
+.story-hud.mini { gap: 6px; }
+.story-line { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 6px 8px; border: 2px solid #c9a8ff; border-radius: 4px;
+  background: rgba(30, 16, 54, .82); color: #fff; font: inherit; font-size: 9px; line-height: 13px; cursor: pointer; text-align: left; }
+.story-line b { color: #ffd84a; white-space: nowrap; font-weight: normal; }
+.story-line .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-line i { color: #c9b8e8; font-style: normal; white-space: nowrap; }
+.story-line i::before { content: '· '; }
+.story-line.done { cursor: default; color: #c9b8e8; }
+.story-line.pulse { animation: story-pulse 1.2s ease-in-out infinite; }
+@keyframes story-pulse { 50% { border-color: #ffd84a; } }
+.story-x, .story-book { border: 2px solid #c9a8ff; border-radius: 4px; background: rgba(30, 16, 54, .82); color: #fff; font: inherit;
+  font-size: 10px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
+.story-eye { display: flex; align-items: center; gap: 2px; padding: 4px 6px; border: 2px solid #8a2a3a; border-radius: 4px;
+  background: rgba(40, 8, 16, .82); flex: none; }
+.story-eye .eye { color: #ff6a7a; font-size: 12px; margin-right: 3px; }
+.story-eye i { width: 6px; height: 10px; background: #4a2030; }
+.story-eye i.on { background: #ff4a5a; }
+.story-eye.hot { animation: story-pulse 0.8s ease-in-out infinite; }
+@media (max-width: 640px) { .story-hud { top: 46px; } .story-line i { display: none; } }
+
+.story-col { display: flex; flex-direction: column; gap: 8px; }
+.story-cap { font-size: 8px; color: #6a4aa8; margin-bottom: 4px; }
+.story-goal { font-size: 10px; line-height: 16px; color: #2e2a40; }
+.story-where, .story-tip { font-size: 8px; line-height: 13px; color: #5a5470; margin-top: 4px; }
+.story-sum { font-size: 8px; line-height: 14px; color: #3e3654; }
+.story-sum.wide { grid-column: 1 / -1; text-align: center; margin-top: 4px; }
+.story-past { opacity: .92; }
+.story-q { font-size: 10px; line-height: 16px; color: #2e2a40; margin-bottom: 8px; }
+.story-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.story-err { font-size: 8px; line-height: 13px; color: #b8433a; margin-top: 8px; }
+
+.story-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.story-card { position: relative; aspect-ratio: 5 / 7; border: 3px solid #2e2a40; border-radius: 6px; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end; gap: 4px; padding: 6px 4px; text-align: center; overflow: hidden;
+  background: linear-gradient(160deg, var(--c), #2e2a40); color: #fff; filter: saturate(.35); }
+.story-card .who { font-size: 11px; }
+.story-card .name { font-size: 6px; line-height: 9px; opacity: .9; }
+.story-card .sel { font-size: 5px; color: #ffd84a; }
+.story-card::before { content: ''; position: absolute; top: 14%; width: 46%; aspect-ratio: 1; border-radius: 50%;
+  border: 3px dashed rgba(255, 255, 255, .55); }
+.story-card.back { filter: none; justify-content: center; background: repeating-radial-gradient(circle at 50% 50%, #3a2a5a 0 4px, #2a1c44 4px 8px); }
+.story-card.back::before { display: none; }
+.story-card.back span { font-size: 18px; color: #6a5a8a; }
+
+.story-choice { position: absolute; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 16px;
+  background: rgba(12, 8, 20, .45); font-family: 'Press Start 2P', monospace; }
+.story-choice-box { width: min(92vw, 640px); border: 4px solid #4a4660; border-radius: 12px; background: #fff; color: #2e2a40;
+  padding: 14px 18px; font-size: 11px; line-height: 22px; }
+.story-choice-box p { margin: 0 0 6px; }
+.story-choice-box .story-opts { margin-top: 8px; }

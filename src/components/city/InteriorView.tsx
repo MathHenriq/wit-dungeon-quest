@@ -46,6 +46,8 @@ import { FurnitureShop } from './FurnitureShop';
 import { plantKey, waterPlant } from '@/game/house-life';
 import { today } from '@/game/life';
 import { furniturePrice, ownsFurniture } from '@/game/furniture';
+import { storyCtx, storyExtra, storyTalk, storyTick } from '@/game/story/runtime';
+import { Caderno, StoryHud } from '@/components/story/StoryUi';
 import {
   drawSeated, loadImage, loadLookFrames, loadNpcFrames, loadPetFrames, plateCanvas, R, type Frames,
 } from '@/game/world/sprites';
@@ -198,6 +200,10 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   });
   /** Fliperama da casa: criar fase (ou jogar o caça-bugs). */
   const [arcade, setArcade] = useState(false);
+  /** História: o Caderno aberto (a sala é a "área" `sala:<id>` para a história). */
+  const [caderno, setCaderno] = useState(false);
+  const zonaSala = sala.kind === 'sala' ? `sala:${sala.id}` : sala.kind === 'casa' ? 'sala:casa' : 'sala:torre';
+  const sctx = useCallback(() => storyCtx(zonaSala, house?.hour() ?? 12), [zonaSala, house]);
   /** Masmorra (telão da Arena; ?masmorra abre direto). */
   /** Masmorra: o portal escolhido (rank 0…5) ou nada. `?masmorra=2` abre o portal C direto. */
   const [dungeon, setDungeon] = useState<number | null>(() => { const q = new URLSearchParams(window.location.search); return q.has('masmorra') ? Math.max(0, Math.min(5, Number(q.get('masmorra')) || 0)) : null; });
@@ -263,7 +269,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   });
   const S = g.current;
   if (import.meta.env.DEV) (window as unknown as { __interior: unknown }).__interior = S;
-  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen || !!housePanel;
+  S.modal = !!dialog || decor || !!ask || !!duel || deckOpen || lift || !!shopOf || !!panelOpen || !!housePanel || caderno;
   // duelo ou masmorra cobrem a tela toda: a sala para de desenhar por baixo
   covered.current = !!duel || dungeon !== null;
   // senta na mesa online: o primeiro colega que sentar na mesma mesa vira o adversário
@@ -511,6 +517,12 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     if (npc) {
       const back: Record<Dir, Dir> = { north: 'south', south: 'north', west: 'east', east: 'west' };
       if (Math.abs(npc.w.tx - S.player.tx) + Math.abs(npc.w.ty - S.player.ty) === 1) npc.w.dir = back[S.player.dir];
+      // história: o passo com este morador vem antes do duelo, da loja e do painel
+      const key = sala.kind === 'sala' ? `${sala.id}.${npc.def.id}` : null;
+      if (key) {
+        const st = storyTalk(key, sctx());
+        if (st.falas) { setDialog({ lines: st.falas, i: 0 }); return; }
+      }
       const d = npc.def.duel;
       if (d) {
         if (d.kind === 'chefe' && !bossUnlocked(progress, d.andar)) {
@@ -524,7 +536,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       }
       if (npc.def.shop) { S.held = []; setShopMsg(null); setShopOf(npc.def); return; }
       if (npc.def.action) { S.held = []; setPanelOpen(npc.def.action); return; }
-      setDialog({ lines: [`${npc.def.name}: ${npc.def.lines[0]}`, ...npc.def.lines.slice(1)], i: 0 });
+      const extra = key ? storyExtra(key) : null;
+      setDialog({ lines: extra ?? [`${npc.def.name}: ${npc.def.lines[0]}`, ...npc.def.lines.slice(1)], i: 0 });
       return;
     }
     const talk = room.talks?.find(t => t.tiles.some(([x, y]) => x === f.tx && y === f.ty));
@@ -551,7 +564,18 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       return;
     }
     if (talk) setDialog({ lines: talk.lines, i: 0 });
-  }, [dialog, room, S, solid, takeExit, progress, sala, m]);
+  }, [dialog, room, S, solid, takeExit, progress, sala, m, sctx]);
+
+  // o tempo da história nesta sala (ex.: ficar observando o balcão), só com nada aberto
+  useEffect(() => {
+    if (dialog || caderno || duel || ask || shopOf || panelOpen || decor) return;
+    const id = window.setInterval(() => {
+      if (S.modal) return;
+      const r = storyTick(sctx(), 500);
+      if (r.falas) setDialog({ lines: r.falas, i: 0 });
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [dialog, caderno, duel, ask, shopOf, panelOpen, decor, sctx, S]);
 
   // teclado
   useEffect(() => {
@@ -1078,6 +1102,9 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
           result={duel.result && <DuelResultPanel result={duel.result} coinsNow={progress.coins} onBack={() => setDuel(null)} />}
         />
       )}
+
+      {!duel && !panelOpen && !decor && !shopOf && <StoryHud onOpen={() => setCaderno(true)} />}
+      {caderno && <Caderno ctx={sctx} onClose={() => setCaderno(false)} onLines={l => setDialog({ lines: l, i: 0 })} />}
 
       {dialog && (
         <div onPointerDown={interact} className={`absolute left-1/2 -translate-x-1/2 bottom-4 w-[min(92vw,640px)] rounded-xl border-4 border-[#4a4660] bg-white px-5 py-4 text-[#2e2a40] text-[12px] leading-6 shadow-lg ${pixelFont}`}>
