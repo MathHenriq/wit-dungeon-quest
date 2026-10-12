@@ -195,7 +195,7 @@ type FishUi =
 
 const BASE = import.meta.env.BASE_URL;
 
-export default function CityDemo() {
+export default function CityDemo({ playerName }: { playerName?: string } = {}) {
   // a cidade cobre a tela inteira: o fundo 3D do app não precisa desenhar
   useOccludesBackdrop();
   // ?historia=cap3 começa a história naquele capítulo (prints e testes)
@@ -229,7 +229,7 @@ export default function CityDemo() {
   }
   return (
     <>
-      <CityView key={world.n} town={world.town} start={world.start} startHour={world.hour} onTravel={travel} />
+      <CityView key={world.n} town={world.town} start={world.start} startHour={world.hour} onTravel={travel} playerName={playerName} />
       <div className="fixed inset-0 bg-black pointer-events-none transition-opacity duration-300 z-50" style={{ opacity: fade ? 1 : 0 }} />
     </>
   );
@@ -244,11 +244,12 @@ function startTile(town: Town): { tx: number; ty: number } {
   return town.spawn;
 }
 
-function CityView({ town, start, startHour, onTravel }: {
+function CityView({ town, start, startHour, onTravel, playerName }: {
   town: Town;
   start?: Arrival;
   startHour: number;
   onTravel: (to: ZoneId, at: Arrival | undefined, hour: number) => void;
+  playerName?: string;
 }) {
   const START = start ?? { ...startTile(town), dir: 'north' as Dir };
   // moradores desta área
@@ -291,7 +292,10 @@ function CityView({ town, start, startHour, onTravel }: {
   const fields = town.spots.filter(sp => sp.kind === 'campo').map(sp => ({ x0: sp.tx, y0: sp.ty, x1: sp.data!.x1 as number, y1: sp.data!.y1 as number }));
   useEffect(() => { const t = window.setTimeout(() => setBanner(null), 2600); return () => window.clearTimeout(t); }, []);
   const [near, setNear] = useState<string | null>(null);
-  const [look, setLook] = useState<Look>(savedLook);
+  const [look, setLook] = useState<Look>(() => {
+    const current = savedLook();
+    return playerName ? { ...current, apelido: playerName } : current;
+  });
   const [editing, setEditing] = useState(() => new URLSearchParams(window.location.search).has('visual'));
   // ?sala=torre&andar=5 ou ?sala=casa começa dentro (prints e testes)
   const [deckOpen, setDeckOpen] = useState(() => { const q = new URLSearchParams(window.location.search); return q.has('tapetes') || q.has('grimorio') || q.has('deck'); });
@@ -2026,7 +2030,7 @@ function CityView({ town, start, startHour, onTravel }: {
         aria-label="Cidade WIT"
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
-        {town.name.toUpperCase()} <span className="text-lime-300 hidden sm:inline">· protótipo</span>
+        <span className="text-lime-300">WIT DUNGEON 2</span> · {town.name.toUpperCase()} <span className="text-lime-300 hidden sm:inline">· protótipo</span>
         <span className="ml-2 text-white/90">{String(Math.floor(clock)).padStart(2, '0')}:00 · {clock >= 6 && clock < 18.5 ? 'dia' : 'noite'}</span>
         {!touch && <div className="text-white/70 mt-1">SETAS/WASD andar · SHIFT correr · ESPAÇO falar/pescar{town.id === 'fazenda' ? '/plantar · Q E semente' : ''} · M mapa · F foto · 1-4 emote · T hora</div>}
         {!ready && <div className="text-yellow-300 mt-1">carregando...</div>}
