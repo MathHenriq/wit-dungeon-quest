@@ -32,6 +32,24 @@ describe('professores', () => {
     }
   });
 
+  it('usa a distribuição de cursos confirmada pelo Matheus', () => {
+    const cursos = Object.fromEntries(PROFESSORES.map(({ id, curso }) => [id, curso]));
+    expect(cursos).toEqual({
+      dante: 'ia',
+      macedo: 'ia',
+      mayara: 'ia',
+      guilherme: 'ia',
+      servilha: 'games',
+      leticia: 'games',
+      wellington: 'iot',
+      miguel: 'iot',
+      grazyelle: 'comunicacao',
+      maycon: 'comunicacao',
+      vitor: 'metaverso',
+      felipe: 'metaverso',
+    });
+  });
+
   it('a cada hora, cada professor está em uma parte só do dia', () => {
     for (const p of PROFESSORES) for (let h = 0; h < 24; h += 0.5) {
       const vis = profNpcs().filter(n => n.id.startsWith(`prof:${p.id}:`) && profVisible(n.id, h));
