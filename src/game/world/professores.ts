@@ -104,7 +104,7 @@ export const PROFESSORES: Professor[] = [
     },
   },
   {
-    id: 'guilherme', nome: 'Prof. Guilherme Rodrigues', curso: 'iot', casa: 'moradia-4', ativo: true,
+    id: 'guilherme', nome: 'Prof. Guilherme Rodrigues', curso: 'ia', casa: 'moradia-4', ativo: true,
     look: L('modelo-09', 'pele-2', 'castanho', 'vermelho', 'preto'),
     aula: { zona: 'wit', tx: 7, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 40, ty: 21, dir: 'west' },
     passatempo: { texto: 'treina muay thai em casa', onde: 'casa' },
@@ -128,7 +128,7 @@ export const PROFESSORES: Professor[] = [
     },
   },
   {
-    id: 'vitor', nome: 'Prof. Vitor', curso: 'games', casa: 'moradia-1', ativo: true,
+    id: 'vitor', nome: 'Prof. Vitor', curso: 'metaverso', casa: 'moradia-1', ativo: true,
     look: L('modelo-01', 'pele-2', 'loiro', 'azul', 'preto'),
     aula: { zona: 'wit', tx: 9, ty: 35, dir: 'north' }, almoco: { zona: 'cidade', tx: 42, ty: 21, dir: 'west' },
     passatempo: { texto: 'joga games na casa do Prof. Servilha', onde: 'casa', emCasaDe: 'casa-vermelha', ate: 22 },
@@ -140,7 +140,7 @@ export const PROFESSORES: Professor[] = [
     },
   },
   {
-    id: 'miguel', nome: 'Prof. Miguel', curso: 'games', casa: 'moradia-1', ativo: true,
+    id: 'miguel', nome: 'Prof. Miguel', curso: 'iot', casa: 'moradia-1', ativo: true,
     look: L('modelo-05', 'pele-4', 'castanho', 'laranja', 'jeans'),
     aula: { zona: 'wit', tx: 8, ty: 36, dir: 'north' }, almoco: { zona: 'cidade', tx: 34, ty: 22, dir: 'east' },
     passatempo: { texto: 'joga games na casa do Prof. Servilha', onde: 'casa', emCasaDe: 'casa-vermelha', ate: 22 },
@@ -152,7 +152,7 @@ export const PROFESSORES: Professor[] = [
     },
   },
   {
-    id: 'leticia', nome: 'Profa. Leticia', curso: 'comunicacao', casa: 'casa-azul', ativo: true,
+    id: 'leticia', nome: 'Profa. Leticia', curso: 'games', casa: 'casa-azul', ativo: true,
     look: L('modelo-08', 'pele-1', 'castanho', 'rosa', 'branco'),
     aula: { zona: 'wit', tx: 44, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 36, ty: 22, dir: 'north' },
     passatempo: { texto: 'lê livros na praia do Lago', onde: { zona: 'lago', tx: 21, ty: 25, dir: 'south' } },
@@ -164,7 +164,7 @@ export const PROFESSORES: Professor[] = [
     },
   },
   {
-    id: 'felipe', nome: 'Prof. Felipe Oliveira', curso: 'comunicacao', casa: 'npc-musico', ativo: true,
+    id: 'felipe', nome: 'Prof. Felipe Oliveira', curso: 'metaverso', casa: 'npc-musico', ativo: true,
     look: L('modelo-02', 'pele-5', 'preto', 'preto', 'jeans', { cabeca: { id: 'fone', cor: 'vermelho' } }),
     aula: { zona: 'wit', tx: 43, ty: 13, dir: 'south' }, almoco: { zona: 'cidade', tx: 38, ty: 20, dir: 'south' },
     passatempo: { texto: 'toca guitarra na praça', onde: { zona: 'cidade', tx: 27, ty: 21, dir: 'south', job: { kind: 'musica' } } },
@@ -176,7 +176,7 @@ export const PROFESSORES: Professor[] = [
     },
   },
   {
-    id: 'maycon', nome: 'Prof. Maycon', curso: 'metaverso', casa: 'moradia-2', ativo: true,
+    id: 'maycon', nome: 'Prof. Maycon', curso: 'comunicacao', casa: 'moradia-2', ativo: true,
     look: L('modelo-04', 'pele-4', 'preto', 'vermelho', 'jeans', { cabeca: { id: 'bandana', cor: 'vermelho' } }),
     aula: { zona: 'wit', tx: 48, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 37, ty: 21, dir: 'south' },
     passatempo: { texto: 'vende cachorro-quente na praça', onde: { zona: 'cidade', tx: 37, ty: 21, dir: 'south' } },
