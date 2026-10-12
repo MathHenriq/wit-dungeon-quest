@@ -9,23 +9,23 @@
 
 ## 1. Quem é quem
 
-O curso de cada um é **proposta lógica** (o Matheus disse "faça da forma lógica"): IA
-como ele tinha dito; os três gamers na Oficina de Games; foto, leitura e música na
-Comunicação Digital. Trocar é uma linha em `professores.ts`.
+Distribuição de cursos **confirmada pelo Matheus** em 12/10/2026. A mesma distribuição é
+validada pelo teste `src/game/world/__tests__/professores.test.ts`. Trocar é uma linha
+em `professores.ts`.
 
-| Professor | Curso (proposta) | Mora em | Passatempo |
+| Professor | Curso | Mora em | Passatempo |
 |---|---|---|---|
 | Prof. Dante | IA | Centro, casa laranja | **anda de moto** com o Wellington (casaco preto) |
 | Prof. Wellington | IoT | Centro, casa roxa | **anda de moto** com o Dante |
 | Profa. Mayara | IA | Cidade WIT, Moradia 3 | **jiu-jitsu** em casa |
 | Prof. Matheus Macedo | IA | Centro, casa verde | **PC gamer** e, no fim da tarde, **churrasco** |
-| Prof. Guilherme Rodrigues | IoT | Cidade WIT, Moradia 4 | **muay thai** em casa |
+| Prof. Guilherme Rodrigues | IA | Cidade WIT, Moradia 4 | **muay thai** em casa |
 | Prof. Matheus Servilha | Oficina de Games | Centro, casa vermelha | **joga games em casa** (o Vitor e o Miguel vão para lá) |
-| Prof. Vitor | Oficina de Games | Cidade WIT, Moradia 1 (divide com o Miguel) | joga na casa do Servilha |
-| Prof. Miguel | Oficina de Games | Cidade WIT, Moradia 1 | joga com o Vitor e o Servilha |
-| Profa. Leticia | Comunicação Digital | Centro, casa azul | **lê livros** na praia do Lago |
-| Prof. Felipe Oliveira | Comunicação Digital | Centro, Casa do Músico | **toca guitarra** na praça |
-| Prof. Maycon | Metaverso | Cidade WIT, Moradia 2 | **vende cachorro-quente** na praça |
+| Prof. Vitor | Metaverso | Cidade WIT, Moradia 1 (divide com o Miguel) | joga na casa do Servilha |
+| Prof. Miguel | IoT | Cidade WIT, Moradia 1 | joga com o Vitor e o Servilha |
+| Profa. Leticia | Oficina de Games | Centro, casa azul | **lê livros** na praia do Lago |
+| Prof. Felipe Oliveira | Metaverso | Centro, Casa do Músico | **toca guitarra** na praça |
+| Prof. Maycon | Comunicação Digital | Cidade WIT, Moradia 2 | **vende cachorro-quente** na praça |
 | Profa. Grazyelle | Comunicação Digital | Centro, Ateliê | **tira fotos** pelo Lago |
 
 ---
