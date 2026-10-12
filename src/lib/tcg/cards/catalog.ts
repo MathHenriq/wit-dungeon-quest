@@ -13,6 +13,7 @@
  * 25 Míticas e 10 Desconhecidas.
  */
 
+import { evolveCard } from '../evolve';
 import type { CardDef } from '../types';
 import { type Entry, fromShop } from './build';
 import { COLECAO_2 } from './colecao2';
@@ -955,8 +956,11 @@ const ENTRIES: Entry[] = [
 /** Todas as cartas oficiais. */
 export const CATALOG: readonly CardDef[] = ENTRIES.map(e => e.card);
 
-/** Carta pelo id. */
-export const CARD_BY_ID: ReadonlyMap<string, CardDef> = new Map(CATALOG.map(c => [c.id, c]));
+/** As versões "+" (evolução: 3 cópias + pó; src/lib/tcg/evolve.ts). Não entram no CATALOG (as 350). */
+export const EVOLVED: readonly CardDef[] = CATALOG.map(evolveCard).filter((c): c is CardDef => !!c);
+
+/** Carta pelo id (as 350 e as versões "+"). */
+export const CARD_BY_ID: ReadonlyMap<string, CardDef> = new Map([...CATALOG, ...EVOLVED].map(c => [c.id, c]));
 
 /** Nome do item na loja antiga → id da carta nova. Para migrar inventários e arte. */
 export const CARD_ID_BY_SHOP_NAME: ReadonlyMap<string, string> = new Map(

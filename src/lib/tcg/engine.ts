@@ -19,11 +19,10 @@
  * e cada parcela aparece no log, para o aluno (e a gente) entender o combo.
  */
 
-import { getTypeEffectiveness } from '@/lib/battle/typeEffectiveness';
 import { ELEMENT_PT, STATUS_PT, TYPE_PT, TYPE_PT_PLURAL } from './labels';
 import type {
   ActiveModifier, Amount, CardDef, CardFilter, CardInstance, CardType,
-  Condition, Cost, Effect, Element, GameState, PlayChoices, PlayerState, Side,
+  Condition, Cost, DamageCalc, Effect, Element, GameState, LogEntry, PlayChoices, PlayerState, Side,
 } from './types';
 
 export const RULES = {
@@ -45,7 +44,6 @@ export class IllegalPlay extends Error {
 
 export interface PlayerSetup {
   name: string;
-  element: Element;
   /** Deck na ordem; com `shuffle: false`, a primeira carta é o topo. */
   deck: CardDef[];
   life?: number;
@@ -91,8 +89,8 @@ export function matches(def: CardDef, filter?: CardFilter): boolean {
   return true;
 }
 
-function log(state: GameState, player: 0 | 1 | null, text: string): void {
-  state.log.push({ turn: state.turn, player, text });
+function log(state: GameState, player: 0 | 1 | null, text: string, extra?: Pick<LogEntry, 'calc' | 'trap'>): void {
+  state.log.push({ turn: state.turn, player, text, ...extra });
 }
 
 function amountValue(state: GameState, actor: 0 | 1, amount: Amount): number {
@@ -143,7 +141,7 @@ function loseLife(state: GameState, who: 0 | 1, amount: number): void {
   if (p.life <= 0) {
     p.life = 0;
     state.winner = other(who);
-    log(state, null, `🏆 ${state.players[other(who)].name} venceu!`);
+    log(state, null, `${state.players[other(who)].name} venceu!`);
   }
 }
 
@@ -168,7 +166,6 @@ function newPlayer(state: GameState, setup: PlayerSetup): PlayerState {
   const life = setup.life ?? RULES.startingLife;
   return {
     name: setup.name,
-    element: setup.element,
     life,
     maxLife: life,
     deck: setup.deck.map(def => ({ uid: `c${state.nextUid++}`, def })),
@@ -430,7 +427,7 @@ function fireTrap(
   if (idx < 0) return 'none';
   const [trap] = p.traps.splice(idx, 1);
   const spec = trap.def.trap!;
-  log(state, owner, `⚠ Armadilha revelada: ${trap.def.name}!`);
+  log(state, owner, `Armadilha revelada: ${trap.def.name}!`, { trap: { id: trap.def.id, owner } });
   if (spec.effects) resolveEffects(state, owner, spec.effects, trap);
   toGraveyard(state, owner, trap);
   if (spec.reflect && incoming.def.type === 'attack') {
@@ -468,9 +465,10 @@ function dealDamage(state: GameState, a: DamageArgs): number {
   const parts: string[] = [`${a.base} base`];
   let add = 0;
   let mult = 1;
+  const calc: DamageCalc = { card: a.card.name, element: a.card.element, target: a.target, base: a.base, adds: [], mults: [], reductions: [], shield: false, pierce: !!a.pierce, total: 0 };
 
-  const pushAdd = (v: number, label: string) => { add += v; parts.push(`${v >= 0 ? '+' : ''}${v} (${label})`); };
-  const pushMult = (v: number, label: string) => { mult *= v; parts.push(`×${fmt(v)} (${label})`); };
+  const pushAdd = (v: number, label: string) => { add += v; calc.adds.push({ value: v, label }); parts.push(`${v >= 0 ? '+' : ''}${v} (${label})`); };
+  const pushMult = (v: number, label: string) => { mult *= v; calc.mults.push({ value: v, label }); parts.push(`×${fmt(v)} (${label})`); };
 
   for (const b of a.ctx?.adds ?? []) pushAdd(b.value, b.label);
   for (const b of a.ctx?.mults ?? []) pushMult(b.value, b.label);
@@ -500,12 +498,6 @@ function dealDamage(state: GameState, a: DamageArgs): number {
 
   let total = (a.base + add) * mult;
 
-  const eff = getTypeEffectiveness(a.card.element, def.element);
-  if (eff !== 1) {
-    const nome = eff === 0 ? 'imune' : eff > 1 ? 'fraqueza' : 'resistência';
-    total *= eff;
-    parts.push(`×${fmt(eff)} (${nome}: ${ELEMENT_PT[a.card.element]} → ${ELEMENT_PT[def.element]})`);
-  }
   total = Math.max(0, Math.floor(total));
 
   // Redução de dano: equipamentos de quem recebe e o Campo.
@@ -515,6 +507,7 @@ function dealDamage(state: GameState, a: DamageArgs): number {
     for (const ps of src.def.passives ?? []) {
       if (ps.kind !== 'damageReduction' || total <= 0) continue;
       total = Math.max(0, total - ps.amount);
+      calc.reductions.push({ value: ps.amount, label: ps.label });
       parts.push(`−${ps.amount} (${ps.label})`);
     }
   }
@@ -523,13 +516,15 @@ function dealDamage(state: GameState, a: DamageArgs): number {
   if (total > 0 && def.shields > 0 && !a.pierce) {
     def.shields -= 1;
     parts.push('→ anulado por escudo');
+    calc.shield = true;
     total = 0;
   }
 
   loseLife(state, a.target, total);
   const vidaFinal = state.players[a.target].life;
+  calc.total = total;
   log(state, a.attacker,
-    `${a.card.name}: ${parts.join(' ')} = ${total} de dano em ${def.name} (vida ${vidaFinal}).`);
+    `${a.card.name}: ${parts.join(' ')} = ${total} de dano em ${def.name} (vida ${vidaFinal}).`, { calc });
   return total;
 }
 
@@ -608,7 +603,7 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
       const v = amountValue(state, actor, e.amount);
       const antes = t.life;
       t.life = Math.min(t.maxLife, t.life + v);
-      log(state, actor, `${t.name} recupera ${t.life - antes} de vida (vida ${t.life}).`);
+      log(state, actor, t.life > antes ? `${t.name} recupera ${t.life - antes} de vida (vida ${t.life}).` : `${t.name} já está com a vida cheia (vida ${t.life}).`);
       return;
     }
     case 'draw': {
@@ -652,13 +647,14 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
       const value = e.value ?? 0;
       const atual = t.statuses.find(s => s.kind === e.status);
       if (!atual) {
-        t.statuses.push({ kind: e.status, value, turnsLeft: e.turns });
+        t.statuses.push({ kind: e.status, value, turnsLeft: e.turns, ...(e.status === 'freeze' ? { source: source.def.id } : {}) });
       } else if (e.status === 'poison' || e.status === 'bleed') {
         atual.value += value;                       // veneno e sangramento acumulam
         atual.turnsLeft = Math.max(atual.turnsLeft, e.turns);
       } else {
         atual.value = Math.max(atual.value, value); // queimadura/congelamento renovam
         atual.turnsLeft = Math.max(atual.turnsLeft, e.turns);
+        if (e.status === 'freeze') atual.source = source.def.id;
       }
       log(state, actor, `${t.name} recebe ${STATUS_PT[e.status]}${value ? ` (${value}/turno)` : ''} por ${e.turns} turno(s).`);
       return;
@@ -666,8 +662,8 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
     case 'lock': {
       const t = state.players[resolveSide(actor, e.target, 'opponent')];
       const atual = t.locks.find(l => l.cardType === e.cardType);
-      if (atual) atual.turnsLeft = Math.max(atual.turnsLeft, e.turns);
-      else t.locks.push({ cardType: e.cardType, turnsLeft: e.turns });
+      if (atual) { atual.turnsLeft = Math.max(atual.turnsLeft, e.turns); atual.source = source.def.id; }
+      else t.locks.push({ cardType: e.cardType, turnsLeft: e.turns, source: source.def.id });
       log(state, actor, `${t.name} não pode jogar ${TYPE_PT_PLURAL[e.cardType]} por ${e.turns} turno(s).`);
       return;
     }
@@ -718,6 +714,50 @@ function applyEffect(state: GameState, actor: 0 | 1, e: Effect, source: CardInst
 }
 
 // ─── Jogar uma carta ─────────────────────────────────────────────────────────
+
+/**
+ * Talento do Grimório "Embaralhar de Novo": no primeiro turno do jogador,
+ * antes de ele jogar qualquer carta, a mão volta para o deck, que é
+ * embaralhado, e ele compra o mesmo número de cartas. Uma vez por partida.
+ */
+export function canMulligan(state: GameState, who: 0 | 1): boolean {
+  const p = state.players[who];
+  const myFirstTurn = state.turn === (who === state.firstPlayer ? 1 : 2);
+  return state.winner === null && state.active === who && myFirstTurn && !p.mulliganed && p.playedThisTurn.length === 0 && p.hand.length > 0;
+}
+
+export function mulligan(stateIn: GameState, who: 0 | 1): GameState {
+  if (!canMulligan(stateIn, who)) return stateIn;
+  const state = structuredClone(stateIn);
+  const p = state.players[who];
+  const n = p.hand.length;
+  p.deck.push(...p.hand.splice(0));
+  shuffleInPlace(state, p.deck);
+  drawCards(state, who, n);
+  p.mulliganed = true;
+  log(state, who, `${p.name} embaralha a mão de volta e compra ${n} cartas novas.`);
+  return state;
+}
+
+/**
+ * Faro do pet: uma vez por partida, no seu turno, o pet fareja a carta do
+ * topo do seu deck; você decide se ela fica ou vai para o fundo. Pequeno
+ * de propósito: não compra, não dá dano, não mexe no adversário.
+ */
+export function canSniff(state: GameState, who: 0 | 1): boolean {
+  const p = state.players[who];
+  return state.winner === null && state.active === who && !p.sniffed && p.deck.length > 1;
+}
+
+export function sniff(stateIn: GameState, who: 0 | 1, toBottom: boolean): GameState {
+  if (!canSniff(stateIn, who)) return stateIn;
+  const state = structuredClone(stateIn);
+  const p = state.players[who];
+  if (toBottom) p.deck.push(p.deck.shift()!);
+  p.sniffed = true;
+  log(state, who, toBottom ? `O pet de ${p.name} fareja o deck e manda a carta do topo para o fundo.` : `O pet de ${p.name} fareja o deck e deixa a carta do topo onde está.`);
+  return state;
+}
 
 export function playCard(stateIn: GameState, uid: string, choices: PlayChoices = {}): GameState {
   const state = structuredClone(stateIn);

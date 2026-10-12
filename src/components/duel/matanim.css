@@ -1,0 +1,28 @@
+/* Tapetes animados: tudo em transform/opacity. */
+.ma { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; will-change: transform; contain: strict; }
+.ma i { position: absolute; display: block; }
+
+/* brilho: uma faixa clara atravessa o tapete a cada 5 s */
+.ma-sheen { top: -20%; bottom: -20%; left: 0; width: 18%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ma) 35%, transparent), transparent);
+  transform: translateX(-120%) skewX(-18deg); animation: ma-sheen 5s ease-in-out infinite; }
+@keyframes ma-sheen { 0%, 55% { transform: translateX(-120%) skewX(-18deg); } 100% { transform: translateX(650%) skewX(-18deg); } }
+
+/* ondas: duas faixas suaves deslizando devagar (só translate; camadas pequenas) */
+.ma-wave { left: 10%; width: 50%; top: 22%; height: 22%; border-radius: 50%;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--ma) 30%, transparent), transparent 70%);
+  animation: ma-wave 10s ease-in-out infinite alternate; }
+.ma-wave.b { left: 40%; top: 50%; animation-duration: 13s; animation-direction: alternate-reverse; opacity: .7; }
+@keyframes ma-wave { from { transform: translateX(-12%); } to { transform: translateX(12%); } }
+
+/* faíscas: pontinhos subindo e sumindo */
+.ma-faiscas .ma-dot { width: 1.2cqw; height: 1.2cqw; min-width: 6px; min-height: 6px;
+  background: radial-gradient(circle, var(--ma) 0 22%, color-mix(in srgb, var(--ma) 35%, transparent) 30%, transparent 62%); opacity: 0; animation-name: ma-rise; animation-iteration-count: infinite; animation-timing-function: ease-out; }
+@keyframes ma-rise { 0% { opacity: 0; transform: translateY(1.5cqw) scale(.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-5cqw) scale(1); } }
+
+/* estrelas: piscam no lugar */
+.ma-estrelas .ma-dot { width: 1cqw; height: 1cqw; min-width: 5px; min-height: 5px;
+  background: radial-gradient(circle, var(--ma) 0 20%, color-mix(in srgb, var(--ma) 30%, transparent) 28%, transparent 60%); opacity: .2; animation-name: ma-twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+@keyframes ma-twinkle { 0%, 100% { opacity: .15; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.2); } }
+
+@media (prefers-reduced-motion: reduce) { .ma i { animation: none !important; } }

@@ -1,0 +1,146 @@
+// Prints das tarefas que ensinam (lote 4): ler o gráfico (Mercado), diário do
+// lago e os outros trabalhos novos. Uso: node scripts/mapa/prints-trabalho4.mjs <pasta> [só]
+// (com o vite rodando em 127.0.0.1:5199). `só` = grafico | diario | ... para um só.
+import { chromium } from 'playwright-core';
+const S = process.argv[2], only = process.argv[3];
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+await ctx.addInitScript(() => { if (!localStorage.getItem('wit.progresso')) localStorage.setItem('wit.progresso', JSON.stringify({ coins: 100, fome: 90, itens: { pao: 3, disco: 1, ovo: 6 } })); });
+const page = await ctx.newPage();
+page.on('pageerror', e => console.log('ERRO', e.message));
+const want = k => !only || only === k;
+const go = async q => { await page.goto(`http://127.0.0.1:5199/cidade-demo?${q}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(1400); };
+
+if (want('grafico')) {
+  await go('zona=wit&loja=mercado');
+  await page.getByRole('button', { name: 'GRÁFICOS' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/grafico-0.png` });
+  await go('zona=wit&trabalho=analista');
+  await page.getByRole('button', { name: 'TRABALHAR' }).click(); await page.waitForTimeout(400);
+  await page.screenshot({ path: `${S}/grafico-1.png` });
+  // 1: toca num ponto
+  await page.locator('svg circle').nth(4).click({ force: true }); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/grafico-2.png` });
+  for (let k = 0; k < 3; k++) {
+    await page.getByRole('button', { name: 'PRÓXIMA' }).click(); await page.waitForTimeout(300);
+    const b = page.locator('button:has(svg)').first();
+    if (k === 1 && await b.count()) await b.click();
+    else await page.locator('button.flex-1').first().click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${S}/grafico-${3 + k}.png` });
+  }
+  await page.getByRole('button', { name: 'PRÓXIMA' }).click(); await page.waitForTimeout(300);
+  await page.locator('button.flex-1').first().click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/grafico-6.png` });
+}
+if (want('diario')) {
+  // um diário de mentira com 20 pescas (o jogo grava sozinho quando pesca)
+  await go('zona=lago');
+  await page.evaluate(() => {
+    const p = JSON.parse(localStorage.getItem('wit.progresso'));
+    const fish = ['lambari', 'tilapia', 'bagre', 'traira', 'dourado', 'bota'];
+    const where = ['margem', 'funda', 'barco'];
+    const day = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
+    p.diario = Array.from({ length: 20 }, (_, k) => ({ f: fish[(k * 7) % 6], cm: 15 + (k * 13) % 50, h: [6, 9, 14, 15, 16, 20, 22][k % 7], w: where[(k * 5) % 3], d: day - (k % 3) }));
+    delete p.diarioDia;
+    localStorage.setItem('wit.progresso', JSON.stringify(p));
+  });
+  await go('zona=lago&pesca=diario');
+  await page.screenshot({ path: `${S}/diario-1.png` });
+  await page.locator('button', { hasText: /tarde|margem|barco|funda|manhã/ }).first().click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/diario-2.png`, fullPage: true });
+}
+// as seis tarefas que ensinam: abre a porta, escolhe o trabalho e joga um pouco
+const work = async (door, tab) => {
+  await go(`zona=wit&trabalho=${door}`);
+  if (tab) { await page.getByRole('button', { name: tab, exact: true }).click(); await page.waitForTimeout(150); }
+  await page.getByRole('button', { name: 'TRABALHAR', exact: true }).click(); await page.waitForTimeout(400);
+};
+if (want('afinar')) {
+  await work('estudio-musica', 'AFINAR');
+  await page.screenshot({ path: `${S}/afinar-1.png` });
+  await page.getByRole('button', { name: /NOTA 2/ }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/afinar-2.png` });
+  for (let k = 0; k < 3; k++) { await page.getByRole('button', { name: 'PRÓXIMA' }).click(); await page.getByRole('button', { name: /NOTA 1/ }).click(); await page.waitForTimeout(150); }
+  await page.getByRole('button', { name: 'PRÓXIMA' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/afinar-3.png` });
+}
+if (want('cores')) {
+  await work('atelie', 'MISTURAR CORES');
+  await page.getByRole('button', { name: /VERMELHO/ }).click(); await page.getByRole('button', { name: /AMARELO/ }).click(); await page.waitForTimeout(400);
+  await page.screenshot({ path: `${S}/cores-1.png` });
+  await page.getByRole('button', { name: 'PRONTO' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/cores-2.png` });
+}
+if (want('regras')) {
+  await work('casa-iot', 'REGRA SE/ENTÃO');
+  await page.screenshot({ path: `${S}/regras-1.png` });
+  const sel = page.locator('select');
+  await sel.nth(0).selectOption({ index: 1 }); await page.waitForTimeout(100);
+  await sel.nth(1).selectOption({ index: 1 }); await sel.nth(2).selectOption({ index: 1 });
+  await page.getByRole('button', { name: 'TESTAR A REGRA' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/regras-2.png` });
+}
+if (want('rota')) {
+  await work('rota');
+  const houses = page.locator('svg g[style*="pointer"]');
+  const n = await houses.count();
+  for (let k = 0; k < n; k++) { await page.locator('svg g[style*="pointer"]').first().click(); await page.waitForTimeout(100); }
+  await page.screenshot({ path: `${S}/rota-1.png` });
+}
+if (want('coordenadas')) {
+  await work('metaverso', 'COORDENADAS 3D');
+  await page.locator('svg polygon').nth(7).click(); await page.getByRole('button', { name: '+', exact: true }).click();
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: `${S}/coord-1.png` });
+  await page.getByRole('button', { name: 'COLOCAR' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/coord-2.png` });
+}
+if (want('acuracia')) {
+  await work('lab-ia', 'TESTAR O MODELO');
+  const cards = page.locator('button:has(img)');
+  for (let k = 0; k < 4; k++) await cards.nth(k).click();
+  await page.screenshot({ path: `${S}/acuracia-1.png` });
+}
+if (want('campo')) {
+  // pega "Instalar sensores" no trabalho da Casa Inteligente
+  await work('casa-iot', 'REGRA SE/ENTÃO').catch(() => {});
+  await go('zona=wit&trabalho=casa-iot');
+  await page.getByRole('button', { name: 'NO MAPA', exact: true }).click(); await page.waitForTimeout(200);
+  await page.getByRole('button', { name: 'PEGAR O TRABALHO' }).click(); await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/campo-1.png` });
+  // vai para perto do ponto marcado desta área e anda até ele
+  await go('zona=wit');
+  const t = await page.evaluate(() => window.__city.field.targets[0]);
+  await go(`zona=wit&pos=${t.tx},${t.ty + 2}`);
+  await page.screenshot({ path: `${S}/campo-2.png` });
+  await page.keyboard.down('ArrowUp'); await page.waitForTimeout(520); await page.keyboard.up('ArrowUp');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${S}/campo-3.png` });
+  // bugs: aparece só de perto
+  await page.evaluate(() => { const p = JSON.parse(localStorage.getItem('wit.progresso')); p.campo = { job: 'bugs', seed: 4242, feitos: [], ini: Date.now() }; localStorage.setItem('wit.progresso', JSON.stringify(p)); });
+  await go('zona=cidade');
+  const b = await page.evaluate(() => window.__city.field.targets[0]);
+  await go(`zona=cidade&pos=${b.tx + 2},${b.ty + 1}`);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/campo-4-bug.png` });
+  // entrevista: o morador marcado
+  await page.evaluate(() => { const p = JSON.parse(localStorage.getItem('wit.progresso')); p.campo = { job: 'entrevista', seed: 77, feitos: [], ini: Date.now() }; localStorage.setItem('wit.progresso', JSON.stringify(p)); });
+  await go('zona=cidade');
+  const n = await page.evaluate(() => window.__city.field.targets[0]);
+  await go(`zona=cidade&pos=${n.tx},${n.ty + 2}`);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/campo-5-entrevista.png` });
+}
+for (const [k, door, tab] of [['calendario', 'horta', null], ['fermento', 'npc-padaria', 'POR QUE A MASSA CRESCE?'], ['barraca', 'analista', 'MINHA BARRACA'], ['boato', 'estudio', 'FATO OU BOATO'], ['logica', 'oficina-games', null], ['pixelart', 'atelie', null]]) {
+  if (!want(k)) continue;
+  await work(door, tab);
+  if (k === 'fermento') { await page.getByRole('button', { name: 'MAIS', exact: true }).first().click(); await page.getByRole('button', { name: 'MENOS', exact: true }).last().click(); await page.getByRole('button', { name: 'ESPERAR 1 HORA' }).click(); await page.waitForTimeout(2800); }
+  if (k === 'barraca') for (const d of [0, 3, 3, 2]) { for (let j = 0; j < d; j++) await page.getByRole('button', { name: '+', exact: true }).click(); await page.getByRole('button', { name: 'ABRIR A BARRACA' }).click(); }
+  if (k === 'boato') { const b = page.getByRole('button', { name: 'FATO', exact: true }); for (let j = 0; j < 6; j++) await b.nth(j).click(); await page.getByRole('button', { name: 'CONFERIR' }).click(); }
+  if (k === 'logica') { const sel = page.locator('select'); for (let j = 0; j < 4; j++) await sel.nth(j).selectOption({ index: j + 1 }); await page.getByRole('button', { name: 'TESTAR O JOGO' }).click(); }
+  if (k === 'pixelart') { const cells = page.locator('div[style*="width: 18px"]'); for (let j = 0; j < 60; j++) await cells.nth(17 * 4 + j * 3).dispatchEvent('pointerdown'); }
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${S}/${k}.png` });
+}
+await browser.close();

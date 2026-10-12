@@ -72,11 +72,11 @@ describe('condições e escala', () => {
   });
 
   it('Tsukuyomi: 15 de dano só com 3+ cartas de Sombra no cemitério', () => {
-    let s = duel({ hand: [C.tsukuyomi, C.sombra] }, { element: 'Fire' });
+    let s = duel({ hand: [C.tsukuyomi, C.sombra] });
     s = playCard(s, inHand(s, 0, C.tsukuyomi), { discard: [inHand(s, 0, C.sombra)] }); // 1 Sombra no cemitério
     expect(vida(s, 1)).toBe(150);
 
-    let t = duel({ hand: [C.sombra, C.sombra, C.tsukuyomi, C.sombra] }, { element: 'Fire' });
+    let t = duel({ hand: [C.sombra, C.sombra, C.tsukuyomi, C.sombra] });
     t = playCard(t, inHand(t, 0, C.sombra));
     t = playCard(t, inHand(t, 0, C.sombra));
     t = playCard(t, inHand(t, 0, C.tsukuyomi), { discard: [inHand(t, 0, C.sombra)] }); // + a descartada = 3
@@ -185,19 +185,18 @@ describe('equipamento, campo e elementos', () => {
     expect(vida(s, 0)).toBe(150 - 17);
   });
 
-  it('fraqueza dobra e imunidade zera', () => {
-    let s = duel({ hand: [C.brasa] }, { element: 'Grass' });
+  it('o elemento da carta não tem fraqueza: o dano é o da conta, contra qualquer um', () => {
+    let s = duel({ hand: [C.brasa] });
     s = playCard(s, inHand(s, 0, C.brasa));
-    expect(vida(s, 1)).toBe(126);
+    expect(vida(s, 1)).toBe(150 - C.brasa.damage!);
 
-    let t = duel({ hand: [C.faisca] }, { element: 'Ground' });
+    let t = duel({ hand: [C.faisca] });
     t = playCard(t, inHand(t, 0, C.faisca));
-    expect(vida(t, 1)).toBe(150);
+    expect(vida(t, 1)).toBe(150 - C.faisca.damage!);
   });
 
   it('veneno acumula e causa dano no início do turno do envenenado', () => {
-    // Herói de Fogo: Veneno contra Fantasma (o padrão) sairia pela metade.
-    let s = duel({ hand: [C.ferrao], deck: [C.ferrao, FILLER, FILLER] }, { element: 'Fire' });
+    let s = duel({ hand: [C.ferrao], deck: [C.ferrao, FILLER, FILLER] });
     s = playCard(s, inHand(s, 0, C.ferrao));      // 8
     s = endTurn(s);                               // B sofre 5
     expect(vida(s, 1)).toBe(150 - 8 - 5);
@@ -211,8 +210,8 @@ describe('equipamento, campo e elementos', () => {
 describe('regras de turno', () => {
   it('quem começa não ataca no primeiro turno, e só 1 Ataque por turno', () => {
     const inicio = createGame([
-      { name: 'A', element: 'Ghost', deck: [C.brasa, C.brasa, C.brasa, FILLER, FILLER, FILLER] },
-      { name: 'B', element: 'Ghost', deck: Array(6).fill(FILLER) },
+      { name: 'A', deck: [C.brasa, C.brasa, C.brasa, FILLER, FILLER, FILLER] },
+      { name: 'B', deck: Array(6).fill(FILLER) },
     ], { shuffle: false });
     expect(canPlay(inicio, inHand(inicio, 0, C.brasa)).ok).toBe(false);
 
@@ -249,8 +248,8 @@ describe('garantias do motor', () => {
   it('o estado é JSON e a mesma semente gera a mesma partida', () => {
     const deck = [C.brasa, C.jato, C.furia, C.pira, C.rasengan, C.rajada, C.katana];
     const mk = () => createGame([
-      { name: 'A', element: 'Fire', deck },
-      { name: 'B', element: 'Water', deck },
+      { name: 'A', deck },
+      { name: 'B', deck },
     ], { seed: 99 });
     const g1 = mk();
     const g2 = mk();
@@ -272,12 +271,12 @@ describe('texto gerado a partir do efeito', () => {
 });
 
 describe('a corrente de combos que vence o jogo', () => {
-  it('Pira + Fúria + Katana + Vulcão + Brasa contra herói de Planta = 120', () => {
-    let s = duel({ hand: [C.vulcao, C.katana, C.pira, FILLER, C.furia, C.brasa] }, { element: 'Grass' });
+  it('Pira + Fúria + Katana + Vulcão + Brasa = 60', () => {
+    let s = duel({ hand: [C.vulcao, C.katana, C.pira, FILLER, C.furia, C.brasa] });
     for (const c of [C.vulcao, C.katana, C.pira, C.furia, C.brasa]) {
       s = playCard(s, inHand(s, 0, c));
     }
-    // (12 + 5 Katana + 5 Vulcão + 8 Pira) × 2 Fúria × 2 fraqueza
-    expect(vida(s, 1)).toBe(150 - 120);
+    // (12 + 5 Katana + 5 Vulcão + 8 Pira) × 2 Fúria
+    expect(vida(s, 1)).toBe(150 - 60);
   });
 });

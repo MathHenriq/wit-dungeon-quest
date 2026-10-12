@@ -212,6 +212,8 @@ export interface ActiveStatus {
   kind: StatusKind;
   value: number;
   turnsLeft: number;
+  /** Carta (id) que causou, para a tela mostrar. */
+  source?: string;
 }
 
 export interface Aura {
@@ -224,12 +226,12 @@ export interface Aura {
 export interface Lock {
   cardType: CardType;
   turnsLeft: number;
+  /** Carta (id) que causou, para a tela mostrar. */
+  source?: string;
 }
 
 export interface PlayerState {
   name: string;
-  /** Elemento do herói: define fraquezas e resistências contra ataques. */
-  element: Element;
   life: number;
   maxLife: number;
   deck: CardInstance[];
@@ -253,12 +255,34 @@ export interface PlayerState {
   attacksThisTurn: number;
   /** Cartas jogadas neste turno, para condições do tipo "se jogou Vento neste turno". */
   playedThisTurn: CardDef[];
+  /** Já usou o talento "Embaralhar de Novo" nesta partida. */
+  mulliganed?: boolean;
+  /** Já usou o faro do pet nesta partida. */
+  sniffed?: boolean;
+}
+
+/** A conta de um golpe, peça por peça (a tela mostra em fichas). */
+export interface DamageCalc {
+  card: string;
+  element: Element;
+  target: 0 | 1;
+  base: number;
+  adds: { value: number; label: string }[];
+  mults: { value: number; label: string }[];
+  reductions: { value: number; label: string }[];
+  shield: boolean;
+  pierce: boolean;
+  total: number;
 }
 
 export interface LogEntry {
   turn: number;
   player: 0 | 1 | null;
   text: string;
+  /** Golpe: a conta completa. */
+  calc?: DamageCalc;
+  /** Armadilha revelada: o id da carta e o dono. */
+  trap?: { id: string; owner: 0 | 1 };
 }
 
 export interface GameState {

@@ -1,23 +1,27 @@
+import { symbolUrl } from '@/game/icons';
 import { memo, type ReactNode } from 'react';
 import { describeCard } from '@/lib/tcg/describe';
 import { ELEMENT_PT, FULL_ART_RARITIES, RARITY_PT, TYPE_PT } from '@/lib/tcg/labels';
 import type { CardDef, Element, Rarity } from '@/lib/tcg/types';
 import './TcgCard.css';
+import { artAspect, atlasBackground, cardArtUrl } from './cardArt';
+
+export { cardArtUrl };
 
 /** Cor principal, cor escura e emblema de cada elemento (a moldura segue o elemento). */
-export const ELEMENT_STYLE: Record<Element, { el: string; el2: string; icon: string }> = {
-  Fire: { el: '#f97316', el2: '#7c2d12', icon: '🔥' },
-  Water: { el: '#38bdf8', el2: '#1e3a8a', icon: '💧' },
-  Electric: { el: '#facc15', el2: '#854d0e', icon: '⚡' },
-  Grass: { el: '#22c55e', el2: '#14532d', icon: '🌿' },
-  Ice: { el: '#67e8f9', el2: '#155e75', icon: '❄️' },
-  Ground: { el: '#d97706', el2: '#451a03', icon: '⛰️' },
-  Fighting: { el: '#dc2626', el2: '#450a0a', icon: '👊' },
-  Steel: { el: '#94a3b8', el2: '#1e293b', icon: '⚙️' },
-  Poison: { el: '#a855f7', el2: '#3b0764', icon: '☠️' },
-  Dark: { el: '#7e22ce', el2: '#1c0a2e', icon: '🌙' },
-  Ghost: { el: '#818cf8', el2: '#1e1b4b', icon: '👻' },
-  Flying: { el: '#7dd3fc', el2: '#312e81', icon: '🌪️' },
+export const ELEMENT_STYLE: Record<Element, { el: string; el2: string; /** Símbolo em public/game/icons/simbolos. */ icon: string }> = {
+  Fire: { el: '#f97316', el2: '#7c2d12', icon: 'fogo' },
+  Water: { el: '#38bdf8', el2: '#1e3a8a', icon: 'agua' },
+  Electric: { el: '#facc15', el2: '#854d0e', icon: 'eletrico' },
+  Grass: { el: '#22c55e', el2: '#14532d', icon: 'planta' },
+  Ice: { el: '#67e8f9', el2: '#155e75', icon: 'gelo' },
+  Ground: { el: '#d97706', el2: '#451a03', icon: 'terra' },
+  Fighting: { el: '#dc2626', el2: '#450a0a', icon: 'luta' },
+  Steel: { el: '#94a3b8', el2: '#1e293b', icon: 'aco' },
+  Poison: { el: '#a855f7', el2: '#3b0764', icon: 'veneno' },
+  Dark: { el: '#7e22ce', el2: '#1c0a2e', icon: 'sombra' },
+  Ghost: { el: '#818cf8', el2: '#1e1b4b', icon: 'fantasma' },
+  Flying: { el: '#7dd3fc', el2: '#312e81', icon: 'vento' },
 };
 
 const RARITY_GEMS: Record<Rarity, string> = {
@@ -25,8 +29,6 @@ const RARITY_GEMS: Record<Rarity, string> = {
   legendary: '◆◆◆◆◆', mythic: '✦✦✦✦✦', unknown: '???',
 };
 
-/** Onde fica a ilustração de cada carta (gerada por scripts/arte). */
-export const cardArtUrl = (id: string) => `/cards/art/${id}.webp`;
 
 // Números com unidade, multiplicadores e nomes de elemento ficam em destaque.
 const DESTAQUE = new RegExp(
@@ -61,6 +63,14 @@ export const TcgCard = memo(function TcgCard({ card, number, total, className = 
   const style = ELEMENT_STYLE[card.element];
   const full = FULL_ART_RARITIES.has(card.rarity);
   const art = `url(${cardArtUrl(card.id)})`;
+  // demo com folhas: a ilustração é uma célula da folha, recortada como "cover"
+  const cell = atlasBackground(card.id);
+  const atlasArt = (fullArt: boolean) => cell && (
+    <div style={{
+      ...cell, position: 'absolute', aspectRatio: String(artAspect()),
+      ...(fullArt ? { height: '100%', left: '50%', transform: 'translateX(-50%)' } : { width: '100%', top: '50%', transform: 'translateY(-50%)' }),
+    }} />
+  );
   const tipo = card.type === 'equipment' ? (card.slot === 'armor' ? 'Armadura' : 'Arma') : TYPE_PT[card.type];
   const colecao = number ? `WIT · ${String(number).padStart(3, '0')}${total ? `/${total}` : ''}` : 'WIT';
 
@@ -68,7 +78,7 @@ export const TcgCard = memo(function TcgCard({ card, number, total, className = 
     <div className="tcg-card__head">
       <span className="tcg-card__type">{tipo}</span>
       <span className="tcg-card__name" title={card.name}>{card.name}</span>
-      <span className="tcg-card__emblem" title={ELEMENT_PT[card.element]}>{style.icon}</span>
+      <span className="tcg-card__emblem" title={ELEMENT_PT[card.element]}><img className="tcg-card__emblem-ico" src={symbolUrl(style.icon)} alt="" draggable={false} /></span>
     </div>
   );
   const custo = (
@@ -92,7 +102,7 @@ export const TcgCard = memo(function TcgCard({ card, number, total, className = 
     return (
       <div className={`tcg ${className}`}>
       <div className={`tcg-card tcg-card--full tcg-card--${card.rarity}`} style={vars}>
-        <div className="tcg-card__art" style={{ backgroundImage: art }} />
+        <div className="tcg-card__art" style={cell ? { overflow: 'hidden' } : { backgroundImage: art }}>{atlasArt(true)}</div>
         <div className="tcg-card__fade" />
         {head}
         {dano}
@@ -108,7 +118,7 @@ export const TcgCard = memo(function TcgCard({ card, number, total, className = 
     <div className={`tcg ${className}`}>
     <div className="tcg-card tcg-card--normal" style={vars}>
       {head}
-      <div className="tcg-card__window" style={{ backgroundImage: art }} />
+      <div className="tcg-card__window" style={cell ? { overflow: 'hidden' } : { backgroundImage: art }}>{atlasArt(false)}</div>
       <div className="tcg-card__strip">{card.anime ?? ELEMENT_PT[card.element]}</div>
       {dano}
       <div className="tcg-card__box">{custo}{corpo}</div>

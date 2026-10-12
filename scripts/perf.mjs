@@ -140,6 +140,9 @@ function coletor(segundos) {
 }
 
 async function main() {
+  // PERF_TELA=390x844 mede como celular deitado/em pé (toque e escala 2×)
+  const [TW, TH] = (process.env.PERF_TELA ?? '1366x768').split('x').map(Number);
+  const CELULAR = TW < 900;
   const rotas = (process.argv[2] ?? '/battle-demo').split(',').map(r => r.trim()).filter(Boolean);
 
   try { await stat(join(DIST, 'index.html')); }
@@ -172,7 +175,7 @@ async function main() {
       console.log('   blur e composicao custam MAIS aqui que num Chromebook real.');
       console.log('   use os numeros para comparar lados, nao como valor absoluto.');
     }
-    console.log(`\nCPU estrangulada em ${CPU}×  ·  janela de ${SEGUNDOS}s  ·  1366×768`);
+    console.log(`\nCPU estrangulada em ${CPU}×  ·  janela de ${SEGUNDOS}s  ·  ${TW}×${TH}${CELULAR ? ' (celular)' : ''}`);
   }
 
   const cab = ['rota', 'fps', 'medio', 'p95', 'travad.', 'nos', 'anim', 'repint', 'blur', '%tela'];
@@ -180,7 +183,7 @@ async function main() {
   console.log('-'.repeat(20 + 8 * 9));
 
   for (const rota of rotas) {
-    const p = await navegador.newPage({ viewport: { width: 1366, height: 768 } });
+    const p = await navegador.newPage({ viewport: { width: TW, height: TH }, ...(CELULAR ? { deviceScaleFactor: 2, isMobile: true, hasTouch: true } : {}) });
     const cdp = await p.context().newCDPSession(p);
     if (CPU > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
     await p.goto(`http://127.0.0.1:${PORTA}${rota}`, { waitUntil: 'load' });

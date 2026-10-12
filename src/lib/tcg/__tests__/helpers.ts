@@ -1,5 +1,5 @@
 import { createGame, endTurn } from '../engine';
-import type { CardDef, Element, GameState } from '../types';
+import type { CardDef, GameState } from '../types';
 import { SAMPLE } from '../cards/sample';
 
 /** Carta neutra para encher deck e mão sem interferir. */
@@ -10,7 +10,6 @@ export const FILLER: CardDef = {
 interface Side {
   hand?: CardDef[];
   deck?: CardDef[];
-  element?: Element;
 }
 
 /**
@@ -19,12 +18,11 @@ interface Side {
  *
  * B começa e passa o turno; A então está no turno 2, depois de comprar a
  * carta do topo do deck (por isso o deck de A começa com uma carta neutra).
- * Elemento padrão dos heróis: Fantasma, que é neutro para Fogo, Água e Vento.
  */
 export function duel(a: Side, b: Side = {}): GameState {
   let s = createGame([
-    { name: 'A', element: a.element ?? 'Ghost', deck: Array(10).fill(FILLER) },
-    { name: 'B', element: b.element ?? 'Ghost', deck: Array(10).fill(FILLER) },
+    { name: 'A', deck: Array(10).fill(FILLER) },
+    { name: 'B', deck: Array(10).fill(FILLER) },
   ], { shuffle: false, firstPlayer: 1, seed: 7 });
 
   const inst = (def: CardDef) => ({ uid: `t${s.nextUid++}`, def });

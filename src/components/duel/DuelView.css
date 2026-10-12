@@ -1,0 +1,319 @@
+/* Tela do duelo (esboço aprovado em 30/09). Tudo mede em % do palco 16:9 e
+   as letras em cqw (largura do palco), para o computador e o celular deitado
+   ficarem iguais. */
+.dv-root { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #0b0810; color: #fff; user-select: none; overflow: clip; }
+.dv-stage { position: relative; width: min(100vw, calc(100dvh * 16 / 9)); aspect-ratio: 16 / 9; container-type: size; overflow: clip;
+  font-family: 'Exo 2', system-ui, sans-serif; }
+.dv-bg { position: absolute; inset: 0; background-size: 6cqw 6cqw; image-rendering: pixelated; }
+.dv-bg::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 42%, rgba(20,12,24,.15), rgba(12,8,16,.84) 75%); }
+.dv-px { font-family: 'Press Start 2P', ui-monospace, monospace; }
+
+/* desafiante atrás da mesa */
+.dv-foe { position: absolute; left: 50%; top: -1%; width: 19%; transform: translateX(-50%); z-index: 1; }
+.dv-foe canvas { width: 100%; display: block; image-rendering: pixelated; }
+.dv-foe.rx { width: 23.75%; }
+.dv-think { position: absolute; right: -28%; top: 4%; background: #fff; color: #222; border-radius: .5cqw; padding: .5cqw .6cqw; font-size: .75cqw; }
+.dv-think i { display: inline-block; width: .35cqw; height: .35cqw; border-radius: 50%; background: #444; margin: 0 .12cqw; animation: dvdot 1s infinite; }
+.dv-think i:nth-child(2) { animation-delay: .15s; } .dv-think i:nth-child(3) { animation-delay: .3s; }
+@keyframes dvdot { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
+
+/* mesa inclinada */
+.dv-table { position: absolute; left: 13%; right: 13%; top: 23%; bottom: 25%; perspective: 70cqw; z-index: 1; }
+.dv-mat { position: absolute; inset: 0; transform: rotateX(28deg); transform-origin: 50% 100%; border-radius: 1.6cqw; border: .25cqw solid var(--el);
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--el) 22%, transparent), transparent 62%),
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--el2) 38%, transparent) 0 .8cqw, transparent .8cqw 1.6cqw), #150e14;
+  box-shadow: 0 2.5cqw 5cqw rgba(0,0,0,.6), inset 0 0 3.5cqw rgba(0,0,0,.65); }
+.dv-row { position: absolute; left: 3.5%; right: 3.5%; display: flex; gap: 1.2%; align-items: center; }
+.dv-row.op { top: 6%; } .dv-row.me { bottom: 6%; }
+.dv-slot { position: relative; width: 7.4%; aspect-ratio: 5 / 7; flex: none; border: .15cqw dashed rgba(255,255,255,.22); border-radius: .5cqw;
+  display: grid; place-items: center; font-size: max(.5cqw, 5px); color: rgba(255,255,255,.55); text-align: center; line-height: 1.3; }
+.dv-slot.filled { border: 0; }
+.dv-slot > .dv-card { position: absolute; inset: 0; }
+.dv-slot button { all: unset; cursor: pointer; position: absolute; inset: 0; }
+.dv-slot .dv-count { position: absolute; left: 50%; bottom: -1.3cqw; transform: translateX(-50%); font-size: max(.6cqw, 6px); color: #fff; background: rgba(0,0,0,.7); border-radius: .3cqw; padding: .25cqw .4cqw; white-space: nowrap; z-index: 2; }
+.dv-gap { flex: 1; }
+.dv-field { position: absolute; left: 3.5%; top: 50%; transform: translateY(-50%); width: 8.8%; }
+.dv-field .dv-slot { width: 100%; }
+
+/* carta jogada no centro */
+.dv-played { position: absolute; left: 44%; top: 27%; width: 12%; z-index: 3; cursor: pointer; animation: dvdrop .5s cubic-bezier(.2,1.4,.4,1); }
+.dv-played .who { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); white-space: nowrap; text-align: center; font-size: max(.6cqw, 6px); margin-bottom: .5cqw; padding: .35cqw .6cqw; border-radius: .3cqw; background: rgba(10,6,14,.82); text-shadow: 0 .15cqw 0 #000; }
+@keyframes dvdrop { from { opacity: 0; transform: translateY(-18%) rotate(-8deg) scale(1.15); } to { opacity: 1; transform: none; } }
+
+/* painel do alto (a conta do dano entra aqui na etapa 4) */
+.dv-news { position: absolute; left: 57%; top: 3.5%; width: 26%; z-index: 3; background: linear-gradient(#1b1424, #110c17); border: .15cqw solid #4a3a5c; border-radius: .6cqw;
+  padding: .7cqw .9cqw; font: 600 max(.9cqw, 9px)/1.35 'Exo 2', system-ui, sans-serif; color: #d8cfe4; box-shadow: 0 .5cqw 1.2cqw rgba(0,0,0,.55); }
+.dv-news:empty { display: none; }
+.dv-news div + div { margin-top: .25cqw; color: #a99bb8; }
+
+/* número do golpe */
+.dv-hit { position: absolute; z-index: 6; font-size: 2.2cqw; pointer-events: none; animation: dvhit 1s ease-out forwards;
+  text-shadow: .25cqw 0 0 var(--c), -.25cqw 0 0 var(--c), 0 .25cqw 0 var(--c), 0 -.25cqw 0 var(--c), 0 .5cqw 0 rgba(0,0,0,.5); }
+@keyframes dvhit { 0% { opacity: 0; transform: translateY(1cqw) scale(.6) rotate(-8deg); } 18% { opacity: 1; transform: scale(1.2) rotate(-8deg); } 100% { opacity: 0; transform: translateY(-3cqw) scale(1) rotate(-8deg); } }
+
+/* placas */
+.dv-plate { position: absolute; z-index: 4; display: flex; align-items: center; filter: drop-shadow(0 .5cqw .8cqw rgba(0,0,0,.6)); }
+.dv-plate.op { left: 1.5%; top: 3%; } .dv-plate.me { left: 1.5%; bottom: 3%; }
+.dv-plate.turn .dv-info { border-color: var(--tone); }
+.dv-por { position: relative; width: 5.8cqw; height: 5.8cqw; flex: none; z-index: 1; border-radius: .8cqw; padding: .25cqw; background: linear-gradient(135deg, #f5dfa0, #9a6b1f 55%, #f0c95a); }
+.dv-por canvas { display: block; width: 100%; height: 100%; border-radius: .55cqw; background: #1a1220; image-rendering: pixelated;
+  box-shadow: inset 0 0 0 .15cqw rgba(0,0,0,.5); }
+.dv-info { margin-left: -.6cqw; padding: .55cqw 1.3cqw .6cqw 1.4cqw; min-width: 15.5cqw; background: linear-gradient(90deg, #221a2c, #17111e); border: .15cqw solid #4a3a5c; border-left: 0;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 1cqw) 100%, 0 100%); border-radius: 0 .5cqw .5cqw 0; }
+.dv-who { display: flex; align-items: baseline; gap: .6cqw; }
+.dv-nick { font-size: max(.8cqw, 7px); letter-spacing: .04em; max-width: 7cqw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv-ttl { font-size: max(.48cqw, 5px); color: var(--tone); letter-spacing: .1em; border: 1px solid color-mix(in srgb, var(--tone) 60%, transparent); border-radius: .25cqw; padding: .25cqw .3cqw .15cqw; white-space: nowrap; }
+.dv-hpn { margin-left: auto; font-size: max(1.05cqw, 9px); text-shadow: 0 .15cqw 0 #000; }
+.dv-hpn small { font-size: max(.55cqw, 6px); color: #a99bb8; }
+.dv-bar { position: relative; height: 1.25cqw; margin-top: .55cqw; border-radius: .3cqw; background: #07050a; border: .15cqw solid #000; box-shadow: 0 0 0 1px #4a3a5c; overflow: hidden; }
+.dv-bar .lost { position: absolute; inset: 0 auto 0 0; background: #f4a3a3; opacity: .8; transition: width .7s ease .45s; }
+.dv-bar .fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#7ee06a, #3fa33a 60%, #2c7d2a); box-shadow: inset 0 .15cqw 0 rgba(255,255,255,.35); transition: width .3s ease; }
+.dv-bar .fill.mid { background: linear-gradient(#ffd45c, #e39a17 60%, #b86f0d); }
+.dv-bar .fill.low { background: linear-gradient(#ff8a7a, #e0443a 60%, #a8231c); }
+.dv-bar::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(0,0,0,.45) calc(10% - 1px) 10%); }
+.dv-fx { display: flex; gap: .4cqw; margin-top: .5cqw; min-height: 1.55cqw; flex-wrap: wrap; }
+.dv-fx span { display: flex; align-items: center; gap: .25cqw; height: 1.55cqw; padding: 0 .4cqw 0 .25cqw; border-radius: .3cqw; background: #0e0a13; border: 1px solid var(--c); font-size: max(.55cqw, 6px); }
+.dv-fx svg { width: .95cqw; height: .95cqw; }
+.dv-ophand { position: absolute; left: 2%; top: 19%; display: flex; z-index: 3; }
+.dv-ophand > div { width: 1.9cqw; margin-right: -.6cqw; transform: rotate(var(--r)); }
+
+/* carta em foco */
+.dv-focus { position: absolute; right: 1.5%; top: 17%; width: 15%; z-index: 4; }
+.dv-focus .t { font-size: max(.6cqw, 6px); color: #a99bb8; margin-bottom: .5cqw; }
+.dv-focus .hint { border: .15cqw dashed #3a2e48; border-radius: .7cqw; aspect-ratio: 5/7; display: grid; place-items: center; text-align: center; padding: 1cqw; font-size: max(.9cqw, 9px); color: #7d6f8e; }
+
+/* mão em leque */
+.dv-hand { position: absolute; left: 50%; bottom: -8%; width: 44%; height: 34%; transform: translateX(-50%); z-index: 5; }
+.dv-hand .c { all: unset; position: absolute; bottom: 0; width: 18%; cursor: pointer; transform-origin: 50% 170%; transition: transform .16s ease, filter .16s;
+  transform: translateY(var(--y)) rotate(var(--r)); }
+/* passar o mouse: a carta sobe inteira e fica reta */
+.dv-hand .c:hover, .dv-hand .c:focus-visible { z-index: 10 !important; transform: translateY(-38%) rotate(0deg) scale(1.08); }
+.dv-hand .c.ok::before { content: ''; position: absolute; inset: -.3cqw; border-radius: 10%; box-shadow: 0 0 0 .25cqw #8cc63f, 0 0 1.2cqw rgba(140,198,63,.6); pointer-events: none; }
+.dv-hand .c.pick::before { content: ''; position: absolute; inset: -.3cqw; border-radius: 10%; box-shadow: 0 0 0 .25cqw #ffd45c; pointer-events: none; }
+.dv-hand .c.dim { filter: brightness(.55) saturate(.7); }
+.dv-hand .c { touch-action: none; }
+.dv-hand .c.away { opacity: 0; pointer-events: none; }
+
+/* arrastar: a carta segue o ponteiro; a mesa acende (verde = pode jogar, vermelho = não) */
+.dv-ghost { position: absolute; z-index: 15; width: 10.5%; transform: translate(-50%, -55%) rotate(var(--tilt)) scale(1.06); pointer-events: none;
+  transition: transform .08s linear; filter: drop-shadow(0 1.4cqw 1.2cqw rgba(0,0,0,.6)); }
+.dv-ghost.ok { transform: translate(-50%, -55%) rotate(var(--tilt)) scale(.92); }
+.dv-ghost .tag { position: absolute; left: 50%; top: -1.8cqw; transform: translateX(-50%); white-space: nowrap; font-size: max(.55cqw, 6px); padding: .4cqw .6cqw; border-radius: .3cqw; background: #2f6b1e; border: .12cqw solid #8cc63f; }
+.dv-ghost.no .tag { background: #6b1e28; border-color: #e8485a; }
+.dv-table.dragging .dv-mat { box-shadow: 0 2.5cqw 5cqw rgba(0,0,0,.6), inset 0 0 3.5cqw rgba(0,0,0,.65), 0 0 0 .2cqw rgba(255,255,255,.25); }
+.dv-table.drop-ok .dv-mat { box-shadow: 0 2.5cqw 5cqw rgba(0,0,0,.6), inset 0 0 4cqw rgba(140,198,63,.45), 0 0 2cqw rgba(140,198,63,.8); }
+.dv-table.drop-no .dv-mat { box-shadow: 0 2.5cqw 5cqw rgba(0,0,0,.6), inset 0 0 4cqw rgba(232,72,90,.4), 0 0 2cqw rgba(232,72,90,.7); }
+
+/* cartas voando */
+.dv-flight { position: absolute; z-index: 14; pointer-events: none; transform-origin: 0 0; }
+.dv-flight .dv-flip { position: relative; width: 100%; height: 100%; }
+.dv-flight .face { position: absolute; inset: 0; filter: drop-shadow(0 .6cqw .8cqw rgba(0,0,0,.55)); }
+.dv-flight.dissolve { transform-origin: 50% 50%; }
+.dv-flight.dissolve::after { content: ''; position: absolute; inset: -20%; background: radial-gradient(circle, rgba(190,140,255,.55), transparent 65%); pointer-events: none; }
+.dv-banner { position: absolute; left: 50%; bottom: 27%; transform: translateX(-50%); z-index: 6; background: rgba(12,8,16,.9); border: .15cqw solid #ffd45c; color: #ffe9a8; border-radius: .5cqw; padding: .6cqw 1cqw; font-size: max(.7cqw, 7px); white-space: nowrap; display: flex; gap: 1cqw; align-items: center; }
+.dv-banner.err { border-color: #e8485a; color: #ffc4c4; font: 600 1cqw 'Exo 2', system-ui, sans-serif; }
+.dv-banner button { all: unset; cursor: pointer; font-size: .6cqw; padding: .35cqw .6cqw; border-radius: .3cqw; background: rgba(255,255,255,.15); }
+
+/* botão de encerrar */
+.dv-end { position: absolute; right: 2%; bottom: 4.5%; width: 15%; z-index: 5; text-align: center; }
+.dv-end .turnno { font-size: max(.58cqw, 6px); color: #8cc63f; letter-spacing: .1em; margin-bottom: .5cqw; text-shadow: 0 1px 0 #000; }
+.dv-end .turnno.foe { color: #ff9aa4; }
+.dv-end button { all: unset; display: block; width: 100%; box-sizing: border-box; cursor: pointer; padding: .25cqw; background: linear-gradient(#f5dfa0, #9a6b1f 60%, #f0c95a);
+  clip-path: polygon(.8cqw 0, calc(100% - .8cqw) 0, 100% .8cqw, 100% calc(100% - .8cqw), calc(100% - .8cqw) 100%, .8cqw 100%, 0 calc(100% - .8cqw), 0 .8cqw); }
+.dv-end .face { display: flex; align-items: center; justify-content: center; gap: .6cqw; padding: 1cqw .5cqw 1.15cqw; font-size: max(.72cqw, 7px); line-height: 1.35; text-shadow: 0 .15cqw 0 #2c5a0c;
+  background: linear-gradient(#8fd64a, #5a9e23 55%, #3f7a14); box-shadow: inset 0 -.4cqw 0 #2c5a0c, inset 0 .15cqw 0 rgba(255,255,255,.4);
+  clip-path: polygon(.65cqw 0, calc(100% - .65cqw) 0, 100% .65cqw, 100% calc(100% - .65cqw), calc(100% - .65cqw) 100%, .65cqw 100%, 0 calc(100% - .65cqw), 0 .65cqw); }
+.dv-end .face svg { width: 1.3cqw; height: 1.3cqw; flex: none; }
+.dv-end button:disabled { cursor: default; filter: grayscale(.9) brightness(.6); }
+.dv-end button:not(:disabled):active .face { transform: translateY(.15cqw); box-shadow: inset 0 -.2cqw 0 #2c5a0c; }
+.dv-end.idle button:not(:disabled) { animation: dvglow 1.4s ease-in-out infinite alternate; }
+@keyframes dvglow { to { filter: drop-shadow(0 0 .8cqw rgba(140,198,63,.85)); } }
+.dv-end .key { margin-top: .5cqw; font-size: .8cqw; color: #a99bb8; }
+.dv-end kbd { font: max(.5cqw, 5px)/1 'Press Start 2P', monospace; border: 1px solid #3a2e48; border-bottom-width: 2px; border-radius: .25cqw; padding: .2cqw .35cqw; color: #efe9f5; }
+
+/* botões pequenos do canto */
+.dv-tools { position: absolute; right: 1.5%; top: 3.5%; display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: stretch; gap: .4cqw; z-index: 6; max-width: 15.5%; }
+.dv-tools button { all: unset; cursor: pointer; font-size: max(.5cqw, 6px); padding: .5cqw .6cqw; border-radius: .35cqw; background: rgba(12,8,16,.8); border: .12cqw solid #4a3a5c; text-align: center; }
+.dv-tools .dv-pet { display: flex; align-items: center; gap: .3cqw; color: #d9f99d; border-color: #6a8a3a; }
+.dv-tools .dv-pet i { width: 1.6cqw; height: 1.6cqw; min-width: 12px; min-height: 12px; background-size: 400% 400%; background-position: 0 0; image-rendering: pixelated; }
+.dv-log { position: absolute; right: 1.5%; top: 12%; bottom: 30%; width: 26%; z-index: 7; overflow-y: auto; background: rgba(8,6,12,.94); border: .12cqw solid #4a3a5c; border-radius: .6cqw; padding: .8cqw; font-size: .85cqw; line-height: 1.4; }
+
+/* carta aberta, resultado e celular em pé */
+.dv-modal { position: absolute; inset: 0; z-index: 20; background: rgba(0,0,0,.65); display: grid; place-items: center; }
+.dv-modal .box { display: flex; flex-direction: column; align-items: center; gap: 1.2cqw; }
+.dv-modal .card { width: 20cqw; }
+.dv-modal .btns { display: flex; gap: .8cqw; align-items: center; }
+.dv-btn { all: unset; cursor: pointer; font-size: .8cqw; padding: .9cqw 1.4cqw; border-radius: .45cqw; background: rgba(255,255,255,.15); border: .15cqw solid rgba(255,255,255,.25); }
+.dv-btn.go { background: #2f6b1e; border-color: #8cc63f; }
+.dv-modal .why { max-width: 22cqw; text-align: center; font-size: 1cqw; color: #ffc4c4; }
+.dv-result { position: absolute; inset: 0; z-index: 40; background: rgba(0,0,0,.7); display: grid; place-items: center; padding: 16px; }
+.dv-rotate { display: none; }
+@media (orientation: portrait) and (max-width: 820px) {
+  .dv-rotate { display: flex; position: absolute; inset: 0; z-index: 50; background: #0b0810; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; font-size: 11px; line-height: 1.8; }
+  .dv-rotate svg { width: 64px; height: 64px; animation: dvturn 1.6s ease-in-out infinite; }
+  @keyframes dvturn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dv-played, .dv-hit, .dv-end.idle button, .dv-think i { animation: none !important; }
+}
+
+/* ── etapa 3: mão se reorganizando, contadores pulando, cemitério aberto ── */
+.dv-hand .c { transition: transform .16s ease, filter .16s, left .32s cubic-bezier(.3,.8,.3,1); }
+.dv-hand .c.deal { animation: dvdeal .5s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes dvdeal { from { opacity: 0; transform: translate(260%, -120%) rotate(30deg) scale(.5); } }
+.dv-slot .dv-count { animation: dvpop .35s cubic-bezier(.2,1.8,.4,1); }
+@keyframes dvpop { 0% { transform: translateX(-50%) scale(1.8); background: #8cc63f; } 100% { transform: translateX(-50%) scale(1); } }
+.dv-grave { width: min(86cqw, 1100px); max-height: 86cqh; display: flex; flex-direction: column; gap: 1cqw; background: #150f1c; border: .15cqw solid #4a3a5c; border-radius: .8cqw; padding: 1.2cqw; }
+.dv-grave .head { display: flex; align-items: center; justify-content: space-between; font-size: max(.8cqw, 8px); color: #d8cfe4; }
+.dv-grave .grid { overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(max(8cqw, 80px), 1fr)); gap: .8cqw; padding: .3cqw; }
+.dv-grave .grid button { all: unset; cursor: pointer; animation: dvgrave .3s ease both; }
+.dv-grave .grid button:hover { transform: translateY(-4%); }
+@keyframes dvgrave { from { opacity: 0; transform: translateY(20%) rotate(-4deg); } }
+
+/* ── etapa 4: conta do dano, golpe, carimbo, armadilha ── */
+.dv-calc { position: absolute; left: 57%; top: 3.5%; z-index: 8; background: linear-gradient(#1b1424, #110c17); border: .15cqw solid #4a3a5c; border-radius: .6cqw;
+  padding: .6cqw .8cqw .6cqw; box-shadow: 0 .5cqw 1.2cqw rgba(0,0,0,.55); animation: dvcalcin .2s ease-out; max-width: 30%; }
+@keyframes dvcalcin { from { opacity: 0; transform: translateY(-20%); } }
+.dv-calc .card { font-size: max(.5cqw, 6px); color: #a99bb8; margin-bottom: .5cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dv-calc .eqn { display: flex; align-items: stretch; gap: .45cqw; }
+.dv-calc .box { min-width: 4.2cqw; border-radius: .45cqw; padding: .4cqw .6cqw .35cqw; text-align: center; box-shadow: inset 0 -.3cqw 0 rgba(0,0,0,.28), inset 0 .15cqw 0 rgba(255,255,255,.18);
+  animation: dvbox .35s cubic-bezier(.2,1.7,.4,1) both; }
+.dv-calc .box b { display: block; font-size: max(1.3cqw, 11px); line-height: 1; text-shadow: 0 .15cqw 0 rgba(0,0,0,.45); }
+.dv-calc .box small { display: block; font-size: max(.45cqw, 5px); letter-spacing: .08em; margin-top: .4cqw; opacity: .85; }
+.dv-calc .dano { background: linear-gradient(#3b82f6, #1d4ed8); }
+.dv-calc .mult { background: linear-gradient(#f05252, #b91c1c); animation-delay: .15s; }
+.dv-calc .def { background: linear-gradient(#94a3b8, #475569); animation-delay: .25s; }
+.dv-calc .tot { background: linear-gradient(#ffd45c, #e6a817); color: #3a2200; min-width: 5cqw; animation-delay: .38s; animation-duration: .45s; }
+.dv-calc .tot.shield { background: linear-gradient(#cbd5e1, #64748b); color: #0f172a; }
+.dv-calc .tot b { text-shadow: 0 .15cqw 0 rgba(255,255,255,.35); }
+.dv-calc .op { align-self: center; font-size: max(.9cqw, 8px); color: #a99bb8; }
+@keyframes dvbox { from { opacity: 0; transform: scale(.3) translateY(30%); } 70% { transform: scale(1.12); } }
+.dv-calc .src { display: flex; flex-wrap: wrap; gap: .2cqw .7cqw; margin-top: .55cqw; font: 600 max(.8cqw, 8px)/1.25 'Exo 2', system-ui, sans-serif; color: #a99bb8; }
+.dv-calc .src span { animation: dvsrc .25s ease-out both; }
+@keyframes dvsrc { from { opacity: 0; transform: translateX(-30%); } }
+.dv-calc .src i { font-style: normal; font-weight: 800; }
+.dv-calc .src i.a { color: #93c5fd; } .dv-calc .src i.m { color: #fca5a5; } .dv-calc .src i.r { color: #cbd5e1; }
+.dv-flash { position: absolute; inset: 0; z-index: 9; pointer-events: none; background: radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--c) 55%, transparent), transparent 65%);
+  animation: dvflash .45s ease-out forwards; }
+@keyframes dvflash { from { opacity: 1; } to { opacity: 0; } }
+.dv-stamp { position: absolute; left: 50%; top: 40%; z-index: 12; pointer-events: none; font-size: 2.6cqw; color: #ffe066; white-space: nowrap;
+  text-shadow: .25cqw 0 0 #b91c1c, -.25cqw 0 0 #b91c1c, 0 .25cqw 0 #b91c1c, 0 -.25cqw 0 #b91c1c, 0 .55cqw 0 #5a0d0d;
+  animation: dvstamp 1.3s cubic-bezier(.2,1.5,.4,1) forwards; }
+.dv-stamp.shield { color: #e2e8f0; text-shadow: .25cqw 0 0 #1e40af, -.25cqw 0 0 #1e40af, 0 .25cqw 0 #1e40af, 0 -.25cqw 0 #1e40af; }
+@keyframes dvstamp { 0% { opacity: 0; transform: translate(-50%, -50%) scale(3) rotate(-14deg); } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-8deg); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1.04) rotate(-8deg); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1) rotate(-8deg); } }
+.dv-trap { position: absolute; left: 50%; top: 24%; width: 13%; z-index: 11; transform: translateX(-50%); perspective: 60cqw; pointer-events: none; animation: dvtrapout 1.5s ease forwards; }
+.dv-trap .tag { position: absolute; left: 50%; top: -2.2cqw; transform: translateX(-50%); white-space: nowrap; font-size: max(.7cqw, 7px); color: #fff; background: #b91c1c; border: .15cqw solid #fca5a5; border-radius: .35cqw; padding: .45cqw .7cqw;
+  animation: dvtag .4s cubic-bezier(.2,1.8,.4,1) .35s both; }
+@keyframes dvtag { from { transform: translateX(-50%) scale(0); } }
+.dv-trap .flip { position: relative; aspect-ratio: 5/7; animation: dvtrapflip .6s cubic-bezier(.3,.7,.3,1) forwards; }
+.dv-trap .face { position: absolute; inset: 0; filter: drop-shadow(0 0 1.2cqw rgba(239,68,68,.8)); }
+.dv-trap .face.back { animation: dvhide .6s steps(1) forwards; }
+.dv-trap .face.front { animation: dvshow .6s steps(1) forwards; }
+@keyframes dvhide { 0% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes dvshow { 0% { opacity: 0; } 50%, 100% { opacity: 1; } }
+@keyframes dvtrapflip { 0% { transform: translateY(40%) scale(.6, .6); } 50% { transform: translateY(10%) scale(0, .9); } 80% { transform: translateY(-4%) scale(1.08); } 100% { transform: none; } }
+@keyframes dvtrapout { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
+.dv-plate.hurt { animation: dvhurt .45s ease; }
+@keyframes dvhurt { 0%, 100% { transform: none; } 20% { transform: translateX(-.6cqw); } 40% { transform: translateX(.5cqw); } 60% { transform: translateX(-.3cqw); } 80% { transform: translateX(.2cqw); } }
+
+/* ── etapa 5: o desafiante mexe ── */
+.dv-foe { transform-origin: 50% 100%; }
+.dv-foe.think canvas { animation: dvthink 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes dvthink { 0%, 100% { transform: rotate(0) translateY(0); } 50% { transform: rotate(-2.5deg) translateY(-2%); } }
+.dv-foe.throw canvas { animation: dvthrow .42s ease-in-out; transform-origin: 50% 100%; }
+@keyframes dvthrow { 0% { transform: none; } 45% { transform: translateY(-6%) scale(1.05) rotate(3deg); } 100% { transform: translateY(2%) scale(1.02); } }
+.dv-foe.hurt canvas { animation: dvfoehurt .6s ease; transform-origin: 50% 100%; }
+@keyframes dvfoehurt { 0% { transform: none; filter: brightness(3) saturate(0); } 15% { transform: translateX(-5%) rotate(-5deg); filter: brightness(1.8) sepia(1) hue-rotate(-30deg) saturate(4); }
+  35% { transform: translateX(4%) rotate(4deg); } 55% { transform: translateX(-2%) rotate(-2deg); filter: none; } 100% { transform: none; } }
+.dv-foe.win canvas { animation: dvwin .5s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes dvwin { 0%, 100% { transform: translateY(0) scaleY(1); } 20% { transform: translateY(0) scaleY(.9); } 55% { transform: translateY(-14%) scaleY(1.04); } }
+.dv-foe.lose canvas { animation: dvlose 1.1s cubic-bezier(.5,0,.6,1) forwards; transform-origin: 50% 100%; }
+@keyframes dvlose { 0% { transform: none; } 25% { transform: rotate(-8deg) translateY(-3%); } 100% { transform: rotate(78deg) translateY(10%); filter: grayscale(.8) brightness(.7); } }
+.dv-played.from-foe { animation: dvfromfoe .6s cubic-bezier(.2,1.3,.4,1); }
+@keyframes dvfromfoe { from { opacity: 0; transform: translateY(-75%) scale(.35) rotate(18deg); } to { opacity: 1; transform: none; } }
+
+/* ── etapa 6: abertura (VS e moeda) e fim ── */
+.dv-intro { position: absolute; inset: 0; z-index: 30; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 3cqw; padding: 0 8%;
+  background: linear-gradient(100deg, rgba(20,40,14,.94) 0 49.8%, rgba(10,6,14,.94) 49.8% 50.2%, color-mix(in srgb, var(--el2) 70%, rgba(12,8,16,.94)) 50.2%); animation: dvintro var(--intro, 5.7s) ease forwards; }
+@keyframes dvintro { 0%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.dv-intro .side { display: flex; flex-direction: column; align-items: center; gap: 1cqw; }
+.dv-intro .side.me { animation: dvinl .8s cubic-bezier(.2,1.2,.4,1) both; }
+.dv-intro .side.op { animation: dvinr .8s cubic-bezier(.2,1.2,.4,1) .2s both; }
+@keyframes dvinl { from { transform: translateX(-60cqw); } } @keyframes dvinr { from { transform: translateX(60cqw); } }
+.dv-intro .por { width: 13cqw; height: 13cqw; border-radius: 1.2cqw; padding: .4cqw; background: linear-gradient(135deg, #f5dfa0, #9a6b1f 55%, #f0c95a); box-shadow: 0 1cqw 2cqw rgba(0,0,0,.6); }
+.dv-intro .por canvas { width: 100%; height: 100%; display: block; border-radius: .9cqw; background: #1a1220; image-rendering: pixelated; }
+.dv-intro .nm { font-size: max(1.4cqw, 11px); text-shadow: 0 .2cqw 0 #000; }
+.dv-intro .tt { font-size: max(.6cqw, 6px); color: #d8cfe4; letter-spacing: .08em; text-align: center; }
+.dv-intro .vs { font-size: 5cqw; color: #ffe066; text-shadow: .35cqw .35cqw 0 #b91c1c, 0 0 2cqw rgba(255,224,102,.6); animation: dvvs .8s cubic-bezier(.2,2,.4,1) .9s both; }
+@keyframes dvvs { from { transform: scale(4) rotate(-20deg); opacity: 0; } }
+.dv-intro.coin .side, .dv-intro.coin .vs { opacity: .25; transition: opacity .5s; }
+.dv-intro .coin-wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 1.6cqw; }
+.dv-intro .coin { width: 9cqw; height: 9cqw; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #fff3b0, #f0c040 45%, #a0701a);
+  border: .4cqw solid #8a5a10; box-shadow: 0 1cqw 2cqw rgba(0,0,0,.6); animation: dvcoin var(--coin, 1.8s) cubic-bezier(.3,.6,.3,1) both; }
+.dv-intro .coin span { font: max(.8cqw, 7px) 'Press Start 2P', monospace; color: #6b3a00; animation: dvcointxt var(--coin, 1.8s) steps(1) both; }
+@keyframes dvcoin { 0% { transform: translateY(40%) rotateY(0) scale(.6); } 70% { transform: translateY(-20%) rotateY(1440deg) scale(1.1); } 100% { transform: rotateY(1800deg) scale(1); } }
+@keyframes dvcointxt { 0%, 90% { opacity: 0; } 100% { opacity: 1; } }
+.dv-intro .who { font-size: max(1.4cqw, 11px); color: #ffe066; text-shadow: 0 .25cqw 0 #000; animation: dvtag .5s cubic-bezier(.2,1.8,.4,1) var(--coin, 1.8s) both; }
+.dv-end-stamp { position: absolute; inset: 0; z-index: 25; display: grid; place-items: center; pointer-events: none; background: rgba(0,0,0,.35); animation: dvfadein .3s ease; }
+@keyframes dvfadein { from { opacity: 0; } }
+.dv-end-stamp .rays { position: absolute; width: 90cqw; height: 90cqw; background: repeating-conic-gradient(rgba(255,224,102,.22) 0 8deg, transparent 8deg 20deg); border-radius: 50%;
+  mask: radial-gradient(circle, #000 20%, transparent 62%); animation: dvrays 6s linear infinite; }
+.dv-end-stamp.lose .rays { background: repeating-conic-gradient(rgba(120,120,160,.15) 0 8deg, transparent 8deg 20deg); }
+@keyframes dvrays { to { transform: rotate(360deg); } }
+.dv-end-stamp .txt { position: relative; font-size: 6cqw; color: #ffe066; text-shadow: .4cqw 0 0 #2f6b1e, -.4cqw 0 0 #2f6b1e, 0 .4cqw 0 #2f6b1e, 0 -.4cqw 0 #2f6b1e, 0 .9cqw 0 #133a0a;
+  animation: dvendtxt .7s cubic-bezier(.2,1.6,.4,1) both; }
+.dv-end-stamp.lose .txt { color: #d4d4d8; text-shadow: .4cqw 0 0 #6b1e28, -.4cqw 0 0 #6b1e28, 0 .4cqw 0 #6b1e28, 0 -.4cqw 0 #6b1e28, 0 .9cqw 0 #2a0a0e; }
+@keyframes dvendtxt { from { transform: scale(3) rotate(-10deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .dv-hand .c.deal, .dv-calc, .dv-calc .box, .dv-calc .src span, .dv-stamp, .dv-trap, .dv-intro, .dv-intro *, .dv-end-stamp *, .dv-foe canvas { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+/* toque (sem mouse para levantar a carta): a mão fica um pouco mais alta */
+@media (hover: none) {
+  .dv-hand { bottom: -3%; }
+}
+
+/* ── troca de turno e impedimentos ── */
+.dv-turnband { position: absolute; inset: 0; z-index: 14; pointer-events: none; display: flex; align-items: center; }
+.dv-turnband .band { width: 100%; height: 9cqw; display: flex; align-items: center; justify-content: center; transform: skewY(-4deg);
+  animation: dvband 1.15s cubic-bezier(.2,.8,.2,1) both; }
+.dv-turnband.me .band { background: linear-gradient(90deg, transparent, rgba(46,106,30,.95) 18%, rgba(76,150,40,.95) 50%, rgba(46,106,30,.95) 82%, transparent); }
+.dv-turnband.op .band { background: linear-gradient(90deg, transparent, rgba(120,24,36,.95) 18%, rgba(176,40,56,.95) 50%, rgba(120,24,36,.95) 82%, transparent); }
+.dv-turnband span { font-size: 3.4cqw; color: #fff; transform: skewY(4deg); text-shadow: 0 .35cqw 0 rgba(0,0,0,.45); letter-spacing: .2cqw; animation: dvbandtxt 1.15s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes dvband { 0% { transform: skewY(-4deg) scaleY(0); opacity: 0; } 15% { transform: skewY(-4deg) scaleY(1); opacity: 1; } 82% { opacity: 1; } 100% { transform: skewY(-4deg) scaleY(.2); opacity: 0; } }
+@keyframes dvbandtxt { 0% { transform: skewY(4deg) translateX(-60cqw); } 22% { transform: skewY(4deg) translateX(1cqw); } 30%, 78% { transform: skewY(4deg) translateX(0); } 100% { transform: skewY(4deg) translateX(60cqw); } }
+.dv-blocked { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 14; pointer-events: none; text-align: center;
+  background: rgba(16,8,20,.88); border: .25cqw solid #f0abfc; border-radius: 1cqw; padding: 1.4cqw 2.4cqw; animation: dvblockin .35s cubic-bezier(.2,1.4,.4,1) both, dvblockout 2s linear both; }
+.dv-blocked .who { font-size: 1cqw; color: #f5d0fe; }
+.dv-blocked .txt { font-size: 2.4cqw; color: #fff; margin-top: .6cqw; text-shadow: .2cqw .2cqw 0 #86198f; animation: dvblockpulse .5s ease-in-out 3; }
+.dv-blocked .cards { display: flex; gap: 1.4cqw; justify-content: center; margin-top: 1.2cqw; }
+.dv-blocked .src { width: 10cqw; }
+.dv-blocked .src .tcg { animation: dvsrcglow .7s ease-in-out infinite alternate; border-radius: .6cqw; }
+.dv-blocked .by { font-size: .7cqw; color: #fde68a; margin-top: .5cqw; }
+@keyframes dvblockin { from { transform: translate(-50%, -50%) scale(.3); opacity: 0; } }
+@keyframes dvblockout { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes dvblockpulse { 50% { transform: scale(1.12); } }
+@keyframes dvsrcglow { from { filter: drop-shadow(0 0 .3cqw #fde047) brightness(1); } to { filter: drop-shadow(0 0 1.4cqw #fde047) drop-shadow(0 0 .6cqw #fff) brightness(1.15); } }
+
+/* ── reações do desafiante ── */
+.dv-foe.idle canvas { animation: dvbreath 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes dvbreath { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.015) translateY(-.4%); } 70% { transform: scaleY(1.01) rotate(1.2deg); } }
+.dv-foe.bigHurt canvas { animation: dvbighurt 1.3s ease; transform-origin: 50% 100%; }
+@keyframes dvbighurt { 0% { transform: none; filter: brightness(3) saturate(0); } 10% { transform: translate(-6%, -3%) rotate(-9deg) scale(.95, 1.06); filter: brightness(1.6) sepia(1) hue-rotate(-30deg) saturate(4); }
+  25% { transform: translate(5%, 0) rotate(7deg) scale(1.04, .94); filter: none; } 40%, 70% { transform: rotate(-3deg) translateY(2%) scale(1.02, .97); } 55% { transform: rotate(3deg) translateY(2%) scale(1.02, .97); } 100% { transform: none; } }
+.dv-foe.shock canvas { animation: dvshock 1.3s cubic-bezier(.3,1.6,.5,1); transform-origin: 50% 100%; }
+@keyframes dvshock { 0% { transform: none; filter: brightness(2.5); } 18% { transform: translateY(-16%) scale(.92, 1.1); filter: none; } 34% { transform: translateY(0) scale(1.08, .9); } 46% { transform: scale(1); } 52%, 64% { transform: translateX(-3%); } 58%, 70% { transform: translateX(3%); } 100% { transform: none; } }
+.dv-foe.cheer canvas { animation: dvcheer .55s ease-in-out 2; transform-origin: 50% 100%; }
+@keyframes dvcheer { 0%, 100% { transform: none; } 40% { transform: translateY(-10%) rotate(-4deg); } 70% { transform: translateY(0) scaleY(.95); } }
+.dv-foe.blocked canvas { animation: dvblockedfoe 2s ease-in-out; transform-origin: 50% 100%; }
+@keyframes dvblockedfoe { 0%, 100% { transform: none; } 20% { transform: rotate(-5deg); } 40% { transform: rotate(4deg); } 60% { transform: rotate(-3deg) scaleY(.97); } }
+.dv-react { position: absolute; left: 66%; top: 2%; font-size: 3cqw; color: #ffe066; text-shadow: .2cqw .2cqw 0 #b91c1c, -.2cqw -.2cqw 0 #b91c1c; animation: dvreact .9s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes dvreact { 0% { transform: scale(0) rotate(-20deg); } 40% { transform: scale(1.3) rotate(8deg); } 100% { transform: scale(1) rotate(0); } }
+.dv-sweat { position: absolute; left: 24%; top: 14%; }
+.dv-sweat i { position: absolute; width: .7cqw; height: 1cqw; background: #8ad8ff; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; animation: dvsweat .9s ease-in infinite; }
+.dv-sweat i:nth-child(2) { left: 1.2cqw; animation-delay: .3s; } .dv-sweat i:nth-child(3) { left: -1cqw; animation-delay: .6s; }
+@keyframes dvsweat { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(3cqw); } }
+@media (prefers-reduced-motion: reduce) { .dv-turnband *, .dv-blocked, .dv-blocked *, .dv-react, .dv-sweat i { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+
+/* PvP online: o colega saiu da mesa */
+.dv-away { position: absolute; left: 50%; top: 12%; transform: translateX(-50%); z-index: 40; padding: 10px 16px; background: rgba(20, 12, 30, .92); border: 3px solid #ffd84a; color: #ffd84a; font-size: 11px; border-radius: 8px; pointer-events: none; }
