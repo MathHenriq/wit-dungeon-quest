@@ -38,7 +38,7 @@ import {
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
 import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
-import { cloudEnabled, pullProgress } from '@/game/cloud';
+import { cloudEnabled, myNickname, pullProgress, studentSignedIn } from '@/game/cloud';
 import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
 import { DEMO_PEOPLE, nickOk, noticesMine, setProfile, socialDemo, socialError, socialOn, visit } from '@/game/social';
 import { ProfileCard } from '@/components/social/ProfileCard';
@@ -491,7 +491,7 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
   useEffect(() => {
     if (!cloudEnabled()) return;
     const before = loadProgress();
-    pullProgress(before).then(p => {
+    void studentSignedIn().then(ok => ok && pullProgress(before).then(p => {
       saveProgress(p); setProgress(p);
       // o professor mandou pacotes (aula, missão da sala) desde a última vez: avisa
       const got = Object.entries(p.pacotes).filter(([id, n]) => n > (before.pacotes[id] ?? 0));
@@ -506,7 +506,7 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
         const text = `Carta da Aula: ${CARD_BY_ID.get(c.card)?.name ?? c.card} entrou no seu álbum!`;
         setFishUi({ kind: 'toast', text: packsText ? `${packsText} ${text}` : text });
       });
-    }).catch(err => console.error('banco', err));
+    }).catch(err => console.error('banco', err)));
   }, []);
 
   // convite de festa de um amigo (vale 30 min)
@@ -519,7 +519,7 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
   }, []);
 
   // cidade compartilhada (só com VITE_WIT2_DB=1): publica o perfil (apelido,
-  // visual, título), entra no canal da turma e cada colega da área vira um boneco.
+  // visual, título), entra no canal de todos os alunos e cada um que está na área vira um boneco.
   // ?social=demo põe 2 colegas de mentira perto (prints do cartão de perfil).
   useEffect(() => {
     if (!socialOn()) return;
@@ -538,12 +538,22 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
     let alive = true;
     const pr = loadProgress();
     const favs = Object.keys(pr.collection).sort((a, b) => RANKS.indexOf(CARD_BY_ID.get(b)?.rarity ?? 'common') - RANKS.indexOf(CARD_BY_ID.get(a)?.rarity ?? 'common')).slice(0, 3);
-    const nick = nickOk(s.nick) ? s.nick : 'Desafiante';
-    setProfile(nick, s.playerTitle, look, favs).then(meP => {
-      if (!alive) return;
+    // sem apelido escolhido, vale o nickname do cadastro (nunca "Você" para os outros)
+    studentSignedIn().then(async ok => {
+      if (!ok) return null;
+      let nick = look.apelido && nickOk(look.apelido) ? look.apelido : 'Desafiante';
+      if (!look.apelido) {
+        // o apelido tem até 14 letras: nickname maior é cortado na palavra
+        const full = (await myNickname())?.replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim() ?? '';
+        const n = full.length <= 14 ? full : (full.slice(0, 15).replace(/\s+\S*$/, '') || full.slice(0, 14));
+        if (n && nickOk(n)) { nick = n; s.nick = n; setLook(l => (l.apelido ? l : normalizeLook({ ...l, apelido: n }))); }
+      }
+      return setProfile(nick, s.playerTitle, look, favs);
+    }).then(meP => {
+      if (!alive || !meP) return;
       s.muted = meP.muted;
       setMuted(meP.muted);
-      const me: PeerState = { id: tabId(), handle: meP.handle, nick, title: s.playerTitle, look, tx: s.player.tx, ty: s.player.ty, dir: s.player.dir };
+      const me: PeerState = { id: tabId(), handle: meP.handle, nick: nickOk(s.nick) && s.nick !== 'Você' ? s.nick : 'Desafiante', title: s.playerTitle, look, tx: s.player.tx, ty: s.player.ty, dir: s.player.dir };
       return joinZone(town.id, me, list => {
       const seen = new Set<string>();
       for (const st of list) {

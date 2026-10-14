@@ -55,6 +55,27 @@ export function toServerJson(p: Progress): Record<string, unknown> {
   return out;
 }
 
+/** Tem aluno logado neste navegador? Sem login (ex.: /cidade-demo aberta direto) o jogo fica offline em silêncio. */
+export async function studentSignedIn(): Promise<boolean> {
+  try {
+    const { supabaseStudent } = await import('@/integrations/supabase/studentClient');
+    const { data } = await supabaseStudent.auth.getSession();
+    return !!data.session;
+  } catch { return false; }
+}
+
+/** O nickname do cadastro do aluno (já conferido pelo servidor: sem o nome real). */
+export async function myNickname(): Promise<string | null> {
+  try {
+    const { supabaseStudent } = await import('@/integrations/supabase/studentClient');
+    const { data: u } = await supabaseStudent.auth.getUser();
+    if (!u.user) return null;
+    const { data } = await supabaseStudent.from('students').select('character_name').eq('user_id', u.user.id).maybeSingle();
+    const n = (data as { character_name?: string | null } | null)?.character_name?.trim();
+    return n || null;
+  } catch { return null; }
+}
+
 type Rpc = (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 export async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   const { supabaseStudent } = await import('@/integrations/supabase/studentClient');
