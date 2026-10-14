@@ -68,6 +68,21 @@ Partida de 6 a 11 min para o robô (o aluno leva mais). Luta direta com o chefe:
 
 **Robô no navegador:** `node scripts/mapa/masmorra-robo.mjs <pasta> [rank] [LxA] [jogar|vitrine]`. O modo `vitrine` tira prints dos golpes marcantes e de cada chefe (o dev expõe `window.__dungeonEdit`).
 
+**Arte do GPT na tela (10/10):**
+- chão e paredes do tema de cada rank, em azulejos sorteados pela semente (`dungeon-art.ts`; o gelo do C e a lava do B são escurecidos um pouco para os perigos aparecerem);
+- objetos (pedra, veios, cristal, ervas, barril, baú, escada), armas na mão e no chão, tiros com rastro, sombras do Arise, portal animado nos cartões da Associação.
+
+**Golpes do caçador (`player-vfx.ts`, só desenho, o motor não mudou):**
+- espada com antecipação, corte e acompanhamento, e rastro em meia-lua: o 1º e o 2º golpes vão em lados opostos e o 3º sai largo;
+- pesado em giro completo com poeira; estocada (lança e investida) em traço reto com fantasmas;
+- cambalhota sem girar o boneco (agacha, vira bola, cai de pé, deixa rastro azul);
+- tiro com clarão e coice; impacto em estrela; o boneco pisca vermelho ao apanhar;
+- com as poses do GPT (só o modelo 01 por enquanto), usa os quadros de combate e esquiva; os outros modelos usam o mesmo movimento em código.
+
+**Inimigos:** aviso no chão com borda girando, setas andando na linha do golpe e piscada branca no último instante; o chão brilha vermelho enquanto o inimigo prepara; anel de poeira onde o golpe cai.
+
+**Câmera lenta para prints (só no dev):** `window.__dungeonTime = 0.08` deixa a partida 12× mais lenta; `node scripts/mapa/masmorra-golpes.mjs <pasta> [modelo]` tira as tiras de quadros do combo, pesado, esquiva, investida, tiro e aviso dos inimigos.
+
 **Testar só a masmorra** (sem passar pela cidade):
 - `/cidade-demo?sala=treino&associacao=portais`: a Associação, como o aluno vê (só abre o portal do chefe já vencido).
 - `/cidade-demo?sala=treino&masmorra=N`: entra direto no portal N (0 = E … 5 = S) com o caçador do próprio navegador.

@@ -23,8 +23,10 @@ const CARD_COLOR: Record<string, [string, string]> = {
 export const colorsOf = (card: string, el: Element): [string, string] => CARD_COLOR[card] ?? EL_COLOR[el] ?? ['#ffffff', '#ffffff'];
 
 export interface Fx {
-  kind: 'ring' | 'beam' | 'arc' | 'bolt' | 'smoke' | 'spark' | 'text' | 'sprite' | 'debris' | 'petal' | 'zap' | 'big';
+  kind: 'ring' | 'beam' | 'arc' | 'bolt' | 'smoke' | 'spark' | 'text' | 'sprite' | 'debris' | 'petal' | 'zap' | 'big' | 'slash' | 'thrust' | 'flash';
   x: number; y: number; x2?: number; y2?: number;
+  /** slash: lado do corte (1 ou -1) */
+  side?: number;
   r?: number; ang?: number; arc?: number; vx?: number; vy?: number;
   t: number; life: number; c1: string; c2?: string; text?: string; img?: HTMLImageElement; size?: number;
 }
@@ -51,13 +53,12 @@ export function fxFrom(evs: Ev[], out: Fx[]): number {
   let shake = 0;
   for (const e of evs) {
     switch (e.k) {
-      case 'swing': {
-        const heavy = e.kind === 'pesado', fin = e.kind === 'final' || e.kind === 'investida';
-        out.push({ kind: 'arc', x: e.x, y: e.y, r: e.range, ang: e.ang, arc: e.arc, t: 0, life: heavy ? 0.3 : 0.18, c1: heavy ? '#ffd84a' : fin ? '#bfe8ff' : '#ffffff', c2: heavy ? '#ff9a3a' : '#bfe8ff' });
-        if (heavy) shake = Math.max(shake, 3);
+      case 'swing':
+        // o rastro do golpe nasce em player-vfx.ts (trackMotion), junto com a arma
+        if (e.kind === 'pesado') shake = Math.max(shake, 3);
         break;
-      }
       case 'hit':
+        out.push({ kind: 'flash', x: e.x, y: e.y - 0.35, r: e.crit ? 0.7 : 0.45, ang: rnd(0, 1), t: 0, life: e.crit ? 0.13 : 0.09, c1: '#ffffff', c2: e.block ? '#9ab8d8' : e.crit ? '#ffd84a' : '#bfe8ff' });
         out.push({ kind: 'text', x: e.x + rnd(-0.2, 0.2), y: e.y - 0.6, vy: -1.6, t: 0, life: 0.7, c1: e.block ? '#9ab8d8' : e.crit ? '#ffd84a' : '#ffffff', text: e.block ? `${e.dmg}` : `${e.dmg}${e.crit ? '!' : ''}`, size: e.crit ? 13 : 10 });
         for (let k = 0; k < (e.crit ? 7 : 4); k++) out.push({ kind: 'spark', x: e.x, y: e.y - 0.3, vx: rnd(-3, 3), vy: rnd(-3, 1), t: 0, life: 0.25, c1: e.crit ? '#ffd84a' : '#ffffff' });
         if (e.crit) shake = Math.max(shake, 2);
@@ -174,6 +175,14 @@ export function drawFx(ctx: CanvasRenderingContext2D, list: Fx[], dt: number, T:
         ctx.lineWidth = f.kind === 'big' ? 4 : 3; ctx.strokeStyle = '#1a0e20'; ctx.strokeText(f.text ?? '', X, Y); ctx.fillStyle = f.c1; ctx.fillText(f.text ?? '', X, Y);
         break;
       }
+      case 'slash': drawSlash(ctx, X, Y, f, k, a, T); break;
+      case 'thrust': drawThrust(ctx, X, Y, f, k, a, T); break;
+      case 'flash': {
+        const sz = (f.r ?? 0.4) * T * (0.7 + 0.6 * (1 - k)), ang = f.ang ?? 0;
+        ctx.globalAlpha = 1; ctx.fillStyle = f.c2 ?? f.c1; star(ctx, X, Y, sz, sz * 0.26, ang);
+        ctx.fillStyle = f.c1; star(ctx, X, Y, sz * 0.62, sz * 0.15, ang);
+        break;
+      }
       case 'sprite': {
         const img = f.img!, n = 6, fw = img.width / n, frame = Math.min(n - 1, Math.floor(k * n)), sz = (f.r ?? 2) * T * 1.4;
         ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
@@ -184,6 +193,56 @@ export function drawFx(ctx: CanvasRenderingContext2D, list: Fx[], dt: number, T:
     ctx.restore();
   }
   return keep;
+}
+
+const easeOut = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+
+/** Estrela de 4 pontas (impacto, clarão do tiro). */
+function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, w: number, ang: number) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = ang + (i * Math.PI) / 4, rr = i % 2 ? w : r;
+    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+/**
+ * Rastro do golpe (smear): meia-lua grossa na frente e fina atrás. A ponta
+ * corre rápido (golpe) e o rabo vem atrás (acompanhamento); some em `life`.
+ * O chão em 3/4 achata o círculo (0,72 na vertical).
+ */
+function drawSlash(ctx: CanvasRenderingContext2D, X: number, Y: number, f: Fx, k: number, a: number, T: number) {
+  const full = (f.arc ?? 1.6) >= 6.2, side = f.side ?? 1, sweep = full ? Math.PI * 2 : Math.min(6.28, f.arc ?? 1.6);
+  const R = (f.r ?? 1.4) * T * 0.95, thick = (f.size ?? 0.6) * T * 0.62;
+  const a0 = full ? (f.ang ?? 0) : (f.ang ?? 0) - (side * sweep) / 2;
+  const head = easeOut(k / 0.42), tail = easeOut((k - 0.14) / 0.7);
+  if (head - tail < 0.02) return;
+  const N = 22, flat = 0.72;
+  const path = (w: number, inset: number) => {
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) { const q = tail + ((head - tail) * i) / N, an = a0 + side * sweep * q, rr = R - inset; ctx.lineTo(X + Math.cos(an) * rr, Y + Math.sin(an) * rr * flat); }
+    for (let i = N; i >= 0; i--) { const u = i / N, q = tail + (head - tail) * u, an = a0 + side * sweep * q, rr = R - inset - w * Math.pow(u, 0.6); ctx.lineTo(X + Math.cos(an) * rr, Y + Math.sin(an) * rr * flat); }
+    ctx.closePath(); ctx.fill();
+  };
+  // borda escura fina (lê em cima de qualquer chão), cor da arma e miolo branco
+  ctx.globalAlpha = Math.min(1, a * 1.3) * 0.35; ctx.fillStyle = '#10182a'; path(thick + 3, -1.5);
+  ctx.globalAlpha = Math.min(1, a * 1.3) * 0.9; ctx.fillStyle = f.c2 ?? f.c1; path(thick, 0);
+  ctx.globalAlpha = Math.min(1, a * 1.4); ctx.fillStyle = f.c1; path(thick * 0.45, 1);
+  // fio de luz na frente da lâmina
+  const hq = a0 + side * sweep * head;
+  ctx.globalAlpha = a; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(X + Math.cos(hq) * (R - 2), Y + Math.sin(hq) * (R - 2) * flat, 2.5 + thick * 0.12, 0, 7); ctx.fill();
+}
+
+/** Estocada (golpe pesado de lança/adaga e investida): traço reto que afina para trás. */
+function drawThrust(ctx: CanvasRenderingContext2D, X: number, Y: number, f: Fx, k: number, a: number, T: number) {
+  const x2 = (f.x2 ?? f.x) * T, y2 = (f.y2 ?? f.y) * T, dx = x2 - X, dy = y2 - Y, len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len, head = easeOut(k / 0.35), tail = easeOut((k - 0.1) / 0.7), w = (f.r ?? 0.35) * T;
+  if (head - tail < 0.02) return;
+  const hx = X + dx * head, hy = Y + dy * head, tx = X + dx * tail, ty = Y + dy * tail;
+  const poly = (ww: number) => { ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx + nx * ww, hy + ny * ww); ctx.lineTo(hx + (dx / len) * ww * 1.6, hy + (dy / len) * ww * 1.6); ctx.lineTo(hx - nx * ww, hy - ny * ww); ctx.closePath(); ctx.fill(); };
+  ctx.globalAlpha = a * 0.8; ctx.fillStyle = f.c2 ?? f.c1; poly(w);
+  ctx.globalAlpha = a; ctx.fillStyle = f.c1; poly(w * 0.4);
 }
 
 // ─── peças das cartas que ficam na sala ─────────────────────────────────────

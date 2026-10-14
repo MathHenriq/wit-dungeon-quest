@@ -115,3 +115,7 @@
   .dg-arm span { display: none; }
   .sys-choices { grid-template-columns: 1fr; }
 }
+
+/* portal animado (arte do GPT: 4 quadros de 96 × 128) no cartão de cada rank */
+.sys-portal { float: right; width: 36px; height: 48px; margin: -2px 0 2px 6px; background: url('/game/masmorra/lugares/portal.png') 0 0 / 400% 100% no-repeat; image-rendering: pixelated; animation: sys-portal .6s steps(4) infinite; }
+@keyframes sys-portal { to { background-position: -144px 0; } }

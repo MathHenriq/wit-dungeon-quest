@@ -39,6 +39,8 @@ const BOSS_TIP = [
   'As plantas curam o chefe: destrua as plantas primeiro. Esquive para soltar das raízes.',
   'Cópias usam as SUAS cartas. Pise nas sombras do chão antes que levantem.',
 ];
+/** Cor do portal de cada rank (o portal do GPT é azul): E cinza-azul, D roxo, C gelo, B lava, A floresta, S violeta. */
+const PORTAL_HUE = [0, 50, -20, 160, 250, 60];
 const MASM_ITEMS = ['minerio:cobre', 'minerio:ferro', 'minerio:ouro', 'erva:cura', 'erva:mana', 'cristal:azul', 'cristal:roxo', 'cristal:dourado', 'pena', 'pelo', 'pocao:vida', 'pocao:mana'];
 const RARITY_NAME: Record<string, string> = { common: 'Comum', uncommon: 'Incomum', rare: 'Rara', epic: 'Épica', legendary: 'Lendária', mythic: 'Mítica', unknown: 'Desconhecida' };
 
@@ -68,6 +70,7 @@ export function AssociationPanel({ tab: tab0 = 'portais', onEnter, onClose }: { 
               const open = portalOpen(p, k);
               return (
                 <div key={r} className={`sys-cell ${open.ok ? '' : 'lock'}`}>
+                  <i className="sys-portal" style={{ filter: `hue-rotate(${PORTAL_HUE[k]}deg)${open.ok ? '' : ' grayscale(1) brightness(.6)'}` }} aria-hidden />
                   <b style={{ fontSize: 10 }}>RANK {r}</b>
                   <span>{PORTAL_NAME[k]} · chefe: {BOSS_NAME[k]}</span>
                   <span>Vencido: {h.vitorias[k] ?? 0}×{(h.vitorias[k] ?? 0) < ARISE_WINS ? ` (Arise com ${ARISE_WINS})` : ''}</span>

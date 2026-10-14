@@ -9,7 +9,7 @@ por uma antes de subir (público infantil).
 
 | O quê | Quantas | Prompt | Até lá, o jogo usa |
 |---|---|---|---|
-| Masmorra nova (branch `claude/masmorra`): inimigos (+7 novos da §9), chefes E–S, boneco em combate, armas, lugares, perigos e salas novas (§9), saguão, ícones, sombras, efeitos das 67 cartas | ~105 folhas | `docs/gpt-masmorra.md` (importador `importar-masmorra.py`) | pets como monstros, desafiante como chefe, armas e efeitos desenhados em código |
+| Masmorra (branch `claude/masmorra`). **Chegou em 10/10 (99 imagens, já no jogo):** 7 inimigos, 6 chefes, 67 efeitos, pisos e paredes dos 6 ranks, portal, objetos, armas, tiros, saguão, ícones, sombras e o boneco `modelo-01` em combate, esquiva e magia. **Falta:** a §9 (7 inimigos novos, `perigos.png`, `salas.png`) e as poses de combate dos modelos 02–10 (§2) | §9: 9 folhas · poses: 27 folhas | `docs/gpt-masmorra.md` (importadores `importar-masmorra.py` e `importar-personagem.py --so-poses`) | inimigos novos como pets; modelos 02–10 com a animação em código (encolhe, estica, fantasmas) |
 | Veículos com o boneco montado (anexar `modelo-01.png`) | 4 folhas + avião | §N | só o rastro do veículo |
 | Poses dos modelos 03 a 10 (sentar, carregar, emotes) | 8 folhas | §A | a pose do modelo 01 adaptada |
 | Ícones definitivos | 4 folhas (127 ícones) | §G | ícones CC0 provisórios |

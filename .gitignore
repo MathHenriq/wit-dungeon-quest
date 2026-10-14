@@ -44,3 +44,6 @@ botoes-*.png
 __pycache__/
 dist-demo
 scripts/out/
+
+# arte bruta da masmorra (180 MB): fica no Release "Assets Dungeon"; só a convertida entra
+public/Novos assets/masmorra/

@@ -17,6 +17,8 @@ import { finishPortal, portalRun, rankName, testRun, type PortalMode, type Porta
 import { loadProgress, saveProgress } from '@/game/progress';
 import { cloudDungeonCard, cloudEnabled } from '@/game/cloud';
 import { loadLookFrames, loadNpcFrames, loadPetFrames, type Frames } from '@/game/world/sprites';
+import { poseFrames } from '@/game/world/model-sprite';
+import type { SombraKind } from '@/game/hunter-state';
 import { DEFAULT_PET, type Look } from '@/game/world/outfit';
 import type { Dir } from '@/game/world/movement';
 import { cut, loadAtlas, loadInteriorManifest } from '@/components/city/interior-atlas';
@@ -29,6 +31,8 @@ import { itemIcon, itemLabel } from '@/game/items';
 import { play } from '@/game/sfx';
 import { SystemWindow } from './SystemWindow';
 import { colorsOf, drawActs, drawCine, drawFx, drawStatus, EL_COLOR, fxFrom, type Fx } from './dungeon-vfx';
+import { drawCell, drawObj, drawWeapon, hash, loadDArt, newDArt, OBJ, type DArt } from './dungeon-art';
+import { bladeAngle, drawGhosts, HAND_Y, newMotion, poseOf, tinted, trackMotion, type Motion } from './player-vfx';
 import './dungeon.css';
 
 const T = 32;
@@ -55,7 +59,9 @@ const GPT_MOB: Partial<Record<EnemyKind, string>> = {
 };
 /** Cor do chão de cada rank (E cinza, D roxo, C gelo, B lava, A floresta, S sombras). */
 const RANK_TINT = ['rgba(60,60,70,.25)', 'rgba(90,40,120,.3)', 'rgba(60,150,200,.28)', 'rgba(160,50,20,.3)', 'rgba(30,110,50,.3)', 'rgba(20,0,40,.45)'];
-const CAT_ICON: Record<LootCat, string> = { minerio: 'rubi', erva: 'folha', cristal: 'cristal', trofeu: 'pena' };
+/** Quanto escurecer o chão de cada rank (o gelo do C e a lava do B são claros e escondem os perigos). */
+const FLOOR_DIM = [0.04, 0.04, 0.3, 0.3, 0.06, 0];
+const CAT_ICON: Record<LootCat, string> = { minerio: 'minerio_cobre', erva: 'erva_cura', cristal: 'cristal_azul', trofeu: 'pena_goblin' };
 const CAT_NAME: Record<LootCat, string> = { minerio: 'minério', erva: 'ervas', cristal: 'cristais', trofeu: 'troféus' };
 const ELITE_COLOR: Record<string, string> = { veloz: '#7affd8', blindado: '#c8d8e8', explosivo: '#ff7a2a', vampiro: '#ff3a6a', gemeo: '#ffd84a', refletor: '#8ad0ff', gelado: '#bff0ff', venenoso: '#b07aff', fantasma: '#e0d0ff' };
 const GRADE_COLOR: Record<Grade, string> = { S: '#ffd84a', A: '#7aff9a', B: '#8ad0ff', C: '#c8c0d8' };
@@ -80,6 +86,10 @@ function loadGrid(url: string, cols: number, rows: number): Promise<Grid | null>
 interface Art {
   floor: CanvasPattern | null; wall: HTMLCanvasElement | null; rock: HTMLCanvasElement | null; chest: HTMLCanvasElement | null; stairs: HTMLCanvasElement | null;
   player: Frames | null; pet: Frames | null; mobs: Partial<Record<EnemyKind, Frames>>; gpt: Partial<Record<EnemyKind, Grid>>; icons: Map<string, HTMLImageElement>;
+  /** arte do GPT da masmorra (chão, objetos, armas, tiros, sombras) */
+  d: DArt;
+  /** poses do boneco do GPT (só os modelos que já têm: combate 4 × 4, esquiva 4 × 4) */
+  combat: HTMLCanvasElement[][] | null; dodge: HTMLCanvasElement[][] | null;
 }
 
 /** `teste`: caçador pronto para o rank e nada é salvo no fim (`?masmorra=N&teste`). */
@@ -99,9 +109,11 @@ export function DungeonView({ look, rank, mode = {}, teste = false, onClose }: {
   if (!run.current) run.current = begin(seed);
   useEffect(() => { if (pending.current) { saveProgress(pending.current); pending.current = null; } }, [seed]);
   const input = useRef<Input>({ ...NO_INPUT });
-  const art = useRef<Art>({ floor: null, wall: null, rock: null, chest: null, stairs: null, player: null, pet: null, mobs: {}, gpt: {}, icons: new Map() });
+  const art = useRef<Art>({ floor: null, wall: null, rock: null, chest: null, stairs: null, player: null, pet: null, mobs: {}, gpt: {}, icons: new Map(), d: newDArt(), combat: null, dodge: null });
   const fx = useRef<Fx[]>([]);
   const shake = useRef(0);
+  /** movimento do caçador só na tela (rastro, fantasmas, poses) */
+  const motion = useRef<Motion>(newMotion());
   const [hud, setHud] = useState(() => snapshot(run.current));
   const [prize, setPrize] = useState<PortalPrize | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -127,6 +139,11 @@ export function DungeonView({ look, rank, mode = {}, teste = false, onClose }: {
       art.current.stairs = cut(m, atlas, 'escada');
     })().catch(() => undefined);
     loadLookFrames(look).then(f => { if (alive) art.current.player = f; }).catch(() => undefined);
+    // poses de luta do boneco (só existem para os modelos que o GPT já desenhou)
+    poseFrames(look, 'combate').then(f => { if (alive) art.current.combat = f; }).catch(() => undefined);
+    poseFrames(look, 'esquiva').then(f => { if (alive) art.current.dodge = f; }).catch(() => undefined);
+    art.current.d = newDArt();
+    loadDArt(art.current.d, () => undefined, () => alive);
     loadPetFrames(pet).then(f => { if (alive) art.current.pet = f; }).catch(() => undefined);
     for (const [k, id] of Object.entries(MOB_SPRITE)) loadPetFrames(id).then(f => { if (alive) art.current.mobs[k as EnemyKind] = f; }).catch(() => undefined);
     for (const [k, [id]] of Object.entries(BOSS_NPC)) loadNpcFrames(id).then(f => { if (alive) art.current.mobs[k as EnemyKind] = f; }).catch(() => undefined);
@@ -180,15 +197,19 @@ export function DungeonView({ look, rank, mode = {}, teste = false, onClose }: {
 
   // laço: passo da regra + desenho
   useEffect(() => {
-    let raf = 0, last = performance.now(), hudAt = 0;
-    const loop = (now: number) => {
-      const dt = (now - last) / 1000; last = now;
+    let raf = 0, last = performance.now(), hudAt = 0, clock = last;
+    const loop = (real: number) => {
+      // no dev, os scripts podem pôr a partida em câmera lenta (window.__dungeonTime = 0.1) para tirar quadros
+      const k = import.meta.env.DEV ? ((window as unknown as { __dungeonTime?: number }).__dungeonTime ?? 1) : 1;
+      const dt = ((real - last) / 1000) * k; last = real; clock += dt * 1000;
+      const now = clock;
       let r = run.current;
       for (let left = Math.min(dt, 0.15); left > 0; left -= 0.05) {
         r = stepRun(r, input.current, Math.min(0.05, left));
         input.current.swap = false; input.current.use = false; input.current.skill = undefined; input.current.classe = false;
         sounds(r);
         shake.current = Math.max(shake.current, fxFrom(r.ev, fx.current));
+        trackMotion(motion.current, r, fx.current, now);
         for (const e of r.ev) {
           if (e.k === 'full') setToast(`O pet está cheio de ${CAT_NAME[e.cat]}!`);
           if (e.k === 'weapon') setToast(`Pegou: ${weapon(e.id).name}`);
@@ -219,7 +240,7 @@ export function DungeonView({ look, rank, mode = {}, teste = false, onClose }: {
         if (sh > 0.3) ctx.translate((Math.random() - 0.5) * sh * 2, (Math.random() - 0.5) * sh * 2);
         // cena: a câmera chega perto de quem soltou a carta
         if (r.cine) { const k = 1 - r.cine.t / r.cine.total, z = 1 + 0.18 * Math.min(1, k * 2.5), cx = r.cine.x * T, cy = r.cine.y * T; ctx.translate(cx, cy); ctx.scale(z, z); ctx.translate(-cx, -cy); }
-        draw(ctx, r, art.current, now);
+        draw(ctx, r, art.current, now, motion.current);
         fx.current = drawFx(ctx, fx.current, Math.min(dt, 0.1), T);
         ctx.restore();
         if (r.cine) drawCine(ctx, r, now, W, H, T, CARD_BY_ID.get(r.cine.card)?.name ?? '');
@@ -449,19 +470,46 @@ function TouchPad({ input }: { input: React.MutableRefObject<Input> }) {
 const still = { key: '', cv: null as HTMLCanvasElement | null };
 function roomLayer(run: Run, a: Art): HTMLCanvasElement {
   const room = run.d.rooms[run.room], open = run.cleared[run.room], cracked = run.cracked.includes(run.room);
-  const key = `${run.seed}|${run.floor}|${run.room}|${open}|${cracked}|${!!a.floor}|${!!a.wall}|${!!a.rock}`;
+  const key = `${run.seed}|${run.floor}|${run.room}|${open}|${cracked}|${!!a.floor}|${!!a.wall}|${!!a.rock}|${a.d.ok}`;
   if (still.cv && still.key === key) return still.cv;
   const cv = still.cv ?? document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
-  ctx.fillStyle = a.floor ?? '#5a4a3a';
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = RANK_TINT[Math.min(5, run.rank)]; ctx.fillRect(0, 0, W, H);
+  const rk = Math.min(5, run.rank), tl = a.d.tiles[rk];
+  if (tl) {
+    // chão do tema do rank (arte do GPT): 4 pisos sorteados pela semente e uma rachadura de vez em quando
+    // (poça e runa ficam de fora: no chão da lava ou com brilho, pareceriam perigo ou aviso)
+    for (let ty = 0; ty < RH; ty++) for (let tx = 0; tx < RW; tx++) {
+      const r = hash(run.seed, run.floor, run.room, tx, ty);
+      if (r < 0.95) ctx.drawImage(tl, Math.floor((r / 0.95) * 4) * 32, 0, 32, 32, tx * T, ty * T, T, T);
+      else ctx.drawImage(tl, 32, 64, 32, 32, tx * T, ty * T, T, T);
+    }
+  } else {
+    ctx.fillStyle = a.floor ?? '#5a4a3a';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = RANK_TINT[rk]; ctx.fillRect(0, 0, W, H);
+  }
+  // chão claro demais (gelo, lava) escurece um pouco: perigos e avisos precisam aparecer em cima dele
+  if (tl && FLOOR_DIM[rk] > 0) { ctx.fillStyle = `rgba(8,6,20,${FLOOR_DIM[rk]})`; ctx.fillRect(0, 0, W, H); }
   if (room.kind === 'desafio') { ctx.fillStyle = 'rgba(160,20,40,.18)'; ctx.fillRect(0, 0, W, H); }
+  // sombra da parede de cima no chão (dá fundo à sala)
+  if (tl) { const g = ctx.createLinearGradient(0, T, 0, T + 14); g.addColorStop(0, 'rgba(0,0,0,.45)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(T, T, W - 2 * T, 14); }
+  const cap = a.d.caps[rk] ?? '#2e2240';
   for (let ty = 0; ty < RH; ty++) for (let tx = 0; tx < RW; tx++) {
     if (!solidAt(room, tx, ty, open, [], cracked) || (tx > 0 && ty > 0 && tx < RW - 1 && ty < RH - 1)) continue;
-    if (ty === 0 && a.wall) { ctx.drawImage(a.wall, (tx * T) % a.wall.width, a.wall.height - T, T, T, tx * T, 0, T, T); ctx.fillStyle = RANK_TINT[Math.min(5, run.rank)]; ctx.fillRect(tx * T, 0, T, T); }
+    if (ty === 0 && tl) ctx.drawImage(tl, Math.floor(hash(run.seed, tx, 7) * 4) * 32, 32, 32, 32, tx * T, 0, T, T);
+    else if (ty === 0 && a.wall) { ctx.drawImage(a.wall, (tx * T) % a.wall.width, a.wall.height - T, T, T, tx * T, 0, T, T); ctx.fillStyle = RANK_TINT[rk]; ctx.fillRect(tx * T, 0, T, T); }
+    else if (tl) {
+      // topo da parede dos lados e de baixo, na cor do tema, com a quina de dentro clara
+      ctx.fillStyle = '#0c0812'; ctx.fillRect(tx * T, ty * T, T, T);
+      ctx.fillStyle = cap; ctx.fillRect(tx * T + 1, ty * T + 1, T - 2, T - 2);
+      ctx.fillStyle = 'rgba(255,255,255,.12)';
+      if (tx === 0) ctx.fillRect(tx * T + T - 3, ty * T, 3, T);
+      if (tx === RW - 1) ctx.fillRect(tx * T, ty * T, 3, T);
+      if (ty === RH - 1) ctx.fillRect(tx * T, ty * T, T, 3);
+      ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(tx * T + 4, ty * T + 4, T - 8, T - 8);
+    }
     else { ctx.fillStyle = '#1e1628'; ctx.fillRect(tx * T, ty * T, T, T); ctx.fillStyle = '#2e2240'; ctx.fillRect(tx * T + 2, ty * T + 2, T - 4, T - 6); }
   }
   // parede rachada (sala secreta): rachaduras que dão para ver
@@ -486,6 +534,11 @@ function roomLayer(run: Run, a: Art): HTMLCanvasElement {
   }
   // pedregulhos fixos (cobertura contra tiros)
   for (const [x, y] of room.rocks) {
+    if (a.d.obj) {
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x * T + 16, y * T + 28, 16, 5, 0, 0, 7); ctx.fill();
+      drawObj(ctx, a.d, hash(run.seed, x, y) < 0.6 ? OBJ.pedra : OBJ.pedraRachada, x * T + 16, y * T + 32, 42);
+      continue;
+    }
     const X = x * T + 16, Y = y * T + 18;
     ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(X, Y + 9, 15, 5, 0, 0, 7); ctx.fill();
     ctx.fillStyle = '#2e2838'; ctx.beginPath(); ctx.ellipse(X, Y + 2, 15, 12, 0, 0, 7); ctx.fill();
@@ -517,13 +570,14 @@ function drawHazards(ctx: CanvasRenderingContext2D, run: Run, now: number) {
       ctx.fillStyle = 'rgba(120,50,170,.55)'; ctx.beginPath(); ctx.ellipse(x + 16, y + 17, 14, 11, 0, 0, 7); ctx.fill();
       ctx.fillStyle = '#c8a0ff'; ctx.beginPath(); ctx.arc(x + 10 + ((now / 70) % 12), y + 14, 2, 0, 7); ctx.fill();
     } else if (h.kind === 'gelo') {
-      ctx.fillStyle = 'rgba(190,240,255,.45)'; ctx.fillRect(x + 1, y + 1, T - 2, T - 2);
-      ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(x + 6, y + 8, 10, 2); ctx.fillRect(x + 16, y + 20, 8, 2);
+      ctx.fillStyle = 'rgba(190,240,255,.55)'; ctx.fillRect(x + 1, y + 1, T - 2, T - 2);
+      ctx.strokeStyle = '#1a5a90'; ctx.lineWidth = 2; ctx.strokeRect(x + 2, y + 2, T - 4, T - 4);
+      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillRect(x + 6, y + 8, 10, 2); ctx.fillRect(x + 16, y + 20, 8, 2); ctx.fillRect(x + 8, y + 12, 2, 2);
     }
   }
 }
 
-function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
+function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: Motion) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(roomLayer(run, a), 0, 0);
   const room = run.d.rooms[run.room], p = run.p;
@@ -532,9 +586,23 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
   drawHazards(ctx, run, now);
 
   // coisas que quebram (pedra, veio, erva, barril, cristal, lampião)
+  const ORE_OBJ = [OBJ.cobre, OBJ.cobre, OBJ.ferro, OBJ.ferro, OBJ.ouro, OBJ.ouro];
   for (const b of run.breaks[run.room]) {
     if (b.hp <= 0) continue;
     const [c1, c2] = BREAK_COLOR[b.kind], x = b.x * T, y = b.y * T;
+    // arte do GPT (objetos.png): pedra, veio do minério do rank, cristal, erva, barril
+    const idx = b.kind === 'pedra' ? (hash(b.x, b.y) < 0.5 ? OBJ.pedra : OBJ.pedraRachada) : b.kind === 'minerio' ? ORE_OBJ[Math.min(5, run.rank)]
+      : b.kind === 'cristal' ? OBJ.cristal : b.kind === 'erva' ? (hash(b.x, b.y, 3) < 0.7 ? OBJ.ervaCura : OBJ.ervaMana) : b.kind === 'barril' || b.kind === 'explosivo' ? OBJ.barril : -1;
+    if (idx >= 0 && a.d.obj) {
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x + 16, y + 28, 13, 4, 0, 0, 7); ctx.fill();
+      ctx.save();
+      if (b.kind === 'explosivo') ctx.filter = 'hue-rotate(-30deg) saturate(2.2) brightness(.95)';
+      drawObj(ctx, a.d, idx, x + 16, y + 31, b.kind === 'erva' ? 30 : 36);
+      ctx.restore();
+      // barril explosivo: faixa de perigo piscando
+      if (b.kind === 'explosivo') { ctx.fillStyle = `rgba(255,216,74,${0.7 + Math.sin(now / 120) * 0.3})`; ctx.fillRect(x + 9, y + 15, 14, 4); ctx.fillStyle = '#1a0a0a'; for (let k = 0; k < 3; k++) ctx.fillRect(x + 10 + k * 5, y + 15, 2, 4); }
+      continue;
+    }
     if (b.kind === 'erva') { ctx.fillStyle = c1; ctx.beginPath(); ctx.arc(x + 16, y + 18, 11, 0, 7); ctx.fill(); ctx.fillStyle = c2; for (const [ox, oy] of [[-5, -3], [4, -5], [0, 3]]) { ctx.beginPath(); ctx.arc(x + 16 + ox, y + 16 + oy, 5, 0, 7); ctx.fill(); } ctx.fillStyle = '#ff5a6a'; ctx.fillRect(x + 12, y + 12, 3, 3); continue; }
     if (b.kind === 'barril' || b.kind === 'explosivo') { ctx.fillStyle = c1; ctx.fillRect(x + 6, y + 4, 20, 26); ctx.fillStyle = c2; ctx.fillRect(x + 8, y + 6, 16, 22); ctx.fillStyle = '#3a2a1a'; ctx.fillRect(x + 6, y + 10, 20, 2); ctx.fillRect(x + 6, y + 22, 20, 2); if (b.kind === 'explosivo') { ctx.fillStyle = '#ffd84a'; ctx.fillRect(x + 13, y + 13, 6, 6); ctx.fillStyle = '#1a0a0a'; ctx.fillRect(x + 15, y + 14, 2, 3); ctx.fillRect(x + 15, y + 18, 2, 1); } continue; }
     if (b.kind === 'cristal') { ctx.fillStyle = c1; ctx.beginPath(); ctx.moveTo(x + 16, y + 2); ctx.lineTo(x + 26, y + 18); ctx.lineTo(x + 16, y + 30); ctx.lineTo(x + 6, y + 18); ctx.fill(); ctx.fillStyle = c2; ctx.beginPath(); ctx.moveTo(x + 16, y + 6); ctx.lineTo(x + 21, y + 17); ctx.lineTo(x + 16, y + 24); ctx.fill(); continue; }
@@ -549,12 +617,19 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
     else { ctx.fillStyle = c2; ctx.fillRect(x + 9, y + 11, 7, 3); }
   }
   // baú, escada, estátua, mercador, loja e armas no chão
-  if (room.kind === 'tesouro' && a.chest) { ctx.globalAlpha = run.chests.includes(run.room) ? 0.55 : 1; ctx.drawImage(a.chest, CX * T - 4, CY * T - 6, 40, 34); ctx.globalAlpha = 1; }
+  if (room.kind === 'tesouro' && a.d.obj) drawObj(ctx, a.d, run.chests.includes(run.room) ? OBJ.bauAberto : OBJ.bau, CX * T + 16, CY * T + 32, 46);
+  else if (room.kind === 'tesouro' && a.chest) { ctx.globalAlpha = run.chests.includes(run.room) ? 0.55 : 1; ctx.drawImage(a.chest, CX * T - 4, CY * T - 6, 40, 34); ctx.globalAlpha = 1; }
   if ((room.kind === 'fim' || room.kind === 'elite') && run.cleared[run.room]) {
     const pulse = 0.5 + 0.5 * Math.sin(now / 250);
-    ctx.fillStyle = '#0a0612'; ctx.fillRect(CX * T, CY * T, T, T);
-    for (let k = 0; k < 4; k++) { ctx.fillStyle = `rgb(${60 - k * 12},${50 - k * 10},${80 - k * 14})`; ctx.fillRect(CX * T + 2, CY * T + 2 + k * 7, T - 4, 5); }
-    ctx.strokeStyle = `rgba(90,184,255,${0.4 + pulse * 0.6})`; ctx.lineWidth = 2; ctx.strokeRect(CX * T - 2, CY * T - 2, T + 4, T + 4);
+    if (a.d.obj) {
+      // escada para o próximo andar, com a luz azul chamando
+      ctx.save(); ctx.globalAlpha = 0.25 + pulse * 0.35; ctx.fillStyle = '#5ab8ff'; ctx.beginPath(); ctx.ellipse(CX * T + 16, CY * T + 20, 26, 14, 0, 0, 7); ctx.fill(); ctx.restore();
+      drawObj(ctx, a.d, OBJ.escada, CX * T + 16, CY * T + 34, 44);
+    } else {
+      ctx.fillStyle = '#0a0612'; ctx.fillRect(CX * T, CY * T, T, T);
+      for (let k = 0; k < 4; k++) { ctx.fillStyle = `rgb(${60 - k * 12},${50 - k * 10},${80 - k * 14})`; ctx.fillRect(CX * T + 2, CY * T + 2 + k * 7, T - 4, 5); }
+      ctx.strokeStyle = `rgba(90,184,255,${0.4 + pulse * 0.6})`; ctx.lineWidth = 2; ctx.strokeRect(CX * T - 2, CY * T - 2, T + 4, T + 4);
+    }
   }
   for (const x of run.pickups) {
     if (x.room !== run.room) continue;
@@ -578,8 +653,9 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
     }
     if (x.weapon) {
       const bob = Math.sin(now / 300) * 2, w = weapon(x.weapon);
-      ctx.save(); ctx.translate(x.x * T, x.y * T + bob); ctx.rotate(-0.6);
-      ctx.fillStyle = w.kind === 'curta' ? '#e8f0f8' : '#5a6a8a'; ctx.fillRect(-2, -14, 4, 20); ctx.fillStyle = '#c8a040'; ctx.fillRect(-6, 4, 12, 2);
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x.x * T, x.y * T + 8, 12, 3, 0, 0, 7); ctx.fill();
+      ctx.save(); ctx.translate(x.x * T - 12, x.y * T + bob - 2); ctx.rotate(-0.5);
+      if (!drawWeapon(ctx, a.d, x.weapon, 34)) { ctx.rotate(0.5 - 0.6); ctx.fillStyle = w.kind === 'curta' ? '#e8f0f8' : '#5a6a8a'; ctx.fillRect(-2, -14, 4, 20); ctx.fillStyle = '#c8a040'; ctx.fillRect(-6, 4, 12, 2); }
       ctx.restore();
       label(ctx, w.name, x.x * T, x.y * T + 22, '#bfe8ff');
     }
@@ -594,19 +670,28 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
   // sombras do Monarca no chão: pise para purificar
   for (const c of run.corpses) { ctx.fillStyle = `rgba(40,0,70,${0.6 + Math.sin(now / 90) * 0.2})`; ctx.beginPath(); ctx.ellipse(c.x * T, c.y * T, 14, 6, 0, 0, 7); ctx.fill(); ctx.strokeStyle = '#a04aff'; ctx.lineWidth = 1; ctx.stroke(); }
   // avisos no chão: o golpe vem quando o vermelho enche
+  // (borda tracejada girando; o miolo enche até a borda; no último instante pisca branco)
   for (const w of run.warns) {
-    const k = 1 - w.t / w.total;
+    const k = 1 - w.t / w.total, last = w.t < 0.1;
     ctx.save();
     const soft = w.dmg <= 0 && !w.st;
-    ctx.fillStyle = soft ? `rgba(255,140,60,${0.08 + k * 0.16})` : `rgba(255,40,60,${0.12 + k * 0.28})`; ctx.strokeStyle = soft ? `rgba(255,170,90,${0.4 + k * 0.4})` : `rgba(255,80,90,${0.5 + k * 0.5})`; ctx.lineWidth = 2;
+    const edge = last ? 'rgba(255,255,255,.95)' : soft ? `rgba(255,170,90,${0.5 + k * 0.4})` : `rgba(255,80,90,${0.6 + k * 0.4})`;
+    ctx.fillStyle = soft ? `rgba(255,140,60,${0.06 + k * 0.12})` : `rgba(255,40,60,${0.1 + k * 0.2})`; ctx.strokeStyle = edge; ctx.lineWidth = 2;
     if (w.kind === 'circle') {
-      ctx.beginPath(); ctx.arc(w.x * T, w.y * T, w.r * T, 0, 7); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = soft ? 'rgba(255,150,70,.3)' : 'rgba(255,60,70,.35)'; ctx.beginPath(); ctx.arc(w.x * T, w.y * T, w.r * T * k, 0, 7); ctx.fill();
+      const X = w.x * T, Y = w.y * T, R = w.r * T;
+      ctx.beginPath(); ctx.arc(X, Y, R, 0, 7); ctx.fill();
+      ctx.setLineDash([6, 4]); ctx.lineDashOffset = -now / 40; ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = last ? 'rgba(255,255,255,.45)' : soft ? 'rgba(255,150,70,.32)' : 'rgba(255,60,70,.38)'; ctx.beginPath(); ctx.arc(X, Y, R * k, 0, 7); ctx.fill();
+      ctx.strokeStyle = soft ? 'rgba(255,200,140,.6)' : 'rgba(255,170,170,.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X, Y, R * k, 0, 7); ctx.stroke();
     } else {
       const ang = Math.atan2(w.y2 - w.y, w.x2 - w.x), len = Math.hypot(w.x2 - w.x, w.y2 - w.y) * T, wd = Math.max(4, w.r * 2 * T);
       ctx.translate(w.x * T, w.y * T); ctx.rotate(ang);
       ctx.fillRect(0, -wd / 2, len, wd); ctx.strokeRect(0, -wd / 2, len, wd);
-      ctx.fillStyle = soft ? 'rgba(255,150,70,.3)' : 'rgba(255,60,70,.35)'; ctx.fillRect(0, -wd / 2, len * k, wd);
+      ctx.fillStyle = last ? 'rgba(255,255,255,.45)' : soft ? 'rgba(255,150,70,.32)' : 'rgba(255,60,70,.38)'; ctx.fillRect(0, -wd / 2, len * k, wd);
+      // setas andando para onde o golpe vai
+      ctx.fillStyle = soft ? 'rgba(255,210,160,.55)' : 'rgba(255,200,200,.6)';
+      const step = Math.max(14, wd * 1.2), off = (now / 12) % step, hw = Math.min(wd / 2 - 1, 6);
+      for (let x = off; x < len - 4; x += step) { ctx.beginPath(); ctx.moveTo(x, -hw); ctx.lineTo(x + hw, 0); ctx.lineTo(x, hw); ctx.lineTo(x - 3, hw); ctx.lineTo(x + hw - 3, 0); ctx.lineTo(x - 3, -hw); ctx.closePath(); ctx.fill(); }
     }
     ctx.restore();
   }
@@ -621,6 +706,20 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
     const fr = a.player;
     if (al.kind === 'torreta') { ctx.fillStyle = '#5a6a8a'; ctx.fillRect(al.x * T - 9, al.y * T - 14, 18, 14); ctx.fillStyle = '#8ad0ff'; ctx.fillRect(al.x * T - 3, al.y * T - 20, 6, 8); return; }
     if (al.kind === 'inseto') { ctx.fillStyle = '#5a3a2a'; ctx.beginPath(); ctx.arc(al.x * T, al.y * T - 8, 3, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(220,240,255,.7)'; ctx.fillRect(al.x * T - 5, al.y * T - 12 + Math.sin(now / 20) * 2, 4, 2); ctx.fillRect(al.x * T + 1, al.y * T - 12 - Math.sin(now / 20) * 2, 4, 2); return; }
+    const sk: SombraKind | null = al.kind === 'soldado' || al.kind === 'arqueira' || al.kind === 'tanque' ? al.kind : al.kind === 'sombra' || al.kind === 'levantado' ? 'soldado' : null;
+    const sheet = sk ? a.d.sombras[sk] : undefined;
+    if (sheet) {
+      const tgt = run.enemies.reduce<Enemy | null>((b, e) => (!b || Math.hypot(e.x - al.x, e.y - al.y) < Math.hypot(b.x - al.x, b.y - al.y) ? e : b), null);
+      const dx = (tgt?.x ?? al.x) - al.x, dy = (tgt?.y ?? al.y + 1) - al.y;
+      const row = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 1) : dy > 0 ? 0 : 3;
+      const col = al.atk > 0 ? 2 + (Math.floor(now / 120) % 2) : Math.floor(now / 160) % 2;
+      const sz = al.kind === 'tanque' ? 72 : 62;
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(al.x * T, al.y * T + 2, 12, 4, 0, 0, 7); ctx.fill();
+      ctx.save(); ctx.globalAlpha = al.kind === 'levantado' ? 0.7 : 0.95;
+      drawCell(ctx, sheet, 48, 48, 4, row * 4 + col, al.x * T - sz / 2, al.y * T - sz * 0.92, sz, sz);
+      ctx.restore();
+      return;
+    }
     if (!fr) return;
     const img = fr.walk.south[Math.floor(now / 160) % 4];
     const big = al.kind === 'formiga' || al.kind === 'diabo' ? 1.25 : 1;
@@ -639,7 +738,7 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
     ctx.drawImage(img, pet.x * T - img.width / 2, pet.y * T - img.height * 0.85, img.width, img.height);
   } });
   // jogador: andar, rolar na esquiva, golpe, arma na mão, transformação
-  bodies.push({ y: p.y, f: () => drawPlayer(ctx, run, a, now) });
+  bodies.push({ y: p.y, f: () => drawPlayer(ctx, run, a, now, mo) });
   bodies.sort((x, y) => x.y - y.y).forEach(b => b.f());
 
   // peças das cartas no ar (tiros, tornados, raios, chuva, órbitas)
@@ -652,6 +751,21 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
       const tot = Math.hypot(s.vx, s.vy) || 1, done = 1 - s.life / Math.max(0.3, s.life + 0.01), hop = Math.sin(Math.min(1, done) * Math.PI) * 30;
       void tot;
       ctx.fillStyle = '#2a2a3a'; ctx.beginPath(); ctx.arc(X, Y - 10 - hop, 6, 0, 7); ctx.fill(); ctx.fillStyle = '#ff7a2a'; ctx.fillRect(X - 1, Y - 18 - hop, 2, 4);
+      continue;
+    }
+    // arte do GPT (tiros.png): tiro do caçador, flecha, orbe de magia, bola do inimigo; rastro curto atrás
+    const row = s.kind === 'flecha' ? 1 : s.kind === 'magia' ? (s.mine ? 2 : 3) : s.kind === 'folha' ? -1 : s.mine ? 0 : 3;
+    if (row >= 0 && a.d.tiros) {
+      const ang = Math.atan2(s.vy, s.vx), sz = s.mine ? 22 : 26, fr = Math.floor(now / 70 + s.id) % 3;
+      ctx.save();
+      if ((s.frozen ?? 0) > 0) ctx.filter = 'hue-rotate(170deg) saturate(.6) brightness(1.4)';
+      for (let k = 2; k >= 0; k--) {
+        const back = k * 0.012, X2 = (s.x - s.vx * back) * T, Y2 = (s.y - s.vy * back) * T;
+        ctx.save(); ctx.globalAlpha = k ? 0.25 / k : 1; ctx.translate(X2, Y2); ctx.rotate(row === 3 || row === 2 ? 0 : ang);
+        drawCell(ctx, a.d.tiros, 16, 16, 4, row * 4 + fr, -sz / 2, -sz / 2, sz, sz);
+        ctx.restore();
+      }
+      ctx.restore();
       continue;
     }
     if (s.kind === 'flecha') {
@@ -697,11 +811,14 @@ function drawEnemy(ctx: CanvasRenderingContext2D, run: Run, e: Enemy, a: Art, no
   const dir: Dir = Math.abs(p.x - e.x) > Math.abs(p.y - e.y) ? (p.x > e.x ? 'east' : 'west') : (p.y > e.y ? 'south' : 'north');
   const frozen = (e.sb.congelado?.t ?? 0) > 0, stunned = (e.sb.atordoado?.t ?? 0) > 0;
   const step = stunned || frozen || e.state === 'wind' || e.state === 'card' ? 0 : Math.floor(now / 150) % 4;
-  const big = (boss ? 1.6 : e.kind === 'golem' ? 1.4 : e.kind === 'slimeP' || e.kind === 'minion' ? 0.7 : e.kind === 'escudeiro' ? 1.15 : 1.05) * e.scale;
+  const windUp = e.state === 'wind' ? 1.06 : 1;
+  const big = (boss ? 1.6 : e.kind === 'golem' ? 1.4 : e.kind === 'slimeP' || e.kind === 'minion' ? 0.7 : e.kind === 'escudeiro' ? 1.15 : 1.05) * e.scale * windUp;
   const shake = e.state === 'wind' || e.state === 'card' ? Math.sin(now / 25) * 1.5 : 0;
   const hop = (e.kind === 'slime' || e.kind === 'slimeP') && (e.t % 1.2) < 0.45 ? -Math.sin(((e.t % 1.2) / 0.45) * Math.PI) * 8 : 0;
   const R = ENEMY[e.kind].r * e.scale;
   ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(e.x * T, e.y * T + 2, R * T, R * T * 0.4, 0, 0, 7); ctx.fill();
+  // antecipação: o chão em volta brilha vermelho enquanto ele prepara o golpe
+  if (e.state === 'wind' || e.state === 'card') { ctx.save(); ctx.globalAlpha = 0.35 + Math.sin(now / 45) * 0.15; ctx.fillStyle = e.state === 'card' ? '#ffd84a' : '#ff3a4a'; ctx.beginPath(); ctx.ellipse(e.x * T, e.y * T + 2, R * T * 1.5, R * T * 0.6, 0, 0, 7); ctx.fill(); ctx.restore(); }
   // aura da elite
   if (e.elite) { const c = ELITE_COLOR[e.elite]; ctx.save(); ctx.globalAlpha = e.eliteOff > 0 ? 0.15 : 0.35 + Math.sin(now / 150) * 0.15; ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(e.x * T, e.y * T - R * T * 0.8, R * T * 1.3, R * T * 1.6, 0, 0, 7); ctx.fill(); ctx.restore(); }
   ctx.save();
@@ -714,7 +831,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, run: Run, e: Enemy, a: Art, no
   else if (!a.gpt[e.kind] && !['morcego', 'slime', 'slimeP', 'espirito', 'planta', 'cavador', 'minion'].includes(e.kind)) ctx.filter = e.kind === 'lobo' ? 'brightness(.6) hue-rotate(220deg)' : e.kind === 'golem' ? 'grayscale(.6)' : e.kind === 'mago' ? 'hue-rotate(200deg) saturate(1.4)' : 'hue-rotate(60deg) saturate(1.4)';
   const g = a.gpt[e.kind];
   if (e.kind === 'sombraP' && a.player) { const img = a.player.walk[dir][step]; ctx.drawImage(img, e.x * T - img.width / 2 + shake, e.y * T - img.height * 0.9, img.width, img.height); }
-  else if (g) { const img = e.state !== 'move' ? g.atk[dir][Math.floor(now / 160) % g.atk[dir].length] : g.walk[dir][step]; const gb = (e.kind === 'slimeP' || e.kind === 'minion' ? 0.7 : boss ? 1.5 : 1.4) * e.scale; ctx.drawImage(img, e.x * T - (img.width * gb) / 2 + shake, e.y * T - img.height * gb * 0.9 + hop, img.width * gb, img.height * gb); }
+  else if (g) { const img = e.state !== 'move' ? g.atk[dir][Math.floor(now / 160) % g.atk[dir].length] : g.walk[dir][step]; const gb = (e.kind === 'slimeP' || e.kind === 'minion' ? 0.7 : boss ? 1.5 : 1.4) * e.scale * windUp; ctx.drawImage(img, e.x * T - (img.width * gb) / 2 + shake, e.y * T - img.height * gb * 0.9 + hop, img.width * gb, img.height * gb); }
   else if (fr) { const img = fr.walk[dir][step]; ctx.drawImage(img, e.x * T - (img.width * big) / 2 + shake, e.y * T - img.height * big * 0.85 + hop, img.width * big, img.height * big); }
   else { ctx.fillStyle = '#9a4ac8'; ctx.beginPath(); ctx.arc(e.x * T, e.y * T - 8, R * T, 0, 7); ctx.fill(); }
   ctx.restore();
@@ -748,13 +865,20 @@ function drawEnemy(ctx: CanvasRenderingContext2D, run: Run, e: Enemy, a: Art, no
   if (e.elite) label(ctx, ELITE_NAME[e.elite].toUpperCase(), e.x * T, e.y * T - h - 4, ELITE_COLOR[e.elite]);
 }
 
-function drawPlayer(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number) {
-  const p = run.p, f = p.form;
+function drawPlayer(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: Motion) {
+  const p = run.p, f = p.form, scale = f ? f.scale : 1;
+  const tgt = run.enemies.reduce<{ e: Enemy | null; d: number }>((best, e) => { const d = Math.hypot(e.x - p.x, e.y - p.y); return d < best.d ? { e, d } : best; }, { e: null, d: 9 }).e;
+  const aim = tgt ? Math.atan2(tgt.y - p.y, tgt.x - p.x) : Math.atan2(p.dy || 0.0001, p.dx);
+  const pose = poseOf(run, mo, now, { walk: a.player?.walk ?? null, combat: a.combat, dodge: a.dodge }, DIR[p.face]);
+  const hop = Math.min(0, pose.oy);
+  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(p.x * T + pose.ox, p.y * T + 2, 10 * scale * (1 + hop / 24), 4 * scale * (1 + hop / 24), 0, 0, 7); ctx.fill();
+  // fantasmas da cambalhota (o boneco deixa o rastro azulado)
+  if (pose.dashing && mo.last && now - mo.lastGhost > 26) {
+    mo.lastGhost = now;
+    mo.ghosts.push({ x: p.x + pose.ox / T, y: p.y + pose.oy / T, born: now, life: 190, ...mo.last, sx: pose.sx, sy: pose.sy, lean: pose.lean, color: '#7ad8ff' });
+  }
+  drawGhosts(ctx, mo, now, T, scale);
   if (p.inv > 0 && p.dash <= 0 && p.lock <= 0 && !run.cine && Math.floor(now / 70) % 2) return;
-  const fr = a.player, moving = Math.hypot(p.dx, p.dy) > 0.1;
-  const img = fr?.walk[DIR[p.face]][p.dash > 0 ? 1 : moving ? Math.floor(now / 130) % 4 : 0];
-  const scale = f ? f.scale : 1;
-  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(p.x * T, p.y * T + 2, 10 * scale, 4 * scale, 0, 0, 7); ctx.fill();
   // aura da transformação
   if (f) {
     const [c1, c2] = colorsOf(f.card, f.el);
@@ -763,41 +887,62 @@ function drawPlayer(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number
     if (f.aura) { ctx.save(); ctx.globalAlpha = 0.25; ctx.strokeStyle = c2; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.lineDashOffset = -now / 30; ctx.beginPath(); ctx.arc(p.x * T, p.y * T, f.aura.r * T, 0, 7); ctx.stroke(); ctx.restore(); }
     if (f.form === 'nuvem') { ctx.fillStyle = '#ffe8a0'; ctx.beginPath(); ctx.ellipse(p.x * T, p.y * T + 2, 20, 8, 0, 0, 7); ctx.fill(); }
   }
+  const img = pose.img as HTMLCanvasElement | undefined;
   if (!img) { ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.arc(p.x * T, p.y * T, 10, 0, 7); ctx.fill(); return; }
+  const w = img.width, h = img.height;
+  mo.last = { img, w, h };
+  // arma: espada no ombro (atrás do corpo) até cortar; arma longa apontando
+  const arm = weapon(p.arms[p.hand].id);
+  const resting = arm.kind === 'curta' && pose.swing < 0 && p.heavy <= 0;
+  const drawArm = () => {
+    ctx.save();
+    ctx.translate(p.x * T + pose.ox, p.y * T - HAND_Y * scale + pose.oy);
+    ctx.scale(scale, scale);
+    if (arm.kind === 'curta') {
+      const ang = bladeAngle(mo, pose, aim, p.heavy);
+      ctx.rotate(ang);
+      if (Math.cos(ang) < 0) ctx.scale(1, -1);
+      // estocada: a arma vai para a frente
+      if (pose.swing >= 0 && (mo.swingKind === 'investida' || (mo.swingKind === 'pesado' && mo.swingArc < 6.2))) ctx.translate(pose.swing < 0.4 ? pose.swing * 30 : 12 * (1 - pose.swing), 0);
+      if (p.heavy >= 1) { ctx.shadowColor = '#ffd84a'; ctx.shadowBlur = 10; }
+      if (!drawWeapon(ctx, a.d, arm.id, 24 + arm.range * 6)) {
+        ctx.fillStyle = p.heavy >= 1 ? '#ffd84a' : arm.id === 'foice' ? '#a87aff' : '#e8f0f8'; ctx.fillRect(8, -2, arm.range * 9, 4);
+        ctx.fillStyle = '#c8a040'; ctx.fillRect(5, -6, 3, 12); ctx.fillStyle = '#6a3a20'; ctx.fillRect(-2, -1.5, 7, 3);
+      }
+    } else {
+      const ang = pose.shooting ? mo.shootAng : aim, kick = pose.shooting ? -4 * (1 - (now - mo.shootStart) / 150) : 0;
+      ctx.rotate(ang);
+      if (Math.cos(ang) < 0) ctx.scale(1, -1);
+      ctx.translate(2 + kick, 0);
+      if (!drawWeapon(ctx, a.d, arm.id, 26)) { ctx.fillStyle = '#3a3a4a'; ctx.fillRect(4, -3, 16, 6); ctx.fillStyle = '#7ae8ff'; ctx.fillRect(18, -2, 3, 4); }
+    }
+    ctx.restore();
+  };
+  const behind = resting || pose.dir === 'north';
+  if (behind) drawArm();
   ctx.save();
-  ctx.translate(p.x * T, p.y * T - img.height * 0.4 * scale);
-  if (p.dash > 0) { ctx.rotate(((p.face === 'w' ? -1 : 1) * (1 - p.dash / 0.17)) * Math.PI * 2); ctx.globalAlpha = 0.85; }
+  ctx.translate(p.x * T + pose.ox, p.y * T + 2 + pose.oy);
+  ctx.rotate(pose.lean);
+  ctx.scale(pose.sx * scale, pose.sy * scale);
   if (f?.form === 'colosso') ctx.filter = 'sepia(.6) saturate(2) hue-rotate(-20deg) brightness(1.1)';
   else if (f?.form === 'tita') ctx.filter = 'sepia(.4) saturate(1.4)';
   else if (f?.form === 'demonio') ctx.filter = 'brightness(.6) saturate(1.6) hue-rotate(-30deg)';
   if (p.perfect) ctx.filter = 'drop-shadow(0 0 4px #8ad0ff)';
-  ctx.drawImage(img, (-img.width / 2) * scale, -img.height * 0.5 * scale, img.width * scale, img.height * scale);
+  ctx.drawImage(img, -w / 2, -h * 0.9375, w, h);
+  // apanhou: pisca vermelho por cima
+  if (pose.hurt) { ctx.globalAlpha = 0.55; ctx.drawImage(tinted(img, '#ff3a4a'), -w / 2, -h * 0.9375, w, h); }
   ctx.restore();
+  if (!behind) drawArm();
   // vapor do Titã Colossal
-  if (f?.form === 'colosso') for (let k = 0; k < 4; k++) { ctx.fillStyle = 'rgba(240,240,240,.35)'; ctx.beginPath(); ctx.arc(p.x * T - 14 + k * 9, p.y * T - img.height * scale - ((now / 20 + k * 13) % 30), 6, 0, 7); ctx.fill(); }
-  // arma: espada atrás no ombro (ou balançando no golpe); arma longa apontando
-  const w = weapon(p.arms[p.hand].id);
-  const tgt = run.enemies.reduce<{ e: Enemy | null; d: number }>((best, e) => { const d = Math.hypot(e.x - p.x, e.y - p.y); return d < best.d ? { e, d } : best; }, { e: null, d: 9 }).e;
-  const ang = tgt ? Math.atan2(tgt.y - p.y, tgt.x - p.x) : Math.atan2(p.dy, p.dx);
-  ctx.save();
-  ctx.translate(p.x * T, p.y * T - 14 * scale);
-  ctx.scale(scale, scale);
-  if (w.kind === 'curta') {
-    const arc = p.swingKind === 'pesado' && (w.arc ?? 1.6) >= 1.8 ? Math.PI * 2 : w.arc ?? 1.6;
-    const swing = p.swing > 0 ? (1 - p.swing / 0.18) * arc - arc / 2 : p.heavy > 0 ? -1.6 - p.heavy * 0.6 : -0.9;
-    ctx.rotate(ang + swing + Math.PI / 2);
-    ctx.fillStyle = p.heavy >= 1 ? '#ffd84a' : w.id === 'foice' ? '#a87aff' : '#e8f0f8'; ctx.fillRect(-2, -8 - w.range * 9, 4, w.range * 9);
-    ctx.fillStyle = '#c8a040'; ctx.fillRect(-6, -8, 12, 3); ctx.fillStyle = '#6a3a20'; ctx.fillRect(-1.5, -5, 3, 7);
-  } else {
-    const kick = p.atk > w.cd - 0.06 ? -3 : 0;
-    ctx.rotate(ang);
-    ctx.fillStyle = '#3a3a4a'; ctx.fillRect(4 + kick, -3, 16, 6); ctx.fillStyle = '#7ae8ff'; ctx.fillRect(18 + kick, -2, 3, 4);
+  if (f?.form === 'colosso') for (let k = 0; k < 4; k++) { ctx.fillStyle = 'rgba(240,240,240,.35)'; ctx.beginPath(); ctx.arc(p.x * T - 14 + k * 9, p.y * T - h * 0.9 * scale - ((now / 20 + k * 13) % 30), 6, 0, 7); ctx.fill(); }
+  // golpe pesado carregando: anel enchendo e faíscas puxadas para a lâmina; carta carregando
+  if (p.heavy > 0) {
+    ctx.strokeStyle = p.heavy >= 1 ? '#ffd84a' : '#ffffff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x * T, p.y * T - 14, 16, -Math.PI / 2, -Math.PI / 2 + p.heavy * Math.PI * 2); ctx.stroke();
+    for (let k = 0; k < 5; k++) { const q = ((now / 300 + k / 5) % 1), an = k * 1.3 + now / 400, r = 24 * (1 - q); ctx.fillStyle = p.heavy >= 1 ? '#ffd84a' : '#ffffff'; ctx.globalAlpha = q; ctx.fillRect(p.x * T + Math.cos(an) * r - 1, p.y * T - 14 + Math.sin(an) * r - 1, 2, 2); }
+    ctx.globalAlpha = 1;
   }
-  ctx.restore();
-  // golpe pesado carregando / carta carregando
-  if (p.heavy > 0) { ctx.strokeStyle = p.heavy >= 1 ? '#ffd84a' : '#ffffff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x * T, p.y * T - 14, 16, -Math.PI / 2, -Math.PI / 2 + p.heavy * Math.PI * 2); ctx.stroke(); }
   if (p.charge) { const k = Math.min(1, p.charge.t / p.charge.max), sk = p.skills[p.charge.slot], [c1] = sk ? colorsOf(sk.card, sk.element) : ['#fff']; ctx.fillStyle = c1; ctx.globalAlpha = 0.5 + k * 0.5; ctx.beginPath(); ctx.arc(p.x * T, p.y * T - 18, 4 + k * 10, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
-  drawStatus(ctx, p.sb, p.x * T, p.y * T, img.height * 0.8 * scale, now);
+  drawStatus(ctx, p.sb, p.x * T, p.y * T, h * 0.8 * scale, now);
 }
 
 function label(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string) {
