@@ -1,0 +1,39 @@
+{
+  "_sobre": "Os 12 professores do WIT para o kit dos bonecos (kit.py). Os ids são os de src/game/world/professores.ts (um teste confere). 'nomes' são os jeitos de achar a foto pelo nome do arquivo.",
+  "professores": [
+    { "id": "dante", "nome": "Prof. Dante", "nomes": ["dante"], "detalhe": "Wearing a black jacket", "moto": true },
+    { "id": "wellington", "nome": "Prof. Wellington", "nomes": ["wellington", "welington"], "detalhe": "Everyday clothes as in the photo", "moto": true },
+    { "id": "mayara", "nome": "Profa. Mayara", "nomes": ["mayara", "maiara"], "detalhe": "Everyday clothes as in the photo",
+      "acoes": { "acao": "practicing jiu-jitsu on a blue mat, wearing a white gi with a belt, doing a drill" } },
+    { "id": "macedo", "nome": "Prof. Matheus Macedo", "nomes": ["macedo", "matheus macedo"], "detalhe": "Everyday clothes as in the photo",
+      "acoes": { "acao": "sitting at a gaming PC with RGB lights, playing with keyboard and mouse", "churrasco": "grilling skewers at a small brick barbecue grill, a little smoke rising" } },
+    { "id": "guilherme", "nome": "Prof. Guilherme Rodrigues", "nomes": ["guilherme", "rodrigues"], "detalhe": "Everyday clothes as in the photo",
+      "acoes": { "acao": "training muay thai, kicking and punching a hanging heavy bag, wearing hand wraps" } },
+    { "id": "servilha", "nome": "Prof. Matheus Servilha", "nomes": ["servilha", "matheus servilha"], "detalhe": "Everyday clothes as in the photo, headphones around the neck",
+      "acoes": { "acao": "sitting on a couch playing a video game with a controller, excited" } },
+    { "id": "vitor", "nome": "Prof. Vitor", "nomes": ["vitor", "victor"], "detalhe": "Everyday clothes as in the photo",
+      "acoes": { "acao": "sitting on a couch playing a video game with a controller" } },
+    { "id": "miguel", "nome": "Prof. Miguel", "nomes": ["miguel"], "detalhe": "Everyday clothes as in the photo",
+      "acoes": { "acao": "sitting on a couch playing a video game with a controller, cheering" } },
+    { "id": "leticia", "nome": "Profa. Leticia", "nomes": ["leticia"], "detalhe": "Everyday clothes as in the photo",
+      "acoes": { "acao": "sitting and reading a book, turning a page" } },
+    { "id": "felipe", "nome": "Prof. Felipe Oliveira", "nomes": ["felipe", "felipe oliveira"], "detalhe": "Everyday clothes as in the photo",
+      "acoes": { "acao": "playing an electric guitar, music notes floating" } },
+    { "id": "maycon", "nome": "Prof. Maycon", "nomes": ["maycon", "maicon"], "detalhe": "Everyday clothes as in the photo",
+      "acoes": { "acao": "behind a small red hot dog cart with an umbrella, handing out a hot dog" } },
+    { "id": "grazyelle", "nome": "Profa. Grazyelle", "nomes": ["grazyelle", "grazy", "grazielle", "graziele", "grazyele"], "detalhe": "Everyday clothes as in the photo, a camera strap on the shoulder",
+      "acoes": { "acao": "taking a photo with a camera, a small flash" } }
+  ],
+  "prompts": {
+    "andar": "The attached image has two parts. LEFT, labeled PHOTO: a real photo of an adult teacher; use it ONLY for the person's look. RIGHT, labeled SPRITE SHEET: a pixel-art sprite sheet; use it ONLY as the reference for grid, frame size, proportions, poses and walk cycle. Draw a NEW sprite sheet: a friendly chibi pixel-art version of this adult teacher, same skin tone, hair style and hair color, facial hair, glasses and typical clothing style as in the photo, simplified and cute, respectful and recognizable, not a caricature. {detalhe}. Slightly taller than the kid in the reference, still big-head chibi proportions. Modest everyday clothing. Exactly the same grid as the reference: 4 rows and 4 columns, 16 frames, evenly spaced, same positions, same size, same poses frame by frame. Row 1 walking toward the viewer (facing down), row 2 walking to the LEFT, row 3 walking to the RIGHT, row 4 walking away from the viewer (back view). Each walk cycle: frame 1 standing, frame 2 left foot forward, frame 3 standing, frame 4 right foot forward, with clearly visible leg movement in every row. Crisp pixel art like Pokemon HeartGold/SoulSilver overworld sprites, clean dark outlines, no anti-aliasing. Flat solid magenta background (#FF00FF). Output ONLY the new sprite sheet: no photo, no labels, no text, no shadow, no ground.",
+    "acao": "Using the attached character sprite sheet as the exact reference for this character (same face, hair, skin, clothes, proportions and outline), draw a pixel-art animation of the SAME character {acao}, 1 row of 4 frames, facing the viewer at a slight 3/4 angle, same frame size and scale as the reference, a simple looping motion. Crisp pixel art like Pokemon HeartGold/SoulSilver, clean dark outlines, no anti-aliasing, friendly and modest. Flat solid magenta background (#FF00FF). No text, no ground, no shadow.",
+    "moto": "Using the attached character sprite sheet as the exact reference for this character (same face, hair, skin, clothes, proportions and outline), draw a pixel art sprite sheet of the SAME character riding a motorcycle and wearing a helmet, 4 rows (row 1 facing down toward the viewer, row 2 facing left, row 3 facing right, row 4 facing away) by 4 animation frames, top-down 3/4 view like Pokemon HeartGold/SoulSilver overworld sprites, same scale as the reference character, clean dark outlines, limited palette, no anti-aliasing. Friendly, original, no text, no logos. Flat solid magenta background (#FF00FF)."
+  },
+  "correcoes": {
+    "grade": "Redo it with exactly the same grid as the reference: {linhas} rows and 4 columns, {total} separate figures, evenly spaced with clear magenta gaps between them. Keep the same character.",
+    "fundo": "The background must be one flat solid magenta (#FF00FF), with nothing else: no gradient, no floor, no shadow, no frame. Keep everything else the same.",
+    "tamanho": "All figures must have exactly the same height and scale, feet on the same line in each row. Keep everything else the same.",
+    "espelho": "Row 2 must face and walk to the LEFT and row 3 must face and walk to the RIGHT: row 3 is the mirror image of row 2. Fix only that and keep everything else the same.",
+    "frente-costas": "Row 1 must show the FRONT (face visible, walking toward the viewer) and row 4 the BACK (back of the head, walking away). Fix only that and keep everything else the same."
+  }
+}

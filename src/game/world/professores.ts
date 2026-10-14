@@ -7,13 +7,15 @@
 // aparece na hora dele; assim o professor "anda" entre as áreas do mundo.
 //
 // O visual é provisório (os modelos recoloridos) até chegar o boneco feito a
-// partir da foto de cada um (prompt em docs/professores-no-jogo.md).
+// partir da foto de cada um (kit em scripts/arte/professores); quem já tem o
+// boneco está em PROF_SPRITES (gerado pelo importador).
 // Professor saiu do WIT? `ativo: false` tira ele do jogo inteiro.
 import type { Dir } from './movement';
 import type { NpcDef } from './content';
 import type { ZoneId } from './zone';
 import type { Look } from './outfit';
 import type { NpcJob } from './jobs';
+import { PROF_SPRITES } from './prof-sprites';
 
 export type Curso = 'ia' | 'games' | 'comunicacao' | 'iot' | 'metaverso';
 
@@ -237,10 +239,11 @@ export function profNpcs(): NpcDef[] {
   const out: NpcDef[] = [];
   for (const p of ativos()) {
     const title = CURSO[p.curso].nome;
+    const sprite = PROF_SPRITES.includes(`prof-${p.id}`) ? `prof-${p.id}` : undefined;
     const parts: [Parte, Spot | null][] = [['aula', p.aula], ['almoco', p.almoco], ['passatempo', p.passatempo.onde === 'casa' ? null : p.passatempo.onde]];
     for (const [parte, s] of parts) {
       if (!s) continue;
-      out.push({ id: NPC_ID(p, parte), zona: s.zona, tx: s.tx, ty: s.ty, dir: s.dir, look: p.look, name: p.nome, title, lines: p.falas[parte], job: s.job });
+      out.push({ id: NPC_ID(p, parte), zona: s.zona, tx: s.tx, ty: s.ty, dir: s.dir, look: p.look, name: p.nome, title, lines: p.falas[parte], job: s.job, sprite });
     }
   }
   return out;

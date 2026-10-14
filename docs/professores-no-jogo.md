@@ -68,17 +68,29 @@ comandam a resistência**.
 
 ---
 
-## 4. As fotos: onde colocar
+## 4. As fotos: automatizado no Cowork (14/10)
 
-**Direto no GPT.** A arte do jogo já sai do GPT; a foto só serve de referência lá.
-1. No seu computador, uma pasta `fotos-professores/` com uma pasta por professor
-   (`dante/`, `mayara/`...). Uma foto de rosto e uma de corpo inteiro bastam.
-2. Uma conversa no GPT por professor: anexe a foto + a folha de referência
-   (`public/game/sprites/modelos/modelo-01.png`) e cole o prompt do §5.
-3. **As fotos nunca entram no repositório** (nem em `public/`): só o boneco pronto.
-4. Cada professor vê o próprio boneco antes de entrar no jogo.
+O kit em `scripts/arte/professores/` faz tudo, menos aprovar:
+- `kit.py` prepara a entrada: foto + folha de referência numa imagem só, para 1 upload por
+  professor. Também dá o prompt, recebe e **confere** o que o GPT fez (fundo magenta,
+  grade 4 × 4, mesmo tamanho na linha, linha 3 espelho da 2), monta a folha de revisão
+  (quadros no tamanho do jogo, direção que cada linha deve ter, foto ao lado) e um GIF
+  andando. Depois aprova e exporta um zip **sem foto nenhuma**.
+- `COWORK.md` é o roteiro do Claude no Cowork. Ele usa o ChatGPT pelo Chrome (Claude in
+  Chrome): conversa nova por tarefa, anexa, cola o prompt, baixa a imagem por JavaScript,
+  passa no `kit.py`, corrige na mesma conversa (até 3 vezes), olha a revisão e só aprova
+  com o "aprovo" do Matheus. Depois faz as ações e as motos com o boneco aprovado.
+- Upload pelo Claude in Chrome ainda falha em algumas versões. Se falhar, o Cowork pede
+  para o Matheus arrastar o arquivo (é o único passo manual possível).
+- A pasta de trabalho fica fora do repositório. O `kit.py` se recusa a rodar dentro de
+  um repositório git, e o `.gitignore` barra `WIT-professores/` e `fotos-professores/`.
 
-A pasta no Cowork não ajuda: quem gera a imagem é o GPT.
+Chegou o `para-o-claude.zip`: os arquivos vão para `public/Novos assets/personagem/professores/`
+→ `python3 scripts/arte/importar-sprites.py`. O importador corta nos vãos e iguala a altura
+das linhas (64 px, o aluno tem ~56). Ele grava `public/game/sprites/professores/` e a lista
+`src/game/world/prof-sprites.ts`; o professor da lista usa o boneco (`NpcDef.sprite`) e os
+outros continuam provisórios. As ações e as motos ficam guardadas até existir o desenho
+da ação no jogo.
 
 ---
 

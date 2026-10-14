@@ -80,6 +80,8 @@ export async function loadSheetFrames(url: string, cw: number, ch: number, footH
 const base = () => `${import.meta.env.BASE_URL}game/sprites`;
 /** NPC pronto (public/game/sprites/npcs). */
 export const loadNpcFrames = (id: string) => loadSheetFrames(`${base()}/npcs/${id}.png`, 64, 80, 76);
+/** Professor feito pela foto (public/game/sprites/professores; lista em prof-sprites.ts). */
+export const loadProfFrames = (id: string) => loadSheetFrames(`${base()}/professores/${id}.png`, 64, 80, 76);
 /** Reações do desafiante no duelo (public/game/sprites/npcs/reacoes): 8 quadros de 80 × 80
  *  — parado, pensando, jogando, apanhou, susto, comemorando, perdeu, sentado. */
 export async function loadReactionFrames(id: string): Promise<HTMLCanvasElement[]> {

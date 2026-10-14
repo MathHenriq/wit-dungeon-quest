@@ -44,3 +44,7 @@ botoes-*.png
 __pycache__/
 dist-demo
 scripts/out/
+
+# fotos dos professores (kit em scripts/arte/professores): nunca no git
+WIT-professores/
+fotos-professores/

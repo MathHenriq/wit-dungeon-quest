@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { PROF_SPRITES } from '../prof-sprites';
 import { bateNaPorta, CURSO, emCasa, ondeEsta, parteDoDia, PROF_BY_ID, PROFESSORES, profNpcs, profOf, profVisible } from '../professores';
 import { buildZone, ZONES } from '../world';
 import { NPCS } from '../content';
@@ -90,5 +92,22 @@ describe('professores', () => {
     expect(emCasa('casa-vermelha', 16).map(p => p.id).sort()).toEqual(['miguel', 'servilha', 'vitor']);
     expect(emCasa('moradia-1', 16)).toEqual([]);
     expect(emCasa('moradia-1', 23).map(p => p.id).sort()).toEqual(['miguel', 'vitor']);
+  });
+});
+
+describe('bonecos dos professores (kit em scripts/arte/professores)', () => {
+  const kit = JSON.parse(readFileSync('scripts/arte/professores/professores.json', 'utf8')) as { professores: { id: string; nome: string }[] };
+
+  it('o kit tem os mesmos professores do jogo', () => {
+    expect(kit.professores.map(p => p.id).sort()).toEqual(PROFESSORES.map(p => p.id).sort());
+    for (const p of kit.professores) expect(p.nome).toBe(PROF_BY_ID.get(p.id)!.nome);
+  });
+
+  it('cada boneco importado existe e é de um professor; quem tem boneco usa ele', () => {
+    for (const s of PROF_SPRITES) {
+      expect(existsSync(`public/game/sprites/professores/${s}.png`), s).toBe(true);
+      expect(PROF_BY_ID.has(s.replace(/^prof-/, '')), s).toBe(true);
+    }
+    for (const n of profNpcs()) expect(n.sprite).toBe(PROF_SPRITES.includes(`prof-${profOf(n.id)!.prof.id}`) ? `prof-${profOf(n.id)!.prof.id}` : undefined);
   });
 });

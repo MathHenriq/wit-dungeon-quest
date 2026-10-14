@@ -93,6 +93,8 @@ export interface NpcDef {
   job?: NpcJob;
   /** Área onde mora (sem isso, o Centro). */
   zona?: ZoneId;
+  /** Boneco pronto em public/game/sprites/professores (o professor feito pela foto); sem isso, o `look`. */
+  sprite?: string;
 }
 
 export const NPCS: NpcDef[] = [

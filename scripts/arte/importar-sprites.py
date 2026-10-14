@@ -2,8 +2,11 @@
 """Converte os personagens prontos (NPCs desafiantes) e os pets do GPT
 (folhas 4 × 4 no fundo magenta, cores reais) para o jogo, em hd:
 
-  public/game/sprites/npcs/<id>.png    quadros de 64 × 80 (como os modelos)
-  public/game/sprites/bichos/<id>.png  quadros de 48 × 48
+  public/game/sprites/npcs/<id>.png         quadros de 64 × 80 (como os modelos)
+  public/game/sprites/bichos/<id>.png       quadros de 48 × 48
+  public/game/sprites/professores/<id>.png  quadros de 64 × 80; os bonecos dos professores
+      feitos pela foto (kit em scripts/arte/professores). Cada linha vai para a mesma
+      altura (o GPT às vezes desenha as costas maiores); lista em src/game/world/prof-sprites.ts
 
 Linhas: frente, esquerda, direita, costas; colunas: parado, pé esquerdo,
 parado, pé direito. Os pés ficam numa linha fixa e o corpo no centro do
@@ -13,6 +16,7 @@ quadro, com uma escala só por tipo (o GPT desenha as folhas do mesmo tamanho).
 """
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -28,7 +32,32 @@ KINDS = {
     # pasta de origem, padrão do nome, destino, quadro (w, h), linha dos pés, escala (px da folha por px hd)
     'npcs': (ROOT / 'public/Novos assets/personagem/prontos', 'npc-*.png', ROOT / 'public/game/sprites/npcs', (64, 80), 76, 3.75),
     'bichos': (ROOT / 'public/Novos assets/pets', 'pet-*.png', ROOT / 'public/game/sprites/bichos', (48, 48), 46, 5.2),
+    # escala None: cada linha da folha vira PROF_H px de altura (adulto: um pouco maior que o aluno)
+    'professores': (ROOT / 'public/Novos assets/personagem/professores', 'prof-*.png', ROOT / 'public/game/sprites/professores', (64, 80), 76, None),
 }
+PROF_H = 64
+# só o boneco andando (prof-<id>.png); ações e moto têm outro formato
+PROF_SO_ANDAR = re.compile(r'^prof-[a-z]+$')
+kspec = importlib.util.spec_from_file_location('kit', ROOT / 'scripts/arte/professores/kit.py')
+kit = importlib.util.module_from_spec(kspec)
+kspec.loader.exec_module(kit)
+
+
+def frames_por_vao(path):
+    """Quadros cortados nos vãos entre os bonecos (não em partes iguais): uma linha maior
+    que as outras não invade a de cima."""
+    rgb, al = ip.imp.load(str(path))
+    A = al > 0.5
+    img = np.dstack([rgb, A * 255]).astype(np.uint8)
+    out = []
+    for row in kit.figuras(A, 4):
+        for x0, y0, x1, y1 in row:
+            out.append(img[y0:y1, x0:x1].copy())
+    if len(out) != 16:
+        sys.exit(f'{path.name}: achei {len(out)} bonecos, não 16 (confira com scripts/arte/professores/kit.py)')
+    return out
+
+
 # parecido demais com personagem conhecido: não entra no jogo (ver docs/fila-imagens.md)
 SKIP = {'pet-dragaozinho-brasa'}
 
@@ -60,13 +89,16 @@ def main():
         out.mkdir(parents=True, exist_ok=True)
         names = []
         for f in sorted(src.glob(pat)):
-            if f.stem in SKIP:
+            if f.stem in SKIP or (kind == 'professores' and not PROF_SO_ANDAR.match(f.stem)):
                 continue
-            fr = ip.frames(f)
+            fr = ip.frames(f) if scale is not None else frames_por_vao(f)
+            if scale is None:
+                hs = [x.shape[0] for x in fr]
+                escalas = [float(np.median(hs[r * 4:r * 4 + 4])) / PROF_H for r in range(4)]
             sheet = np.zeros((H * 4, W * 4, 4), np.uint8)
             for k, x in enumerate(fr):
                 r, c = divmod(k, 4)
-                sheet[r * H:(r + 1) * H, c * W:(c + 1) * W] = cell(x, W, H, foot, scale)
+                sheet[r * H:(r + 1) * H, c * W:(c + 1) * W] = cell(x, W, H, foot, escalas[r] if scale is None else scale)
             # paleta enxuta (pixel art) sem mexer no alfa
             q = np.array(Image.fromarray(sheet[..., :3], 'RGB').quantize(56, method=Image.Quantize.MEDIANCUT).convert('RGB'))
             sheet[..., :3] = np.where(sheet[..., 3:4] > 0, q, 0)
@@ -74,6 +106,11 @@ def main():
             names.append(f.stem)
             review.append(sheet)
         (out / 'manifest.json').write_text(json.dumps({'cell': [W, H], 'foot': foot, 'sprites': names}, indent=1))
+        if kind == 'professores':
+            ts = ROOT / 'src/game/world/prof-sprites.ts'
+            ts.write_text('// Gerado por scripts/arte/importar-sprites.py: os professores que já têm o boneco feito pela foto\n'
+                          '// (public/game/sprites/professores/<id>.png). Os outros usam o visual provisório (look).\n'
+                          f'export const PROF_SPRITES: string[] = {json.dumps(names)};\n')
         print(kind, len(names))
     if '--folha' in sys.argv:
         dest = sys.argv[sys.argv.index('--folha') + 1]

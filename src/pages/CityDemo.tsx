@@ -36,7 +36,7 @@ import {
   ahead, DELTA, findPath, newWalker, pixelPos, tick, type Dir, type Walker,
 } from '@/game/world/movement';
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
-import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
+import { DIRS, drawSeated, loadLookFrames, loadPetFrames, loadProfFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
 import { cloudEnabled, myNickname, pullProgress, studentSignedIn } from '@/game/cloud';
 import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
@@ -722,7 +722,7 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
       const [pf, pet, ...npcFrames] = await Promise.all([
         loadLookFrames(look),
         loadPetFrames(look.pet ?? DEFAULT_PET),
-        ...npcDefs.map(n => loadLookFrames(normalizeLook(n.look))),
+        ...npcDefs.map(n => n.sprite ? loadProfFrames(n.sprite) : loadLookFrames(normalizeLook(n.look))),
       ]);
       if (!alive) return;
       g.current.playerFrames = pf;
