@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   BUFFS, CLASS_SKILL, chooseBuff, CX, CY, doorTile, ELITE_NAME, ENEMY, FLOORS, GRID, isBoss, LOOT_CATS, NO_INPUT, petCap, RH, RW,
   SHOP_NAME, solidAt, spikeState, startRun, stepRun,
-  type BuffId, type Enemy, type EnemyKind, type Grade, type Input, type LootCat, type Run, type Side,
+  type BuffId, type Enemy, type EnemyKind, type Grade, type Input, type LootCat, type Run, type Shot, type Side,
 } from '@/game/dungeon';
 import { weapon } from '@/game/dungeon-weapons';
 import { finishPortal, portalRun, rankName, testRun, type PortalMode, type PortalPrize } from '@/game/hunter';
@@ -30,7 +30,8 @@ import { iconUrl } from '@/game/icons';
 import { itemIcon, itemLabel } from '@/game/items';
 import { play } from '@/game/sfx';
 import { SystemWindow } from './SystemWindow';
-import { colorsOf, drawActs, drawCine, drawFx, drawStatus, EL_COLOR, fxFrom, type Fx } from './dungeon-vfx';
+import { colorsOf, drawActs, drawCine, drawFx, drawFxTop, drawStatus, EL_COLOR, fxFrom, GROUND_ACTS, type Fx } from './dungeon-vfx';
+import { PixelLayer, pxRing, ramp } from './pixel-fx';
 import { drawCell, drawObj, drawWeapon, hash, loadDArt, newDArt, OBJ, type DArt } from './dungeon-art';
 import { bladeAngle, drawGhosts, HAND_Y, newMotion, poseOf, tinted, trackMotion, type Motion } from './player-vfx';
 import './dungeon.css';
@@ -114,6 +115,8 @@ export function DungeonView({ look, rank, mode = {}, teste = false, onClose }: {
   const shake = useRef(0);
   /** movimento do caçador só na tela (rastro, fantasmas, poses) */
   const motion = useRef<Motion>(newMotion());
+  /** camadas de pixel: chão (avisos, zonas) e ar (golpes, tiros, efeitos) */
+  const layers = useRef<Layers | null>(null);
   const [hud, setHud] = useState(() => snapshot(run.current));
   const [prize, setPrize] = useState<PortalPrize | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -240,10 +243,10 @@ export function DungeonView({ look, rank, mode = {}, teste = false, onClose }: {
         if (sh > 0.3) ctx.translate((Math.random() - 0.5) * sh * 2, (Math.random() - 0.5) * sh * 2);
         // cena: a câmera chega perto de quem soltou a carta
         if (r.cine) { const k = 1 - r.cine.t / r.cine.total, z = 1 + 0.18 * Math.min(1, k * 2.5), cx = r.cine.x * T, cy = r.cine.y * T; ctx.translate(cx, cy); ctx.scale(z, z); ctx.translate(-cx, -cy); }
-        draw(ctx, r, art.current, now, motion.current);
-        fx.current = drawFx(ctx, fx.current, Math.min(dt, 0.1), T);
+        const L = (layers.current ??= { g: new PixelLayer(W, H), a: new PixelLayer(W, H) });
+        fx.current = draw(ctx, r, art.current, now, motion.current, L, fx.current, Math.min(dt, 0.1));
         ctx.restore();
-        if (r.cine) drawCine(ctx, r, now, W, H, T, CARD_BY_ID.get(r.cine.card)?.name ?? '');
+        if (r.cine) drawCine(L.a, ctx, r, now, W, H, T, CARD_BY_ID.get(r.cine.card)?.name ?? '');
         if (r.slow > 0) { ctx.fillStyle = `rgba(40,90,255,${0.18 * Math.min(1, r.slow * 3)})`; ctx.fillRect(0, 0, W, H); }
       }
       if (now - hudAt > 90 || r.result || r.choice) { hudAt = now; setHud(snapshot(r)); }
@@ -577,7 +580,10 @@ function drawHazards(ctx: CanvasRenderingContext2D, run: Run, now: number) {
   }
 }
 
-function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: Motion) {
+interface Layers { g: PixelLayer; a: PixelLayer }
+
+/** Desenha a sala inteira; devolve os efeitos que continuam vivos. */
+function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: Motion, L: Layers, fx: Fx[], dt: number): Fx[] {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(roomLayer(run, a), 0, 0);
   const room = run.d.rooms[run.room], p = run.p;
@@ -669,34 +675,15 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: 
   }
   // sombras do Monarca no chão: pise para purificar
   for (const c of run.corpses) { ctx.fillStyle = `rgba(40,0,70,${0.6 + Math.sin(now / 90) * 0.2})`; ctx.beginPath(); ctx.ellipse(c.x * T, c.y * T, 14, 6, 0, 0, 7); ctx.fill(); ctx.strokeStyle = '#a04aff'; ctx.lineWidth = 1; ctx.stroke(); }
-  // avisos no chão: o golpe vem quando o vermelho enche
-  // (borda tracejada girando; o miolo enche até a borda; no último instante pisca branco)
-  for (const w of run.warns) {
-    const k = 1 - w.t / w.total, last = w.t < 0.1;
-    ctx.save();
-    const soft = w.dmg <= 0 && !w.st;
-    const edge = last ? 'rgba(255,255,255,.95)' : soft ? `rgba(255,170,90,${0.5 + k * 0.4})` : `rgba(255,80,90,${0.6 + k * 0.4})`;
-    ctx.fillStyle = soft ? `rgba(255,140,60,${0.06 + k * 0.12})` : `rgba(255,40,60,${0.1 + k * 0.2})`; ctx.strokeStyle = edge; ctx.lineWidth = 2;
-    if (w.kind === 'circle') {
-      const X = w.x * T, Y = w.y * T, R = w.r * T;
-      ctx.beginPath(); ctx.arc(X, Y, R, 0, 7); ctx.fill();
-      ctx.setLineDash([6, 4]); ctx.lineDashOffset = -now / 40; ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = last ? 'rgba(255,255,255,.45)' : soft ? 'rgba(255,150,70,.32)' : 'rgba(255,60,70,.38)'; ctx.beginPath(); ctx.arc(X, Y, R * k, 0, 7); ctx.fill();
-      ctx.strokeStyle = soft ? 'rgba(255,200,140,.6)' : 'rgba(255,170,170,.7)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X, Y, R * k, 0, 7); ctx.stroke();
-    } else {
-      const ang = Math.atan2(w.y2 - w.y, w.x2 - w.x), len = Math.hypot(w.x2 - w.x, w.y2 - w.y) * T, wd = Math.max(4, w.r * 2 * T);
-      ctx.translate(w.x * T, w.y * T); ctx.rotate(ang);
-      ctx.fillRect(0, -wd / 2, len, wd); ctx.strokeRect(0, -wd / 2, len, wd);
-      ctx.fillStyle = last ? 'rgba(255,255,255,.45)' : soft ? 'rgba(255,150,70,.32)' : 'rgba(255,60,70,.38)'; ctx.fillRect(0, -wd / 2, len * k, wd);
-      // setas andando para onde o golpe vai
-      ctx.fillStyle = soft ? 'rgba(255,210,160,.55)' : 'rgba(255,200,200,.6)';
-      const step = Math.max(14, wd * 1.2), off = (now / 12) % step, hw = Math.min(wd / 2 - 1, 6);
-      for (let x = off; x < len - 4; x += step) { ctx.beginPath(); ctx.moveTo(x, -hw); ctx.lineTo(x + hw, 0); ctx.lineTo(x, hw); ctx.lineTo(x - 3, hw); ctx.lineTo(x + hw - 3, 0); ctx.lineTo(x - 3, -hw); ctx.closePath(); ctx.fill(); }
-    }
-    ctx.restore();
+  // avisos no chão (o golpe vem quando o vermelho enche) e peças das cartas no chão, na camada de pixel
+  // (sem nada no chão, a camada nem abre: ler a tela de volta custa caro no celular)
+  if (run.warns.length || run.acts.some(x => GROUND_ACTS.includes(x.mv.m))) {
+    const g = L.g.begin();
+    drawWarns(g, L.g, run, now);
+    drawActs(L.g, ctx, run, now, T, true, 'px');
+    L.g.end(ctx);
+    drawActs(L.g, ctx, run, now, T, true, 'top');
   }
-  // peças das cartas no chão (zonas, minas, vórtices, prisões)
-  drawActs(ctx, { ...run, acts: run.acts.filter(x => ['zona', 'armadilha', 'puxar', 'prender'].includes(x.mv.m)) }, now, T);
 
   // corpos, de trás para a frente
   const bodies: { y: number; f: () => void }[] = [];
@@ -741,44 +728,18 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: 
   bodies.push({ y: p.y, f: () => drawPlayer(ctx, run, a, now, mo) });
   bodies.sort((x, y) => x.y - y.y).forEach(b => b.f());
 
-  // peças das cartas no ar (tiros, tornados, raios, chuva, órbitas)
-  drawActs(ctx, { ...run, acts: run.acts.filter(x => !['zona', 'armadilha', 'puxar', 'prender'].includes(x.mv.m)) }, now, T);
-  // tiros
-  for (const s of run.shots) {
-    const X = s.x * T, Y = s.y * T;
-    if (s.kind === 'bomba') {
-      // a bomba voa em arco por cima
-      const tot = Math.hypot(s.vx, s.vy) || 1, done = 1 - s.life / Math.max(0.3, s.life + 0.01), hop = Math.sin(Math.min(1, done) * Math.PI) * 30;
-      void tot;
-      ctx.fillStyle = '#2a2a3a'; ctx.beginPath(); ctx.arc(X, Y - 10 - hop, 6, 0, 7); ctx.fill(); ctx.fillStyle = '#ff7a2a'; ctx.fillRect(X - 1, Y - 18 - hop, 2, 4);
-      continue;
-    }
-    // arte do GPT (tiros.png): tiro do caçador, flecha, orbe de magia, bola do inimigo; rastro curto atrás
-    const row = s.kind === 'flecha' ? 1 : s.kind === 'magia' ? (s.mine ? 2 : 3) : s.kind === 'folha' ? -1 : s.mine ? 0 : 3;
-    if (row >= 0 && a.d.tiros) {
-      const ang = Math.atan2(s.vy, s.vx), sz = s.mine ? 22 : 26, fr = Math.floor(now / 70 + s.id) % 3;
-      ctx.save();
-      if ((s.frozen ?? 0) > 0) ctx.filter = 'hue-rotate(170deg) saturate(.6) brightness(1.4)';
-      for (let k = 2; k >= 0; k--) {
-        const back = k * 0.012, X2 = (s.x - s.vx * back) * T, Y2 = (s.y - s.vy * back) * T;
-        ctx.save(); ctx.globalAlpha = k ? 0.25 / k : 1; ctx.translate(X2, Y2); ctx.rotate(row === 3 || row === 2 ? 0 : ang);
-        drawCell(ctx, a.d.tiros, 16, 16, 4, row * 4 + fr, -sz / 2, -sz / 2, sz, sz);
-        ctx.restore();
-      }
-      ctx.restore();
-      continue;
-    }
-    if (s.kind === 'flecha') {
-      const ang = Math.atan2(s.vy, s.vx);
-      ctx.save(); ctx.translate(X, Y); ctx.rotate(ang); ctx.fillStyle = s.mine ? '#e8d0a0' : '#ff8a5a'; ctx.fillRect(-8, -1, 14, 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(5, -2, 4, 4); ctx.restore();
-    } else if (s.kind === 'folha') {
-      ctx.save(); ctx.translate(X, Y); ctx.rotate(now / 80); ctx.fillStyle = s.mine ? '#7aff6a' : '#3ac85a'; ctx.beginPath(); ctx.ellipse(0, 0, 6, 3, 0, 0, 7); ctx.fill(); ctx.restore();
-    } else {
-      const frozen = (s.frozen ?? 0) > 0;
-      ctx.fillStyle = frozen ? '#bff0ff' : s.mine ? (s.kind === 'magia' ? '#ff7ad8' : '#fff3a0') : s.kind === 'magia' ? '#7a3aff' : '#ff5ad8';
-      ctx.beginPath(); ctx.arc(X, Y, s.mine ? 4 : 6, 0, 7); ctx.fill();
-      ctx.fillStyle = s.mine ? '#ffb83a' : '#8a1a6a'; ctx.beginPath(); ctx.arc(X, Y, s.mine ? 2 : 3, 0, 7); ctx.fill();
-    }
+  // no ar: peças das cartas (tiros, tornados, raios, chuva, órbitas), tiros e efeitos (corte, faíscas, poeira):
+  // o desenho em código na camada de pixel; os quadros das folhas, os tiros e os números por cima
+  if (run.acts.length || run.shots.length || fx.length || p.heavy > 0 || p.charge) {
+    const c = L.a.begin();
+    drawActs(L.a, ctx, run, now, T, false, 'px');
+    for (const s of run.shots) shotTrail(c, s);
+    heavyCharge(c, run, now);
+    fx = drawFx(L.a, fx, dt, T);
+    L.a.end(ctx);
+    drawActs(L.a, ctx, run, now, T, false, 'top');
+    for (const s of run.shots) drawShot(ctx, s, a, now);
+    drawFxTop(ctx, fx, T);
   }
   // escuridão (Guardião da Cripta, Monarca): só a luz em volta do caçador e dos lampiões
   if (run.dark > 0) {
@@ -794,7 +755,126 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: 
   // dica de pegar
   const near = run.pickups.find(x => x.room === run.room && !run.bought.includes(x.id) && Math.hypot(x.x - p.x, x.y - p.y) < 0.9);
   if (near) label(ctx, near.kind === 'arma' ? 'E: trocar de arma' : near.kind === 'estatua' ? `E: bênção (${near.price})` : `E: ${SHOP_NAME[near.what ?? ''] ?? 'comprar'} (${near.price})`, p.x * T, p.y * T - 48, '#ffffff');
+  return fx;
 }
+/**
+ * Avisos no chão, em pixel: o vermelho pontilhado enche de fora para dentro,
+ * a borda tracejada anda em degraus e pisca branca no último 0,1 s; nas
+ * linhas, setas andando para onde o golpe vai.
+ */
+function drawWarns(c: CanvasRenderingContext2D, L: PixelLayer, run: Run, now: number) {
+  const st = Math.floor(now / 42);
+  for (const w of run.warns) {
+    const k = 1 - w.t / w.total, last = w.t < 0.1, soft = w.dmg <= 0 && !w.st;
+    const base = soft ? '#ff9a4a' : '#ff3a4a', edge = last ? '#ffffff' : soft ? '#ffc890' : '#ff8a8a';
+    c.save();
+    if (w.kind === 'circle') {
+      const X = w.x * T, Y = w.y * T, R = w.r * T;
+      // fundo bem ralo (mostra a área toda) e o miolo que enche
+      c.fillStyle = L.dither(base, 0.18); c.beginPath(); c.ellipse(X, Y, R, R * 0.72, 0, 0, 7); c.fill();
+      const rr = R * (1 - k);
+      c.fillStyle = L.dither(last ? '#ffffff' : base, last ? 0.6 : 0.5);
+      c.beginPath(); c.ellipse(X, Y, R, R * 0.72, 0, 0, 7); c.ellipse(X, Y, rr, rr * 0.72, 0, 0, 7); c.fill('evenodd');
+      c.setLineDash([10, 6]); c.lineDashOffset = -st * 2;
+      pxRing(c, X, Y, R, 4, edge);
+      c.setLineDash([]);
+      if (rr > 4) pxRing(c, X, Y, rr, 2, soft ? '#ffe0b0' : '#ffc0c0');
+    } else {
+      const ang = Math.atan2(w.y2 - w.y, w.x2 - w.x), len = Math.hypot(w.x2 - w.x, w.y2 - w.y) * T, wd = Math.max(8, w.r * 2 * T);
+      c.translate(w.x * T, w.y * T); c.rotate(ang);
+      c.fillStyle = L.dither(base, 0.18); c.fillRect(0, -wd / 2, len, wd);
+      c.fillStyle = L.dither(last ? '#ffffff' : base, last ? 0.6 : 0.5); c.fillRect(0, -wd / 2, len * k, wd);
+      c.strokeStyle = edge; c.lineWidth = 4; c.setLineDash([10, 6]); c.lineDashOffset = -st * 2; c.strokeRect(0, -wd / 2, len, wd); c.setLineDash([]);
+      // setas andando
+      c.fillStyle = soft ? '#ffe0b0' : '#ffd0d0';
+      const step = Math.max(18, wd * 1.3), off = (st * 3) % step, hw = Math.min(wd / 2 - 2, 8);
+      for (let x = off; x < len - 6; x += step) { c.beginPath(); c.moveTo(x, -hw); c.lineTo(x + hw, 0); c.lineTo(x, hw); c.lineTo(x - 4, hw); c.lineTo(x + hw - 4, 0); c.lineTo(x - 4, -hw); c.closePath(); c.fill(); }
+    }
+    c.restore();
+  }
+}
+
+/** Cor do tiro (rastro e impacto). */
+const shotColor = (s: Shot): string => ((s.frozen ?? 0) > 0 ? '#bff0ff' : s.mine ? (s.kind === 'magia' ? '#ff7ad8' : s.kind === 'flecha' ? '#e8d0a0' : '#ffd84a') : s.kind === 'magia' ? '#a06aff' : s.kind === 'folha' ? '#3ac85a' : '#ff5ad8');
+
+/** Rastro do tiro em pixel: 2 faixas que afinam para trás (mais longo quanto mais rápido). */
+function shotTrail(c: CanvasRenderingContext2D, s: Shot) {
+  if (s.kind === 'bomba') return;
+  const sp = Math.hypot(s.vx, s.vy) || 1, ux = s.vx / sp, uy = s.vy / sp, X = s.x * T, Y = s.y * T;
+  const len = Math.min(26, sp * 2.2), w = s.mine ? 6 : 9, rp = ramp(shotColor(s));
+  pxStreakTo(c, X - ux * len, Y - uy * len, X, Y, w + 4, rp[0]);
+  pxStreakTo(c, X - ux * len * 0.8, Y - uy * len * 0.8, X, Y, w, rp[1]);
+}
+function pxStreakTo(c: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, w: number, col: string) {
+  const dx = x2 - x1, dy = y2 - y1, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+  c.fillStyle = col; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2 + nx * w / 2, y2 + ny * w / 2); c.lineTo(x2 - nx * w / 2, y2 - ny * w / 2); c.closePath(); c.fill();
+}
+
+/** Folha de tiros pintada de gelo (tiro congelado), feita uma vez. */
+let iceShots: { src: HTMLImageElement; cv: HTMLCanvasElement } | null = null;
+function iceSheet(src: HTMLImageElement): HTMLCanvasElement {
+  if (iceShots?.src === src) return iceShots.cv;
+  const cv = document.createElement('canvas');
+  cv.width = src.width; cv.height = src.height;
+  const x = cv.getContext('2d')!;
+  x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-atop'; x.fillStyle = 'rgba(190,240,255,.7)'; x.fillRect(0, 0, cv.width, cv.height);
+  iceShots = { src, cv };
+  return cv;
+}
+
+/** O tiro: sprite do GPT em tamanho inteiro (16 px o do caçador, 32 px o do inimigo), sem borrar. */
+function drawShot(ctx: CanvasRenderingContext2D, s: Shot, a: Art, now: number) {
+  const X = Math.round(s.x * T), Y = Math.round(s.y * T);
+  if (s.kind === 'bomba') {
+    // a bomba voa em arco por cima
+    const done = 1 - s.life / Math.max(0.3, s.life + 0.01), hop = Math.round(Math.sin(Math.min(1, done) * Math.PI) * 30);
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(X - 5, Y - 2, 10, 3);
+    ctx.fillStyle = '#1a1424'; ctx.fillRect(X - 7, Y - 17 - hop, 14, 14); ctx.fillStyle = '#3a3248'; ctx.fillRect(X - 5, Y - 15 - hop, 10, 10);
+    ctx.fillStyle = Math.floor(now / 90) % 2 ? '#ffd84a' : '#ff5a2a'; ctx.fillRect(X - 1, Y - 22 - hop, 3, 5);
+    return;
+  }
+  // arte do GPT (tiros.png): tiro do caçador, flecha, orbe de magia, bola do inimigo
+  const row = s.kind === 'flecha' ? 1 : s.kind === 'magia' ? (s.mine ? 2 : 3) : s.kind === 'folha' ? -1 : s.mine ? 0 : 3;
+  if (row >= 0 && a.d.tiros) {
+    const ang = Math.atan2(s.vy, s.vx), sz = s.mine ? (s.kind === 'flecha' ? 32 : 16) : 32, fr = Math.floor(now / 70 + s.id) % 3;
+    const sheet = (s.frozen ?? 0) > 0 ? iceSheet(a.d.tiros) : a.d.tiros;
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(X, Y);
+    if (row === 1 || row === 0) ctx.rotate(ang);
+    drawCell(ctx, sheet, 16, 16, 4, row * 4 + fr, -sz / 2, -sz / 2, sz, sz);
+    ctx.restore();
+    return;
+  }
+  const col = shotColor(s), rp = ramp(col);
+  if (s.kind === 'folha') {
+    ctx.save(); ctx.translate(X, Y); ctx.rotate(Math.floor(now / 60) * 0.8); ctx.fillStyle = rp[0]; ctx.fillRect(-7, -4, 14, 8); ctx.fillStyle = rp[1]; ctx.fillRect(-6, -3, 12, 6); ctx.fillStyle = rp[3]; ctx.fillRect(-4, -2, 5, 2); ctx.restore();
+  } else {
+    const r = s.mine ? 4 : 6;
+    ctx.fillStyle = rp[0]; ctx.fillRect(X - r - 1, Y - r - 1, r * 2 + 2, r * 2 + 2);
+    ctx.fillStyle = rp[1]; ctx.fillRect(X - r, Y - r, r * 2, r * 2);
+    ctx.fillStyle = rp[3]; ctx.fillRect(X - r + 1, Y - r + 1, r, r);
+  }
+}
+
+/** Golpe pesado carregando (anel enchendo em degraus, faíscas puxadas) e carta carregando, em pixel. */
+function heavyCharge(c: CanvasRenderingContext2D, run: Run, now: number) {
+  const p = run.p, X = p.x * T, Y = p.y * T - 14;
+  if (p.heavy > 0) {
+    const full = p.heavy >= 1, col = full ? '#ffd84a' : '#ffffff', q = Math.floor(p.heavy * 8) / 8;
+    c.lineWidth = 7; c.strokeStyle = '#2a1a3a'; c.beginPath(); c.arc(X, Y, 17, -Math.PI / 2, -Math.PI / 2 + Math.max(0.2, q) * Math.PI * 2); c.stroke();
+    c.lineWidth = 4; c.strokeStyle = col; c.stroke();
+    const st = Math.floor(now / 42);
+    for (let k = 0; k < 5; k++) { const qq = (st / 8 + k / 5) % 1, an = k * 1.3 + st * 0.1, r = 26 * (1 - qq); c.fillStyle = col; c.fillRect(X + Math.cos(an) * r - 2, Y + Math.sin(an) * r - 2, 4, 4); }
+    if (full && st % 4 < 2) { c.fillStyle = '#ffffff'; c.fillRect(X - 2, Y - 21, 4, 4); }
+  }
+  if (p.charge) {
+    const k = Math.min(1, p.charge.t / p.charge.max), sk = p.skills[p.charge.slot], [c1, c2] = sk ? colorsOf(sk.card, sk.element) : ['#ffffff', '#ffffff'];
+    const rp = ramp(c1, c2), r = 5 + Math.floor(k * 4) * 3, cy = Y - 4;
+    c.fillStyle = rp[0]; c.beginPath(); c.arc(X, cy, r + 2, 0, 7); c.fill();
+    c.fillStyle = rp[1]; c.beginPath(); c.arc(X, cy, r, 0, 7); c.fill();
+    c.fillStyle = rp[3]; c.beginPath(); c.arc(X - r * 0.25, cy - r * 0.25, r * 0.45, 0, 7); c.fill();
+  }
+}
+
 const darkCv = { cv: null as HTMLCanvasElement | null };
 function darkLayer() { if (!darkCv.cv) { darkCv.cv = document.createElement('canvas'); darkCv.cv.width = W; darkCv.cv.height = H; } return darkCv.cv; }
 
@@ -872,11 +952,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number
   const pose = poseOf(run, mo, now, { walk: a.player?.walk ?? null, combat: a.combat, dodge: a.dodge }, DIR[p.face]);
   const hop = Math.min(0, pose.oy);
   ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(p.x * T + pose.ox, p.y * T + 2, 10 * scale * (1 + hop / 24), 4 * scale * (1 + hop / 24), 0, 0, 7); ctx.fill();
-  // fantasmas da cambalhota (o boneco deixa o rastro azulado)
-  if (pose.dashing && mo.last && now - mo.lastGhost > 26) {
-    mo.lastGhost = now;
-    mo.ghosts.push({ x: p.x + pose.ox / T, y: p.y + pose.oy / T, born: now, life: 190, ...mo.last, sx: pose.sx, sy: pose.sy, lean: pose.lean, color: '#7ad8ff' });
-  }
+  // fantasmas (2 na esquiva, 3 na investida, a Sombra da esquiva perfeita): nascem em player-vfx.ts
   drawGhosts(ctx, mo, now, T, scale);
   if (p.inv > 0 && p.dash <= 0 && p.lock <= 0 && !run.cine && Math.floor(now / 70) % 2) return;
   // aura da transformação
@@ -904,7 +980,6 @@ function drawPlayer(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number
       if (Math.cos(ang) < 0) ctx.scale(1, -1);
       // estocada: a arma vai para a frente
       if (pose.swing >= 0 && (mo.swingKind === 'investida' || (mo.swingKind === 'pesado' && mo.swingArc < 6.2))) ctx.translate(pose.swing < 0.4 ? pose.swing * 30 : 12 * (1 - pose.swing), 0);
-      if (p.heavy >= 1) { ctx.shadowColor = '#ffd84a'; ctx.shadowBlur = 10; }
       if (!drawWeapon(ctx, a.d, arm.id, 24 + arm.range * 6)) {
         ctx.fillStyle = p.heavy >= 1 ? '#ffd84a' : arm.id === 'foice' ? '#a87aff' : '#e8f0f8'; ctx.fillRect(8, -2, arm.range * 9, 4);
         ctx.fillStyle = '#c8a040'; ctx.fillRect(5, -6, 3, 12); ctx.fillStyle = '#6a3a20'; ctx.fillRect(-2, -1.5, 7, 3);
@@ -921,13 +996,14 @@ function drawPlayer(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number
   const behind = resting || pose.dir === 'north';
   if (behind) drawArm();
   ctx.save();
-  ctx.translate(p.x * T + pose.ox, p.y * T + 2 + pose.oy);
+  ctx.translate(Math.round(p.x * T + pose.ox), Math.round(p.y * T + 2 + pose.oy));
   ctx.rotate(pose.lean);
   ctx.scale(pose.sx * scale, pose.sy * scale);
   if (f?.form === 'colosso') ctx.filter = 'sepia(.6) saturate(2) hue-rotate(-20deg) brightness(1.1)';
   else if (f?.form === 'tita') ctx.filter = 'sepia(.4) saturate(1.4)';
   else if (f?.form === 'demonio') ctx.filter = 'brightness(.6) saturate(1.6) hue-rotate(-30deg)';
-  if (p.perfect) ctx.filter = 'drop-shadow(0 0 4px #8ad0ff)';
+  // esquiva perfeita: contorno azul de 1 pixel em volta do boneco (sem brilho borrado)
+  if (p.perfect) { const o = tinted(img, '#8ad0ff'); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) ctx.drawImage(o, -w / 2 + dx, -h * 0.9375 + dy, w, h); }
   ctx.drawImage(img, -w / 2, -h * 0.9375, w, h);
   // apanhou: pisca vermelho por cima
   if (pose.hurt) { ctx.globalAlpha = 0.55; ctx.drawImage(tinted(img, '#ff3a4a'), -w / 2, -h * 0.9375, w, h); }
@@ -935,13 +1011,7 @@ function drawPlayer(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number
   if (!behind) drawArm();
   // vapor do Titã Colossal
   if (f?.form === 'colosso') for (let k = 0; k < 4; k++) { ctx.fillStyle = 'rgba(240,240,240,.35)'; ctx.beginPath(); ctx.arc(p.x * T - 14 + k * 9, p.y * T - h * 0.9 * scale - ((now / 20 + k * 13) % 30), 6, 0, 7); ctx.fill(); }
-  // golpe pesado carregando: anel enchendo e faíscas puxadas para a lâmina; carta carregando
-  if (p.heavy > 0) {
-    ctx.strokeStyle = p.heavy >= 1 ? '#ffd84a' : '#ffffff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x * T, p.y * T - 14, 16, -Math.PI / 2, -Math.PI / 2 + p.heavy * Math.PI * 2); ctx.stroke();
-    for (let k = 0; k < 5; k++) { const q = ((now / 300 + k / 5) % 1), an = k * 1.3 + now / 400, r = 24 * (1 - q); ctx.fillStyle = p.heavy >= 1 ? '#ffd84a' : '#ffffff'; ctx.globalAlpha = q; ctx.fillRect(p.x * T + Math.cos(an) * r - 1, p.y * T - 14 + Math.sin(an) * r - 1, 2, 2); }
-    ctx.globalAlpha = 1;
-  }
-  if (p.charge) { const k = Math.min(1, p.charge.t / p.charge.max), sk = p.skills[p.charge.slot], [c1] = sk ? colorsOf(sk.card, sk.element) : ['#fff']; ctx.fillStyle = c1; ctx.globalAlpha = 0.5 + k * 0.5; ctx.beginPath(); ctx.arc(p.x * T, p.y * T - 18, 4 + k * 10, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+  // o golpe pesado e a carta carregando saem na camada de pixel (heavyCharge)
   drawStatus(ctx, p.sb, p.x * T, p.y * T, h * 0.8 * scale, now);
 }
 

@@ -104,7 +104,7 @@ export type BuffId = 'coracao' | 'escudo' | 'mana' | 'critico' | 'recarga' | 'fa
 export type Grade = 'S' | 'A' | 'B' | 'C';
 
 export type Ev =
-  | { k: 'swing'; x: number; y: number; ang: number; arc: number; range: number; kind?: 'leve' | 'final' | 'pesado' | 'investida' }
+  | { k: 'swing'; x: number; y: number; ang: number; arc: number; range: number; kind?: 'leve' | 'final' | 'pesado' | 'investida'; card?: string; el?: Element }
   | { k: 'shoot'; x: number; y: number; ang: number }
   | { k: 'hit'; x: number; y: number; dmg: number; crit: boolean; block?: boolean }
   | { k: 'kill'; x: number; y: number; kind: EnemyKind; elite?: boolean }
@@ -116,7 +116,7 @@ export type Ev =
   | { k: 'reacao'; x: number; y: number; id: string } | { k: 'perfeita'; x: number; y: number } | { k: 'parede'; x: number; y: number }
   | { k: 'postura'; x: number; y: number; boss: boolean } | { k: 'cardflip'; x: number; y: number; card: string } | { k: 'cine'; style: Cine; card: string }
   | { k: 'grade'; g: Grade } | { k: 'forma'; form: Form; on: boolean } | { k: 'reviveu' } | { k: 'segredo' } | { k: 'enrage' }
-  | { k: 'zap'; x: number; y: number; x2: number; y2: number } | { k: 'boom'; x: number; y: number; r: number; el: Element } | { k: 'abate'; x: number; y: number }
+  | { k: 'zap'; x: number; y: number; x2: number; y2: number } | { k: 'boom'; x: number; y: number; r: number; el: Element; card?: string } | { k: 'abate'; x: number; y: number }
   | { k: 'classe'; id: PathId } | { k: 'status'; x: number; y: number; st: StatusId } | { k: 'semcarta' } | { k: 'msg'; text: string };
 
 export interface Run {
@@ -425,7 +425,7 @@ export function chainZap(run: Run, from: Enemy, dmg: number, card?: string) {
 export function areaHit(run: Run, x: number, y: number, r: number, dmg: number, o: DmgOpts, skip = -1) {
   for (const e of run.enemies) if (e.id !== skip && targetable(e) && Math.hypot(e.x - x, e.y - y) < r + bodyR(e)) damageEnemy(run, e, dmg, { ...o, fx: o.fx ?? x, fy: o.fy ?? y });
   damageBreaks(run, (bx, by) => Math.hypot(bx - x, by - y) < r + 0.4, dmg);
-  run.ev.push({ k: 'boom', x, y, r, el: o.el ?? 'Fire' });
+  run.ev.push({ k: 'boom', x, y, r, el: o.el ?? 'Fire', card: o.card });
 }
 
 /** Estados que andam sozinhos: dano por segundo, semente brotando, marca explodindo. */

@@ -94,7 +94,11 @@ export function drawWeapon(ctx: CanvasRenderingContext2D, a: DArt, id: WeaponId,
   const sheet = LONGAS.includes(id) ? a.longas : a.curtas;
   if (!sheet) return false;
   const k = len / 48;
+  // menor que a folha: suaviza (o "vizinho mais perto" comeria pixel de forma desigual)
+  const sm = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = k < 1; ctx.imageSmoothingQuality = 'high';
   drawCell(ctx, sheet, 48, 48, 4, WEAPON_CELL[id], -6 * k, -24 * k, 48 * k, 48 * k);
+  ctx.imageSmoothingEnabled = sm;
   return true;
 }
 

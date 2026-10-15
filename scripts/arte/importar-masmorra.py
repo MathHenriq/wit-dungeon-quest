@@ -15,6 +15,8 @@ existe; sem ele, continua a provisória.
   lugares/     portal 4 × 1 (96 × 128) · piso-parede-* 4 × 3 (32) · perigos 4 × 2 (32) · salas 4 × 2 (64) · objetos 4 × 4 (64)
   saguao/      4 × 2   128      public/game/masmorra/saguao/<nome>.png
   icones/      4 × 3   32       public/game/icons/itens/<id>.png (um arquivo por ícone)
+  efeitos-elemento/  6 × 4  64  public/game/masmorra/efeitos-elemento/<elemento>.png   (§10.1, visual v2)
+  golpes/      golpes-jogador 6 × 6 (64) · projeteis 8 × 6 (32) → public/game/masmorra/golpes/   (§10.2 e §10.3)
   personagem/  pelo importar-personagem.py --so-poses → public/game/sprites/modelos/poses/
 
   python3 scripts/arte/importar-masmorra.py [--folha revisao.png]
@@ -192,6 +194,9 @@ def main():
             else (4, 2, 64, 64, True, GAME / 'masmorra/lugares' / f.name) if f.stem == 'salas'
             else (4, 4, 64, 64, True, GAME / 'masmorra/lugares' / f.name)),
         ('saguao', '*.png', lambda f: (4, 2, 128, 128, True, GAME / 'masmorra/saguao' / f.name)),
+        # visual v2 (§10): efeitos por elemento, golpes do caçador e os objetos que as cartas jogam
+        ('efeitos-elemento', '*.png', lambda f: (6, 4, 64, 64, False, GAME / 'masmorra/efeitos-elemento' / f.name)),
+        ('golpes', '*.png', lambda f: (8, 6, 32, 32, False, GAME / 'masmorra/golpes' / f.name) if f.stem == 'projeteis' else (6, 6, 64, 64, False, GAME / 'masmorra/golpes' / f.name)),
     ]
     for folder, pat, spec in groups:
         for f in sorted((SRC / folder).glob(pat)):

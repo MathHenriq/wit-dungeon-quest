@@ -81,6 +81,12 @@ Partida de 6 a 11 min para o robô (o aluno leva mais). Luta direta com o chefe:
 
 **Inimigos:** aviso no chão com borda girando, setas andando na linha do golpe e piscada branca no último instante; o chão brilha vermelho enquanto o inimigo prepara; anel de poeira onde o golpe cai.
 
+**Visual v2 (15/10), depois do "está feio" do Matheus:** tudo em pixel art, o motor não mudou (a simulação continua valendo).
+- **Camada de pixel** (`pixel-fx.ts`): o que é desenhado em código (corte, poeira, anéis, avisos, feixes sem folha, zonas) sai numa tela de meia resolução ampliada sem suavizar, com transparência em pontilhado, a 24 quadros por segundo. Só abre quando há algo para desenhar. Cortar a transparência da borda (ler a tela de volta ou filtro SVG) custava ~30% de fps no celular e ficou de fora (medido em combate, CPU 4× mais lenta: antes 28 fps, v2 34).
+- **Cartas com os sprites do GPT** (`card-sprites.ts`): tabela de como usar cada uma das 67 folhas (quadros do voo, do impacto, onde está o feixe). O tiro voa tocando os quadros e explode com os do fim; o feixe (Kamehameha, Final Flash, Zoltraak...) é montado da própria folha (origem, corpo esticado, ponta); zona e tornado tocam em loop; corte de carta toca a folha no golpe; investida leva a folha junto. As **101 Comum–Rara** emprestam uma folha genérica do mesmo elemento, menor (60–80%), até o pacote do §10 do GPT; o objeto que voa (kunai, carta, martelo...) é desenhado em pixel. Teste: `src/game/__tests__/card-sprites.test.ts`.
+- **Caçador:** corte em meia-lua de 4 faixas sem degradê; impacto em estrela; anéis viram estouro de traços curtos (no máximo 1 por acontecimento); esquiva com os quadros do GPT na hora certa (agacha, rola, chega), só 2 fantasmas com as cores do boneco e poeira em pixel; tiro em tamanho inteiro (16/32 px) com rastro em faixas e estrelinha quando acaba; textos grandes não se cobrem.
+- **Prints:** `node scripts/mapa/masmorra-cartas.mjs <pasta> [carta,...]` (câmera lenta, 4 quadros por carta) e `masmorra-golpes.mjs` (combo, esquiva, investida, tiro, aviso).
+
 **Câmera lenta para prints (só no dev):** `window.__dungeonTime = 0.08` deixa a partida 12× mais lenta; `node scripts/mapa/masmorra-golpes.mjs <pasta> [modelo]` tira as tiras de quadros do combo, pesado, esquiva, investida, tiro e aviso dos inimigos.
 
 **Testar só a masmorra** (sem passar pela cidade):
