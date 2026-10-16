@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { PROF_SPRITES } from '../prof-sprites';
+import { isRide } from '../jobs';
+import { ROAD_TERRAIN } from '../../vehicles';
 import { bateNaPorta, CURSO, emCasa, ondeEsta, parteDoDia, PROF_BY_ID, PROFESSORES, profNpcs, profOf, profVisible } from '../professores';
 import { buildZone, ZONES } from '../world';
 import { NPCS } from '../content';
@@ -25,8 +27,8 @@ function reachable(t: Town, zone: ZoneId): Set<string> {
 }
 
 describe('professores', () => {
-  it('são os 12 da lista do Matheus, cada um com curso e casa que existem', () => {
-    expect(PROFESSORES.map(p => p.id).sort()).toEqual(['dante', 'felipe', 'grazyelle', 'guilherme', 'leticia', 'macedo', 'mayara', 'maycon', 'miguel', 'servilha', 'vitor', 'wellington']);
+  it('são os 12 professores + coordenação e apoio, cada um com curso e casa que existem', () => {
+    expect(PROFESSORES.map(p => p.id).sort()).toEqual(['dante', 'felipe', 'grazyelle', 'guilherme', 'leticia', 'lucatto', 'macedo', 'mayara', 'maycon', 'miguel', 'servilha', 'valton', 'vitor', 'wellington']);
     const doors = new Set(ZONES.flatMap(z => towns[z].doors.map(d => d.building)));
     for (const p of PROFESSORES) {
       expect(doors.has(p.casa), `${p.id}: casa ${p.casa}`).toBe(true);
@@ -49,6 +51,8 @@ describe('professores', () => {
       maycon: 'comunicacao',
       vitor: 'metaverso',
       felipe: 'metaverso',
+      valton: 'coordenacao',
+      lucatto: 'apoio',
     });
   });
 
@@ -78,6 +82,26 @@ describe('professores', () => {
     }
   });
 
+  it('carro e moto: começam na rua e cada parada da volta se alcança só pela rua', () => {
+    const rides = profNpcs().filter(n => isRide(n.job));
+    expect(rides.map(n => n.id).sort()).toEqual(['prof:dante:passatempo', 'prof:lucatto:passatempo', 'prof:valton:passatempo', 'prof:wellington:passatempo']);
+    for (const n of rides) {
+      const t = towns[n.zona!];
+      const road = (x: number, y: number) => !t.solid[y]?.[x] && ROAD_TERRAIN.has(t.terrain[y]?.[x] ?? '');
+      const seen = new Set([`${n.tx},${n.ty}`]), q = [[n.tx, n.ty]];
+      expect(road(n.tx, n.ty), `${n.id} começa fora da rua`).toBe(true);
+      while (q.length) {
+        const [x, y] = q.shift()!;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const k = `${x + dx},${y + dy}`;
+          if (!seen.has(k) && road(x + dx, y + dy)) { seen.add(k); q.push([x + dx, y + dy]); }
+        }
+      }
+      for (const [x, y] of n.job!.route!) expect(seen.has(`${x},${y}`), `${n.id}: parada ${x},${y} fora da rua`).toBe(true);
+      expect(existsSync(`public/game/sprites/veiculos/${n.job!.veiculo}.png`), n.job!.veiculo).toBe(true);
+    }
+  });
+
   it('o id do morador diz quem é e a parte do dia', () => {
     expect(profOf('prof:maycon:passatempo')?.prof.nome).toBe('Prof. Maycon');
     expect(profOf('guia')).toBeNull();
@@ -85,7 +109,8 @@ describe('professores', () => {
   });
 
   it('bater na porta: quem está em casa responde; senão, diz onde a pessoa está', () => {
-    expect(bateNaPorta('casa-rosa', 10)).toBeNull();
+    expect(bateNaPorta('casa-azul-nao-existe', 10)).toBeNull();
+    expect(bateNaPorta('casa-rosa', 10)!.at(-1)).toMatch(/Núcleo WIT/);
     expect(bateNaPorta('moradia-3', 10)!.at(-1)).toMatch(/Inteligência Artificial/);
     expect(bateNaPorta('moradia-3', 15)!.join(' ')).toMatch(/jiu-jitsu/i);
     // à tarde o Vitor e o Miguel jogam na casa do Servilha
@@ -106,8 +131,12 @@ describe('bonecos dos professores (kit em scripts/arte/professores)', () => {
   it('cada boneco importado existe e é de um professor; quem tem boneco usa ele', () => {
     for (const s of PROF_SPRITES) {
       expect(existsSync(`public/game/sprites/professores/${s}.png`), s).toBe(true);
-      expect(PROF_BY_ID.has(s.replace(/^prof-/, '')), s).toBe(true);
+      expect(PROF_BY_ID.has(s.replace(/^prof-/, '').replace(/-capacete$/, '')), s).toBe(true);
     }
-    for (const n of profNpcs()) expect(n.sprite).toBe(PROF_SPRITES.includes(`prof-${profOf(n.id)!.prof.id}`) ? `prof-${profOf(n.id)!.prof.id}` : undefined);
+    for (const n of profNpcs()) {
+      const id = profOf(n.id)!.prof.id;
+      const want = n.job?.kind === 'moto' ? `prof-${id}-capacete` : `prof-${id}`;
+      expect(n.sprite, n.id).toBe(PROF_SPRITES.includes(want) ? want : undefined);
+    }
   });
 });

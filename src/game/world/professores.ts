@@ -17,7 +17,7 @@ import type { Look } from './outfit';
 import type { NpcJob } from './jobs';
 import { PROF_SPRITES } from './prof-sprites';
 
-export type Curso = 'ia' | 'games' | 'comunicacao' | 'iot' | 'metaverso';
+export type Curso = 'ia' | 'games' | 'comunicacao' | 'iot' | 'metaverso' | 'coordenacao' | 'apoio';
 
 /** Prédio de cada curso na Cidade WIT (o painel de tarefas é o da porta: `WORK_DOORS`). */
 export const CURSO: Record<Curso, { nome: string; predio: string }> = {
@@ -26,7 +26,11 @@ export const CURSO: Record<Curso, { nome: string; predio: string }> = {
   comunicacao: { nome: 'Comunicação Digital', predio: 'estudio' },
   iot: { nome: 'IoT', predio: 'casa-iot' },
   metaverso: { nome: 'Metaverso', predio: 'metaverso' },
+  // não dão aula: trabalham no Núcleo WIT de manhã
+  coordenacao: { nome: 'Coordenação do WIT', predio: 'nucleo-wit' },
+  apoio: { nome: 'Apoio do WIT', predio: 'nucleo-wit' },
 };
+const SEM_AULA: Curso[] = ['coordenacao', 'apoio'];
 
 type Spot = { zona: ZoneId; tx: number; ty: number; dir: Dir; job?: NpcJob };
 
@@ -48,12 +52,20 @@ export interface Professor {
   falas: { aula: string[]; almoco: string[]; passatempo: string[]; casa: string[] };
   /** Ação especial no passatempo (vender, tirar foto). */
   acao?: 'cachorro-quente' | 'foto';
+  /** De moto no passatempo: usa o boneco de capacete (prof-<id>-capacete). */
+  capacete?: boolean;
 }
 
 const L = (modelo: string, pele: string, cabelo: string, cima: string, baixo: string, acc?: Look['acc']): Look => ({ modelo, pele, cabelo, cima, baixo, acc });
 
-// rota de moto (provisória, a pé até chegar o boneco na moto): as ruas do Centro
-const ROTA_MOTO: NpcJob = { kind: 'passear', route: [[22, 21, 'east'], [44, 21, 'south'], [31, 33, 'west'], [12, 33, 'north']], pause: [800, 1600] };
+// de moto ou de carro: só na rua (avenida das linhas 20–21 e a descida do x 31–32 no Centro;
+// o anel da Cidade WIT). Cada um começa num ponto diferente da volta.
+const voltaCentro = (k: number): NpcJob['route'] => {
+  const v: NonNullable<NpcJob['route']> = [[3, 21, 'west'], [32, 22, 'south'], [31, 44, 'south'], [32, 21, 'north'], [60, 20, 'east']];
+  return [...v.slice(k), ...v.slice(0, k)];
+};
+const moto = (veiculo: string, k: number): NpcJob => ({ kind: 'moto', veiculo, route: voltaCentro(k), pause: [600, 1400] });
+const CARRO_VALTON: NpcJob = { kind: 'carro', veiculo: 'carro-march-preto', route: [[9, 13, 'west'], [9, 35, 'south'], [61, 36, 'east'], [61, 12, 'north'], [30, 13, 'west']], pause: [1200, 2400] };
 const ROTA_FOTO: NpcJob = { kind: 'passear', route: [[24, 29, 'south'], [34, 39, 'east'], [50, 40, 'north'], [23, 25, 'west']], pause: [3000, 6000] };
 
 export const PROFESSORES: Professor[] = [
@@ -61,7 +73,8 @@ export const PROFESSORES: Professor[] = [
     id: 'dante', nome: 'Prof. Dante', curso: 'ia', casa: 'casa-laranja', ativo: true,
     look: L('modelo-08', 'pele-3', 'preto', 'preto', 'jeans'),
     aula: { zona: 'wit', tx: 14, ty: 13, dir: 'south' }, almoco: { zona: 'cidade', tx: 34, ty: 21, dir: 'east' },
-    passatempo: { texto: 'anda de moto com o Prof. Wellington', onde: { zona: 'cidade', tx: 22, ty: 21, dir: 'east', job: ROTA_MOTO } },
+    passatempo: { texto: 'anda de moto com o Prof. Wellington', onde: { zona: 'cidade', tx: 22, ty: 21, dir: 'east', job: moto('moto-preta', 0) } },
+    capacete: true,
     falas: {
       aula: ['Prof. Dante: Bora treinar uma IA hoje? Escolhe a tarefa.'],
       almoco: ['Prof. Dante: Cachorro-quente do Maycon é o melhor do Vale. Fato.'],
@@ -73,7 +86,8 @@ export const PROFESSORES: Professor[] = [
     id: 'wellington', nome: 'Prof. Wellington', curso: 'iot', casa: 'casa-roxa', ativo: true,
     look: L('modelo-09', 'pele-5', 'preto', 'marinho', 'preto'),
     aula: { zona: 'wit', tx: 3, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 35, ty: 22, dir: 'north' },
-    passatempo: { texto: 'anda de moto com o Prof. Dante', onde: { zona: 'cidade', tx: 44, ty: 21, dir: 'south', job: ROTA_MOTO } },
+    passatempo: { texto: 'anda de moto com o Prof. Dante', onde: { zona: 'cidade', tx: 44, ty: 21, dir: 'south', job: moto('moto-azul', 0) } },
+    capacete: true,
     falas: {
       aula: ['Prof. Wellington: Sensor ligado, regra montada. Vamos de IoT?'],
       almoco: ['Prof. Wellington: Hoje à tarde tem passeio de moto. Se o Dante não atrasar.'],
@@ -203,6 +217,31 @@ export const PROFESSORES: Professor[] = [
       casa: ['Profa. Grazyelle: Editando as fotos do dia. Saiu uma sua, sabia?'],
     },
   },
+  {
+    id: 'valton', nome: 'Valton', curso: 'coordenacao', casa: 'casa-rosa', ativo: true,
+    look: L('modelo-04', 'pele-4', 'preto', 'verde', 'jeans'),
+    aula: { zona: 'wit', tx: 29, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 33, ty: 22, dir: 'east' },
+    passatempo: { texto: 'dá umas voltas de carro pela Cidade WIT', onde: { zona: 'wit', tx: 20, ty: 13, dir: 'east', job: CARRO_VALTON } },
+    falas: {
+      aula: ['Valton: Bom dia! Coordenação do WIT. Já foi para a aula do seu curso?', 'Valton: Qualquer problema na turma, é comigo.'],
+      almoco: ['Valton: Almoço rápido, que a tarde é corrida na coordenação.'],
+      passatempo: ['Valton: (buzina) Bi-bi! Cuidado na rua, hein!', 'Valton: O March é pequeno, mas cabe a coordenação inteira.'],
+      casa: ['Valton: Carro na garagem. Amanhã cedo tem reunião.'],
+    },
+  },
+  {
+    id: 'lucatto', nome: 'Lucatto', curso: 'apoio', casa: 'casa-coworking', ativo: true,
+    look: L('modelo-09', 'pele-2', 'castanho', 'verde', 'jeans'),
+    aula: { zona: 'wit', tx: 35, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 40, ty: 22, dir: 'north' },
+    passatempo: { texto: 'anda de moto pelo Centro', onde: { zona: 'cidade', tx: 50, ty: 20, dir: 'west', job: moto('moto-vermelha', 2) } },
+    capacete: true,
+    falas: {
+      aula: ['Lucatto: Apoio do WIT! Precisa de ajuda com alguma coisa?', 'Lucatto: Computador travou? Chama que eu resolvo.'],
+      almoco: ['Lucatto: Depois do almoço vou dar uma volta de moto.'],
+      passatempo: ['Lucatto: Capacete sempre! Moto vermelha e branca, a mais bonita do Vale.', 'Lucatto: (ronco do motor) Vrum!'],
+      casa: ['Lucatto: Moto guardada. Até amanhã!'],
+    },
+  },
 ];
 
 export const PROF_BY_ID = new Map(PROFESSORES.map(p => [p.id, p]));
@@ -239,10 +278,12 @@ export function profNpcs(): NpcDef[] {
   const out: NpcDef[] = [];
   for (const p of ativos()) {
     const title = CURSO[p.curso].nome;
-    const sprite = PROF_SPRITES.includes(`prof-${p.id}`) ? `prof-${p.id}` : undefined;
+    const own = (id: string) => (PROF_SPRITES.includes(id) ? id : undefined);
     const parts: [Parte, Spot | null][] = [['aula', p.aula], ['almoco', p.almoco], ['passatempo', p.passatempo.onde === 'casa' ? null : p.passatempo.onde]];
     for (const [parte, s] of parts) {
       if (!s) continue;
+      // de moto: o boneco de capacete
+      const sprite = (p.capacete && s.job?.kind === 'moto' && own(`prof-${p.id}-capacete`)) || own(`prof-${p.id}`);
       out.push({ id: NPC_ID(p, parte), zona: s.zona, tx: s.tx, ty: s.ty, dir: s.dir, look: p.look, name: p.nome, title, lines: p.falas[parte], job: s.job, sprite });
     }
   }
@@ -279,7 +320,8 @@ export function bateNaPorta(predio: string, hour: number): string[] | null {
   for (const p of dentro) lines.push(...(parteDoDia(p, hour) === 'passatempo' ? p.falas.passatempo : p.falas.casa));
   if (!dentro.length) {
     const p = donos[0], parte = parteDoDia(p, hour);
-    const onde = parte === 'aula' ? `dando aula de ${CURSO[p.curso].nome} na Cidade WIT` : parte === 'almoco' ? 'almoçando na praça do Centro' : p.passatempo.texto;
+    const onde = parte === 'aula' ? (SEM_AULA.includes(p.curso) ? 'trabalhando no Núcleo WIT, na Cidade WIT' : `dando aula de ${CURSO[p.curso].nome} na Cidade WIT`)
+      : parte === 'almoco' ? 'almoçando na praça do Centro' : p.passatempo.texto;
     lines.push(`Ninguém atende. ${donos.length > 1 ? 'Eles devem estar' : `${p.nome} deve estar`} ${onde}.`);
   }
   return lines;

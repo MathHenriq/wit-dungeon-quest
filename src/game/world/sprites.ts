@@ -59,13 +59,13 @@ export async function loadLookFrames(look: Look): Promise<Frames> {
  * Folha 4 × 4 pronta (NPCs e pets do GPT): linhas frente, esquerda, direita,
  * costas; quadros de `cw` × `ch` em hd, pés na linha `footHd`.
  */
-export async function loadSheetFrames(url: string, cw: number, ch: number, footHd: number): Promise<Frames> {
+export async function loadSheetFrames(url: string, cw: number, ch: number, footHd: number, waists?: number[]): Promise<Frames> {
   const img = await loadImage(url);
   const walk = {} as Record<Dir, HTMLCanvasElement[]>;
   const foot = {} as Record<Dir, number>;
   const waist = {} as Record<Dir, number>;
   MODEL_ROWS.forEach((d, r) => {
-    waist[d] = Math.round((NPC_WAIST / 40) * (ch / R));
+    waist[d] = waists?.[r] ?? Math.round((NPC_WAIST / 40) * (ch / R));
     walk[d] = [0, 1, 2, 3].map(c => {
       const cv = document.createElement('canvas');
       cv.width = cw; cv.height = ch;
@@ -80,8 +80,13 @@ export async function loadSheetFrames(url: string, cw: number, ch: number, footH
 const base = () => `${import.meta.env.BASE_URL}game/sprites`;
 /** NPC pronto (public/game/sprites/npcs). */
 export const loadNpcFrames = (id: string) => loadSheetFrames(`${base()}/npcs/${id}.png`, 64, 80, 76);
-/** Professor feito pela foto (public/game/sprites/professores; lista em prof-sprites.ts). */
-export const loadProfFrames = (id: string) => loadSheetFrames(`${base()}/professores/${id}.png`, 64, 80, 76);
+let profManifest: Promise<{ cintura?: Record<string, number[]> }> | null = null;
+/** Professor com boneco próprio (public/game/sprites/professores; lista em prof-sprites.ts), com a cintura medida. */
+export async function loadProfFrames(id: string): Promise<Frames> {
+  profManifest ??= fetch(`${base()}/professores/manifest.json`).then(r => r.json()).catch(() => ({}));
+  const m = await profManifest;
+  return loadSheetFrames(`${base()}/professores/${id}.png`, 64, 80, 76, m.cintura?.[id]);
+}
 /** Reações do desafiante no duelo (public/game/sprites/npcs/reacoes): 8 quadros de 80 × 80
  *  — parado, pensando, jogando, apanhou, susto, comemorando, perdeu, sentado. */
 export async function loadReactionFrames(id: string): Promise<HTMLCanvasElement[]> {

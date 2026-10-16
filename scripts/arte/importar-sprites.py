@@ -105,7 +105,13 @@ def main():
             Image.fromarray(sheet, 'RGBA').save(out / f.name)
             names.append(f.stem)
             review.append(sheet)
-        (out / 'manifest.json').write_text(json.dumps({'cell': [W, H], 'foot': foot, 'sprites': names}, indent=1))
+        if kind == 'professores':
+            # os bonecos feitos por código (professores/bonecos.py) moram na mesma pasta: junta
+            names = sorted(p.stem for p in out.glob('prof-*.png'))
+            old = json.loads((out / 'manifest.json').read_text()) if (out / 'manifest.json').exists() else {}
+            (out / 'manifest.json').write_text(json.dumps({**old, 'cell': [W, H], 'foot': foot, 'sprites': names}, indent=1))
+        else:
+            (out / 'manifest.json').write_text(json.dumps({'cell': [W, H], 'foot': foot, 'sprites': names}, indent=1))
         if kind == 'professores':
             ts = ROOT / 'src/game/world/prof-sprites.ts'
             ts.write_text('// Gerado por scripts/arte/importar-sprites.py: os professores que já têm o boneco feito pela foto\n'

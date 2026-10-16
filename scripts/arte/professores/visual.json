@@ -1,0 +1,26 @@
+{
+  "_sobre": "Visual dos professores, pela descrição do Matheus (16/10). bonecos.py monta cada um a partir de um modelo do jogo. Todos usam a camisa verde com WIT em branco. Valores: modelo = corte de cabelo (modelo-01..10); pele = pele-1..6; cabelo/barba = cor do cabelo (castanho, castanho-escuro, preto...); barba = bigode | cavanhaque | bigode+cavanhaque | bigodinho | cheia | curta; oculos = redondo | redondo-pequeno | grande-redondo | grande-quadrado; cabeca = careca | bone | ralo; calca = cor; cargo = bolsos laterais; tenis = branco | skate; altura = px a mais que o aluno (baixinha 0, normal 6, alto 12); largura = px a mais (-2 magro ... +4 gordinho); tranca = trança na lateral; risca = repartido.",
+  "camisa": "verde-wit",
+  "professores": {
+    "macedo":    { "modelo": "modelo-04", "pele": "pele-2", "cabelo": "castanho-escuro", "barba": "bigode+cavanhaque", "oculos": "redondo", "calca": "preto", "altura": 6, "largura": 0, "tranca": true, "risca": "direita" },
+    "mayara":    { "modelo": "modelo-06", "pele": "pele-5", "cabelo": "preto", "oculos": "grande-redondo", "calca": "jeans", "altura": 0, "largura": 0 },
+    "dante":     { "modelo": "modelo-05", "pele": "pele-2", "cabelo": "castanho", "barba": "curta", "oculos": "redondo", "calca": "caqui", "cargo": true, "altura": 6, "largura": 2 },
+    "guilherme": { "modelo": "modelo-09", "pele": "pele-2", "cabelo": "castanho-escuro", "barba": "bigode+cavanhaque", "calca": "preto", "cargo": true, "tenis": "skate", "altura": 6, "largura": 0 },
+    "vitor":     { "modelo": "modelo-04", "pele": "pele-2", "cabelo": "castanho", "barba": "bigodinho", "oculos": "redondo", "calca": "caqui", "altura": 7, "largura": -2 },
+    "felipe":    { "modelo": "modelo-09", "pele": "pele-2", "cabeca": "careca", "barba": "cavanhaque-grande", "barbaCor": "castanho", "oculos": "redondo-pequeno", "calca": "jeans", "altura": 6, "largura": 4 },
+    "wellington":{ "modelo": "modelo-09", "pele": "pele-2", "cabeca": "bone", "bone": "preto", "barba": "cheia", "barbaCor": "castanho", "calca": "preto", "cargo": true, "altura": 11, "largura": -2 },
+    "miguel":    { "modelo": "modelo-04", "pele": "pele-2", "cabelo": "castanho", "calca": "jeans", "altura": 14, "largura": 0 },
+    "grazyelle": { "modelo": "modelo-08", "pele": "pele-2", "cabelo": "castanho", "oculos": "grande-quadrado", "calca": "jeans-claro", "altura": 0, "largura": -2 },
+    "maycon":    { "modelo": "modelo-09", "pele": "pele-4", "cabelo": "preto", "cabeca": "ralo", "barba": "bigode+cavanhaque", "calca": "jeans", "altura": 10, "largura": 4 },
+    "servilha":  { "modelo": "modelo-06", "pele": "pele-3", "cabelo": "castanho-escuro", "barba": "curta", "calca": "moletom", "altura": 6, "largura": 0 },
+    "leticia":   { "modelo": "modelo-06", "pele": "pele-1", "cabelo": "preto", "calca": "preto", "altura": 0, "largura": -1 },
+    "valton":    { "modelo": "modelo-04", "pele": "pele-4", "cabelo": "preto", "risca": "meio", "barba": "curta", "calca": "jeans", "altura": 7, "largura": 1 },
+    "lucatto":   { "modelo": "modelo-09", "pele": "pele-2", "cabelo": "castanho", "barba": "ralinha", "calca": "jeans", "altura": 6, "largura": 0 }
+  },
+  "_capacete": "Sheet extra prof-<id>-capacete.png para quem anda de moto: a cabeça do modelo-09 vira o capacete (o cabelo some dentro dele).",
+  "capacete": {
+    "lucatto":    { "cor": "vermelho", "faixa": "branco" },
+    "dante":      { "cor": "preto", "faixa": "amarelo" },
+    "wellington": { "cor": "azul", "faixa": "branco" }
+  }
+}

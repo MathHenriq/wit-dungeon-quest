@@ -30,6 +30,20 @@ em `professores.ts`.
 
 ---
 
+### Visual (16/10): feito por código, pela descrição do Matheus
+Sem gerar imagem: `scripts/arte/professores/bonecos.py` monta cada um a partir de um
+modelo do jogo, com cabelo, pele, barba, óculos, boné, altura, porte, calça (cargo, moletom,
+jeans claro), tênis de skate e **todos com a camisa verde com WIT em branco**. Os valores
+de cada um estão em `scripts/arte/professores/visual.json` (mudar ali e rodar o script).
+Folha com todos: `docs/professores-visual.png`.
+
+**Valton** (Coordenação) e **Lucatto** (Apoio) entraram junto com os 12. De manhã ficam na
+porta do Núcleo WIT; à tarde o Valton dá voltas de **Nissan March preto** pela Cidade WIT e o
+Lucatto anda de **moto vermelha e branca** pelo Centro. O Dante (moto preta) e o Wellington
+(moto azul) andam juntos. Quem anda de moto usa capacete (`prof-<id>-capacete.png`). Os
+veículos são desenhados por código (`scripts/arte/veiculos.py`) e andam só pela rua
+(`npc-vehicles.ts`; o teste confere a volta).
+
 ## 2. A rotina (relógio do jogo)
 
 | Hora | Onde | O que acontece quando o aluno fala com ele |
