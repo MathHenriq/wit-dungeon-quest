@@ -52,8 +52,6 @@ export interface Professor {
   falas: { aula: string[]; almoco: string[]; passatempo: string[]; casa: string[] };
   /** Ação especial no passatempo (vender, tirar foto). */
   acao?: 'cachorro-quente' | 'foto';
-  /** De moto no passatempo: usa o boneco de capacete (prof-<id>-capacete). */
-  capacete?: boolean;
 }
 
 const L = (modelo: string, pele: string, cabelo: string, cima: string, baixo: string, acc?: Look['acc']): Look => ({ modelo, pele, cabelo, cima, baixo, acc });
@@ -64,17 +62,17 @@ const voltaCentro = (k: number): NpcJob['route'] => {
   const v: NonNullable<NpcJob['route']> = [[3, 21, 'west'], [32, 22, 'south'], [31, 44, 'south'], [32, 21, 'north'], [60, 20, 'east']];
   return [...v.slice(k), ...v.slice(0, k)];
 };
-const moto = (veiculo: string, k: number): NpcJob => ({ kind: 'moto', veiculo, route: voltaCentro(k), pause: [600, 1400] });
-const CARRO_VALTON: NpcJob = { kind: 'carro', veiculo: 'carro-march-preto', route: [[9, 13, 'west'], [9, 35, 'south'], [61, 36, 'east'], [61, 12, 'north'], [30, 13, 'west']], pause: [1200, 2400] };
+// a pé por enquanto: carro e moto esperam a arte do GPT (docs/prompts-professores.md)
+const moto = (k: number): NpcJob => ({ kind: 'passear', route: voltaCentro(k), pause: [600, 1400] });
+const CARRO_VALTON: NpcJob = { kind: 'passear', route: [[9, 13, 'west'], [9, 35, 'south'], [61, 36, 'east'], [61, 12, 'north'], [30, 13, 'west']], pause: [1200, 2400] };
 const ROTA_FOTO: NpcJob = { kind: 'passear', route: [[24, 29, 'south'], [34, 39, 'east'], [50, 40, 'north'], [23, 25, 'west']], pause: [3000, 6000] };
 
 export const PROFESSORES: Professor[] = [
   {
     id: 'dante', nome: 'Prof. Dante', curso: 'ia', casa: 'casa-laranja', ativo: true,
-    look: L('modelo-08', 'pele-3', 'preto', 'preto', 'jeans'),
+    look: L('modelo-05', 'pele-2', 'castanho', 'verde', 'caqui'),
     aula: { zona: 'wit', tx: 14, ty: 13, dir: 'south' }, almoco: { zona: 'cidade', tx: 34, ty: 21, dir: 'east' },
-    passatempo: { texto: 'anda de moto com o Prof. Wellington', onde: { zona: 'cidade', tx: 22, ty: 21, dir: 'east', job: moto('moto-preta', 0) } },
-    capacete: true,
+    passatempo: { texto: 'anda de moto com o Prof. Wellington', onde: { zona: 'cidade', tx: 22, ty: 21, dir: 'east', job: moto(0) } },
     falas: {
       aula: ['Prof. Dante: Bora treinar uma IA hoje? Escolhe a tarefa.'],
       almoco: ['Prof. Dante: Cachorro-quente do Maycon é o melhor do Vale. Fato.'],
@@ -84,10 +82,9 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'wellington', nome: 'Prof. Wellington', curso: 'iot', casa: 'casa-roxa', ativo: true,
-    look: L('modelo-09', 'pele-5', 'preto', 'marinho', 'preto'),
+    look: L('modelo-09', 'pele-2', 'careca', 'verde', 'preto', { cabeca: { id: 'bone', cor: 'preto' } }),
     aula: { zona: 'wit', tx: 3, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 35, ty: 22, dir: 'north' },
-    passatempo: { texto: 'anda de moto com o Prof. Dante', onde: { zona: 'cidade', tx: 44, ty: 21, dir: 'south', job: moto('moto-azul', 0) } },
-    capacete: true,
+    passatempo: { texto: 'anda de moto com o Prof. Dante', onde: { zona: 'cidade', tx: 44, ty: 21, dir: 'south', job: moto(0) } },
     falas: {
       aula: ['Prof. Wellington: Sensor ligado, regra montada. Vamos de IoT?'],
       almoco: ['Prof. Wellington: Hoje à tarde tem passeio de moto. Se o Dante não atrasar.'],
@@ -97,7 +94,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'mayara', nome: 'Profa. Mayara', curso: 'ia', casa: 'moradia-3', ativo: true,
-    look: L('modelo-03', 'pele-4', 'preto', 'branco', 'preto'),
+    look: L('modelo-10', 'pele-5', 'preto', 'verde', 'jeans'),
     aula: { zona: 'wit', tx: 15, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 38, ty: 21, dir: 'west' },
     passatempo: { texto: 'treina jiu-jitsu em casa', onde: 'casa' },
     falas: {
@@ -109,7 +106,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'macedo', nome: 'Prof. Matheus Macedo', curso: 'ia', casa: 'casa-verde', ativo: true,
-    look: L('modelo-02', 'pele-3', 'castanho', 'verde', 'jeans', { rosto: { id: 'oculos', cor: 'preto' } }),
+    look: L('modelo-04', 'pele-2', 'castanho', 'verde', 'preto'),
     aula: { zona: 'wit', tx: 11, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 39, ty: 21, dir: 'west' },
     passatempo: { texto: 'joga no PC gamer; no fim da tarde, churrasco', onde: 'casa' },
     falas: {
@@ -121,7 +118,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'guilherme', nome: 'Prof. Guilherme Rodrigues', curso: 'ia', casa: 'moradia-4', ativo: true,
-    look: L('modelo-09', 'pele-2', 'castanho', 'vermelho', 'preto'),
+    look: L('modelo-09', 'pele-2', 'castanho', 'verde', 'preto'),
     aula: { zona: 'wit', tx: 7, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 40, ty: 21, dir: 'west' },
     passatempo: { texto: 'treina muay thai em casa', onde: 'casa' },
     falas: {
@@ -133,7 +130,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'servilha', nome: 'Prof. Matheus Servilha', curso: 'games', casa: 'casa-vermelha', ativo: true,
-    look: L('modelo-07', 'pele-3', 'preto', 'roxo', 'jeans', { cabeca: { id: 'fone', cor: 'preto' } }),
+    look: L('modelo-06', 'pele-3', 'castanho', 'verde', 'branco', { cabeca: { id: 'fone', cor: 'preto' } }),
     aula: { zona: 'wit', tx: 5, ty: 35, dir: 'north' }, almoco: { zona: 'cidade', tx: 41, ty: 21, dir: 'west' },
     passatempo: { texto: 'joga games em casa com o Vitor e o Miguel', onde: 'casa', ate: 22 },
     falas: {
@@ -145,7 +142,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'vitor', nome: 'Prof. Vitor', curso: 'metaverso', casa: 'moradia-1', ativo: true,
-    look: L('modelo-01', 'pele-2', 'loiro', 'azul', 'preto'),
+    look: L('modelo-04', 'pele-2', 'castanho', 'verde', 'caqui'),
     aula: { zona: 'wit', tx: 9, ty: 35, dir: 'north' }, almoco: { zona: 'cidade', tx: 42, ty: 21, dir: 'west' },
     passatempo: { texto: 'joga games na casa do Prof. Servilha', onde: 'casa', emCasaDe: 'casa-vermelha', ate: 22 },
     falas: {
@@ -157,7 +154,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'miguel', nome: 'Prof. Miguel', curso: 'iot', casa: 'moradia-1', ativo: true,
-    look: L('modelo-05', 'pele-4', 'castanho', 'laranja', 'jeans'),
+    look: L('modelo-02', 'pele-2', 'castanho', 'verde', 'jeans'),
     aula: { zona: 'wit', tx: 8, ty: 36, dir: 'north' }, almoco: { zona: 'cidade', tx: 34, ty: 22, dir: 'east' },
     passatempo: { texto: 'joga games na casa do Prof. Servilha', onde: 'casa', emCasaDe: 'casa-vermelha', ate: 22 },
     falas: {
@@ -169,7 +166,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'leticia', nome: 'Profa. Leticia', curso: 'games', casa: 'casa-azul', ativo: true,
-    look: L('modelo-08', 'pele-1', 'castanho', 'rosa', 'branco'),
+    look: L('modelo-03', 'pele-1', 'preto', 'verde', 'preto'),
     aula: { zona: 'wit', tx: 44, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 36, ty: 22, dir: 'north' },
     passatempo: { texto: 'lê livros na praia do Lago', onde: { zona: 'lago', tx: 21, ty: 25, dir: 'south' } },
     falas: {
@@ -181,7 +178,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'felipe', nome: 'Prof. Felipe Oliveira', curso: 'metaverso', casa: 'npc-musico', ativo: true,
-    look: L('modelo-02', 'pele-5', 'preto', 'preto', 'jeans', { cabeca: { id: 'fone', cor: 'vermelho' } }),
+    look: L('modelo-09', 'pele-2', 'careca', 'verde', 'jeans'),
     aula: { zona: 'wit', tx: 43, ty: 13, dir: 'south' }, almoco: { zona: 'cidade', tx: 38, ty: 20, dir: 'south' },
     passatempo: { texto: 'toca guitarra na praça', onde: { zona: 'cidade', tx: 27, ty: 21, dir: 'south', job: { kind: 'musica' } } },
     falas: {
@@ -193,7 +190,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'maycon', nome: 'Prof. Maycon', curso: 'comunicacao', casa: 'moradia-2', ativo: true,
-    look: L('modelo-04', 'pele-4', 'preto', 'vermelho', 'jeans', { cabeca: { id: 'bandana', cor: 'vermelho' } }),
+    look: L('modelo-09', 'pele-4', 'preto', 'verde', 'jeans'),
     aula: { zona: 'wit', tx: 48, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 37, ty: 21, dir: 'south' },
     passatempo: { texto: 'vende cachorro-quente na praça', onde: { zona: 'cidade', tx: 37, ty: 21, dir: 'south' } },
     acao: 'cachorro-quente',
@@ -206,7 +203,7 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'grazyelle', nome: 'Profa. Grazyelle', curso: 'comunicacao', casa: 'npc-artista', ativo: true,
-    look: L('modelo-10', 'pele-3', 'ruivo', 'amarelo', 'jeans', { corpo: { id: 'bolsa', cor: 'preto' } }),
+    look: L('modelo-08', 'pele-2', 'castanho', 'verde', 'jeans'),
     aula: { zona: 'wit', tx: 40, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 36, ty: 21, dir: 'south' },
     passatempo: { texto: 'tira fotos pelo Lago Azul', onde: { zona: 'lago', tx: 24, ty: 29, dir: 'south', job: ROTA_FOTO } },
     acao: 'foto',
@@ -231,10 +228,9 @@ export const PROFESSORES: Professor[] = [
   },
   {
     id: 'lucatto', nome: 'Lucatto', curso: 'apoio', casa: 'casa-coworking', ativo: true,
-    look: L('modelo-09', 'pele-2', 'castanho', 'verde', 'jeans'),
+    look: L('modelo-01', 'pele-2', 'castanho', 'verde', 'jeans'),
     aula: { zona: 'wit', tx: 35, ty: 12, dir: 'south' }, almoco: { zona: 'cidade', tx: 40, ty: 22, dir: 'north' },
-    passatempo: { texto: 'anda de moto pelo Centro', onde: { zona: 'cidade', tx: 50, ty: 20, dir: 'west', job: moto('moto-vermelha', 2) } },
-    capacete: true,
+    passatempo: { texto: 'anda de moto pelo Centro', onde: { zona: 'cidade', tx: 50, ty: 20, dir: 'west', job: moto(2) } },
     falas: {
       aula: ['Lucatto: Apoio do WIT! Precisa de ajuda com alguma coisa?', 'Lucatto: Computador travou? Chama que eu resolvo.'],
       almoco: ['Lucatto: Depois do almoço vou dar uma volta de moto.'],
@@ -282,8 +278,7 @@ export function profNpcs(): NpcDef[] {
     const parts: [Parte, Spot | null][] = [['aula', p.aula], ['almoco', p.almoco], ['passatempo', p.passatempo.onde === 'casa' ? null : p.passatempo.onde]];
     for (const [parte, s] of parts) {
       if (!s) continue;
-      // de moto: o boneco de capacete
-      const sprite = (p.capacete && s.job?.kind === 'moto' && own(`prof-${p.id}-capacete`)) || own(`prof-${p.id}`);
+      const sprite = own(`prof-${p.id}`);
       out.push({ id: NPC_ID(p, parte), zona: s.zona, tx: s.tx, ty: s.ty, dir: s.dir, look: p.look, name: p.nome, title, lines: p.falas[parte], job: s.job, sprite });
     }
   }

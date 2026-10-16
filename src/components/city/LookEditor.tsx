@@ -3,6 +3,9 @@ import { canWear, prizeFloor } from '@/game/boss-prizes';
 import { loadProgress } from '@/game/progress';
 import { PxPanel } from '@/components/pixel/Pixel';
 import { CLOTH, DEFAULT_PET, HAIR, MODEL_CELL, MODELOS, SKIN, type Look, type Ramp } from '@/game/world/outfit';
+
+/** Cores de cabelo do editor (a "careca" é só dos moradores). */
+const HAIR_ALUNO = Object.fromEntries(Object.entries(HAIR).filter(([k]) => k !== 'careca'));
 import { loadModelSheet, paintModel } from '@/game/world/model-sprite';
 import {
   ACC_INFO, ACC_SLOTS, DEFAULT_ACC_COLOR, loadAccessories, tintGray, type AccAssets,
@@ -162,7 +165,7 @@ export function LookEditor({ value, onChange, onClose }: { value: Look; onChange
               ))}
             </div>
             <Swatches label="PELE" table={SKIN} value={value.pele} onPick={v => set({ pele: v })} />
-            <Swatches label="CABELO" table={HAIR} value={value.cabelo} onPick={v => set({ cabelo: v })} />
+            <Swatches label="CABELO" table={HAIR_ALUNO} value={value.cabelo} onPick={v => set({ cabelo: v })} />
             <Swatches label="PARTE DE CIMA" table={CLOTH} value={value.cima} onPick={v => set({ cima: v })} />
             <Swatches label="PARTE DE BAIXO" table={CLOTH} value={value.baixo} onPick={v => set({ baixo: v })} />
             {acc && ACC_SLOTS.map(({ id: slot, nome }) => {

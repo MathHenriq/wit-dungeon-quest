@@ -30,19 +30,14 @@ em `professores.ts`.
 
 ---
 
-### Visual (16/10): feito por código, pela descrição do Matheus
-Sem gerar imagem: `scripts/arte/professores/bonecos.py` monta cada um a partir de um
-modelo do jogo, com cabelo, pele, barba, óculos, boné, altura, porte, calça (cargo, moletom,
-jeans claro), tênis de skate e **todos com a camisa verde com WIT em branco**. Os valores
-de cada um estão em `scripts/arte/professores/visual.json` (mudar ali e rodar o script).
-Folha com todos: `docs/professores-visual.png`.
-
-**Valton** (Coordenação) e **Lucatto** (Apoio) entraram junto com os 12. De manhã ficam na
-porta do Núcleo WIT; à tarde o Valton dá voltas de **Nissan March preto** pela Cidade WIT e o
-Lucatto anda de **moto vermelha e branca** pelo Centro. O Dante (moto preta) e o Wellington
-(moto azul) andam juntos. Quem anda de moto usa capacete (`prof-<id>-capacete.png`). Os
-veículos são desenhados por código (`scripts/arte/veiculos.py`) e andam só pela rua
-(`npc-vehicles.ts`; o teste confere a volta).
+### Visual (16/10): só com a arte que já está no jogo
+O desenho por código (barba, óculos, carro e moto feitos à mão) ficou ruim e saiu. Os
+professores usam os 10 modelos, as cores e os acessórios do GPT, todos com a camisa
+verde (`look` em `professores.ts`; folha `docs/professores-visual.png`). Careca = cabelo
+`careca` (o modelo raspado na cor da pele; não aparece no editor do aluno).
+O que falta (óculos de grau, barbas, cabelo cacheado e ondulado feminino, capacete,
+carro e moto) está em `docs/prompts-professores.md`: são 6 imagens genéricas do GPT.
+Até lá, Valton, Lucatto, Dante e Wellington fazem a volta deles a pé, pela rua.
 
 ## 2. A rotina (relógio do jogo)
 

@@ -69,8 +69,7 @@ import { BUILDING_INFO, houseInfo, isResidentHouse, MURAL_TEXT, NPCS, type NpcDe
 import { useOccludesBackdrop } from '@/hooks/useOccludesBackdrop';
 import { drawAmbient } from '@/game/world/ambient';
 import { PLATE_FALA, PLATE_NPC, PLATE_OTHER, PLATE_PLAYER } from '@/game/world/nameplate';
-import { drawJob, isRide, jobBob, propsBehind } from '@/game/world/jobs';
-import { drawRide, loadRide, RIDE_MS, type RideArt } from '@/game/world/npc-vehicles';
+import { drawJob, jobBob, propsBehind } from '@/game/world/jobs';
 import {
   storyArrive, storyChoose, storyCtx, storyDoor, storyExtra, storyFog, storyFromQuery, storyMarks, storyNewDay, storySpot,
   storyTalk, storyTick, storyVisible,
@@ -173,8 +172,6 @@ interface Npc {
   def: NpcDef; w: Walker; frames: Frames | null; goal: Dir | null;
   /** Moradores com rota: caminho até a próxima parada, tempo parado e parada atual. */
   path: Dir[]; wait: number; stop: number; seed: number;
-  /** De carro/moto: a arte do veículo e há quanto tempo está parado esperando passagem. */
-  ride?: RideArt | null; stuck?: number;
 }
 
 /** Onde e como o jogador chega numa área (vindo de outra). */
@@ -731,10 +728,6 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
       g.current.playerFrames = pf;
       g.current.petFrames = pet;
       g.current.allNpcs.forEach((n, i) => { n.frames = npcFrames[i]; });
-      // carro e moto de quem dirige (Valton, Lucatto, Dante, Wellington)
-      await Promise.all(g.current.allNpcs.filter(n => isRide(n.def.job) && n.def.job?.veiculo).map(n =>
-        loadRide(n.def.job!.veiculo!).then(a => { n.ride = a; }).catch(err => console.error('veiculo', err))));
-      if (!alive) return;
       g.current.dirty = true;
       setReady(true);
     })().catch(err => console.error('sprites', err));
@@ -1358,34 +1351,18 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
           || (p.tx === tx && p.ty === ty) || (!s.sailing && pet.tx === tx && pet.ty === ty)
           || town.doors.some(d => d.tx === tx && d.ty === ty);
         const route = n.def.job?.route;
-        const riding = isRide(n.def.job);
         if (route && !s.modal && !n.w.from && !n.path.length) {
           // chegou: fica um tempo na parada, olhando para o trabalho; depois vai para a próxima
           if (n.wait > 0) n.wait -= dt;
           else {
             n.stop = (n.stop + 1) % route.length;
             const [gx, gy] = route[n.stop];
-            n.path = findPath(n.w.tx, n.w.ty, gx, gy, (x, y) => x < 0 || y < 0 || y >= town.solid.length || x >= town.solid[0].length || town.solid[y][x] || town.doors.some(d => d.tx === x && d.ty === y)
-              || (riding && !ROAD_TERRAIN.has(town.terrain[y][x] ?? '')));
+            n.path = findPath(n.w.tx, n.w.ty, gx, gy, (x, y) => x < 0 || y < 0 || y >= town.solid.length || x >= town.solid[0].length || town.solid[y][x] || town.doors.some(d => d.tx === x && d.ty === y));
             if (!n.path.length) n.wait = 3000;
           }
         }
-        // carro/moto parado com alguém na frente: depois de um tempo, contorna (ou espera a volta)
-        if (riding && route && !n.w.from && n.path.length && !s.modal) {
-          const [dx, dy] = DELTA[n.path[0]];
-          if (occupied(n.w.tx + dx, n.w.ty + dy)) {
-            n.stuck = (n.stuck ?? 0) + dt;
-            if (n.stuck > 1500) {
-              n.stuck = 0;
-              const [gx, gy] = route[n.stop];
-              n.path = findPath(n.w.tx, n.w.ty, gx, gy, (x, y) => !inMap(x, y) || town.solid[y][x] || !ROAD_TERRAIN.has(town.terrain[y][x] ?? '')
-                || (occupied(x, y) && Math.abs(x - n.w.tx) + Math.abs(y - n.w.ty) <= 2));
-              if (!n.path.length) n.wait = 1200;
-            }
-          } else n.stuck = 0;
-        }
         tick(n.w, dt, {
-          msPerTile: riding ? RIDE_MS[n.def.job!.kind as 'carro' | 'moto'] : WALK_MS * 1.4,
+          msPerTile: WALK_MS * 1.4,
           blocked: occupied,
           fromPath: true,
           want: () => {
@@ -1878,19 +1855,6 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
       for (const n of s.npcs) {
         const job = n.def.job;
         if (!job) { person(n.w, n.frames); continue; }
-        if (isRide(job)) {
-          // de carro ou de moto: veículo, motorista da cintura para cima, frente do veículo
-          const pos = pixelPos(n.w, TILE), art = n.ride;
-          if (!art) { person(n.w, n.frames); continue; }
-          const cx = pos.x + 8 - camX, fy = pos.y + 16 - camY;
-          const ww = art.cw / R, hh = art.ch / R;
-          if (cx < -ww || cx > vw + ww || fy < -10 || fy > vh + hh + 40) continue;
-          const bob = n.w.from && job.kind === 'moto' ? (Math.floor(now / 120) % 2 ? -0.5 : 0) : 0;
-          people.push({ x: pos.x + 8 - ww / 2, y: pos.y + 16 - hh - 20, w: ww, h: hh + 20, baseY: pos.y + 16 });
-          const dir = n.w.dir, fr = n.frames;
-          list.push({ baseY: pos.y + 16, draw: () => drawRide(ctx, art, fr, dir, cx, fy, bob) });
-          continue;
-        }
         const st = { now, moving: !!n.w.from || n.path.length > 0, stop: n.stop, seed: n.seed };
         person(n.w, n.frames, jobBob(job.kind, st));
         if (!n.frames || job.kind === 'passear') continue;

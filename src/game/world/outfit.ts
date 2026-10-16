@@ -38,6 +38,8 @@ export const HAIR: Record<string, Ramp> = {
   azul: ['#1c2c64', '#3456a6', '#5a82d6', '#94b4f4'],
   lilas: ['#3a2266', '#6c4aac', '#9474d0', '#c0a8ec'],
   verde: ['#1e3a14', '#3e7a2c', '#62a848', '#94d474'],
+  // só para moradores (careca = o cabelo do modelo raspado pintado da cor da pele clara); fora do editor
+  careca: ['#b8845c', '#d8a47c', '#f0c49c', '#fcdcbc'],
 };
 
 export const CLOTH: Record<string, Ramp> = {

@@ -4,7 +4,7 @@
 // por cima (ou atrás, de costas) do boneco. É a base visual das profissões.
 import type { Dir } from './movement';
 
-export type JobKind = 'pescar' | 'musica' | 'padeiro' | 'regar' | 'arrumar' | 'passear' | 'carro' | 'moto';
+export type JobKind = 'pescar' | 'musica' | 'padeiro' | 'regar' | 'arrumar' | 'passear';
 
 /** Uma parada da rota: bloco e para onde olhar ao chegar. */
 export type Stop = [number, number, Dir];
@@ -15,12 +15,7 @@ export interface NpcJob {
   route?: Stop[];
   /** Quanto tempo fica em cada parada (ms, mínimo e máximo). */
   pause?: [number, number];
-  /** Carro ou moto: a folha em public/game/sprites/veiculos (npc-vehicles.ts); anda só na rua. */
-  veiculo?: string;
 }
-
-/** Morador dirigindo (carro ou moto). */
-export const isRide = (j?: NpcJob) => j?.kind === 'carro' || j?.kind === 'moto';
 
 export interface JobState {
   now: number;
@@ -51,7 +46,7 @@ const side = (dir: Dir) => (dir === 'west' ? -1 : 1);
  */
 export function drawJob(ctx: CanvasRenderingContext2D, kind: JobKind, cx: number, fy: number, dir: Dir, st: JobState): void {
   if (kind === 'pescar') return fishing(ctx, cx, fy, dir, st);
-  if (kind === 'passear' || kind === 'carro' || kind === 'moto') return;
+  if (kind === 'passear') return;
   // Objetos na mão (violão, bandeja, regador, caixa) ficavam flutuando na
   // frente do boneco, sem braço segurando: saem até o GPT fazer os quadros
   // "segurando" de cada morador (docs/prompts-poses.md). Fica só o efeito.

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { PROF_SPRITES } from '../prof-sprites';
-import { isRide } from '../jobs';
 import { ROAD_TERRAIN } from '../../vehicles';
 import { bateNaPorta, CURSO, emCasa, ondeEsta, parteDoDia, PROF_BY_ID, PROFESSORES, profNpcs, profOf, profVisible } from '../professores';
 import { buildZone, ZONES } from '../world';
@@ -82,9 +81,10 @@ describe('professores', () => {
     }
   });
 
-  it('carro e moto: começam na rua e cada parada da volta se alcança só pela rua', () => {
-    const rides = profNpcs().filter(n => isRide(n.job));
-    expect(rides.map(n => n.id).sort()).toEqual(['prof:dante:passatempo', 'prof:lucatto:passatempo', 'prof:valton:passatempo', 'prof:wellington:passatempo']);
+  it('quem vai de carro ou moto (quando a arte chegar) já faz a volta só pela rua', () => {
+    const ids = ['prof:dante:passatempo', 'prof:lucatto:passatempo', 'prof:valton:passatempo', 'prof:wellington:passatempo'];
+    const rides = profNpcs().filter(n => ids.includes(n.id));
+    expect(rides.length).toBe(4);
     for (const n of rides) {
       const t = towns[n.zona!];
       const road = (x: number, y: number) => !t.solid[y]?.[x] && ROAD_TERRAIN.has(t.terrain[y]?.[x] ?? '');
@@ -98,7 +98,6 @@ describe('professores', () => {
         }
       }
       for (const [x, y] of n.job!.route!) expect(seen.has(`${x},${y}`), `${n.id}: parada ${x},${y} fora da rua`).toBe(true);
-      expect(existsSync(`public/game/sprites/veiculos/${n.job!.veiculo}.png`), n.job!.veiculo).toBe(true);
     }
   });
 
@@ -131,11 +130,10 @@ describe('bonecos dos professores (kit em scripts/arte/professores)', () => {
   it('cada boneco importado existe e é de um professor; quem tem boneco usa ele', () => {
     for (const s of PROF_SPRITES) {
       expect(existsSync(`public/game/sprites/professores/${s}.png`), s).toBe(true);
-      expect(PROF_BY_ID.has(s.replace(/^prof-/, '').replace(/-capacete$/, '')), s).toBe(true);
+      expect(PROF_BY_ID.has(s.replace(/^prof-/, '')), s).toBe(true);
     }
     for (const n of profNpcs()) {
-      const id = profOf(n.id)!.prof.id;
-      const want = n.job?.kind === 'moto' ? `prof-${id}-capacete` : `prof-${id}`;
+      const want = `prof-${profOf(n.id)!.prof.id}`;
       expect(n.sprite, n.id).toBe(PROF_SPRITES.includes(want) ? want : undefined);
     }
   });
