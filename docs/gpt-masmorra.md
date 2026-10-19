@@ -114,6 +114,7 @@ Fire = orange, red and yellow · Water = deep blue, cyan and white · Grass = le
 ## 2. Boneco do aluno: golpe, tiro, esquiva, conjurar
 
 Pasta `personagem/`. **Anexar `public/Novos assets/personagem/modelos/modelo-01.png`** (depois repetir com 02…10).
+**Os 10 modelos já chegaram** (01 em 10/10; 02–10 em 19/10, `importar-personagem.py --so-poses`). O modelo 08 saiu um pouco maior em combate e as folhas de magia do 04 e do 07 têm lascas na borda; a magia ainda não é usada.
 Mesmas cores-molde dos modelos (o jogo pinta). Quadro do mesmo tamanho da folha de andar.
 
 **modelo-01-combate.png** (4 colunas × 4 linhas: linha 1 de frente, 2 para a esquerda, 3 para a direita, 4 de costas)
@@ -241,7 +242,7 @@ A pixel art sprite sheet of an ORIGINAL friendly shadow soldier ally for a kids 
 
 ## 9. Masmorra 2.0: inimigos novos, perigos e salas
 
-Chegou com a Masmorra 2.0 (5 andares, chefes com mecânica própria, salas novas). Mesmas regras de cima. Enquanto a arte não chega, o jogo usa pets pintados e desenho em código.
+**Chegou em 19/10 e já está na tela** (Release "Assets masmorra"): os 7 inimigos, `perigos.png` (espinho baixo/aviso/alto, veneno, gelo, lava em 2 quadros, barril explosivo) e `salas.png` (estátua, mercador, lampião, Pedra da Ressurreição, parede rachada da sala secreta, baú vermelho do desafio enquanto a sala não é limpa, alçapão da sala-armadilha). O desenho em código fica de reserva enquanto a imagem carrega (`drawSala` e `PERIGO`/`SALA` em `dungeon-art.ts`).
 
 **Inimigos novos** (pasta `inimigos/`, **4 × 4, quadro 48 × 48**, mesmo prompt base do §3; o jogo já procura estes nomes):
 
@@ -271,7 +272,7 @@ As cópias de sombra que o Monarca cria usam o próprio boneco do aluno pintado 
 
 ## 10. Pacote de efeitos (visual v2)
 
-Na v2 a tela deixou de desenhar os golpes com curvas lisas: o que é código passa por uma camada de pixel, e as cartas usam as folhas do §1. As 101 cartas Comum–Rara ainda **emprestam** uma folha Épica do mesmo elemento (menor). Este pacote troca o empréstimo por arte própria de cada elemento e dá ao caçador golpes desenhados. Mesmas regras de cima (magenta, sem texto, sem sangue, nada assustador).
+**Chegou em 19/10 e já está na tela.** As 101 cartas Comum–Rara usam o pacote do elemento (voo, impacto, zona e feixe em 3 peças: início, corpo repetido, ponta; `elem-<el>-<uso>` em `card-sprites.ts`); tornado e corte continuam emprestando a folha Épica do elemento. O objeto que a carta joga vem de `projeteis.png` (`LOOK_ORDER`, mesma ordem do tipo `Look`): bichos espelham ao ir para a esquerda, estrela/shuriken/carta/martelo giram, nuvem e afins ficam em pé, e os objetos de energia (bola, lâmina, lua, dragão...) levam a cor da carta (a lua da Getsuga fica roxa). Os golpes do caçador (combo, final, giro do pesado, estocada, poeira, faísca do acerto, clarão do tiro) vêm de `golpes-jogador.png` (`GOLPE`). Antes de a folha carregar, fica o desenho em pixel. Mesmas regras de cima (magenta, sem texto, sem sangue, nada assustador).
 
 **§10.1 `efeitos-elemento/<elemento>.png`** (pasta `efeitos-elemento/`, 12 folhas: `fire`, `water`, `grass`, `electric`, `ice`, `fighting`, `poison`, `ground`, `flying`, `ghost`, `dark`, `steel`). **6 colunas × 4 linhas, quadro 64 × 64** (folha 384 × 256). Troque `{ELEMENTO}` pelo nome em inglês e `{CORES}` pelas cores do §1.
 
@@ -293,4 +294,4 @@ A pixel art sprite sheet of melee and movement effects for a kids action RPG her
 A pixel art icon sheet of small magic projectiles for a kids action RPG, grid of 8 columns and 6 rows, each cell exactly 32x32 pixels (sheet 256x192), every object pointing to the right, in this order left to right, top to bottom: {LISTA}. Bright readable colors, clean dark outline, limited palette, no anti-aliasing, no text, no letters, original designs, nothing scary, no blood. The last 3 cells empty. Flat solid magenta background (#FF00FF).
 ```
 
-Importar: `python3 scripts/arte/importar-masmorra.py --folha revisao.png` (já corta as 3 pastas). Ligar na tela quando chegarem: os empréstimos do `PROXY` e o desenho em pixel do `look` em `src/components/dungeon/card-sprites.ts` e `dungeon-vfx.ts`. Enquanto isso, as Comum–Rara usam a folha emprestada e o corte, a esquiva, o tiro e as faíscas são desenhados em pixel no código.
+Importar: `python3 scripts/arte/importar-masmorra.py --folha revisao.png` (já corta as 3 pastas; as folhas com linha preta de grade passam pelo `degrid`, só no modo `grade`).

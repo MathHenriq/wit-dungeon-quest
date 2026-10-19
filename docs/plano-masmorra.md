@@ -77,7 +77,7 @@ Partida de 6 a 11 min para o robô (o aluno leva mais). Luta direta com o chefe:
 - pesado em giro completo com poeira; estocada (lança e investida) em traço reto com fantasmas;
 - cambalhota sem girar o boneco (agacha, vira bola, cai de pé, deixa rastro azul);
 - tiro com clarão e coice; impacto em estrela; o boneco pisca vermelho ao apanhar;
-- com as poses do GPT (só o modelo 01 por enquanto), usa os quadros de combate e esquiva; os outros modelos usam o mesmo movimento em código.
+- com as poses do GPT (os 10 modelos desde 19/10), usa os quadros de combate e esquiva.
 
 **Inimigos:** aviso no chão com borda girando, setas andando na linha do golpe e piscada branca no último instante; o chão brilha vermelho enquanto o inimigo prepara; anel de poeira onde o golpe cai.
 
@@ -86,6 +86,14 @@ Partida de 6 a 11 min para o robô (o aluno leva mais). Luta direta com o chefe:
 - **Cartas com os sprites do GPT** (`card-sprites.ts`): tabela de como usar cada uma das 67 folhas (quadros do voo, do impacto, onde está o feixe). O tiro voa tocando os quadros e explode com os do fim; o feixe (Kamehameha, Final Flash, Zoltraak...) é montado da própria folha (origem, corpo esticado, ponta); zona e tornado tocam em loop; corte de carta toca a folha no golpe; investida leva a folha junto. As **101 Comum–Rara** emprestam uma folha genérica do mesmo elemento, menor (60–80%), até o pacote do §10 do GPT; o objeto que voa (kunai, carta, martelo...) é desenhado em pixel. Teste: `src/game/__tests__/card-sprites.test.ts`.
 - **Caçador:** corte em meia-lua de 4 faixas sem degradê; impacto em estrela; anéis viram estouro de traços curtos (no máximo 1 por acontecimento); esquiva com os quadros do GPT na hora certa (agacha, rola, chega), só 2 fantasmas com as cores do boneco e poeira em pixel; tiro em tamanho inteiro (16/32 px) com rastro em faixas e estrelinha quando acaba; textos grandes não se cobrem.
 - **Prints:** `node scripts/mapa/masmorra-cartas.mjs <pasta> [carta,...]` (câmera lenta, 4 quadros por carta) e `masmorra-golpes.mjs` (combo, esquiva, investida, tiro, aviso).
+
+**Arte do §9 e §10 na tela (19/10):** chegaram as 50 folhas pedidas na v2 (Release "Assets masmorra").
+- **Comum–Rara com arte própria do elemento:** voo, impacto, zona e feixe de cada um dos 12 elementos (feixe em 3 peças: início, corpo repetido até o alvo, ponta). Tornado e corte continuam com a folha Épica emprestada.
+- **Objeto da carta** (kunai, carta, lua, dragão... 45 em `projeteis.png`): bichos espelham ao ir para a esquerda, alguns giram, nuvens ficam em pé; os de energia levam a cor da carta (sem isso a hidra de veneno saía de fogo e a lua negra da Getsuga, amarela).
+- **Golpes do caçador** desenhados: corte do combo (dois lados), golpe final dourado, giro do pesado, estocada da investida, poeira da esquiva, faísca do acerto e clarão do tiro. A carta com corte próprio continua usando a folha dela.
+- **Inimigos novos, perigos e salas:** os 7 inimigos com arte; espinho em 3 estados, veneno, gelo, lava piscando e barril explosivo; estátua da bênção, mercador, lampião, Pedra da Ressurreição, parede rachada da sala secreta, baú vermelho trancado do desafio e alçapão da sala-armadilha.
+- **Poses dos modelos 02–10** (combate, esquiva, magia).
+- **Desempenho igual** (combate, CPU 4× mais lenta, mediana de 8 rodadas: com cartas Comum–Rara 35,3 → 34,7 fps; com Épicas, 4 rodadas, 22,0 → 22,5), dentro do ruído de ±10% entre rodadas. A cor da carta nos objetos é feita uma vez por objeto e cor e guardada.
 
 **Câmera lenta para prints (só no dev):** `window.__dungeonTime = 0.08` deixa a partida 12× mais lenta; `node scripts/mapa/masmorra-golpes.mjs <pasta> [modelo]` tira as tiras de quadros do combo, pesado, esquiva, investida, tiro e aviso dos inimigos.
 
@@ -118,7 +126,7 @@ Pronto e jogável na branch `claude/masmorra` (o robô `scripts/mapa/masmorra-ro
 - **Banco:** `supabase/migrations/20261009120000_wit2_masmorra.sql`, com `wit2_dungeon_claim(p_rank)` testado no `testar-wit2.sh`. Só aplicar quando esta branch for para a oficial.
 - **Dificuldade:** `npx vite-node scripts/masmorra-sim.ts 20`. A espada limpa o E em ~1,6 min levando ~7 golpes; o tiro, em ~3,5 min levando ~2; o rank S fica difícil.
 
-Falta só arte do GPT (`docs/gpt-masmorra.md`). O importador `scripts/arte/importar-masmorra.py` corta tudo, e o jogo troca sozinho quando o arquivo existe.
+A arte do GPT pedida em `docs/gpt-masmorra.md` chegou toda (10/10 e 19/10). O importador `scripts/arte/importar-masmorra.py` corta tudo, e o jogo troca sozinho quando o arquivo existe.
 
 Mudança em relação ao plano abaixo:
 - o andar a andar ficou como Soul Knight (3 andares por portal), sem elevador;
