@@ -46,6 +46,35 @@ def alpha_of(rgb):
     return ~fundo
 
 
+def degrid(rgb, a):
+    """Apaga as linhas de grade que o GPT às vezes desenha entre os quadros:
+    coluna ou linha inteira quase toda escura vira fundo (com 2 px de folga).
+    Só nas folhas de grade exata: num chefe escuro, apagaria desenho."""
+    lum = rgb.astype(int).sum(2)
+    dark = a & (lum < 200)
+    hh, ww = a.shape
+    a = a.copy()
+    for x in np.where(dark.mean(0) > 0.55)[0]:
+        a[:, max(0, x - 2):x + 3] = False
+    for y in np.where(dark.mean(1) > 0.55)[0]:
+        a[max(0, y - 2):y + 3, :] = False
+    return a
+
+
+def grid_sheet(path, cols, rows, cw, ch):
+    """Folha de grade exata (efeitos por elemento, golpes, projéteis): reduz a folha
+    inteira de uma vez, sem recentralizar quadro a quadro. Assim o que atravessa
+    quadros (início, corpo e ponta do feixe) continua emendado."""
+    rgb = np.array(Image.open(path).convert('RGB'))
+    a = degrid(rgb, alpha_of(rgb))
+    pre = np.dstack([rgb * a[..., None], a * 255]).astype(np.uint8)
+    W, H = cols * cw, rows * ch
+    sm = np.array(Image.fromarray(pre, 'RGBA').resize((W, H), Image.BOX)).astype(float)
+    al = sm[..., 3] / 255
+    col = np.where(al[..., None] > 0.02, sm[..., :3] / np.maximum(al[..., None], 0.02), 0).clip(0, 255)
+    return np.dstack([col, np.where(al >= 0.45, 255, 0)]).astype(np.uint8)
+
+
 def runs(occ, n, gap=3):
     """Faixas com desenho separadas por vãos vazios; junta os vãos menores até sobrar n.
     None se der menos de n (desenhos encostados): aí vale a grade igual."""
@@ -195,13 +224,13 @@ def main():
             else (4, 4, 64, 64, True, GAME / 'masmorra/lugares' / f.name)),
         ('saguao', '*.png', lambda f: (4, 2, 128, 128, True, GAME / 'masmorra/saguao' / f.name)),
         # visual v2 (§10): efeitos por elemento, golpes do caçador e os objetos que as cartas jogam
-        ('efeitos-elemento', '*.png', lambda f: (6, 4, 64, 64, False, GAME / 'masmorra/efeitos-elemento' / f.name)),
-        ('golpes', '*.png', lambda f: (8, 6, 32, 32, False, GAME / 'masmorra/golpes' / f.name) if f.stem == 'projeteis' else (6, 6, 64, 64, False, GAME / 'masmorra/golpes' / f.name)),
+        ('efeitos-elemento', '*.png', lambda f: (6, 4, 64, 64, 'grade', GAME / 'masmorra/efeitos-elemento' / f.name)),
+        ('golpes', '*.png', lambda f: (8, 6, 32, 32, 'grade', GAME / 'masmorra/golpes' / f.name) if f.stem == 'projeteis' else (6, 6, 64, 64, 'grade', GAME / 'masmorra/golpes' / f.name)),
     ]
     for folder, pat, spec in groups:
         for f in sorted((SRC / folder).glob(pat)):
             cols, rows, cw, ch, feet, dest = spec(f)
-            arr = tiles(f, cols, rows, cw) if feet == 'azulejo' else sheet(f, cols, rows, cw, ch, feet)
+            arr = tiles(f, cols, rows, cw) if feet == 'azulejo' else grid_sheet(f, cols, rows, cw, ch) if feet == 'grade' else sheet(f, cols, rows, cw, ch, feet)
             save(arr, dest)
             review.append(arr)
             done.append(f'{folder}/{f.name}')
