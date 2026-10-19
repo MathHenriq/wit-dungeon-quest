@@ -274,10 +274,16 @@ export function useStudentDB() {
     void supabaseStudent.rpc("give_pet_xp", { p_student_id: typedStudent.id, p_xp: 3 });
   }, []);
 
+  // Lista de professores do cadastro: só depois de entrar (a função não abre
+  // para quem não está logado; antes ela era pedida ao abrir a página, sem
+  // sessão, e o banco recusava: o aluno novo não conseguia se cadastrar).
+  useEffect(() => {
+    if (authState === "needs_registration" && teachers.length === 0) void loadTeachers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authState]);
+
   // Subscribe to auth changes (handles initial session restore + email/password sign-in/out)
   useEffect(() => {
-    loadTeachers();
-
     const { data: { subscription } } = supabaseStudent.auth.onAuthStateChange(
       async (event, session) => {
         const isIdentityEvent =

@@ -33,7 +33,7 @@ SELECT wit2_list_card('enma', 40) > 0 AS "Beto põe à venda";
 SELECT set_config('test.uid', '22222222-2222-2222-2222-222222222222', false);
 SELECT jsonb_array_length(wit2_vitrine()) = 1 AS "Ana vê a Vitrine da turma";
 SELECT set_config('test.uid', '55555555-5555-5555-5555-555555555555', false);
-SELECT jsonb_array_length(wit2_vitrine()) = 0 AS "outra turma não vê";
+SELECT jsonb_array_length(wit2_vitrine()) = 1 AS "outra turma também vê (vitrine global)";
 SELECT set_config('test.uid', '22222222-2222-2222-2222-222222222222', false);
 SELECT (wit2_buy_listing((SELECT id FROM wit2_listings LIMIT 1))->>'card') = 'enma' AS "Ana compra";
 SELECT (SELECT coins FROM wit2_wallet WHERE student_id = 'bbbbbbbb-0000-0000-0000-000000000002') = 490 AS "Beto recebeu 40";

@@ -48,7 +48,7 @@ FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace AND p.proname LIKE 
 SELECT bool_and(NOT has_function_privilege('authenticated', p.oid, 'EXECUTE'))
 FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace
   AND p.proname IN ('wit2_ensure','wit2_event','wit2_draw_pack','wit2_weighted','wit2_add_card','wit2_daily_cap',
-                    'wit2_migrate_one','wit2_legacy_packs','wit2_path_of_class','wit2_level_ok','wit2_vote_json');
+                    'wit2_migrate_one','wit2_legacy_packs','wit2_path_of_class','wit2_level_ok','wit2_vote_json','wit2_code_at');
 
 -- ninguém logado escreve direto nas tabelas de valor
 SELECT bool_and(NOT has_table_privilege('authenticated', c.oid, 'INSERT')
@@ -99,3 +99,23 @@ END $$;
 
 Depois de desfazer, apague também as linhas `2026100812*_wit2_*` de
 `supabase_migrations.schema_migrations`.
+
+## O que aprendemos aplicando (09/10)
+
+- **Conector do Supabase:** qualquer SQL com a palavra `DROP` (até em comentário) fica esperando uma
+  confirmação que não aparece na sessão e expira em 60 s. Migração nova: sem `DROP`.
+- **Realtime:** em `realtime.messages` dá para **criar** policy (`CREATE POLICY`), mas não alterar nem
+  apagar (a tabela é do `supabase_realtime_admin`), nem pelo SQL Editor. Para mudar uma regra de canal,
+  crie uma policy nova com outro nome. As `wit2_turma_*` antigas ficaram: só liberam o canal da própria
+  turma, que o jogo não usa mais (agora é `wit2-todos-...`).
+- **SQL Editor no Windows:** o texto colado entra com `\r\n`; o corpo das funções fica com `\r` (não muda
+  nada, mas a comparação com o repositório tem de ignorar o `\r`).
+- **Versões:** o `apply_migration` grava a hora em que roda; depois de aplicar, renomeie o arquivo para a
+  versão registrada em `supabase_migrations.schema_migrations`.
+
+```sql
+-- conferir que o banco tem as mesmas funções do repositório (comparar com o Postgres local)
+SELECT md5(string_agg(proname||'='||left(md5(replace(prosrc, chr(13), '')),8), E'\n'
+       ORDER BY proname, md5(replace(prosrc, chr(13), ''))))
+FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND proname LIKE 'wit2\_%';
+```
