@@ -22,13 +22,17 @@ export interface DArt {
   longas: HTMLImageElement | null;
   /** tiros.png: 4 × 4 de 16 (linhas: tiro, flecha, orbe, bola do inimigo; coluna 4 = impacto) */
   tiros: HTMLImageElement | null;
+  /** perigos.png: 4 × 2 de 32 (espinho baixo, aviso, alto, veneno; gelo, lava ×2, barril explosivo) */
+  perigos: HTMLImageElement | null;
+  /** salas.png: 4 × 2 de 64 (estátua, mercador, lampião aceso, apagado; pedra da ressurreição, parede rachada, baú do desafio, alçapão) */
+  salas: HTMLImageElement | null;
   /** sombras do Arise: 4 × 4 de 48 (frente, esquerda, direita, costas; andar ×2, ataque ×2) */
   sombras: Partial<Record<SombraKind, HTMLImageElement>>;
   /** quantas folhas já chegaram (entra na chave do cache da sala) */
   ok: number;
 }
 
-export const newDArt = (): DArt => ({ tiles: [null, null, null, null, null, null], caps: [null, null, null, null, null, null], obj: null, portal: null, curtas: null, longas: null, tiros: null, sombras: {}, ok: 0 });
+export const newDArt = (): DArt => ({ tiles: [null, null, null, null, null, null], caps: [null, null, null, null, null, null], obj: null, portal: null, curtas: null, longas: null, tiros: null, perigos: null, salas: null, sombras: {}, ok: 0 });
 
 function img(url: string): Promise<HTMLImageElement | null> {
   return new Promise(res => {
@@ -58,6 +62,8 @@ export function loadDArt(a: DArt, onLoad: () => void, alive: () => boolean): voi
   RANK_FILE.forEach((r, k) => void img(`${BASE}/lugares/piso-parede-${r}.png`).then(got(i => { a.tiles[k] = i; a.caps[k] = capColor(i); })));
   void img(`${BASE}/lugares/objetos.png`).then(got(i => { a.obj = i; }));
   void img(`${BASE}/lugares/portal.png`).then(got(i => { a.portal = i; }));
+  void img(`${BASE}/lugares/perigos.png`).then(got(i => { a.perigos = i; }));
+  void img(`${BASE}/lugares/salas.png`).then(got(i => { a.salas = i; }));
   void img(`${BASE}/armas/armas-curtas.png`).then(got(i => { a.curtas = i; }));
   void img(`${BASE}/armas/armas-longas.png`).then(got(i => { a.longas = i; }));
   void img(`${BASE}/armas/tiros.png`).then(got(i => { a.tiros = i; }));
@@ -86,6 +92,20 @@ export function drawCell(ctx: CanvasRenderingContext2D, im: CanvasImageSource, c
 export function drawObj(ctx: CanvasRenderingContext2D, a: DArt, idx: number, x: number, y: number, size = 40) {
   if (!a.obj) return false;
   drawCell(ctx, a.obj, 64, 64, 4, idx, x - size / 2, y - size, size, size);
+  return true;
+}
+
+/** Peças de perigos.png (4 × 2 de 32) e salas.png (4 × 2 de 64). */
+export const PERIGO = { espinhoBaixo: 0, espinhoAviso: 1, espinhoAlto: 2, veneno: 3, gelo: 4, lava: 5, lava2: 6, explosivo: 7 } as const;
+export const SALA = { estatua: 0, mercador: 1, lampiao: 2, lampiaoApagado: 3, pedra: 4, paredeRachada: 5, bauDesafio: 6, alcapao: 7 } as const;
+
+/** Peça de salas.png com a base em (x, y) (centro embaixo), `size` px. */
+export function drawSala(ctx: CanvasRenderingContext2D, a: DArt, idx: number, x: number, y: number, size = 56) {
+  if (!a.salas) return false;
+  const sm = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = size < 64; ctx.imageSmoothingQuality = 'medium';
+  drawCell(ctx, a.salas, 64, 64, 4, idx, x - size / 2, y - size, size, size);
+  ctx.imageSmoothingEnabled = sm;
   return true;
 }
 

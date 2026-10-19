@@ -32,7 +32,8 @@ import { play } from '@/game/sfx';
 import { SystemWindow } from './SystemWindow';
 import { colorsOf, drawActs, drawCine, drawFx, drawFxTop, drawStatus, EL_COLOR, fxFrom, GROUND_ACTS, type Fx } from './dungeon-vfx';
 import { PixelLayer, pxRing, ramp } from './pixel-fx';
-import { drawCell, drawObj, drawWeapon, hash, loadDArt, newDArt, OBJ, type DArt } from './dungeon-art';
+import { drawCell, drawObj, drawSala, drawWeapon, hash, loadDArt, newDArt, OBJ, PERIGO, SALA, type DArt } from './dungeon-art';
+import { preloadSheets } from './card-sprites';
 import { bladeAngle, drawGhosts, HAND_Y, newMotion, poseOf, tinted, trackMotion, type Motion } from './player-vfx';
 import './dungeon.css';
 
@@ -147,6 +148,8 @@ export function DungeonView({ look, rank, mode = {}, teste = false, onClose }: {
     poseFrames(look, 'esquiva').then(f => { if (alive) art.current.dodge = f; }).catch(() => undefined);
     art.current.d = newDArt();
     loadDArt(art.current.d, () => undefined, () => alive);
+    // golpes do caçador e pacotes dos 12 elementos (para não faltarem no primeiro golpe)
+    preloadSheets(['Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting', 'Poison', 'Ground', 'Flying', 'Ghost', 'Dark', 'Steel']);
     loadPetFrames(pet).then(f => { if (alive) art.current.pet = f; }).catch(() => undefined);
     for (const [k, id] of Object.entries(MOB_SPRITE)) loadPetFrames(id).then(f => { if (alive) art.current.mobs[k as EnemyKind] = f; }).catch(() => undefined);
     for (const [k, [id]] of Object.entries(BOSS_NPC)) loadNpcFrames(id).then(f => { if (alive) art.current.mobs[k as EnemyKind] = f; }).catch(() => undefined);
@@ -520,10 +523,13 @@ function roomLayer(run: Run, a: Art): HTMLCanvasElement {
     const s = room.secret, [dx, dy] = doorTile(s);
     for (let k = -1; k <= 1; k++) {
       const x = (s === 'n' || s === 's' ? dx + k : dx) * T, y = (s === 'n' || s === 's' ? dy : dy + k) * T;
+      if (drawSala(ctx, a.d, SALA.paredeRachada, x + T / 2, y + T, T)) continue;
       ctx.strokeStyle = '#0a0612'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 6, y + 4); ctx.lineTo(x + 14, y + 14); ctx.lineTo(x + 10, y + 22); ctx.lineTo(x + 20, y + 28); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x + 14, y + 14); ctx.lineTo(x + 24, y + 10); ctx.stroke();
     }
   }
+  // alçapão no meio da sala-armadilha (só enfeite)
+  if (room.kind === 'armadilha') drawSala(ctx, a.d, SALA.alcapao, CX * T + 16, CY * T + 32 + 6, 44);
   // portas trancadas: barras de energia (azul; vermelha no desafio)
   if (!open) for (const s of room.doors) {
     if (s === room.secret && !cracked) continue;
@@ -555,10 +561,21 @@ function roomLayer(run: Run, a: Art): HTMLCanvasElement {
 
 const BREAK_COLOR: Record<string, [string, string]> = { pedra: ['#6a6478', '#8a8498'], minerio: ['#6a6478', '#e8884a'], erva: ['#2e7a3a', '#5ac85a'], barril: ['#7a4a22', '#a0703a'], explosivo: ['#8a1a1a', '#e83a2a'], cristal: ['#2a4a8a', '#7ab8ff'], lampiao: ['#3a3048', '#ffd84a'], planta: ['#2e7a3a', '#5ac85a'] };
 
-function drawHazards(ctx: CanvasRenderingContext2D, run: Run, now: number) {
+function drawHazards(ctx: CanvasRenderingContext2D, run: Run, now: number, d: DArt) {
   const room = run.d.rooms[run.room];
   for (const h of [...room.haz, ...run.trail]) {
     const x = h.x * T, y = h.y * T;
+    // arte do GPT (perigos.png): espinho baixo/aviso/alto, veneno, gelo, lava em 2 quadros
+    if (d.perigos) {
+      const idx = h.kind === 'espinho' ? ({ baixo: PERIGO.espinhoBaixo, aviso: PERIGO.espinhoAviso, alto: PERIGO.espinhoAlto } as Record<string, number>)[spikeState(h, run.t)] ?? PERIGO.espinhoBaixo
+        : h.kind === 'veneno' ? PERIGO.veneno : h.kind === 'gelo' ? PERIGO.gelo : h.kind === 'lava' ? (Math.floor(now / 300 + h.x) % 2 ? PERIGO.lava2 : PERIGO.lava) : -1;
+      if (idx >= 0) {
+        drawCell(ctx, d.perigos, 32, 32, 4, idx, x, y, T, T);
+        // aviso do espinho: pisca para não passar despercebido
+        if (h.kind === 'espinho' && idx === PERIGO.espinhoAviso && Math.floor(now / 90) % 2) { ctx.fillStyle = 'rgba(255,60,70,.35)'; ctx.fillRect(x + 3, y + 3, T - 6, T - 6); }
+        continue;
+      }
+    }
     if (h.kind === 'espinho') {
       const st = spikeState(h, run.t);
       ctx.fillStyle = '#2a2436'; ctx.fillRect(x + 3, y + 3, T - 6, T - 6);
@@ -589,13 +606,24 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: 
   const room = run.d.rooms[run.room], p = run.p;
   const iceBoss = run.enemies.some(e => e.kind === 'troll');
   if (iceBoss) { ctx.fillStyle = 'rgba(190,240,255,.18)'; ctx.fillRect(T, T, W - 2 * T, H - 2 * T); }
-  drawHazards(ctx, run, now);
+  drawHazards(ctx, run, now, a.d);
 
   // coisas que quebram (pedra, veio, erva, barril, cristal, lampião)
   const ORE_OBJ = [OBJ.cobre, OBJ.cobre, OBJ.ferro, OBJ.ferro, OBJ.ouro, OBJ.ouro];
   for (const b of run.breaks[run.room]) {
     if (b.hp <= 0) continue;
     const [c1, c2] = BREAK_COLOR[b.kind], x = b.x * T, y = b.y * T;
+    // barril explosivo (perigos.png) e lampião (salas.png): arte própria do GPT
+    if (b.kind === 'explosivo' && a.d.perigos) {
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x + 16, y + 28, 12, 4, 0, 0, 7); ctx.fill();
+      drawCell(ctx, a.d.perigos, 32, 32, 4, PERIGO.explosivo, x - 1, y - 4, 34, 34);
+      continue;
+    }
+    if (b.kind === 'lampiao' && a.d.salas) {
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x + 16, y + 29, 11, 4, 0, 0, 7); ctx.fill();
+      drawSala(ctx, a.d, SALA.lampiao, x + 16, y + 32, 46);
+      continue;
+    }
     // arte do GPT (objetos.png): pedra, veio do minério do rank, cristal, erva, barril
     const idx = b.kind === 'pedra' ? (hash(b.x, b.y) < 0.5 ? OBJ.pedra : OBJ.pedraRachada) : b.kind === 'minerio' ? ORE_OBJ[Math.min(5, run.rank)]
       : b.kind === 'cristal' ? OBJ.cristal : b.kind === 'erva' ? (hash(b.x, b.y, 3) < 0.7 ? OBJ.ervaCura : OBJ.ervaMana) : b.kind === 'barril' || b.kind === 'explosivo' ? OBJ.barril : -1;
@@ -625,6 +653,11 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: 
   // baú, escada, estátua, mercador, loja e armas no chão
   if (room.kind === 'tesouro' && a.d.obj) drawObj(ctx, a.d, run.chests.includes(run.room) ? OBJ.bauAberto : OBJ.bau, CX * T + 16, CY * T + 32, 46);
   else if (room.kind === 'tesouro' && a.chest) { ctx.globalAlpha = run.chests.includes(run.room) ? 0.55 : 1; ctx.drawImage(a.chest, CX * T - 4, CY * T - 6, 40, 34); ctx.globalAlpha = 1; }
+  // baú vermelho do desafio: fechado até limpar a sala (o prêmio sai dele)
+  if (room.kind === 'desafio' && a.d.obj) {
+    if (!run.cleared[run.room]) drawSala(ctx, a.d, SALA.bauDesafio, CX * T + 16, CY * T + 34, 48);
+    else drawObj(ctx, a.d, OBJ.bauAberto, CX * T + 16, CY * T + 32, 46);
+  }
   if ((room.kind === 'fim' || room.kind === 'elite') && run.cleared[run.room]) {
     const pulse = 0.5 + 0.5 * Math.sin(now / 250);
     if (a.d.obj) {
@@ -642,8 +675,12 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: 
     const bought = run.bought.includes(x.id);
     if (x.kind === 'estatua') {
       const X = x.x * T, Y = x.y * T;
-      ctx.fillStyle = '#4a4458'; ctx.fillRect(X - 14, Y - 6, 28, 12); ctx.fillStyle = '#7a7488'; ctx.fillRect(X - 8, Y - 40, 16, 34); ctx.beginPath(); ctx.arc(X, Y - 44, 8, 0, 7); ctx.fill();
-      if (!bought) { ctx.fillStyle = `rgba(138,208,255,${0.4 + Math.sin(now / 200) * 0.3})`; ctx.beginPath(); ctx.arc(X, Y - 44, 12, 0, 7); ctx.fill(); label(ctx, `${BUFFS.find(b => b.id === x.what)?.name ?? ''} · ${x.price}`, X, Y + 18, '#ffd84a'); }
+      const art = drawSala(ctx, a.d, SALA.estatua, X, Y + 8, 64);
+      if (!art) { ctx.fillStyle = '#4a4458'; ctx.fillRect(X - 14, Y - 6, 28, 12); ctx.fillStyle = '#7a7488'; ctx.fillRect(X - 8, Y - 40, 16, 34); ctx.beginPath(); ctx.arc(X, Y - 44, 8, 0, 7); ctx.fill(); }
+      if (!bought) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(90,160,255,${0.18 + Math.sin(now / 200) * 0.1})`; ctx.beginPath(); ctx.arc(X, Y - 36, 14, 0, 7); ctx.fill(); ctx.restore();
+        label(ctx, `${BUFFS.find(b => b.id === x.what)?.name ?? ''} · ${x.price}`, X, Y + 18, '#ffd84a');
+      }
       continue;
     }
     if (x.kind === 'loja' || x.kind === 'mercador') {
@@ -651,6 +688,7 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: 
       if (!bought) {
         const icon = a.icons.get(x.what === 'vida' ? 'vida' : x.what === 'mana' ? 'mana' : x.what === 'cristal' ? 'cristal:roxo' : 'moeda');
         if (x.what === 'arma' || x.what === 'afiar') { ctx.fillStyle = '#e8f0f8'; ctx.fillRect(x.x * T - 1, x.y * T - 22, 3, 16); ctx.fillStyle = '#c8a040'; ctx.fillRect(x.x * T - 5, x.y * T - 8, 11, 2); }
+        else if (x.what === 'pedra' && drawSala(ctx, a.d, SALA.pedra, x.x * T, x.y * T - 2, 30)) { /* pedra da ressurreição */ }
         else if (x.what === 'pedra') { ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.arc(x.x * T, x.y * T - 14, 7, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(x.x * T - 1, x.y * T - 19, 2, 10); ctx.fillRect(x.x * T - 4, x.y * T - 16, 8, 2); }
         else if (icon?.complete) ctx.drawImage(icon, x.x * T - 9, x.y * T - 22, 18, 18);
         label(ctx, `${x.price}`, x.x * T, x.y * T + 22, '#ffd84a');
@@ -666,7 +704,8 @@ function draw(ctx: CanvasRenderingContext2D, run: Run, a: Art, now: number, mo: 
       label(ctx, w.name, x.x * T, x.y * T + 22, '#bfe8ff');
     }
   }
-  if (room.kind === 'mercador') { const X = CX * T + 16, Y = (CY - 1.6) * T; ctx.fillStyle = '#2a1a3a'; ctx.beginPath(); ctx.moveTo(X - 12, Y + 20); ctx.lineTo(X, Y - 14); ctx.lineTo(X + 12, Y + 20); ctx.fill(); ctx.fillStyle = '#ffd84a'; ctx.fillRect(X - 4, Y - 2, 3, 3); ctx.fillRect(X + 2, Y - 2, 3, 3); }
+  if (room.kind === 'mercador' && drawSala(ctx, a.d, SALA.mercador, CX * T + 16, (CY - 1.6) * T + 24, 60)) { /* mercador do GPT */ }
+  else if (room.kind === 'mercador') { const X = CX * T + 16, Y = (CY - 1.6) * T; ctx.fillStyle = '#2a1a3a'; ctx.beginPath(); ctx.moveTo(X - 12, Y + 20); ctx.lineTo(X, Y - 14); ctx.lineTo(X + 12, Y + 20); ctx.fill(); ctx.fillStyle = '#ffd84a'; ctx.fillRect(X - 4, Y - 2, 3, 3); ctx.fillRect(X + 2, Y - 2, 3, 3); }
   // itens no chão
   for (const l of run.loot) {
     const img = a.icons.get(l.item), bob = Math.sin(now / 220 + l.id) * 2;

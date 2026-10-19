@@ -12,7 +12,7 @@
 import type { Act, Ev, Run } from '@/game/dungeon';
 import { REACTIONS, type Bag, type Look, type ReactionId } from '@/game/dungeon-moves';
 import type { Element } from '@/lib/tcg/types';
-import { drawBeam, drawFrame, loopFrame, pick, sheetImg, SHEET, type Pick } from './card-sprites';
+import { drawBeam, drawBeam3, drawFrame, drawLook, GOLPE, loopFrame, pick, sheetImg, sheetInfo, SHEET, type Pick } from './card-sprites';
 import { mix, PixelLayer, pxCrescent, pxPuff, pxRing, pxStar, pxStreak, ramp, stepT, type Ramp } from './pixel-fx';
 
 export const EL_COLOR: Record<Element, [string, string]> = {
@@ -60,6 +60,14 @@ export function anim(out: Fx[], p: Pick, x: number, y: number, size: number, o: 
   out.push({ kind: 'anim', sheet: p.id, f0, f1, x, y, size: size * p.scale, ang: o.ang ?? 0, foot: o.foot, t: 0, life: o.life ?? 0.07 * (f1 - f0 + 1) + 0.04, c1: '#fff' });
 }
 
+/** Toca uma linha da folha dos golpes do caçador (`GOLPE.*`). false se a folha não chegou (aí vale o desenho em pixel). */
+export function golpe(out: Fx[], id: string, frames: [number, number], x: number, y: number, size: number, o: { ang?: number; life?: number; foot?: boolean } = {}): boolean {
+  const info = sheetInfo(id);
+  if (!info || !sheetImg(id)) return false;
+  anim(out, { id, info, own: true, scale: 1 }, x, y, size, { frames, ang: o.ang, life: o.life, foot: o.foot });
+  return true;
+}
+
 /** Explosão de uma carta (ou do elemento): os quadros do fim, em pé se for pilar/chama. */
 export function impact(out: Fx[], card: string | undefined, el: Element, x: number, y: number, r: number, big = 1) {
   const p = pick(card ?? '', el, 'impacto');
@@ -81,7 +89,9 @@ export function fxFrom(evs: Ev[], out: Fx[]): number {
         if (e.kind === 'pesado') shake = Math.max(shake, 3);
         break;
       case 'hit':
-        out.push({ kind: 'flash', x: e.x, y: e.y - 0.35, r: e.crit ? 0.75 : 0.5, ang: Math.round(rnd(0, 3)) * (Math.PI / 4), t: 0, life: e.crit ? 0.15 : 0.11, c1: '#ffffff', c2: e.block ? '#9ab8d8' : e.crit ? '#ffd84a' : '#8fd8ff' });
+        // estrela de impacto: a da folha dos golpes (bloqueio continua a de código, azul-acinzentada)
+        if (e.block || !golpe(out, GOLPE.faisca, [0, 2], e.x, e.y - 0.35, e.crit ? 60 : 44, { life: e.crit ? 0.16 : 0.12 }))
+          out.push({ kind: 'flash', x: e.x, y: e.y - 0.35, r: e.crit ? 0.75 : 0.5, ang: Math.round(rnd(0, 3)) * (Math.PI / 4), t: 0, life: e.crit ? 0.15 : 0.11, c1: '#ffffff', c2: e.block ? '#9ab8d8' : e.crit ? '#ffd84a' : '#8fd8ff' });
         pushBig(out, { kind: 'text', x: e.x + rnd(-0.2, 0.2), y: e.y - 0.6, vy: -1.6, t: 0, life: 0.7, c1: e.block ? '#9ab8d8' : e.crit ? '#ffd84a' : '#ffffff', text: e.block ? `${e.dmg}` : `${e.dmg}${e.crit ? '!' : ''}`, size: e.crit ? 13 : 10 });
         for (let k = 0; k < (e.crit ? 6 : 3); k++) out.push({ kind: 'spark', x: e.x, y: e.y - 0.3, vx: rnd(-4, 4), vy: rnd(-4, 1), t: 0, life: rnd(0.18, 0.28), c1: e.crit ? '#ffd84a' : '#ffffff', c2: e.crit ? '#ff8a2a' : '#8fd8ff' });
         if (e.crit) shake = Math.max(shake, 2);
@@ -404,16 +414,22 @@ export function drawActs(L: PixelLayer, ctx: CanvasRenderingContext2D, run: Run,
         const sp = Math.hypot(a.vx, a.vy) || 1, ux = a.vx / sp, uy = a.vy / sp, ang = Math.atan2(a.vy, a.vx);
         const own = SHEET[a.card.replace(/\+$/, '')];
         const flies = own && (own.kind === 'projetil' || own.kind === 'redemoinho' || own.kind === 'corte' || own.kind === 'feixe');
+        // sem folha própria que voa: o objeto da carta (kunai, carta...) ou o voo do pacote do elemento
+        const fly = flies ? null : look ? null : pick(a.card, a.el, 'proj'), flyImg = fly ? sheetImg(fly.id) : null;
+        const lookSz = Math.max(26, a.r * T * 2.6);
         if (pass === 'px') {
           // rastro em faixas (mais longo quanto mais rápido)
           const len = Math.min(1.4, sp * 0.06 + 0.3) * T, w = Math.max(6, a.r * T * (flies ? 1.3 : 1.1));
           pxStreak(c, X - ux * len, Y - uy * len, X, Y, w + 4, rp[0]);
           pxStreak(c, X - ux * len * 0.9, Y - uy * len * 0.9, X, Y, w, rp[1]);
           pxStreak(c, X - ux * len * 0.5, Y - uy * len * 0.5, X, Y, Math.max(3, w * 0.4), rp[3]);
-          if (!flies) pxLookOutlined(c, look, X, Y, ang, Math.max(6, a.r * T), rp, now);
         } else if (flies) {
           const img = sheetImg(a.card.replace(/\+$/, ''));
           if (img) drawFrame(ctx, img, loopFrame(own.voo, now, a.id), X, Y, Math.min(120, Math.max(44, a.r * T * 3.4)), own.dir ? ang - (own.rot ?? 0) : 0);
+        } else if (flyImg && fly) drawFrame(ctx, flyImg, loopFrame(fly.info.voo, now, a.id), X, Y, Math.max(40, a.r * T * 3.2), ang);
+        else if (!drawLook(ctx, look, X, Y, ang, lookSz, now, c1)) {
+          // a folha dos objetos ainda não chegou: o desenho em pixel (direto na tela, sem a camada)
+          pxLookOutlined(ctx, look, X, Y, ang, Math.max(6, a.r * T), rp, now);
         }
         break;
       }
@@ -436,7 +452,7 @@ export function drawActs(L: PixelLayer, ctx: CanvasRenderingContext2D, run: Run,
         const ang = a.ang + (mv.sweep ? mv.sweep * (a.t / mv.dur - 0.5) : 0), Lpx = a.len * T, w0 = Math.max(10, a.w * T), w1 = Math.max(10, (mv.cone ?? a.w) * T);
         const fade = k > 0.85 ? 1 - (k - 0.85) / 0.15 : k < 0.08 ? 0.4 + k / 0.08 * 0.6 : 1;
         const pk = pick(a.card, a.el, 'feixe'), img = pk ? sheetImg(pk.id) : null;
-        const sheetBeam = !!(img && pk?.info.feixe !== undefined && !mv.cone);
+        const sheetBeam = !!(img && (pk?.info.feixe !== undefined || pk?.info.beam3) && !mv.cone);
         const hy = Y - 10;
         if (pass === 'px') {
           if (!sheetBeam) pxBeam(c, X, hy, ang, Lpx, w0 * fade, w1 * fade, rp, a.t);
@@ -447,7 +463,8 @@ export function drawActs(L: PixelLayer, ctx: CanvasRenderingContext2D, run: Run,
           if (sheetBeam) {
             // tremida do feixe: a grossura pula entre 2 tamanhos (12 por segundo)
             const flick = Math.floor(now / 83) % 2 ? 1.08 : 0.94;
-            drawBeam(ctx, img, pk.id, pk.info.feixe!, X, hy, ang, Lpx, w0 * 1.25 * fade * flick);
+            if (pk.info.beam3) drawBeam3(ctx, img, pk.id, X, hy, ang, Lpx, w0 * 1.3 * fade * flick);
+            else drawBeam(ctx, img, pk.id, pk.info.feixe!, X, hy, ang, Lpx, w0 * 1.25 * fade * flick);
           } else {
             // folha sem feixe deitado: ela toca na ponta do feixe de código
             drawFrame(ctx, img, loopFrame(pk.info.voo, now, a.id), X + Math.cos(ang) * Lpx, hy + Math.sin(ang) * Lpx, Math.max(48, w1 * 2.6) * pk.scale, pk.info.dir ? ang - (pk.info.rot ?? 0) : 0);
@@ -471,6 +488,9 @@ export function drawActs(L: PixelLayer, ctx: CanvasRenderingContext2D, run: Run,
             c.fillStyle = i % 2 ? rp[1] : rp[3];
             if (look === 'raiz') c.fillRect(x - 2, y, 4, 10); else if (look === 'gelo') c.fillRect(x - 4, y, 8, 4); else c.fillRect(x - 3, y - 3, 6, 6);
           }
+        } else if (img && pk && fade > 0.3 && pk.id.startsWith('elem-')) {
+          // área do pacote do elemento: um círculo visto de cima, do tamanho da zona
+          drawFrame(ctx, img, loopFrame(pk.info.voo, now, a.id), X, Y, Math.max(44, R * 2.5));
         } else if (img && pk && fade > 0.3) {
           // uma folha no centro; zona grande ganha mais duas dos lados
           const sz = Math.min(170, Math.max(52, R * 1.6)) * pk.scale;
@@ -493,8 +513,11 @@ export function drawActs(L: PixelLayer, ctx: CanvasRenderingContext2D, run: Run,
                 for (let s = 1; s < 8; s++) pts.push([x + (jit(s, pt.t) - 0.5) * 18, y - 220 + s * 27]);
                 pts.push([x, y]);
                 for (const [col, w] of [[rp[0], 9], [rp[1], 5], [rp[3], 2]] as const) { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); pts.forEach(([px, py]) => c.lineTo(px, py)); c.stroke(); }
-              } else pxLookOutlined(c, look ?? 'esfera', x, y - q * 180, Math.PI / 2, Math.max(7, R * 0.6), rp, now);
+              }
             }
+          } else if (!img && look !== 'raio') {
+            // o objeto da carta caindo (pixel se a folha dos objetos ainda não chegou)
+            if (!drawLook(ctx, look ?? 'esfera', x, y - q * 180, Math.PI / 2, Math.max(28, R * 1.4), now, c1)) pxLookOutlined(ctx, look ?? 'esfera', x, y - q * 180, Math.PI / 2, Math.max(7, R * 0.6), rp, now);
           } else if (img && own) {
             // o próprio sprite caindo (a folha que já cai, como o meteoro, não gira)
             drawFrame(ctx, img, loopFrame(own.voo, now, a.id), x, y - q * 180, Math.max(48, R * 2.4), own.dir ? Math.PI / 2 - (own.rot ?? 0) : 0, own.kind === 'pilar');
@@ -506,8 +529,9 @@ export function drawActs(L: PixelLayer, ctx: CanvasRenderingContext2D, run: Run,
         const own = SHEET[a.card.replace(/\+$/, '')], img = own ? sheetImg(a.card.replace(/\+$/, '')) : null;
         for (let i = 0; i < a.n; i++) {
           const an = a.t * mv.speed + (i / a.n) * Math.PI * 2, ox = X + Math.cos(an) * a.r * T, oy = Y + Math.sin(an) * a.r * T * 0.8 - 10;
-          if (pass === 'px' && !img) pxLookOutlined(c, look, ox, oy, an + Math.PI / 2, look === 'petala' ? 5 : 7, rp, now);
-          else if (pass === 'top' && img && own) drawFrame(ctx, img, loopFrame(own.voo, now, a.id + i), ox, oy, 34, 0);
+          if (pass !== 'top') continue;
+          if (img && own) drawFrame(ctx, img, loopFrame(own.voo, now, a.id + i), ox, oy, 34, 0);
+          else if (!drawLook(ctx, look, ox, oy, an + Math.PI / 2, 24, now, c1)) pxLookOutlined(ctx, look, ox, oy, an + Math.PI / 2, look === 'petala' ? 5 : 7, rp, now);
         }
         break;
       }

@@ -9,8 +9,8 @@ import { DASH_T, type Run, type Warn } from '@/game/dungeon';
 import { weapon } from '@/game/dungeon-weapons';
 import type { Element } from '@/lib/tcg/types';
 import type { Dir } from '@/game/world/movement';
-import { pick, SHEET } from './card-sprites';
-import { anim, colorsOf, impact, type Fx } from './dungeon-vfx';
+import { GOLPE, pick, SHEET } from './card-sprites';
+import { anim, colorsOf, golpe, impact, type Fx } from './dungeon-vfx';
 
 export type SwingKind = 'leve' | 'final' | 'pesado' | 'investida';
 
@@ -45,8 +45,12 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 /** Altura da mão (px) acima dos pés: de onde sai o corte e o tiro. */
 export const HAND_Y = 14;
 
-/** Poeira nos pés (saída e chegada da esquiva, pisada do pesado): nuvens de pixel em 2 tons. */
+/**
+ * Poeira nos pés (saída e chegada da esquiva, pisada do pesado): a nuvem da
+ * folha dos golpes; sem ela, nuvens de pixel em 2 tons.
+ */
 function dust(fx: Fx[], x: number, y: number, n: number, dx: number, dy: number, sp = 1.4) {
+  if (golpe(fx, GOLPE.estocada, [4, 5], x + Math.sign(dx) * 0.15, y + 0.15, n >= 4 ? 44 : 32, { foot: true, life: 0.26 })) return;
   for (let k = 0; k < n; k++) {
     const a = Math.atan2(dy, dx) + rnd(-0.8, 0.8);
     fx.push({ kind: 'smoke', x: x + rnd(-0.15, 0.15), y: y + 0.05, vx: Math.cos(a) * sp * rnd(0.5, 1), vy: Math.sin(a) * sp * 0.5 * rnd(0.5, 1) - 0.2, r: rnd(0.14, 0.24), t: 0, life: rnd(0.26, 0.36), c1: '#e8e0d8', c2: '#9a8c90' });
@@ -118,7 +122,7 @@ export function trackMotion(mo: Motion, run: Run, fx: Fx[], now: number) {
     beams.add(a.id);
     if (mo.beams.has(a.id)) continue;
     const pk = pick(a.card, a.el, 'feixe');
-    if (!pk || (pk.info.feixe !== undefined && !a.mv.cone)) continue;
+    if (!pk || ((pk.info.feixe !== undefined || pk.info.beam3) && !a.mv.cone)) continue;
     const L = Math.min(a.mv.len, 7), mx = a.x + Math.cos(a.ang) * L * 0.5, my = a.y - 0.3 + Math.sin(a.ang) * L * 0.5;
     anim(fx, pk, mx, my, Math.max(80, L * 32 * 0.9), { frames: [pk.info.voo[0], pk.info.fim[1]], ang: pk.info.dir ? a.ang - (pk.info.rot ?? 0) : 0, life: Math.max(0.36, a.mv.dur) });
   }
@@ -136,14 +140,22 @@ export function trackMotion(mo: Motion, run: Run, fx: Fx[], now: number) {
         // estocada: da posição de antes até a ponta
         const back = kind === 'investida' ? 2.2 : 0, len = kind === 'investida' ? 3 : e.range;
         const sx = e.x - Math.cos(e.ang) * back, sy = hy - Math.sin(e.ang) * back;
-        fx.push({ kind: 'thrust', x: sx, y: sy, x2: sx + Math.cos(e.ang) * len, y2: sy + Math.sin(e.ang) * len, r: kind === 'pesado' ? 0.42 : 0.32, t: 0, life: 0.22, c1: '#ffffff', c2: tint });
+        // estocada da folha dos golpes, ao longo do ângulo; sem ela, o traço em pixel
+        if (!golpe(fx, GOLPE.estocada, [0, 3], sx + Math.cos(e.ang) * len * 0.5, sy + Math.sin(e.ang) * len * 0.5, Math.max(56, len * 32 * 1.05), { ang: e.ang, life: 0.22 }))
+          fx.push({ kind: 'thrust', x: sx, y: sy, x2: sx + Math.cos(e.ang) * len, y2: sy + Math.sin(e.ang) * len, r: kind === 'pesado' ? 0.42 : 0.32, t: 0, life: 0.22, c1: '#ffffff', c2: tint });
         if (kind === 'investida' && mo.last) for (let g = 1; g <= 3; g++) {
           const q = g / 4;
           mo.ghosts.push({ x: e.x - Math.cos(e.ang) * back * (1 - q), y: e.y - Math.sin(e.ang) * back * (1 - q), born: now - (3 - g) * 30, life: 220, ...mo.last, sx: 1, sy: 1, lean: Math.cos(e.ang) * 0.15, color: '#7ad8ff' });
         }
       } else {
-        const heavy = kind === 'pesado';
-        fx.push({ kind: 'slash', x: e.x, y: hy, r: e.range, ang: e.ang, arc: e.arc, side: heavy ? 1 : mo.swingSide, t: 0, life: heavy ? 0.3 : kind === 'final' ? 0.25 : 0.2, c1: '#ffffff', c2: tint, size: heavy ? 1.25 : kind === 'final' ? 1.15 : 0.95 });
+        const heavy = kind === 'pesado', full = e.arc >= 6.2;
+        // golpe de carta com folha de corte: só a folha da carta (o corte da arma junto só embaralha)
+        const cardCut = e.card ? pick(e.card, e.el ?? 'Steel', 'corte') : null;
+        const d = Math.min(1.1, e.range * 0.5);
+        const ok = cardCut ? true
+          : full ? golpe(fx, GOLPE.giro, [0, 5], e.x, e.y - 0.2, Math.max(90, e.range * 32 * 2.3), { life: 0.32 })
+          : golpe(fx, kind === 'final' ? GOLPE.final : mo.swingSide > 0 ? GOLPE.corteA : GOLPE.corteB, [0, 3], e.x + Math.cos(e.ang) * d, hy + Math.sin(e.ang) * d * 0.8, Math.max(58, e.range * 32 * (kind === 'final' ? 1.75 : 1.5)), { ang: e.ang, life: kind === 'final' ? 0.25 : 0.2 });
+        if (!ok) fx.push({ kind: 'slash', x: e.x, y: hy, r: e.range, ang: e.ang, arc: e.arc, side: heavy ? 1 : mo.swingSide, t: 0, life: heavy ? 0.3 : kind === 'final' ? 0.25 : 0.2, c1: '#ffffff', c2: tint, size: heavy ? 1.25 : kind === 'final' ? 1.15 : 0.95 });
         if (heavy) dust(fx, e.x, e.y, 5, 0, 1, 2.4);
       }
       // golpe de carta: a folha dela toca no corte (a própria ou a do elemento)
@@ -157,7 +169,9 @@ export function trackMotion(mo: Motion, run: Run, fx: Fx[], now: number) {
     }
     if (e.k === 'shoot') {
       mo.shootStart = now; mo.shootAng = e.ang;
-      fx.push({ kind: 'flash', x: e.x + Math.cos(e.ang) * 0.8, y: e.y - HAND_Y / 32 + Math.sin(e.ang) * 0.8, r: 0.36, ang: e.ang, t: 0, life: 0.09, c1: '#ffffff', c2: '#ffd84a' });
+      const mx = e.x + Math.cos(e.ang) * 0.8, my = e.y - HAND_Y / 32 + Math.sin(e.ang) * 0.8;
+      if (!golpe(fx, GOLPE.faisca, [3, 5], mx, my, 34, { ang: e.ang, life: 0.1 }))
+        fx.push({ kind: 'flash', x: mx, y: my, r: 0.36, ang: e.ang, t: 0, life: 0.09, c1: '#ffffff', c2: '#ffd84a' });
     }
     if (e.k === 'hurt') mo.hurtStart = now;
     // esquiva perfeita: a Sombra fica no lugar (silhueta azul-escura cheia)

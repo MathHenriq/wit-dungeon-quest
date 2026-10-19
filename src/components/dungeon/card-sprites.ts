@@ -1,10 +1,14 @@
 // Sprites dos golpes de carta (public/game/efeitos/<id>.png, 6 quadros de 96 × 96
 // vindos do GPT). Cada folha conta uma história (começo, pico, fim); aqui está
 // como usar cada uma: o que toca enquanto voa, qual quadro tem o feixe, quais
-// fazem o impacto. As 67 cartas Épica+ usam a própria folha. As Comum–Rara
-// pegam uma folha do mesmo elemento (PROXY), menor, até o pacote de efeitos por
-// elemento do GPT chegar (docs/gpt-masmorra.md §10).
+// fazem o impacto. As 67 cartas Épica+ usam a própria folha. As Comum–Rara usam
+// o pacote do elemento (public/game/masmorra/efeitos-elemento/<el>.png, §10 do
+// docs/gpt-masmorra.md: voo, impacto, área e feixe), menor; tornado e corte,
+// que o pacote não tem, emprestam uma folha Épica do elemento (PROXY). O objeto
+// que a carta joga (kunai, carta, martelo...) vem de golpes/projeteis.png, e os
+// golpes do caçador de golpes/golpes-jogador.png.
 import type { Element } from '@/lib/tcg/types';
+import type { Look } from '@/game/dungeon-moves';
 import { CARD_BY_ID } from '@/lib/tcg/cards/catalog';
 
 /** Que tipo de desenho a folha tem. */
@@ -22,6 +26,8 @@ export interface SheetInfo {
   fim: [number, number];
   /** quadro com o feixe deitado (origem à esquerda, ponta à direita) */
   feixe?: number;
+  /** feixe em 3 quadros (início, corpo, ponta), como no pacote do elemento */
+  beam3?: boolean;
 }
 
 const S = (kind: SheetKind, voo: [number, number], fim: [number, number], o: Partial<SheetInfo> = {}): SheetInfo => ({ kind, voo, fim, ...o });
@@ -98,7 +104,38 @@ export const SHEET: Record<string, SheetInfo> = {
 };
 
 /** Para que a folha vai ser usada. */
-export type Use = 'impacto' | 'feixe' | 'zona' | 'tornado' | 'corte';
+export type Use = 'impacto' | 'feixe' | 'zona' | 'tornado' | 'corte' | 'proj';
+
+/** Uma folha pronta para desenhar: 6 quadros lado a lado (imagem ou linha recortada de uma grade). */
+export type Img = HTMLImageElement | HTMLCanvasElement;
+
+/**
+ * Pacote do elemento (6 × 4 de 64): cada linha vira uma folha `elem-<el>-<uso>`.
+ * Voo (4 quadros), impacto (6), área no chão (4 em loop) e feixe em 3 quadros
+ * (início, corpo emendável, ponta: `beam3`).
+ */
+const ELEM_ROWS = ['proj', 'impacto', 'zona', 'feixe'] as const;
+const ELEM_INFO: Record<(typeof ELEM_ROWS)[number], SheetInfo> = {
+  proj: S('projetil', [0, 3], [0, 3], { dir: true }),
+  impacto: S('explosao', [0, 2], [0, 5]),
+  zona: S('zona', [0, 3], [0, 3]),
+  feixe: S('feixe', [0, 0], [2, 2], { dir: true, beam3: true }),
+};
+export const elemId = (el: Element, use: (typeof ELEM_ROWS)[number]) => `elem-${el.toLowerCase()}-${use}`;
+
+/** Golpes do caçador (6 × 6 de 64): linha N vira a folha `golpe-N`. */
+export const GOLPE = {
+  corteA: 'golpe-0', corteB: 'golpe-1', final: 'golpe-2', giro: 'golpe-3', estocada: 'golpe-4', faisca: 'golpe-5',
+} as const;
+const GOLPE_INFO = S('corte', [0, 3], [0, 3]);
+
+/** Como desenhar qualquer folha: as 67 das cartas, as linhas dos pacotes e dos golpes. */
+export function sheetInfo(id: string): SheetInfo | undefined {
+  if (SHEET[id]) return SHEET[id];
+  if (id.startsWith('elem-')) return ELEM_INFO[id.slice(id.lastIndexOf('-') + 1) as (typeof ELEM_ROWS)[number]];
+  if (id.startsWith('golpe-')) return GOLPE_INFO;
+  return undefined;
+}
 
 /**
  * Folha emprestada para as Comum–Rara, por elemento. Só folhas "genéricas"
@@ -131,28 +168,63 @@ const AREA: SheetKind[] = ['zona', 'pilar', 'explosao', 'redemoinho'];
 /** A folha para uma peça da carta: a própria (Épica+) ou a do elemento. */
 export function pick(card: string, el: Element, use: Use): Pick | null {
   const id = card.replace(/\+$/, '');
-  if (SHEET[id] && ((use !== 'zona' && use !== 'tornado') || AREA.includes(SHEET[id].kind))) return { id, info: SHEET[id], own: true, scale: 1 };
-  const p = PROXY[el]?.[use];
+  if (use !== 'proj' && SHEET[id] && ((use !== 'zona' && use !== 'tornado') || AREA.includes(SHEET[id].kind))) return { id, info: SHEET[id], own: true, scale: 1 };
+  const scale = SHEET[id] ? 0.8 : RARITY_SCALE[CARD_BY_ID.get(id)?.rarity ?? 'common'] ?? 0.7;
+  // o pacote do elemento, quando já carregou (impacto, área, feixe e voo)
+  if (use === 'impacto' || use === 'zona' || use === 'feixe' || use === 'proj') {
+    const e = elemId(el, use);
+    if (sheetImg(e)) return { id: e, info: ELEM_INFO[use], own: false, scale };
+  }
+  const p = use === 'proj' ? undefined : PROXY[el]?.[use];
   if (!p) return null;
-  return { id: p, info: SHEET[p], own: false, scale: SHEET[id] ? 0.8 : RARITY_SCALE[CARD_BY_ID.get(id)?.rarity ?? 'common'] ?? 0.7 };
+  return { id: p, info: SHEET[p], own: false, scale };
 }
 
 // ─── carregar e desenhar ────────────────────────────────────────────────────
 
-const IMGS = new Map<string, HTMLImageElement | null>();
+const IMGS = new Map<string, Img | null>();
+const BASE = import.meta.env.BASE_URL;
+
+/** Grade em linhas: cada linha (6 quadros de `cw`) vira uma folha `<prefixo><linha>`. */
+function loadRows(url: string, ids: string[], cw: number, ch: number) {
+  for (const id of ids) IMGS.set(id, null);
+  const img = new Image();
+  img.onload = () => ids.forEach((id, r) => {
+    const cv = document.createElement('canvas');
+    cv.width = cw * 6; cv.height = ch;
+    cv.getContext('2d')!.drawImage(img, 0, r * ch, cw * 6, ch, 0, 0, cw * 6, ch);
+    IMGS.set(id, cv);
+  });
+  img.src = url;
+}
+
 /** A folha (carrega uma vez; null enquanto não chegou ou se não existe). */
-export function sheetImg(id: string): HTMLImageElement | null {
+export function sheetImg(id: string): Img | null {
   if (!IMGS.has(id)) {
-    IMGS.set(id, null);
-    const img = new Image();
-    img.onload = () => IMGS.set(id, img);
-    img.src = `${import.meta.env.BASE_URL}game/efeitos/${id}.png`;
+    if (id.startsWith('elem-')) {
+      const el = id.slice(5, id.lastIndexOf('-'));
+      loadRows(`${BASE}game/masmorra/efeitos-elemento/${el}.png`, ELEM_ROWS.map(u => `elem-${el}-${u}`), 64, 64);
+    } else if (id.startsWith('golpe-')) {
+      loadRows(`${BASE}game/masmorra/golpes/golpes-jogador.png`, [0, 1, 2, 3, 4, 5].map(r => `golpe-${r}`), 64, 64);
+    } else {
+      IMGS.set(id, null);
+      const img = new Image();
+      img.onload = () => IMGS.set(id, img);
+      img.src = `${BASE}game/efeitos/${id}.png`;
+    }
   }
   return IMGS.get(id) ?? null;
 }
 
+/** Já pede as folhas da v2 (golpes e os 12 pacotes) para não faltarem no primeiro golpe. */
+export function preloadSheets(elements: Element[]) {
+  sheetImg(GOLPE.corteA);
+  for (const el of elements) sheetImg(elemId(el, 'impacto'));
+  lookSheet();
+}
+
 /** Quadro `f` com o centro em (x, y), lado `size`, girado `ang`. Diminuir suaviza; aumentar não. */
-export function drawFrame(ctx: CanvasRenderingContext2D, img: HTMLImageElement, f: number, x: number, y: number, size: number, ang = 0, anchorBottom = false) {
+export function drawFrame(ctx: CanvasRenderingContext2D, img: Img, f: number, x: number, y: number, size: number, ang = 0, anchorBottom = false) {
   const fw = img.width / 6, fh = img.height;
   ctx.save();
   ctx.imageSmoothingEnabled = size < fw;
@@ -176,7 +248,7 @@ const CUTS = new Map<string, BeamCut | null>();
  * Onde está o feixe no quadro `f`: linha do meio (cy), grossura (th) e onde a
  * origem acaba (x0) e a ponta começa (x1), medido na coluna do meio.
  */
-export function beamCut(img: HTMLImageElement, id: string, f: number): BeamCut | null {
+export function beamCut(img: Img, id: string, f: number): BeamCut | null {
   const key = `${id}|${f}`;
   if (CUTS.has(key)) return CUTS.get(key)!;
   const fw = img.width / 6, fh = img.height;
@@ -198,7 +270,7 @@ export function beamCut(img: HTMLImageElement, id: string, f: number): BeamCut |
  * esticada até o comprimento) e ponta (direita do quadro). (x, y) = origem,
  * `len` e `w` em px.
  */
-export function drawBeam(ctx: CanvasRenderingContext2D, img: HTMLImageElement, id: string, f: number, x: number, y: number, ang: number, len: number, w: number): boolean {
+export function drawBeam(ctx: CanvasRenderingContext2D, img: Img, id: string, f: number, x: number, y: number, ang: number, len: number, w: number): boolean {
   const cut = beamCut(img, id, f);
   if (!cut) return false;
   const fw = img.width / 6, fh = img.height, s = Math.max(0.35, w / cut.th);
@@ -211,6 +283,96 @@ export function drawBeam(ctx: CanvasRenderingContext2D, img: HTMLImageElement, i
   ctx.drawImage(img, f * fw, 0, cut.x0, fh, -tailW * 0.5, top, tailW, h);
   if (body > 0) ctx.drawImage(img, f * fw + Math.round(fw * 0.55), 0, 2, fh, tailW * 0.5, top, body, h);
   ctx.drawImage(img, f * fw + cut.x1, 0, fw - cut.x1, fh, tailW * 0.5 + body, top, headW, h);
+  ctx.restore();
+  return true;
+}
+
+/**
+ * Feixe do pacote do elemento: o quadro 0 (início, o brilho fica na mão), o
+ * quadro 1 repetido até o comprimento (o corpo emenda dos dois lados) e o
+ * quadro 2 na ponta. (x, y) = mão; `w` = grossura em px.
+ */
+export function drawBeam3(ctx: CanvasRenderingContext2D, img: Img, id: string, x: number, y: number, ang: number, len: number, w: number): boolean {
+  const cut = beamCut(img, id, 1);
+  if (!cut) return false;
+  const fw = img.width / 6, fh = img.height, s = Math.max(0.35, w / cut.th), cw = fw * s, h = fh * s, top = -cut.cy * s;
+  ctx.save();
+  ctx.imageSmoothingEnabled = s < 1; ctx.imageSmoothingQuality = 'medium';
+  ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(ang);
+  const start = cw * 0.45, end = Math.max(start, len - cw * 0.7);
+  // corpo: o quadro 1 repetido (o último pedaço cortado na medida)
+  for (let bx = start; bx < end; bx += cw) {
+    const piece = Math.min(cw, end - bx);
+    ctx.drawImage(img, fw, 0, (piece / cw) * fw, fh, bx, top, piece, h);
+  }
+  ctx.drawImage(img, 0, 0, fw, fh, start - cw, top, cw, h);
+  ctx.drawImage(img, fw * 2, 0, fw, fh, end - cw * 0.3, top, cw, h);
+  ctx.restore();
+  return true;
+}
+
+// ─── objetos das cartas (golpes/projeteis.png, 8 × 6 de 32) ──────────────────
+
+/** A ordem da folha: a mesma do tipo `Look` (e do prompt do GPT). */
+export const LOOK_ORDER: Look[] = [
+  'bola', 'lamina', 'lanca', 'tubarao', 'carta', 'martelo', 'estrela', 'shuriken', 'esfera', 'dragao', 'petala',
+  'gota', 'onda', 'lua', 'punho', 'rocha', 'neve', 'agulha', 'kunai', 'espada', 'inseto', 'coracao', 'cristal',
+  'flecha', 'raio', 'meteoro', 'mao', 'sol', 'areia', 'raiz', 'gelo', 'sombra', 'pilar', 'tigre', 'asas',
+  'lagarto', 'nuvem', 'cratera', 'ar', 'decadencia', 'teia', 'fumaca', 'vapor', 'luz', 'orbe',
+];
+/** Cabeças e bichos: espelham ao ir para a esquerda (não ficam de cabeça para baixo). */
+const LOOK_FLIP = new Set<Look>(['dragao', 'tigre', 'lagarto', 'tubarao', 'asas', 'inseto', 'punho', 'mao', 'meteoro']);
+/** Giram no próprio eixo. */
+const LOOK_SPIN = new Set<Look>(['estrela', 'shuriken', 'carta', 'martelo']);
+/** Ficam em pé (só espelham ao ir para a esquerda, para o rastro ficar atrás). */
+const LOOK_UP = new Set<Look>(['nuvem', 'fumaca', 'vapor', 'areia', 'coracao', 'sol', 'teia', 'pilar', 'cratera', 'decadencia', 'esfera', 'orbe']);
+/** Objetos de energia, sem cor de verdade: levam a cor da carta (a lua da Getsuga fica roxa, a hidra de veneno não é de fogo).
+ *  Os que têm cor própria (carta, kunai, martelo, coração, tigre...) ficam como vieram. */
+const LOOK_TINT = new Set<Look>(['bola', 'lamina', 'lanca', 'esfera', 'dragao', 'gota', 'onda', 'lua', 'estrela', 'cristal', 'raio', 'meteoro', 'gelo', 'sombra', 'asas', 'ar', 'decadencia', 'vapor', 'luz', 'orbe']);
+const TINTED = new Map<string, HTMLCanvasElement>();
+/** Célula `i` da folha com o matiz de `color` (mantém o claro e escuro do desenho); feita uma vez por cor. */
+function tintCell(sh: HTMLImageElement, i: number, color: string) {
+  const key = `${i}|${color}`;
+  let cv = TINTED.get(key);
+  if (!cv) {
+    cv = document.createElement('canvas'); cv.width = cv.height = 32;
+    const c = cv.getContext('2d')!, sx = (i % 8) * 32, sy = Math.floor(i / 8) * 32;
+    c.drawImage(sh, sx, sy, 32, 32, 0, 0, 32, 32);
+    c.globalCompositeOperation = 'color'; c.fillStyle = color; c.fillRect(0, 0, 32, 32);
+    c.globalCompositeOperation = 'destination-in'; c.drawImage(sh, sx, sy, 32, 32, 0, 0, 32, 32);
+    TINTED.set(key, cv);
+  }
+  return cv;
+}
+
+let LOOKS: HTMLImageElement | null | undefined;
+function lookSheet(): HTMLImageElement | null {
+  if (LOOKS === undefined) {
+    LOOKS = null;
+    const img = new Image();
+    img.onload = () => { LOOKS = img; };
+    img.src = `${BASE}game/masmorra/golpes/projeteis.png`;
+  }
+  return LOOKS;
+}
+
+/** O objeto da carta voando em (x, y), lado `size`, para o ângulo `ang`, com o matiz `tint` nos objetos de energia.
+ *  false se a folha não chegou. */
+export function drawLook(ctx: CanvasRenderingContext2D, look: Look | undefined, x: number, y: number, ang: number, size: number, now: number, tint?: string): boolean {
+  const sh = lookSheet(), i = LOOK_ORDER.indexOf(look ?? 'bola');
+  if (!sh || i < 0) return false;
+  const lk = LOOK_ORDER[i];
+  ctx.save();
+  ctx.imageSmoothingEnabled = size < 32; ctx.imageSmoothingQuality = 'medium';
+  ctx.translate(Math.round(x), Math.round(y));
+  if (LOOK_SPIN.has(lk)) ctx.rotate(Math.floor(now / 42) * 0.5);
+  else if (LOOK_UP.has(lk)) { if (Math.cos(ang) < -0.01) ctx.scale(-1, 1); }
+  else {
+    ctx.rotate(ang);
+    if (LOOK_FLIP.has(lk) && Math.cos(ang) < 0) ctx.scale(1, -1);
+  }
+  if (tint && LOOK_TINT.has(lk)) ctx.drawImage(tintCell(sh, i, tint), -size / 2, -size / 2, size, size);
+  else ctx.drawImage(sh, (i % 8) * 32, Math.floor(i / 8) * 32, 32, 32, -size / 2, -size / 2, size, size);
   ctx.restore();
   return true;
 }
