@@ -5,17 +5,12 @@
 -- em masmorra.vitorias no progresso), a carta vem do deck do chefe do andar
 -- que o rank representa, até 3 por dia e no máximo 1 a cada 60 s. Moedas e
 -- itens do pet vão pelo wit2_sync, como sempre.
--- A função antiga (sem argumento) fica, mas desligada: ninguém logado a chama
--- e, se chamar, dá erro. Sem apagar, porque o conector do Supabase trava em
--- SQL com essa palavra (docs/sql/APLICAR.md, "O que aprendemos aplicando").
+-- A função antiga (sem argumento) fica no banco, mas ninguém logado a executa.
+-- Aplicada em 09/10 assim (sem apagar: o conector do Supabase trava em SQL com
+-- a palavra que apaga função; docs/sql/APLICAR.md, "O que aprendemos aplicando").
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
 
-CREATE OR REPLACE FUNCTION public.wit2_dungeon_claim() RETURNS text
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  RAISE EXCEPTION 'atualize o jogo';
-END $$;
 REVOKE ALL ON FUNCTION public.wit2_dungeon_claim() FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.wit2_dungeon_claim(p_rank int) RETURNS text

@@ -123,7 +123,7 @@ Pronto e jogável na branch `claude/masmorra` (o robô `scripts/mapa/masmorra-ro
   - `DungeonView` (HUD do SISTEMA, efeitos por elemento em `dungeon-vfx.ts`, sprite próprio das cartas Épica+ quando existir);
   - `AssociationPanel` (portais, caçador, ferreiro, boticária, baú).
   - A **Associação dos Caçadores** é a antiga sala de treino: portal azul da Arena ou `?sala=treino`. Atalhos: `&associacao=armas` abre o painel, `&masmorra=0` abre o portal E direto.
-- **Banco:** `supabase/migrations/20261019120000_wit2_masmorra.sql`, com `wit2_dungeon_claim(p_rank)` testado no `testar-wit2.sh`. Só aplicar quando esta branch for para a oficial.
+- **Banco:** `supabase/migrations/20261009120000_wit2_masmorra.sql`, com `wit2_dungeon_claim(p_rank)` testado no `testar-wit2.sh`. Aplicada no banco em 09/10.
 - **Dificuldade:** `npx vite-node scripts/masmorra-sim.ts 20`. A espada limpa o E em ~1,6 min levando ~7 golpes; o tiro, em ~3,5 min levando ~2; o rank S fica difícil.
 
 A arte do GPT pedida em `docs/gpt-masmorra.md` chegou toda (10/10 e 19/10). O importador `scripts/arte/importar-masmorra.py` corta tudo, e o jogo troca sozinho quando o arquivo existe.
