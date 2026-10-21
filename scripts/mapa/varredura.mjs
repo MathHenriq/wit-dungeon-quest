@@ -20,7 +20,7 @@ const URLS = [
   ...[1, 30, 90].map(a => [`torre-${a}`, `${C}sala=torre&andar=${a}`]),
   ...['casa', 'arena', 'treino', 'loja', 'oficina', 'castelo', 'morador:casa-nando'].map(s => [`sala-${s.replace(':', '-')}`, `${C}sala=${s}`]),
   ['casa-noite', `${C}sala=casa&hora=22`],
-  ['painel-pacotes', `${C}sala=loja&painel=pacotes`], ['painel-recompensas', `${C}sala=loja&painel=recompensas`], ['painel-moveis', `${C}sala=loja&painel=moveis`],
+  ['painel-pacotes', `${C}sala=loja&painel=pacotes`], ['painel-moveis', `${C}sala=loja&painel=moveis`],
   ['painel-forja', `${C}sala=oficina&painel=forja`], ['painel-trocas', `${C}sala=oficina&painel=trocas&social=demo`], ['painel-guilda', `${C}sala=castelo&painel=guilda&social=demo`],
   ['quebra', `${C}sala=casa&painel=quebra`], ['masmorra', `${C}sala=arena&masmorra`],
   ['convite-mesa', `${C}sala=torre&andar=1&duelo=3`], ['convite-chefe', `${C}sala=torre&andar=1&duelo=chefe`],

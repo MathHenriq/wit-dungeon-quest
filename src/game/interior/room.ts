@@ -614,9 +614,10 @@ export function shopRoom(): Room {
   const talks: Talk[] = [];
   for (const [id, tx, ty, text] of stores) {
     items.push({ id, tx, ty });
-    // a Troca de prêmios já funciona (Recompensas da Sala); as outras abrem depois
-    talks.push(id === 'loja-premios' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'recompensas' }
-      : id === 'loja-moveis' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'moveis' }
+    // a Loja de Móveis já funciona; as outras abrem depois. A Troca de prêmios
+    // (Recompensas da Sala, RoomRewards) fica fechada: o painel do professor não
+    // tem onde entregar o prêmio (decisão de 21/10)
+    talks.push(id === 'loja-moveis' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'moveis' }
       : { tiles: area(tx, ty, 6, 3), lines: [text, 'Esta loja abre em breve.'] });
   }
   // a estrela: a loja de pacotinhos no meio, de frente para a porta
