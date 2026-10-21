@@ -45,67 +45,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Quem está logado agora: uma busca que termina depois de um SIGNED_OUT não volta o professor.
+    let current: string | null = null;
+
+    // Busca (ou cria, no primeiro login) o professor deste login. Roda FORA do
+    // callback do onAuthStateChange: esperar uma chamada do Supabase lá dentro
+    // trava o lock do login, e toda chamada seguinte (as do painel também) fica
+    // parada para sempre. Uma busca por vez.
+    const lookup = (user: User, needsLoad: boolean) => {
+      lookupInProgressRef.current = true;
+      window.setTimeout(() => {
+        void (async () => {
+          try {
+            let { data: teacherData } = await supabase
+              .from("teachers")
+              .select("*")
+              .eq("user_id", user.id)
+              .maybeSingle();
+
+            // First login (any provider): auto-create teacher record if not found
+            if (!teacherData) {
+              const displayName =
+                user.user_metadata?.full_name ||
+                user.user_metadata?.name ||
+                user.email?.split("@")[0] ||
+                "Professor";
+
+              const { data: created } = await supabase
+                .from("teachers")
+                .insert({ name: displayName, user_id: user.id })
+                .select()
+                .maybeSingle();
+
+              teacherData = created;
+            }
+
+            if (current === user.id) setTeacher(teacherData);
+          } catch (err) {
+            console.error("[AuthContext] teacher lookup error:", err);
+            if (current === user.id) setTeacher(null);
+          } finally {
+            lookupInProgressRef.current = false;
+            if (needsLoad) setIsLoading(false);
+          }
+        })();
+      }, 0);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         const isIdentityEvent =
           event === "INITIAL_SESSION" ||
           event === "SIGNED_IN" ||
           event === "SIGNED_OUT";
 
-        // Show loading only when we don't yet have a teacher (fresh login/load).
-        // If teacher is already resolved, SIGNED_IN can re-fire on tab focus —
-        // skip the spinner so the dashboard doesn't flash loading.
-        const needsLoad = isIdentityEvent && !teacherRef.current;
-        if (needsLoad) setIsLoading(true);
+        setSession(session);
+        setUser(session?.user ?? null);
+        current = session?.user?.id ?? null;
 
-        try {
-          setSession(session);
-          setUser(session?.user ?? null);
-
-          if (!session?.user) {
-            setTeacher(null);
-            return;
-          }
-
-          // If teacher is already loaded and this is not a fresh sign-in,
-          // skip the DB query — avoids blocking UI on tab-focus token refreshes.
-          if (teacherRef.current && !isIdentityEvent) return;
-
-          // Deduplicate: if a lookup is already running, skip this one
-          if (lookupInProgressRef.current) return;
-          lookupInProgressRef.current = true;
-
-          let { data: teacherData } = await supabase
-            .from("teachers")
-            .select("*")
-            .eq("user_id", session.user.id)
-            .maybeSingle();
-
-          // First login (any provider): auto-create teacher record if not found
-          if (!teacherData) {
-            const displayName =
-              session.user.user_metadata?.full_name ||
-              session.user.user_metadata?.name ||
-              session.user.email?.split("@")[0] ||
-              "Professor";
-
-            const { data: created } = await supabase
-              .from("teachers")
-              .insert({ name: displayName, user_id: session.user.id })
-              .select()
-              .maybeSingle();
-
-            teacherData = created;
-          }
-
-          setTeacher(teacherData);
-        } catch (err) {
-          console.error("[AuthContext] onAuthStateChange error:", err);
+        if (!session?.user) {
           setTeacher(null);
-        } finally {
-          lookupInProgressRef.current = false;
-          if (needsLoad) setIsLoading(false);
+          setIsLoading(false);
+          return;
         }
+
+        // Token renovado, ou SIGNED_IN de novo ao voltar para a aba com o mesmo
+        // professor: nada a buscar (o painel não pisca carregando).
+        if (!isIdentityEvent) return;
+        if (teacherRef.current?.user_id === session.user.id) return;
+
+        // Deduplicate: if a lookup is already running, skip this one
+        if (lookupInProgressRef.current) return;
+
+        // Show loading only when we don't yet have a teacher (fresh login/load).
+        const needsLoad = !teacherRef.current;
+        if (needsLoad) setIsLoading(true);
+        lookup(session.user, needsLoad);
       }
     );
 

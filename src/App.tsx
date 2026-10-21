@@ -19,15 +19,14 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 const SpaceBackground   = lazy(() => import("@/components/background/SpaceBackground").then(m => ({ default: m.SpaceBackground })));
 const StudentPortal     = lazy(() => import("./pages/StudentPortal"));
 const TeacherLogin      = lazy(() => import("./pages/TeacherLogin"));
-const TeacherDashboard  = lazy(() => import("./pages/TeacherDashboard"));
-const TeacherAnalytics  = lazy(() => import("./pages/TeacherAnalytics"));
+const TeacherPanel      = lazy(() => import("./pages/TeacherPanel"));
 const AdminPanel        = lazy(() => import("./pages/AdminPanel"));
-const PresentationMode  = lazy(() => import("./pages/PresentationMode"));
 const BattleDemo        = lazy(() => import("./pages/BattleDemo"));
 const FloorMapDemo      = lazy(() => import("./pages/FloorMapDemo"));
 const FloorSelectDemo   = lazy(() => import("./pages/FloorSelectDemo"));
 const CardsDemo         = lazy(() => import("./pages/CardsDemo"));
 const CityDemo          = lazy(() => import("./pages/CityDemo"));
+const Wit2Gate          = lazy(() => import("@/components/city/Wit2Gate").then(m => ({ default: m.Wit2Gate })));
 const PvpDemo           = lazy(() => import("./pages/PvpDemo"));
 const TeacherLessonDemo = lazy(() => import("./pages/TeacherLessonDemo"));
 const NotFound          = lazy(() => import("./pages/NotFound"));
@@ -71,11 +70,12 @@ function RouteFallback() {
   );
 }
 
+// Aluno aprovado (o portal manda para cá): o jogo carrega do banco antes de abrir.
 function Wit2Route() {
   const location = useLocation();
   const profile = location.state as { studentId?: string; playerName?: string } | null;
   if (!profile?.studentId || !profile.playerName) return <Navigate to="/login" replace />;
-  return <CityDemo key={profile.studentId} playerName={profile.playerName} />;
+  return <Wit2Gate key={profile.studentId} studentId={profile.studentId} playerName={profile.playerName} />;
 }
 
 // Inner component — must live inside <BrowserRouter> to use useNavigate
@@ -105,10 +105,8 @@ function AppRoutes() {
           <Route path="/login"                  element={<StudentPortal />} />
           <Route path="/boot-test"              element={<BootSequence />} />
           <Route path="/professor/login"        element={<TeacherLogin />} />
-          <Route path="/professor"              element={<TeacherDashboard />} />
-          <Route path="/professor/analytics"   element={<TeacherAnalytics />} />
+          <Route path="/professor"              element={<TeacherPanel />} />
           <Route path="/professor/admin"        element={<AdminPanel />} />
-          <Route path="/professor/apresentacao" element={<PresentationMode />} />
           <Route path="/battle-demo"            element={<BattleDemo />} />
           <Route path="/floor-map-demo"         element={<FloorMapDemo />} />
           <Route path="/floor-select-demo"      element={<FloorSelectDemo />} />
