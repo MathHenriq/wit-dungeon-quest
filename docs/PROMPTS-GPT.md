@@ -569,3 +569,21 @@ A top-down view of a trading card game playmat, fantasy anime style, landscape 3
 A top-down view of a trading card game playmat, cute anime monster-battle style, landscape 3:2. Theme: an outdoor battle field seen from above — soft grass field with a large faint white battle circle in the center, rocks, flowers and a small pond at the edges, and a few cute ORIGINAL little monsters (invented designs, not from any existing franchise) peeking from the corners. The center is calm, slightly darker and low detail so cards can be placed on top. No Pokémon or any existing creature, no pokéball, no logos, no text, no letters. Bright friendly colors, clean lineart.
 ```
 
+### Q. Portão da Masmorra (prédio no Centro) — 21/10
+
+Os alunos não achavam a masmorra (ficava dentro da Arena). Agora ela tem prédio
+próprio no Centro, ao lado da Arena: 5 × 5 blocos (80 × 80 px no jogo), porta no
+bloco do meio. Enquanto a imagem não chega, o jogo desenha uma caverna de pedra
+em código (`src/game/world/dungeon-gate.ts`).
+
+**portao-masmorra.png** — Portão da Masmorra (5 × 5 blocos)
+```
+A single building for a kids game town: the entrance of a dungeon, a small rocky hill made of grey stone blocks with moss and a few glowing blue crystals on top, a big arched cave opening at the bottom center with carved stone pillars on both sides, inside the opening a swirling bright blue magic portal (like a glowing energy gate), two lit torches beside the entrance, three wide stone steps in front of the portal, a small dark wooden board above the arch with a sword-and-shield emblem (no letters). The whole building fits in a square. Front door centered at the bottom. Style of Pokémon HeartGold/SoulSilver towns, top-down 3/4 view, crisp pixel art, clean dark outlines, limited palette, no anti-aliasing. Friendly, not scary, no skulls, no blood. Flat solid magenta background (#FF00FF). No text.
+```
+
+Importar: salvar como `public/Novos assets/predios/portao-masmorra.png` e rodar
+`python3 scripts/arte/importar-gpt.py --folha revisao.png` (a entrada `portao-masmorra`
+já está no `SINGLE`, 80 px de largura). Depois conferir a porta no print
+(`npx vite-node scripts/mapa/render-hd.ts -- <pasta> 31,23`); se a abertura desenhada
+não estiver no meio da imagem, pôr o x dela em `DOOR_X` (`src/game/world/zone.ts`).
+

@@ -67,11 +67,12 @@ export function AssociationPanel({ tab: tab0 = 'portais', onEnter, onClose }: { 
           <div className="sys-line">[MISSÃO DIÁRIA] {mm.m.label}: {mm.feito}/{mm.m.alvo}{mm.pago ? ' · CUMPRIDA' : ''}</div>
           <div className="sys-grid">
             {RANKS.map((r, k) => {
-              const open = portalOpen(p, k);
+              const open = portalOpen(p, k), first = k === 0 && h.portais === 0;
               return (
-                <div key={r} className={`sys-cell ${open.ok ? '' : 'lock'}`}>
+                <div key={r} className={`sys-cell ${open.ok ? '' : 'lock'}`} style={first ? { boxShadow: '0 0 0 2px #ffd84a, 0 0 14px #ffd84a88' } : undefined}>
                   <i className="sys-portal" style={{ filter: `hue-rotate(${PORTAL_HUE[k]}deg)${open.ok ? '' : ' grayscale(1) brightness(.6)'}` }} aria-hidden />
                   <b style={{ fontSize: 10 }}>RANK {r}</b>
+                  {first && <b style={{ fontSize: 8, color: '#ffd84a' }}>COMECE AQUI</b>}
                   <span>{PORTAL_NAME[k]} · chefe: {BOSS_NAME[k]}</span>
                   <span>Vencido: {h.vitorias[k] ?? 0}×{(h.vitorias[k] ?? 0) < ARISE_WINS ? ` (Arise com ${ARISE_WINS})` : ''}</span>
                   {open.ok && <span style={{ color: '#9ac8f0' }}>Dica: {BOSS_TIP[k]}</span>}

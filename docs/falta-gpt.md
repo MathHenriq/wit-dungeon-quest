@@ -9,7 +9,8 @@ por uma antes de subir (público infantil).
 
 | O quê | Quantas | Prompt | Até lá, o jogo usa |
 |---|---|---|---|
-| Masmorra (branch `claude/masmorra`): **completa.** Chegou em 10/10 (99 imagens) e em 19/10 (Release "Assets masmorra", 50 folhas: §9 com os 7 inimigos novos, perigos e salas; §10 com os 12 pacotes de elemento, golpes do caçador e objetos das cartas; poses de combate, esquiva e magia dos modelos 02–10). Tudo já na tela. Só volta para esta lista se surgir inimigo, chefe ou sala nova | — | `docs/gpt-masmorra.md` | — |
+| **Portão da Masmorra** (prédio do Centro, ao lado da Arena; 5 × 5 blocos) | 1 | `docs/PROMPTS-GPT.md` §Q | caverna de pedra desenhada em código (`dungeon-gate.ts`) |
+| Masmorra (dentro): **completa.** Chegou em 10/10 (99 imagens) e em 19/10 (Release "Assets masmorra", 50 folhas: §9 com os 7 inimigos novos, perigos e salas; §10 com os 12 pacotes de elemento, golpes do caçador e objetos das cartas; poses de combate, esquiva e magia dos modelos 02–10). Tudo já na tela. Só volta para esta lista se surgir inimigo, chefe ou sala nova | — | `docs/gpt-masmorra.md` | — |
 | Veículos com o boneco montado (anexar `modelo-01.png`) | 4 folhas + avião | §N | só o rastro do veículo |
 | Poses dos modelos 03 a 10 (sentar, carregar, emotes) | 8 folhas | §A | a pose do modelo 01 adaptada |
 | Ícones definitivos | 4 folhas (127 ícones) | §G | ícones CC0 provisórios |

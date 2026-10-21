@@ -409,6 +409,16 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     return () => window.clearTimeout(t);
   }, [sala]);
 
+  // Associação dos Caçadores: quem ainda não entrou em nenhum portal ouve o guia do SISTEMA ao chegar
+  useEffect(() => {
+    if (sala.kind !== 'sala' || sala.id !== 'treino' || loadProgress().masmorra.portais > 0) return;
+    setDialog({ lines: [
+      '[SISTEMA] Bem-vindo à Associação dos Caçadores!',
+      'Os portões na parede do fundo são os portais da masmorra. Comece pelo E: cada portal abre quando você vence o chefe do anterior.',
+      'Chegue perto de um portão e aperte ESPAÇO para entrar. Na mesa de runas ficam suas cartas, a sombra e a missão do dia.',
+    ], i: 0 });
+  }, [sala]);
+
   /** Elevador: vai direto para um andar já liberado. */
   const goFloor = (andar: number) => {
     setLift(false);
@@ -916,7 +926,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
         {title}{room.id.startsWith('torre') ? <span className="ml-2 text-yellow-200 inline-flex items-center gap-1"><Icon id="moeda" size={12} /> {progress.coins}</span> : null}
-        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir · painel: elevador' : ''}{room.id === 'arena' ? ' · portal: Associação dos Caçadores' : ''}</div>}
+        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir · painel: elevador' : ''}{room.id === 'arena' ? ' · arco: Salão dos Campeões' : ''}{room.id === 'treino' ? ' · portões: entrar na masmorra' : ''}</div>}
         {decor && <div className="text-lime-300 mt-1">{holding ? 'toque para pôr · R gira · ESC devolve' : 'escolha um móvel ou toque num para mover'}</div>}
       </div>
 
