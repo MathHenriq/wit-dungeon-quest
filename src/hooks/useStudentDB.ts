@@ -274,9 +274,8 @@ export function useStudentDB() {
     void supabaseStudent.rpc("give_pet_xp", { p_student_id: typedStudent.id, p_xp: 3 });
   }, []);
 
-  // Lista de professores do cadastro: só depois de entrar (a função não abre
-  // para quem não está logado; antes ela era pedida ao abrir a página, sem
-  // sessão, e o banco recusava: o aluno novo não conseguia se cadastrar).
+  // Lista de professores do cadastro: só depois de entrar. A RPC exige sessão
+  // autenticada; buscá-la na tela inicial, sem sessão, fazia o cadastro falhar.
   useEffect(() => {
     if (authState === "needs_registration" && teachers.length === 0) void loadTeachers();
     // eslint-disable-next-line react-hooks/exhaustive-deps

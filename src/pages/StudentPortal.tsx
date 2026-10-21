@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 // UI transformation: new sidebar layout
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useStudentDB } from "@/hooks/useStudentDB";
 import { RewardDisplay } from "@/components/RewardDisplay";
 import { LevelBadge } from "@/components/LevelBadge";
@@ -16,7 +16,6 @@ import { ProfileCardOpenerProvider } from "@/components/student/ProfileCard";
 import { StudentTitleBadge, AttendanceCrown } from "@/components/StudentTitleBadge";
 import { AincradBackground } from "@/components/ui/AincradBackground";
 import { DungeonLoadingScreen } from "@/components/student/DungeonLoadingScreen";
-import { DungeonEntrance } from "@/components/student/DungeonEntrance";
 import { StudentHeader } from "@/components/student/StudentHeader";
 import { StudentNavigation, type StudentTab } from "@/components/student/StudentNavigation";
 import { DirectorMap } from "@/components/student/DirectorMap";
@@ -564,8 +563,6 @@ export default function StudentPortal() {
   };
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [showEntrance, setShowEntrance] = useState(false);
-  const [entranceDone, setEntranceDone] = useState(false);
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPatchWelcome, setShowPatchWelcome] = useState(false);
   // Conquistas: 18 estavam semeadas no banco e nenhum aluno tinha desbloqueado
@@ -619,12 +616,6 @@ export default function StudentPortal() {
   useEffect(() => {
     if (error) { toast.error(error); clearError(); }
   }, [error, clearError]);
-
-  useEffect(() => {
-    if (authState === "active" && student && !entranceDone) {
-      setShowEntrance(true);
-    }
-  }, [authState, student, entranceDone]);
 
   // Patch 4.3: pending weekly rewards inbox — one toast per row, then claim
   // them all so they don't fire again on next login.
@@ -732,6 +723,16 @@ export default function StudentPortal() {
     );
   }
 
+  // Aluno aprovado entra direto no WIT 2; os estados pendente/rejeitado e
+  // suspenso acima continuam bloqueados até a ação do professor.
+  return (
+    <Navigate
+      to="/wit2"
+      state={{ studentId: student.id, playerName: student.character_name || student.name || "Aventureiro" }}
+      replace
+    />
+  );
+
   // ── Active dashboard ───────────────────────
 
   if (!student.character_name) {
@@ -806,15 +807,6 @@ export default function StudentPortal() {
           student={student}
           onExit={() => { setActiveBossId(null); setBossTabKey(k => k + 1); }}
           onRetry={() => setBattleKey(k => k + 1)}
-        />
-      )}
-      {showEntrance && !entranceDone && (
-        <DungeonEntrance
-          studentId={student.id}
-          studentName={student.character_name || student.name}
-          level={student.level}
-          characterClass={student.character_class}
-          onComplete={() => { setShowEntrance(false); setEntranceDone(true); }}
         />
       )}
       {showAccessibility && (

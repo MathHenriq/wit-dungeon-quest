@@ -3,7 +3,7 @@ import { ZONE_NAMES, type ZoneId } from '@/game/world/zone';
 import { worldPoint, zoneRect, WORLD_LAYOUT } from '@/game/world/world-map';
 import { Icon } from '@/components/Icon';
 import { frame, PxButton, PxPanel, Ribbon } from '@/components/pixel/Pixel';
-import { PAPER } from '@/components/pixel/pixel';
+import { PAPER } from '@/components/pixel/frame-utils';
 import './worldmap.css';
 
 /**

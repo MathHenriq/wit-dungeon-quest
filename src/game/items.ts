@@ -54,6 +54,8 @@ const BASE: ItemDef[] = [
   { id: 'chocolate', name: 'Barra de Chocolate', icon: 'chocolate', kind: 'comida', price: 6, food: 15 },
   { id: 'cupcake', name: 'Cupcake', icon: 'cupcake', kind: 'comida', price: 7, food: 18 },
   { id: 'suco', name: 'Suco', icon: 'suco', kind: 'comida', price: 3, food: 12, about: 'Da máquina da praça.' },
+  // ícone provisório (o pão bisnaga) até a arte do cachorro-quente
+  { id: 'cachorro-quente', name: 'Cachorro-quente', icon: 'pao-bisnaga', kind: 'comida', price: 6, food: 35, about: 'Do carrinho do Prof. Maycon, na praça do Centro. Com batata palha!' },
   // o que as profissões fazem
   { id: 'disco', name: 'Disco', icon: 'disco', kind: 'produto', price: 18, about: 'Gravado no Estúdio de Música.' },
   { id: 'disco-ouro', name: 'Disco de Ouro', icon: 'disco-ouro', kind: 'produto', price: 45, about: 'Uma gravação perfeita!' },

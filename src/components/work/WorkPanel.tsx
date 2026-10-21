@@ -12,7 +12,7 @@ import { GameStage } from './GameStage';
 import { LevelBar, Shell, Tabs } from './Shell';
 import { Icon } from '@/components/Icon';
 import { frame, PxBox, PxButton } from '@/components/pixel/Pixel';
-import { buttonColors, PAPER } from '@/components/pixel/pixel';
+import { buttonColors, PAPER } from '@/components/pixel/frame-utils';
 import { orderOf } from '@/game/deliveries';
 import { OrderBox } from './OrderBox';
 import { Jornalzinho } from './Jornalzinho';

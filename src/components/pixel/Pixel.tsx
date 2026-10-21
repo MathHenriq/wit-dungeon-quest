@@ -3,7 +3,7 @@
 // que tinham o visual copiado à mão.
 import type { CSSProperties, ReactNode } from 'react';
 import { Icon } from '@/components/Icon';
-import { buttonColors, frameUrl, NIGHT, PAPER, shade, WOOD, type FrameColors } from './pixel';
+import { buttonColors, frameUrl, NIGHT, PAPER, shade, WOOD, type FrameColors } from './frame-utils';
 import './pixel.css';
 
 /** Estilo de borda pixel (9-slice): `edge` px de moldura na tela para 8 px da pecinha. */

@@ -9,7 +9,7 @@ import type { CardDef } from '@/lib/tcg/types';
 import { play } from '@/game/sfx';
 import { Icon } from '@/components/Icon';
 import { frame, PxButton, PxPanel } from '@/components/pixel/Pixel';
-import { NIGHT } from '@/components/pixel/pixel';
+import { NIGHT } from '@/components/pixel/frame-utils';
 import { PackArt, PackOpening, RARITY_COLOR } from './PackOpening';
 
 export function PackShop({ progress, onClose }: { progress: Progress; onClose: () => void }) {

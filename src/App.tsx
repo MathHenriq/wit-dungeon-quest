@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorRecoveryToast } from "@/components/ErrorRecoveryToast";
 import { ColorBlindFilters } from "@/components/ColorBlindFilters";
@@ -71,6 +71,13 @@ function RouteFallback() {
   );
 }
 
+function Wit2Route() {
+  const location = useLocation();
+  const profile = location.state as { studentId?: string; playerName?: string } | null;
+  if (!profile?.studentId || !profile.playerName) return <Navigate to="/login" replace />;
+  return <CityDemo key={profile.studentId} playerName={profile.playerName} />;
+}
+
 // Inner component — must live inside <BrowserRouter> to use useNavigate
 function AppRoutes() {
   const navigate = useNavigate();
@@ -106,6 +113,7 @@ function AppRoutes() {
           <Route path="/floor-map-demo"         element={<FloorMapDemo />} />
           <Route path="/floor-select-demo"      element={<FloorSelectDemo />} />
           <Route path="/cartas-demo"            element={<CardsDemo />} />
+          <Route path="/wit2"                  element={<Wit2Route />} />
           <Route path="/cidade-demo"            element={<CityDemo />} />
           <Route path="/pvp-demo"               element={<PvpDemo />} />
           <Route path="/professor/aula-demo"    element={<TeacherLessonDemo />} />
