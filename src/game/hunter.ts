@@ -110,6 +110,31 @@ export function portalRun(p: Progress, rank: number, seed: number, pet: string, 
   };
 }
 
+/** Arma (nível) e maestria de quem chega preparado em cada rank. */
+export const READY_WEAPON = [0, 2, 3, 4, 5, 5];
+/** O caçador "pronto para o rank": pontos do nível daquele rank, arma melhorada, maestria e poções.
+ *  É o aluno "com melhorias" da simulação e o do modo teste. */
+export function readyHunter(rank: number) {
+  const pts = Math.max(0, hunterLevel(RANK_XP[rank]) - 1);
+  const stats: StatPts = { forca: Math.min(STAT_MAX, Math.ceil(pts * 0.35)), agilidade: Math.min(STAT_MAX, Math.floor(pts * 0.2)), vitalidade: Math.min(STAT_MAX, Math.floor(pts * 0.25)), inteligencia: Math.min(STAT_MAX, Math.floor(pts * 0.2)), percepcao: 0 };
+  return { stats, ...hunterStats(rank, stats), weapon: READY_WEAPON[rank], mastery: Math.min(5, 1 + rank), potions: { vida: Math.min(2, rank), mana: 1 } };
+}
+/** Modo teste (`?masmorra=N&teste`): o caçador pronto para o rank com as cartas e armas do aluno.
+ *  Não gasta poção nem salva nada no fim (serve para o professor experimentar os portais). */
+export function testRun(p: Progress, rank: number, seed: number, pet: string): RunOptions {
+  const r = readyHunter(rank), h = p.masmorra;
+  const own = [...chosenSkills(p), ...skillChoices(p)].map(s => s.card);
+  const ids = [...new Set(own.length ? own : CATALOG_ATTACK_RARE)].slice(0, r.slots);
+  return {
+    seed, rank, pet, sombra: h.sombra, classe: p.caminho ?? 'desafiante',
+    arms: [{ id: h.curta, lvl: r.weapon }, { id: h.longa, lvl: r.weapon }],
+    skills: ids.map(id => skillOf(CARD_BY_ID.get(id)!, r.mastery)).filter((s): s is Skill => !!s),
+    hearts: r.hearts, armor: r.armor, mana: r.mana, potions: r.potions, stats: r.stats,
+  };
+}
+/** Cartas de Ataque Raras para o modo teste de quem ainda não tem nenhuma. */
+const CATALOG_ATTACK_RARE = [...CARD_BY_ID.values()].filter(c => c.type === 'attack' && c.rarity === 'rare' && !c.id.endsWith('+')).slice(0, 6).map(c => c.id);
+
 // ─── missão diária do SISTEMA ───────────────────────────────────────────────
 
 export interface Mission { id: string; label: string; alvo: number; conta: (run: Run, items: Record<string, number>) => number }

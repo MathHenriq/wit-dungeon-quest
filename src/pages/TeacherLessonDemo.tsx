@@ -2,8 +2,8 @@
 // pacote padrão por desempenho, código no projetor, ENTREGAR), RESGATES (os
 // tickets das Recompensas da Sala) e RELATÓRIO (presença por aula e por aluno,
 // alunos em risco, retorno depois da falta, CSV).
-// Sem o banco ligado (VITE_WIT2_DB) é DEMONSTRAÇÃO com alunos de mentira;
-// ligado, usa as funções do servidor (src/game/cloud.ts).
+// É DEMONSTRAÇÃO com alunos de mentira (o banco só liga para o aluno em /wit2).
+// O painel de verdade do professor é /professor (src/pages/TeacherPanel.tsx).
 import { MissionsTab, PostsTab, ReportsTab, StudentsTab, ViradaTab, EventsTab } from '@/components/teacher/TeacherTabs';
 import { masterTeachers, type TeacherOpt } from '@/game/teacher-cloud';
 import { giveLessonCard, weekCards, weekOf } from '@/game/class-events';

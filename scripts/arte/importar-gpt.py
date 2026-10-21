@@ -32,6 +32,7 @@ SINGLE = {
     'torre': ('torre', {'h': 236}),
     'oficina': ('oficina', {'w': 112}),
     'arena': ('arena', {'w': 128}),
+    'portao-masmorra': ('portao-masmorra', {'w': 80}),
     'castelo': ('castelo', {'w': 112}),
     'palacio-cartas': ('palacio-cartas', {'w': 80}),
     'casa-vermelha-antena': ('casa-vermelha-antena', {'w': 80}),

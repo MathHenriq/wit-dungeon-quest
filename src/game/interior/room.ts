@@ -519,20 +519,19 @@ export function arenaRoom(): Room {
     { id: 'placar-ranking', tx: 2, ty: 3 }, { id: 'trofeu-pedestal', tx: 7, ty: 3 }, { id: 'arco-pedra', tx: 8, ty: 3 },
     { id: 'recepcao', tx: 12, ty: 4 }, { id: 'trofeu-pedestal', tx: 18, ty: 3 }, { id: 'telao', tx: 20, ty: 3 },
     { id: 'refletor', tx: 0, ty: 3 }, { id: 'refletor', tx: 27, ty: 3 },
-    { id: 'portal-azul', tx: 24, ty: 3 },
     { id: 'planta-saguao', tx: 0, ty: 18 }, { id: 'maquina-bebidas', tx: 27, ty: 7 }, { id: 'bebedouro', tx: 27, ty: 10 },
     { id: 'banco-espera', tx: 6, ty: 18 }, { id: 'banco-espera', tx: 19, ty: 18 }, { id: 'planta-saguao', tx: 27, ty: 18 },
   ];
   const npcs: RoomNpc[] = [
     npc('recepcao', 'npc-desafiante-10', 13, 3, 'Rafa', 'Recepção da Arena', [
       'Bem-vinda à Arena! Mesa com alguém sentado: pode desafiar. Mesa LIVRE: sente e espere um colega.',
-      'O portal azul leva à Associação dos Caçadores: os portões da masmorra, do rank E ao S.',
+      'A Masmorra tem portão próprio: saindo daqui, é o morro de pedra ao lado da Arena.',
       'O arco de pedra leva ao Salão dos Campeões: os rankings de toda a escola!',
     ], { talk: [[13, 3], ...area(12, 4, 3, 1)], seated: true }),
   ];
   const talks: Talk[] = [
     { tiles: area(2, 3, 3, 1), lines: ['Placar do PvP: os campeões da Arena.'], action: 'rank-pvp' },
-    { tiles: area(20, 3, 3, 1), lines: ['Telão da Associação: os portais abertos hoje.'], action: 'associacao', tab: 'portais' },
+    { tiles: area(20, 3, 3, 1), lines: ['Telão: a Masmorra fica no portão de pedra ao lado da Arena. Lá dentro, a Associação dos Caçadores abre os portais do E ao S.'] },
   ];
   ARENA_TABLES.forEach((t, k) => {
     items.push({ id: t.table, tx: t.tx, ty: t.ty });
@@ -549,9 +548,9 @@ export function arenaRoom(): Room {
     id: 'arena', title: 'Arena · Saguão', w: W, h: H, wallRows: WALL,
     piso: 'piso-arena-piso-1', parede: 'parede-arena-parede-1', items, npcs, talks,
     spawn: { tx: 13, ty: 18, dir: 'north' },
-    exits: [{ tx: 13, ty: 19, to: 'cidade' }, { tx: 14, ty: 19, to: 'cidade' }, ...[24, 25, 26].map(tx => ({ tx, ty: 4, to: 'sala:treino' as const })),
+    exits: [{ tx: 13, ty: 19, to: 'cidade' }, { tx: 14, ty: 19, to: 'cidade' },
       ...[8, 9, 10].map(tx => ({ tx, ty: 4, to: 'sala:campeoes' as const }))],
-    entries: { treino: { tx: 25, ty: 5, dir: 'south' }, campeoes: { tx: 9, ty: 5, dir: 'south' } },
+    entries: { campeoes: { tx: 9, ty: 5, dir: 'south' } },
   };
 }
 
@@ -592,7 +591,7 @@ export function trainingRoom(): Room {
       { tiles: area(0, 14, 3, 1), lines: ['Quadro de ranks dos caçadores.'], action: 'associacao', tab: 'cacador' },
     ],
     spawn: { tx: 8, ty: 14, dir: 'north' },
-    exits: [{ tx: 8, ty: 15, to: 'sala:arena' }, { tx: 9, ty: 15, to: 'sala:arena' }],
+    exits: [{ tx: 8, ty: 15, to: 'cidade' }, { tx: 9, ty: 15, to: 'cidade' }],
   };
 }
 
@@ -615,9 +614,10 @@ export function shopRoom(): Room {
   const talks: Talk[] = [];
   for (const [id, tx, ty, text] of stores) {
     items.push({ id, tx, ty });
-    // a Troca de prêmios já funciona (Recompensas da Sala); as outras abrem depois
-    talks.push(id === 'loja-premios' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'recompensas' }
-      : id === 'loja-moveis' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'moveis' }
+    // a Loja de Móveis já funciona; as outras abrem depois. A Troca de prêmios
+    // (Recompensas da Sala, RoomRewards) fica fechada: o painel do professor não
+    // tem onde entregar o prêmio (decisão de 21/10)
+    talks.push(id === 'loja-moveis' ? { tiles: area(tx, ty, 6, 3), lines: [text], action: 'moveis' }
       : { tiles: area(tx, ty, 6, 3), lines: [text, 'Esta loja abre em breve.'] });
   }
   // a estrela: a loja de pacotinhos no meio, de frente para a porta
@@ -772,7 +772,7 @@ export const ROOMS: Record<string, () => Room> = {
 };
 /** Qual porta da cidade leva a cada sala (ids de town.ts). */
 export const ROOM_BUILDING: Record<string, string> = {
-  arena: 'arena', treino: 'arena', campeoes: 'arena', loja: 'loja', oficina: 'centro', castelo: 'guildas',
+  arena: 'arena', treino: 'masmorra', campeoes: 'arena', loja: 'loja', oficina: 'centro', castelo: 'guildas',
 };
 
 // ─── casas dos moradores (Lago, Fazenda, Cidade WIT, Bairro Novo) ─────────────

@@ -6,6 +6,7 @@
 import type { Look } from './world/outfit';
 import { cloudEnabled, rpc, rpcTeacher } from './cloud';
 import type { Level } from './arcade';
+import type { ReportReason } from './report-reasons';
 
 export interface PublicProfile {
   handle: string;
@@ -24,13 +25,7 @@ export interface GuildMember extends PublicProfile { role: 'lider' | 'membro'; h
 export interface GuildInfo { name: string; code: string; emblem: number; bossHp: number; bossMax: number; premio: boolean; members: GuildMember[] }
 export interface Me { handle: string; muted: boolean; sala: string | null }
 
-export const REPORT_REASONS = [
-  { id: 'apelido', label: 'Apelido feio' },
-  { id: 'balao', label: 'Atrapalhando com o balão' },
-  { id: 'troca', label: 'Troca injusta' },
-  { id: 'outro', label: 'Outra coisa' },
-] as const;
-export type ReportReason = typeof REPORT_REASONS[number]['id'];
+export { REPORT_REASONS, type ReportReason } from './report-reasons';
 
 /** Mesmo filtro do servidor (wit2_nick_ok): 2 a 16 letras, números e espaço, sem palavrão. */
 const BAD = /(merd|bost|porr|caralh|puta|put4|fod|cuz|buce|piroc|viad|otari|idiot|burr|lix[oa]|retardad|xot|pint[oa]|cacet|desgra|arromb)/;

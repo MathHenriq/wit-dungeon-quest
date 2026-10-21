@@ -4,8 +4,9 @@
 // CARTAS (Códex: o que cada carta faz na masmorra, maestria); STATUS (pontos
 // de Força, Agilidade, Vitalidade, Inteligência, Percepção); ferreiro de
 // armas, boticária e o baú do pet (cristal vira pó da forja de cartas).
-import { useMemo, useState } from 'react';
-import { loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { useEffect, useMemo, useState } from 'react';
+import { addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { cloudCrystalDust, cloudEnabled } from '@/game/cloud';
 import {
   brew, chooseSombra, CRYSTAL_DUST, crystalsToDust, equipWeapon, forgeWeapon, hunterLevel, hunterRank, hunterStats, missionNow, nextRank,
   nightmareOpen, pointsFree, portalOpen, rankName, resetPoints, setSkills, skillChoices, spendPoint, STAT_INFO, STAT_MAX, upgradeWeapon,
@@ -39,6 +40,8 @@ const BOSS_TIP = [
   'As plantas curam o chefe: destrua as plantas primeiro. Esquive para soltar das raízes.',
   'Cópias usam as SUAS cartas. Pise nas sombras do chão antes que levantem.',
 ];
+/** Cor do portal de cada rank (o portal do GPT é azul): E cinza-azul, D roxo, C gelo, B lava, A floresta, S violeta. */
+const PORTAL_HUE = [0, 50, -20, 160, 250, 60];
 const MASM_ITEMS = ['minerio:cobre', 'minerio:ferro', 'minerio:ouro', 'erva:cura', 'erva:mana', 'cristal:azul', 'cristal:roxo', 'cristal:dourado', 'pena', 'pelo', 'pocao:vida', 'pocao:mana'];
 const RARITY_NAME: Record<string, string> = { common: 'Comum', uncommon: 'Incomum', rare: 'Rara', epic: 'Épica', legendary: 'Lendária', mythic: 'Mítica', unknown: 'Desconhecida' };
 
@@ -49,6 +52,25 @@ export function AssociationPanel({ tab: tab0 = 'portais', onEnter, onClose }: { 
   const [filtro, setFiltro] = useState<'todas' | 'minhas' | 'descobertas'>('minhas');
   const save = (q: Progress, text?: string) => { saveProgress(q); setP(q); if (text) { setMsg(text); play('super'); } };
   const fail = (r: object) => { setMsg('reason' in r ? String(r.reason) : 'Não deu.'); play('click'); };
+  // o progresso mudou fora daqui (o servidor corrigiu moedas, outra tela gravou): lê de novo
+  useEffect(() => {
+    const on = (e: Event) => setP((e as CustomEvent<Progress>).detail);
+    window.addEventListener('wit-progresso', on);
+    return () => window.removeEventListener('wit-progresso', on);
+  }, []);
+  // cristal vira pó: no banco, o servidor soma o pó (com teto do dia) e diz quantos cristais usou
+  const [dusting, setDusting] = useState(false);
+  const toDust = async (k: string) => {
+    if (!cloudEnabled()) { const r = crystalsToDust(p, k); if (r.ok) save(r.progress, `+${r.po} de pó!`); else fail(r); return; }
+    const n = p.itens[k] ?? 0;
+    if (n <= 0 || dusting) return;
+    setDusting(true);
+    const r = await cloudCrystalDust(k, n);
+    setDusting(false);
+    if (!r.ok) { fail(r); return; }
+    const cur = loadProgress();
+    save({ ...addItem(cur, k, -r.usados), po: r.po }, `+${r.ganho} de pó!${r.usados < n ? ' O resto dos cristais vira pó amanhã.' : ''}`);
+  };
   const h = p.masmorra, rank = hunterRank(h.xp), st = hunterStats(rank, h.pontos), nxt = nextRank(h.xp), mm = missionNow(h), lvl = hunterLevel(h.xp), free = pointsFree(h);
   const top = Math.max(0, ...RANKS.map((_, k) => (portalOpen(p, k).ok ? k : 0)));
   const cls = CLASS_SKILL[p.caminho ?? 'desafiante'];
@@ -65,10 +87,12 @@ export function AssociationPanel({ tab: tab0 = 'portais', onEnter, onClose }: { 
           <div className="sys-line">[MISSÃO DIÁRIA] {mm.m.label}: {mm.feito}/{mm.m.alvo}{mm.pago ? ' · CUMPRIDA' : ''}</div>
           <div className="sys-grid">
             {RANKS.map((r, k) => {
-              const open = portalOpen(p, k);
+              const open = portalOpen(p, k), first = k === 0 && h.portais === 0;
               return (
-                <div key={r} className={`sys-cell ${open.ok ? '' : 'lock'}`}>
+                <div key={r} className={`sys-cell ${open.ok ? '' : 'lock'}`} style={first ? { boxShadow: '0 0 0 2px #ffd84a, 0 0 14px #ffd84a88' } : undefined}>
+                  <i className="sys-portal" style={{ filter: `hue-rotate(${PORTAL_HUE[k]}deg)${open.ok ? '' : ' grayscale(1) brightness(.6)'}` }} aria-hidden />
                   <b style={{ fontSize: 10 }}>RANK {r}</b>
+                  {first && <b style={{ fontSize: 8, color: '#ffd84a' }}>COMECE AQUI</b>}
                   <span>{PORTAL_NAME[k]} · chefe: {BOSS_NAME[k]}</span>
                   <span>Vencido: {h.vitorias[k] ?? 0}×{(h.vitorias[k] ?? 0) < ARISE_WINS ? ` (Arise com ${ARISE_WINS})` : ''}</span>
                   {open.ok && <span style={{ color: '#9ac8f0' }}>Dica: {BOSS_TIP[k]}</span>}
@@ -202,7 +226,7 @@ export function AssociationPanel({ tab: tab0 = 'portais', onEnter, onClose }: { 
               <div key={k} className="sys-cell">
                 <b>{itemLabel(k)}</b>
                 <span>Cada um vira {c.po} de pó {c.rarity === 'common' ? 'comum' : c.rarity === 'rare' ? 'raro' : 'épico'} da forja de cartas. Você tem {p.itens[k] ?? 0}.</span>
-                <button className="sys-btn" disabled={!(p.itens[k] ?? 0)} onClick={() => { const r = crystalsToDust(p, k); if (r.ok) save(r.progress, `+${r.po} de pó!`); else fail(r); }}>VIRAR PÓ</button>
+                <button className="sys-btn" disabled={!(p.itens[k] ?? 0) || dusting} onClick={() => { void toDust(k); }}>VIRAR PÓ</button>
               </div>
             ))}
           </div>

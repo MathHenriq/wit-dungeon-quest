@@ -2,17 +2,22 @@
 // nada pago. Cada som é uma receita de poucos osciladores e ruído. O botão de
 // mudo guarda a escolha no navegador (`wit.som`).
 
+import { saveLocal } from './cloud';
+
 export type Sfx = 'card' | 'drop' | 'draw' | 'flip' | 'hit' | 'bigHit' | 'super' | 'trap' | 'coin' | 'win' | 'lose' | 'click' | 'turn' | 'burn';
 
 const KEY = 'wit.som';
 let ctx: AudioContext | null = null;
-let muted = (() => { try { return localStorage.getItem(KEY) === 'mudo'; } catch { return false; } })();
+const readMuted = () => { try { return localStorage.getItem(KEY) === 'mudo'; } catch { return false; } };
+let muted = readMuted();
 
 export const isMuted = () => muted;
 export function setMuted(v: boolean): void {
   muted = v;
-  try { localStorage.setItem(KEY, v ? 'mudo' : 'som'); } catch { /* sem armazenamento */ }
+  saveLocal(KEY, v ? 'mudo' : 'som');
 }
+/** Depois de carregar do banco (cloud-boot.ts): lê de novo. */
+export function reloadMuted(): void { muted = readMuted(); }
 
 export function audio(): AudioContext | null {
   if (typeof window === 'undefined') return null;

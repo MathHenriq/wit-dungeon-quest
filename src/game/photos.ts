@@ -1,5 +1,7 @@
 // Álbum de fotos do repórter: a câmera tira um retrato pequeno da tela (JPEG)
-// e guarda as 8 mais novas no navegador (fora do progresso: imagem pesa).
+// e guarda as 8 mais novas no navegador e, para o aluno em /wit2, no banco
+// (wit2_photos, fora do progresso: imagem pesa).
+import { cloudSavePhotos } from './cloud';
 // As fotos passam no telão da Cidade WIT e vão nas matérias do jornalzinho.
 
 export interface Photo { id: string; data: string; zona: string; lugar: string; hora: number; t: number }
@@ -28,6 +30,7 @@ export function savePhotos(list: Photo[]): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent('wit-fotos', { detail: list }));
+    cloudSavePhotos(list);
     return true;
   } catch { return false; }
 }

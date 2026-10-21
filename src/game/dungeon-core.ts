@@ -104,7 +104,7 @@ export type BuffId = 'coracao' | 'escudo' | 'mana' | 'critico' | 'recarga' | 'fa
 export type Grade = 'S' | 'A' | 'B' | 'C';
 
 export type Ev =
-  | { k: 'swing'; x: number; y: number; ang: number; arc: number; range: number; kind?: 'leve' | 'final' | 'pesado' | 'investida' }
+  | { k: 'swing'; x: number; y: number; ang: number; arc: number; range: number; kind?: 'leve' | 'final' | 'pesado' | 'investida'; card?: string; el?: Element }
   | { k: 'shoot'; x: number; y: number; ang: number }
   | { k: 'hit'; x: number; y: number; dmg: number; crit: boolean; block?: boolean }
   | { k: 'kill'; x: number; y: number; kind: EnemyKind; elite?: boolean }
@@ -116,7 +116,7 @@ export type Ev =
   | { k: 'reacao'; x: number; y: number; id: string } | { k: 'perfeita'; x: number; y: number } | { k: 'parede'; x: number; y: number }
   | { k: 'postura'; x: number; y: number; boss: boolean } | { k: 'cardflip'; x: number; y: number; card: string } | { k: 'cine'; style: Cine; card: string }
   | { k: 'grade'; g: Grade } | { k: 'forma'; form: Form; on: boolean } | { k: 'reviveu' } | { k: 'segredo' } | { k: 'enrage' }
-  | { k: 'zap'; x: number; y: number; x2: number; y2: number } | { k: 'boom'; x: number; y: number; r: number; el: Element } | { k: 'abate'; x: number; y: number }
+  | { k: 'zap'; x: number; y: number; x2: number; y2: number } | { k: 'boom'; x: number; y: number; r: number; el: Element; card?: string } | { k: 'abate'; x: number; y: number }
   | { k: 'classe'; id: PathId } | { k: 'status'; x: number; y: number; st: StatusId } | { k: 'semcarta' } | { k: 'msg'; text: string };
 
 export interface Run {
@@ -187,10 +187,13 @@ export const ENEMY: Record<EnemyKind, EnemyDef> = {
   espiritoFloresta: { hp: 420, speed: 1.1, r: 0.95, gold: 30, touch: true, weight: 'chefe', fly: true, name: 'Espírito da Floresta' },
   monarca: { hp: 900, speed: 1.6, r: 0.9, gold: 30, touch: true, weight: 'chefe', name: 'Monarca das Sombras' },
 };
-/** Vida dos inimigos cresce com o rank e o andar. */
-export const hpMult = (rank: number, floor: number) => [1.5, 2.3, 3.3, 3.9, 5, 6.3][Math.min(5, rank)] * (1 + (floor - 1) * 0.12);
-/** Vida extra dos chefes do topo (quem chega lá está equipado). */
-export const BOSS_HP = [1, 1, 1.4, 1.4, 1.8, 2.2];
+/** Vida dos inimigos por rank (E…S); cresce 12% a cada andar. Ajustada pela simulação
+ *  (`scripts/masmorra-sim.ts`) para a vitória cair a cada portal; o A não sobe porque os
+ *  inimigos dele já são os mais duros (xamã que cura, golem, invocador). */
+export const HP_RANK = [1.5, 2.5, 4.6, 4.6, 4.4, 7.5];
+export const hpMult = (rank: number, floor: number) => HP_RANK[Math.min(5, rank)] * (1 + (floor - 1) * 0.12);
+/** Vida extra dos chefes (luta de ~1 a 3 min; o do A cura com as plantas, por isso menos). */
+export const BOSS_HP = [1.5, 1.5, 2.0, 1.8, 1.5, 2.5];
 export const KB_MULT: Record<Weight, number> = { leve: 1, medio: 0.6, pesado: 0.25, chefe: 0.05 };
 const POISE: Record<Weight, number> = { leve: 0.35, medio: 0.45, pesado: 0.35, chefe: 0.18 };
 export const SPEED = 4.6, DASH = 13, DASH_T = 0.17, DASH_CD = 0.8, PR = 0.3, ESHOT = 5.2, ARROW = 9.5, INV = 0.8;
@@ -422,7 +425,7 @@ export function chainZap(run: Run, from: Enemy, dmg: number, card?: string) {
 export function areaHit(run: Run, x: number, y: number, r: number, dmg: number, o: DmgOpts, skip = -1) {
   for (const e of run.enemies) if (e.id !== skip && targetable(e) && Math.hypot(e.x - x, e.y - y) < r + bodyR(e)) damageEnemy(run, e, dmg, { ...o, fx: o.fx ?? x, fy: o.fy ?? y });
   damageBreaks(run, (bx, by) => Math.hypot(bx - x, by - y) < r + 0.4, dmg);
-  run.ev.push({ k: 'boom', x, y, r, el: o.el ?? 'Fire' });
+  run.ev.push({ k: 'boom', x, y, r, el: o.el ?? 'Fire', card: o.card });
 }
 
 /** Estados que andam sozinhos: dano por segundo, semente brotando, marca explodindo. */

@@ -3,6 +3,7 @@
 // leite das vacas. Funções puras (testadas); o jogo só chama e guarda.
 // O dia vira às 6h do relógio do jogo, e também quando o aluno volta depois
 // de um tempo fora (no máximo um dia por vez: plantar exige cuidar).
+import { saveLocal } from './cloud';
 
 export type CropId = 'cenoura' | 'alface' | 'morango' | 'tomate' | 'milho' | 'abobora' | 'girassol';
 
@@ -269,5 +270,5 @@ export function loadFarm(now = Date.now(), field?: { x0: number; y0: number }): 
   } catch { return newFarm(now); }
 }
 export function saveFarm(f: FarmState): void {
-  try { localStorage.setItem(KEY, JSON.stringify(f)); } catch { /* sem armazenamento */ }
+  saveLocal(KEY, JSON.stringify(f));
 }

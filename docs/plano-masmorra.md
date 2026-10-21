@@ -48,20 +48,59 @@ Pedido do Matheus: cada carta com golpe e função próprios, inimigos e chefes 
 - o próximo portal só abre **vencendo o chefe do anterior** (o SQL confere igual); XP de rank 3× mais lenta;
 - **Modo Pesadelo** depois do S; **Portal da Semana** (mesma semente da turma, recorde local); 3 títulos novos.
 
-**Números da simulação** (`npx vite-node scripts/masmorra-sim.ts 16 0,1,2,3,4,5`; `CARTAS=comum|rara|lendaria`, `MELHORIAS=1` dá ao robô a arma, os pontos e a maestria de quem chega naquele rank; `REACAO` e `ERRO` simulam o aluno). Vitória do robô "bom aluno" (reação de 0,3 s, perde 20% dos avisos):
+**Números da simulação** (`npx vite-node scripts/masmorra-sim.ts 32 0,1,2,3,4,5`; `CARTAS=comum|rara|lendaria`; `MELHORIAS=1` dá ao robô o caçador pronto para o rank, igual ao modo teste: arma, pontos, maestria e poções; `REACAO` e `ERRO` simulam o aluno; `VIDA=` e `CHEFE=` testam outra curva sem mudar o jogo). Vitória do robô "bom aluno" (reação de 0,3 s, perde 20% dos avisos), 32 partidas por portal, depois do ajuste de 09/10 (`HP_RANK` e `BOSS_HP` em `dungeon-core.ts`, elite subindo 4% por rank):
 
-| Rank | Sem melhorias | Com as melhorias do rank |
-|---|---|---|
-| E | ~50% | 63–75% |
-| D | 6–31% | 69–94% |
-| C | 19–38% | 88–94% |
-| B | 0% | 38–56% |
-| A | 0% | 44–56% |
-| S | 6–13% | 44–69% |
+| Portal | Com as melhorias do rank | Sem melhorias | Chefe vencido quando alcançado | Luta com o chefe |
+|---|---|---|---|---|
+| E | 72% | 72% | 88% | ~50 s |
+| D | 78% | 6% | 89% | ~55 s |
+| C | 66% | 0% | 72% | ~1,4 min |
+| B | 50% | 0% | 89% | ~50 s |
+| A | 41% | 0% | 76% | ~1 min |
+| S | 34% | 0% | 85% | ~2,1 min |
 
-Partida de 4 a 10 min para o robô (o aluno leva mais). Luta direta com o chefe: `npx vite-node scripts/masmorra-chefe.ts <rank> <raridade> [partidas]` (com `MELHORIAS=1`), de 30 s a 2 min.
+Como ler:
+- **Com melhorias** cai a cada portal: mesmo equipado, o S é mais difícil que o E.
+- **Sem melhorias** só passa no E: do D em diante é preciso melhorar arma, cartas (maestria) e pontos antes de ir.
+- Com 32 partidas, a margem é de cerca de ±15 pontos. Por isso D (78%) e E (72%) estão empatados.
+
+Partida de 6 a 11 min para o robô (o aluno leva mais). Luta direta com o chefe: `npx vite-node scripts/masmorra-chefe.ts <rank> <raridade> [partidas]` (com `MELHORIAS=1`), de 30 s a 2 min.
 
 **Robô no navegador:** `node scripts/mapa/masmorra-robo.mjs <pasta> [rank] [LxA] [jogar|vitrine]`. O modo `vitrine` tira prints dos golpes marcantes e de cada chefe (o dev expõe `window.__dungeonEdit`).
+
+**Arte do GPT na tela (10/10):**
+- chão e paredes do tema de cada rank, em azulejos sorteados pela semente (`dungeon-art.ts`; o gelo do C e a lava do B são escurecidos um pouco para os perigos aparecerem);
+- objetos (pedra, veios, cristal, ervas, barril, baú, escada), armas na mão e no chão, tiros com rastro, sombras do Arise, portal animado nos cartões da Associação.
+
+**Golpes do caçador (`player-vfx.ts`, só desenho, o motor não mudou):**
+- espada com antecipação, corte e acompanhamento, e rastro em meia-lua: o 1º e o 2º golpes vão em lados opostos e o 3º sai largo;
+- pesado em giro completo com poeira; estocada (lança e investida) em traço reto com fantasmas;
+- cambalhota sem girar o boneco (agacha, vira bola, cai de pé, deixa rastro azul);
+- tiro com clarão e coice; impacto em estrela; o boneco pisca vermelho ao apanhar;
+- com as poses do GPT (os 10 modelos desde 19/10), usa os quadros de combate e esquiva.
+
+**Inimigos:** aviso no chão com borda girando, setas andando na linha do golpe e piscada branca no último instante; o chão brilha vermelho enquanto o inimigo prepara; anel de poeira onde o golpe cai.
+
+**Visual v2 (15/10), depois do "está feio" do Matheus:** tudo em pixel art, o motor não mudou (a simulação continua valendo).
+- **Camada de pixel** (`pixel-fx.ts`): o que é desenhado em código (corte, poeira, anéis, avisos, feixes sem folha, zonas) sai numa tela de meia resolução ampliada sem suavizar, com transparência em pontilhado, a 24 quadros por segundo. Só abre quando há algo para desenhar. Cortar a transparência da borda (ler a tela de volta ou filtro SVG) custava ~30% de fps no celular e ficou de fora (medido em combate, CPU 4× mais lenta: antes 28 fps, v2 34).
+- **Cartas com os sprites do GPT** (`card-sprites.ts`): tabela de como usar cada uma das 67 folhas (quadros do voo, do impacto, onde está o feixe). O tiro voa tocando os quadros e explode com os do fim; o feixe (Kamehameha, Final Flash, Zoltraak...) é montado da própria folha (origem, corpo esticado, ponta); zona e tornado tocam em loop; corte de carta toca a folha no golpe; investida leva a folha junto. As **101 Comum–Rara** emprestam uma folha genérica do mesmo elemento, menor (60–80%), até o pacote do §10 do GPT; o objeto que voa (kunai, carta, martelo...) é desenhado em pixel. Teste: `src/game/__tests__/card-sprites.test.ts`.
+- **Caçador:** corte em meia-lua de 4 faixas sem degradê; impacto em estrela; anéis viram estouro de traços curtos (no máximo 1 por acontecimento); esquiva com os quadros do GPT na hora certa (agacha, rola, chega), só 2 fantasmas com as cores do boneco e poeira em pixel; tiro em tamanho inteiro (16/32 px) com rastro em faixas e estrelinha quando acaba; textos grandes não se cobrem.
+- **Prints:** `node scripts/mapa/masmorra-cartas.mjs <pasta> [carta,...]` (câmera lenta, 4 quadros por carta) e `masmorra-golpes.mjs` (combo, esquiva, investida, tiro, aviso).
+
+**Arte do §9 e §10 na tela (19/10):** chegaram as 50 folhas pedidas na v2 (Release "Assets masmorra").
+- **Comum–Rara com arte própria do elemento:** voo, impacto, zona e feixe de cada um dos 12 elementos (feixe em 3 peças: início, corpo repetido até o alvo, ponta). Tornado e corte continuam com a folha Épica emprestada.
+- **Objeto da carta** (kunai, carta, lua, dragão... 45 em `projeteis.png`): bichos espelham ao ir para a esquerda, alguns giram, nuvens ficam em pé; os de energia levam a cor da carta (sem isso a hidra de veneno saía de fogo e a lua negra da Getsuga, amarela).
+- **Golpes do caçador** desenhados: corte do combo (dois lados), golpe final dourado, giro do pesado, estocada da investida, poeira da esquiva, faísca do acerto e clarão do tiro. A carta com corte próprio continua usando a folha dela.
+- **Inimigos novos, perigos e salas:** os 7 inimigos com arte; espinho em 3 estados, veneno, gelo, lava piscando e barril explosivo; estátua da bênção, mercador, lampião, Pedra da Ressurreição, parede rachada da sala secreta, baú vermelho trancado do desafio e alçapão da sala-armadilha.
+- **Poses dos modelos 02–10** (combate, esquiva, magia).
+- **Desempenho igual** (combate, CPU 4× mais lenta, mediana de 8 rodadas: com cartas Comum–Rara 35,3 → 34,7 fps; com Épicas, 4 rodadas, 22,0 → 22,5), dentro do ruído de ±10% entre rodadas. A cor da carta nos objetos é feita uma vez por objeto e cor e guardada.
+
+**Câmera lenta para prints (só no dev):** `window.__dungeonTime = 0.08` deixa a partida 12× mais lenta; `node scripts/mapa/masmorra-golpes.mjs <pasta> [modelo]` tira as tiras de quadros do combo, pesado, esquiva, investida, tiro e aviso dos inimigos.
+
+**Testar só a masmorra** (sem passar pela cidade):
+- `/cidade-demo?sala=treino&associacao=portais`: a Associação, como o aluno vê (só abre o portal do chefe já vencido).
+- `/cidade-demo?sala=treino&masmorra=N`: entra direto no portal N (0 = E … 5 = S) com o caçador do próprio navegador.
+- `&teste` no fim (`?sala=treino&masmorra=4&teste`): **modo teste**, com o caçador pronto para aquele rank (o mesmo "com melhorias" da simulação: arma, maestria, pontos e poções; `readyHunter` em `hunter.ts`). Não gasta poção e **não salva nada** no fim (sem XP, moedas, itens ou carta), por isso não vale como trapaça.
 
 ## Situação (09/10, primeira versão)
 
@@ -83,11 +122,11 @@ Pronto e jogável na branch `claude/masmorra` (o robô `scripts/mapa/masmorra-ro
 - **Telas:**
   - `DungeonView` (HUD do SISTEMA, efeitos por elemento em `dungeon-vfx.ts`, sprite próprio das cartas Épica+ quando existir);
   - `AssociationPanel` (portais, caçador, ferreiro, boticária, baú).
-  - A **Associação dos Caçadores** é a antiga sala de treino: portal azul da Arena ou `?sala=treino`. Atalhos: `&associacao=armas` abre o painel, `&masmorra=0` abre o portal E direto.
-- **Banco:** `supabase/migrations/20261009120000_wit2_masmorra.sql`, com `wit2_dungeon_claim(p_rank)` testado no `testar-wit2.sh`. Só aplicar quando esta branch for para a oficial.
+  - A **Associação dos Caçadores** é a antiga sala de treino: entra pelo **Portão da Masmorra** (Centro, ao lado da Arena; 21/10) ou `?sala=treino`. Atalhos: `&associacao=armas` abre o painel, `&masmorra=0` abre o portal E direto.
+- **Banco:** `supabase/migrations/20261009120000_wit2_masmorra.sql`, com `wit2_dungeon_claim(p_rank)` testado no `testar-wit2.sh`. Aplicada no banco em 09/10.
 - **Dificuldade:** `npx vite-node scripts/masmorra-sim.ts 20`. A espada limpa o E em ~1,6 min levando ~7 golpes; o tiro, em ~3,5 min levando ~2; o rank S fica difícil.
 
-Falta só arte do GPT (`docs/gpt-masmorra.md`). O importador `scripts/arte/importar-masmorra.py` corta tudo, e o jogo troca sozinho quando o arquivo existe.
+A arte do GPT pedida em `docs/gpt-masmorra.md` chegou toda (10/10 e 19/10). O importador `scripts/arte/importar-masmorra.py` corta tudo, e o jogo troca sozinho quando o arquivo existe.
 
 Mudança em relação ao plano abaixo:
 - o andar a andar ficou como Soul Knight (3 andares por portal), sem elevador;

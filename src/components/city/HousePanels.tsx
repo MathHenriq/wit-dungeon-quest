@@ -3,6 +3,7 @@
 // (cozinha, mochila, mercado, minijogos).
 import type { MinigameId } from '@/game/professions';
 import type { Progress } from '@/game/progress';
+import { saveLocal } from '@/game/cloud';
 import { aquariumFish } from '@/game/interior/house-acts';
 import { decodeArt, PIX, PIX_PALETTE } from '@/game/lessons2';
 import { FISH_BY_ID } from '@/game/fishing';
@@ -110,7 +111,7 @@ function PuzzlePanel({ progress, onClose }: { progress: Progress; onClose: () =>
     if (isSolved(q)) {
       play('win');
       const k = `${q.n}`;
-      if (!best[k] || q.moves < best[k]) { try { localStorage.setItem(BEST_KEY, JSON.stringify({ ...best, [k]: q.moves })); } catch { /* sem armazenamento */ } }
+      if (!best[k] || q.moves < best[k]) saveLocal(BEST_KEY, JSON.stringify({ ...best, [k]: q.moves }));
     }
   };
   const url = cardArtUrl(card), n = p.n, hole = n * n - 1;

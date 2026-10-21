@@ -4,7 +4,7 @@
 // (segura as que carregam), habilidade do Caminho, caminho entre as salas e
 // dentro da sala (não fica preso em pedra).
 import { doorTile, isBoss, neighbor, NO_INPUT, RH, RW, solidAt, spikeState, type Input, type Run, type RunOptions, type Side } from '../src/game/dungeon';
-import { hunterLevel, hunterStats, RANK_XP } from '../src/game/hunter';
+import { hunterStats, readyHunter } from '../src/game/hunter';
 import { skillOf } from '../src/game/dungeon-skills';
 import type { WeaponId } from '../src/game/dungeon-weapons';
 import { CATALOG } from '../src/lib/tcg/cards/catalog';
@@ -13,13 +13,10 @@ import type { Rarity } from '../src/lib/tcg/types';
 /** O que o aluno leva: cartas da raridade pedida; com `up`, o que teria ao chegar no rank (arma forjada e melhorada, pontos, maestria, poções). */
 export function loadout(rank: number, rarity: Rarity, k: number, up: boolean): RunOptions {
   const pool = CATALOG.filter(c => c.type === 'attack' && c.rarity === rarity);
-  const pts = Math.max(0, hunterLevel(RANK_XP[rank]) - 1);
-  const stats = up ? { forca: Math.min(10, Math.ceil(pts * 0.35)), agilidade: Math.min(10, Math.floor(pts * 0.2)), vitalidade: Math.min(10, Math.floor(pts * 0.25)), inteligencia: Math.min(10, Math.floor(pts * 0.2)), percepcao: 0 } : undefined;
-  const st = hunterStats(rank, stats);
+  const ready = up ? readyHunter(rank) : undefined, st = ready ?? hunterStats(rank);
   const curta: WeaponId[] = ['espada', 'katana', 'katana', 'machado', 'foice', 'martelo'], longa: WeaponId[] = ['pistola', 'arco', 'fuzil', 'besta', 'cajado', 'canhao'];
-  const lvl = [0, 2, 3, 4, 5, 5][rank];
-  const skills = Array.from({ length: st.slots }, (_, i) => skillOf(pool[(k * 7 + i * 13 + rank) % pool.length], up ? Math.min(5, 1 + rank) : 0)!);
-  return { seed: k * 977 + rank * 13 + 5, rank, hearts: st.hearts, armor: st.armor, mana: st.mana, skills, stats, arms: up ? [{ id: curta[rank], lvl }, { id: longa[rank], lvl }] : undefined, potions: up ? { vida: Math.min(2, rank), mana: 1 } : undefined };
+  const skills = Array.from({ length: st.slots }, (_, i) => skillOf(pool[(k * 7 + i * 13 + rank) % pool.length], ready?.mastery ?? 0)!);
+  return { seed: k * 977 + rank * 13 + 5, rank, hearts: st.hearts, armor: st.armor, mana: st.mana, skills, stats: ready?.stats, arms: ready ? [{ id: curta[rank], lvl: ready.weapon }, { id: longa[rank], lvl: ready.weapon }] : undefined, potions: ready?.potions };
 }
 
 export type Style = 'misto' | 'espada' | 'tiro';

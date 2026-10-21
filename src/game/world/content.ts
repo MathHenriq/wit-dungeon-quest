@@ -10,6 +10,7 @@ export const BUILDING_INFO: Record<string, { title: string; text: string }> = {
   loja: { title: 'Loja de Pacotinhos', text: 'O único lugar que vende: pacotinhos de cartas, roupas, móveis e as Recompensas da Sala (tablet, VR, música na Alexa).' },
   arena: { title: 'Arena', text: 'Duelos PvP: contra a IA jogando com o deck de um colega, ou ao vivo.' },
   guildas: { title: 'Castelo das Guildas', text: 'Sua equipe, a meta de presença da semana e o chefe da guilda.' },
+  masmorra: { title: 'Masmorra', text: 'A Associação dos Caçadores: escolha um portal (comece pelo E), lute sala por sala e vença o chefe. Suas cartas viram golpes.' },
   'sua-casa': { title: 'Sua Casa', text: 'Personalize seu personagem e decore sua casa com móveis.' },
   // Lago Azul
   'casa-pesca': { title: 'Casa de Pesca', text: 'O quadro dos peixes do dia, a venda do que você pescou e o álbum de peixes do lago.' },
@@ -103,7 +104,7 @@ export const NPCS: NpcDef[] = [
   { id: 'loja', name: 'Duda', title: 'Vendedora', tx: 43, ty: 19, dir: 'south', look: { modelo: 'modelo-03', pele: 'pele-1', cabelo: 'rosa', cima: 'amarelo', baixo: 'jeans' },
     lines: ['Chegaram pacotinhos novos na Loja!', 'Mas os melhores você ganha indo bem na aula.'] },
   { id: 'arena', name: 'Rex', title: 'Campeão da Arena', tx: 49, ty: 31, dir: 'north', look: { modelo: 'modelo-09', pele: 'pele-5', cabelo: 'preto', cima: 'vermelho', baixo: 'preto' },
-    lines: ['Quer duelar? A Arena abre em breve.', 'Treine seu deck na Torre enquanto isso!'] },
+    lines: ['Quer duelar? Na Arena tem desafiante esperando nas mesas.', 'E a Masmorra é ali do lado, no portão de pedra!'] },
   { id: 'guildas', name: 'Nina', title: 'Mestre de Guilda', tx: 19, ty: 31, dir: 'north', look: { modelo: 'modelo-06', pele: 'pele-6', cabelo: 'preto', cima: 'roxo', baixo: 'caqui' },
     lines: ['Na guilda, cada presença conta para a meta da equipe.', 'Faltou? A equipe inteira sente!'] },
   { id: 'mural', name: 'Nico', title: 'Mensageiro', tx: 27, ty: 17, dir: 'west', look: { modelo: 'modelo-07', pele: 'pele-3', cabelo: 'ruivo', cima: 'laranja', baixo: 'jeans' },

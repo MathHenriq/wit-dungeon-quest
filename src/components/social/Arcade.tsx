@@ -8,6 +8,7 @@ import { postFase, socialError, socialOn } from '@/game/social';
 import { PxButton, PxPanel } from '@/components/pixel/Pixel';
 import { Icon } from '@/components/Icon';
 import { play as sfx } from '@/game/sfx';
+import { saveLocal } from '@/game/cloud';
 
 const KEY = 'wit.fase';
 const loadDraft = (): Level => { try { const l = JSON.parse(localStorage.getItem(KEY) ?? 'null'); return l && !checkLevel(l) ? l : emptyLevel(); } catch { return emptyLevel(); } };
@@ -73,7 +74,7 @@ export function ArcadeMaker({ onClose, onClassic }: { onClose: () => void; onCla
   const [beaten, setBeaten] = useState(false);
   const [title, setTitle] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
-  useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(level)); } catch { /* sem armazenamento */ } }, [level]);
+  useEffect(() => { saveLocal(KEY, JSON.stringify(level)); }, [level]);
   const problem = checkLevel(level);
   const paint = (i: number) => { setLevel(l => setTile(l, i % l.w, Math.floor(i / l.w), brush)); setBeaten(false); };
   const publish = async () => {

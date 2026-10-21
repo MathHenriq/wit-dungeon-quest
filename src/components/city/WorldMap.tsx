@@ -13,7 +13,7 @@ import './worldmap.css';
  */
 const AREAS: Record<ZoneId, { icon: string; color: string; text: string }> = {
   fazenda: { icon: 'colheita:milho', color: '#b8862a', text: 'Plantar, regar, colher e cuidar dos bichos.' },
-  cidade: { icon: 'moeda', color: '#5a8a2a', text: 'Torre, Loja, Oficina, Arena e as guildas.' },
+  cidade: { icon: 'moeda', color: '#5a8a2a', text: 'Torre, Loja, Oficina, Arena, Masmorra e as guildas.' },
   lago: { icon: 'peixe', color: '#2a78c8', text: 'Pesca, Casa de Pesca, barquinho e o farol.' },
   wit: { icon: 'sensor', color: '#8a4ac8', text: 'Os cursos do Núcleo WIT e as profissões.' },
 };

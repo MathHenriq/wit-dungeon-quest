@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { areaTheme, playlist, RADIO_STEPS } from '@/game/radio';
 import { loadProgress } from '@/game/progress';
 import { audio } from '@/game/sfx';
+import { saveLocal } from '@/game/cloud';
 import { loopSong } from '@/components/work/synth';
 
 const KEY = 'wit.radio';
@@ -14,7 +15,7 @@ export function Radio({ className, zone, hour }: { className: string; zone?: str
   const [now, setNow] = useState<string | null>(null);
   const stop = useRef<(() => void) | null>(null);
   useEffect(() => {
-    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch { /* sem armazenamento */ }
+    saveLocal(KEY, on ? '1' : '0');
     if (!on) return;
     const a = audio();
     if (!a) return;

@@ -35,7 +35,7 @@ describe('cidade inicial', () => {
 
   it('tem todos os prédios do plano, cada um com porta', () => {
     const ids = new Set(town.doors.map(d => d.building));
-    for (const id of ['torre', 'centro', 'loja', 'arena', 'guildas', 'sua-casa']) expect(ids.has(id)).toBe(true);
+    for (const id of ['torre', 'centro', 'loja', 'arena', 'guildas', 'masmorra', 'sua-casa']) expect(ids.has(id)).toBe(true);
   });
 
   it('o início é livre e toda porta dá para entrar vindo de baixo', () => {
@@ -168,5 +168,17 @@ describe('cidade com os sprites convertidos do GPT', () => {
     expect(t.doors.length).toBe(town.doors.length);
     expect(t.solid).toEqual(town.solid);
     for (const o of t.objects) expect(o.x + o.pix.w, `${o.id} passa da borda`).toBeLessThanOrEqual(t.ground.w + 32);
+    // a escada desenhada da Torre fica em cima dos blocos da porta (a arte não pode sair torta da praça)
+    const tw = t.objects.find(o => o.id === 'torre')!, pm = tw.pix;
+    const doorTx = t.doors.filter(d => d.building === 'torre').map(d => d.tx);
+    const want = ((Math.min(...doorTx) + Math.max(...doorTx) + 1) / 2) * 16;
+    let sum = 0, n = 0;
+    for (let y = pm.h - 4; y < pm.h; y++) {
+      let a = -1, b = -1;
+      for (let x = 0; x < pm.w; x++) if (pm.data[(y * pm.w + x) * 4 + 3] > 200) { if (a < 0) a = x; b = x; }
+      if (a >= 0) { sum += (a + b + 1) / 2; n++; }
+    }
+    expect(n).toBeGreaterThan(0);
+    expect(Math.abs(tw.x + sum / n - want), 'escada da Torre fora da porta').toBeLessThanOrEqual(2);
   }, 20000);
 });

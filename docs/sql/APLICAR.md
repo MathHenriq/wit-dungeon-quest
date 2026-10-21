@@ -15,19 +15,28 @@ funções de segurança que já existem: `my_student_id`, `can_act_for_student`,
    - A virada (`_wit2_virada.sql`) só cria as funções: **ninguém é migrado ao aplicar**. Ela roda
      pelo botão "Virar todos agora" na aba Virada do painel (só o master), que fica desligado
      (`VIRADA_LIGADA` em `src/game/teacher-cloud.ts`) até o Matheus escolher o dia.
-   - **Branch `claude/masmorra`:** tem mais uma, `20261009120000_wit2_masmorra.sql` (carta do chefe
-     do portal por rank, `wit2_dungeon_claim(p_rank)`; o portal só abre com o chefe do anterior
-     vencido, em `masmorra.vitorias`). Ela troca a `wit2_dungeon_claim()` sem
-     argumento. Só aplicar quando a masmorra nova for para a branch oficial; antes disso, o jogo
-     oficial ainda chama a versão sem argumento.
+   - **Masmorra:** `20261009120000_wit2_masmorra.sql` (carta do chefe do portal por rank,
+     `wit2_dungeon_claim(p_rank)`; o portal só abre com o chefe do anterior vencido, em
+     `masmorra.vitorias`) **já foi aplicada em 09/10**. A `wit2_dungeon_claim()` sem argumento
+     continua no banco, sem permissão para `authenticated`.
+   - **Tudo salvo no banco (21/10):** `20261021131237_wit2_salvar_tudo.sql` **já foi aplicada**
+     (sessão de um computador por vez, `wit2_load(p_session)`/`wit2_sync(..., p_session)`, fotos,
+     cristal → pó, lista/aprovar/suspender do painel novo).
+     `20261021140000_wit2_professor_apagar.sql` (zerar, recusar e apagar aluno; fotos presas ao
+     aluno) **tem de ser colada no SQL Editor**: o conector do Supabase pede confirmação para SQL
+     com `DELETE` e a confirmação não chega na sessão (trava em 60 s). Depois de colar, o painel
+     para de mostrar "Essa ação ainda não foi ligada no banco".
+   - **O conector trava em SQL que remove coisas** (`DROP`, `DELETE`, até em comentário): o que
+     só cria ou troca função passa direto; o resto vai numa migração separada, colada à mão.
 3. **Rodar as checagens abaixo no SQL Editor (ou pelo `execute_sql` do conector).** Todas têm
    de dar `true`.
 4. **Master:** colocar o e-mail do Matheus na lista. Assim ele vê as turmas de todos os
    professores nas abas Alunos e Missões. O e-mail não fica no repositório: rode à mão no SQL
    Editor:
    `INSERT INTO public.wit2_masters (email) VALUES (lower('<e-mail do Matheus>'));`
-5. **Ligar a chave:** `VITE_WIT2_DB=1` no `.env` local e nas variáveis da Vercel (Production e
-   Preview), depois um novo deploy.
+5. **Não há chave para ligar** (desde 21/10): o aluno em `/wit2` sempre carrega do banco
+   (`src/components/city/Wit2Gate.tsx`) e tudo vai para lá. `/cidade-demo` sem login continua só
+   no navegador. A `VITE_WIT2_DB` não é mais lida.
 6. **Testar com 2 navegadores (dois alunos de teste):**
    - os dois veem um ao outro andando na mesma área, com balão;
    - o PvP abre;
@@ -74,7 +83,7 @@ SELECT (SELECT count(*) FROM wit2_legacy) = 0;
    `npx vite-node scripts/sql/wit2-virada.ts` (regera o mapa e o teste).
 2. Testar numa cópia: `pg_dump` das tabelas do WIT 1 para um Postgres local, aplicar as
    migrações do WIT 2 e rodar `SELECT wit2_migrate_all()` como master. Conferir 3 alunos à mão.
-3. Ligar `VITE_WIT2_DB=1` e `VIRADA_LIGADA = true`, publicar e apertar o botão.
+3. Ligar `VIRADA_LIGADA = true`, publicar e apertar o botão.
 4. Rodar o botão de novo não dá nada em dobro; quem deu erro aparece na lista e pode ser
    repetido depois de corrigir.
 

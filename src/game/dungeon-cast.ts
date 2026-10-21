@@ -113,7 +113,7 @@ function hitE(run: Run, a: { power: number; el: Element; card: string; charge?: 
 function hitP(run: Run, h: Hit) { return hurtPlayer(run, heartsOf(h), { st: h.st }); }
 function burst(run: Run, a: { mine: boolean; power: number; el: Element; card: string }, x: number, y: number, r: number, h: Hit) {
   if (a.mine) areaHit(run, x, y, r, a.power * h.d, { el: h.el ?? a.el, hit: h, card: a.card, me: true, fx: x, fy: y, power: a.power });
-  else { run.ev.push({ k: 'boom', x, y, r, el: a.el }); if (Math.hypot(run.p.x - x, run.p.y - y) < r + PR) hitP(run, h); }
+  else { run.ev.push({ k: 'boom', x, y, r, el: a.el, card: a.card }); if (Math.hypot(run.p.x - x, run.p.y - y) < r + PR) hitP(run, h); }
 }
 
 // ─── soltar uma peça ────────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ function fire(run: Run, q: Pend) {
       break;
     }
     case 'empurrar':
-      run.ev.push({ k: 'boom', x: ox, y: oy, r: mv.r, el: q.el });
+      run.ev.push({ k: 'boom', x: ox, y: oy, r: mv.r, el: q.el, card: q.card });
       for (const e of run.enemies) if (targetable(e) && Math.hypot(e.x - ox, e.y - oy) < mv.r + bodyR(e)) hitE(run, q, e, { ...mv.hit, kb: mv.force }, ox, oy);
       damageBreaks(run, (x, y) => Math.hypot(x - ox, y - oy) < mv.r, q.power * mv.hit.d);
       break;
@@ -260,7 +260,7 @@ function fire(run: Run, q: Pend) {
       }
       break;
     case 'golpe': {
-      run.ev.push({ k: 'swing', x: ox, y: oy, ang, arc: Math.min(6.3, mv.arc), range: mv.range });
+      run.ev.push({ k: 'swing', x: ox, y: oy, ang, arc: Math.min(6.3, mv.arc), range: mv.range, card: q.card, el: q.el });
       for (const e of run.enemies) {
         if (!targetable(e)) continue;
         const d = Math.hypot(e.x - ox, e.y - oy);
@@ -420,7 +420,7 @@ export function stepActs(run: Run, dtMe: number, dtFoe: number) {
         if (a.tick <= 0 && a.n < mv.n) {
           a.tick = mv.every;
           const ang = a.ang + (mv.spin ?? 0) * a.n, last = a.n === mv.n - 1, h = last && mv.fim ? mv.fim : mv.hit;
-          run.ev.push({ k: 'swing', x: p.x, y: p.y, ang, arc: mv.arc, range: mv.range, kind: last ? 'final' : 'leve' });
+          run.ev.push({ k: 'swing', x: p.x, y: p.y, ang, arc: mv.arc, range: mv.range, kind: last ? 'final' : 'leve', card: a.card, el: a.el });
           for (const e of run.enemies) {
             if (!targetable(e)) continue;
             const d = Math.hypot(e.x - p.x, e.y - p.y);

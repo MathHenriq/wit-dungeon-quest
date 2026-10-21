@@ -284,7 +284,7 @@ export function useStudentDB() {
   // Subscribe to auth changes (handles initial session restore + email/password sign-in/out)
   useEffect(() => {
     const { data: { subscription } } = supabaseStudent.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         const isIdentityEvent =
           event === "INITIAL_SESSION" ||
           event === "SIGNED_IN" ||
@@ -304,14 +304,16 @@ export function useStudentDB() {
         if (resolveInProgressRef.current) return;
         resolveInProgressRef.current = true;
 
-        try {
-          await resolveSession(session?.user ?? null);
-        } catch (err) {
-          console.error("[useStudentDB] onAuthStateChange error:", err);
-          setAuthState("unauthenticated");
-        } finally {
-          resolveInProgressRef.current = false;
-        }
+        // Fora do callback: esperar uma chamada do Supabase aqui dentro trava o
+        // lock do login, e toda chamada seguinte fica parada para sempre.
+        window.setTimeout(() => {
+          resolveSession(session?.user ?? null)
+            .catch(err => {
+              console.error("[useStudentDB] onAuthStateChange error:", err);
+              setAuthState("unauthenticated");
+            })
+            .finally(() => { resolveInProgressRef.current = false; });
+        }, 0);
       }
     );
 

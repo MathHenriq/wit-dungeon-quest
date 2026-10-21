@@ -122,7 +122,7 @@ export const roomCount = (rank: number, floor: number) => 6 + Math.min(3, Math.f
 /** Chance de um inimigo vir com carta (portal E andar 1 = 0; S ≈ 60%). */
 export const cardChance = (rank: number, floor: number, pesadelo = false) => Math.min(0.85, Math.max(0, rank * 0.11 + (floor - 1) * 0.03) + (pesadelo ? 0.15 : 0));
 /** Chance de elite. */
-export const eliteChance = (rank: number, floor: number, pesadelo = false) => (pesadelo ? 0.4 : Math.min(0.35, rank * (rank >= 4 ? 0.05 : 0.035) + (floor - 1) * 0.025));
+export const eliteChance = (rank: number, floor: number, pesadelo = false) => (pesadelo ? 0.4 : Math.min(0.35, rank * 0.04 + (floor - 1) * 0.025));
 /** Andar da Torre que cada rank representa (decks dos inimigos com carta e do chefe). */
 export const RANK_ANDAR = [5, 15, 30, 50, 75, 95];
 

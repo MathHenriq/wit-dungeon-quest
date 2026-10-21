@@ -117,7 +117,7 @@ export async function modelFrames(look: Look): Promise<HTMLCanvasElement[][]> {
  * Só existem para os modelos que já têm a folha do GPT; os outros dão null.
  * Os acessórios não entram nas poses (o encaixe é medido nos quadros de andar).
  */
-export async function poseFrames(look: Look, pose: 'sentar' | 'carregar' | 'emotes'): Promise<HTMLCanvasElement[][] | null> {
+export async function poseFrames(look: Look, pose: 'sentar' | 'carregar' | 'emotes' | 'combate' | 'esquiva' | 'magia'): Promise<HTMLCanvasElement[][] | null> {
   const img = await new Promise<HTMLImageElement | null>(res => {
     const i = new Image();
     i.onload = () => res(i);

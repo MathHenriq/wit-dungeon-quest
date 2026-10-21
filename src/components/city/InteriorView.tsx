@@ -197,7 +197,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   /** Loja de pacotinhos ou forja abertas (?painel=pacotes|forja abre direto). */
   const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | 'guilda' | 'trocas' | 'moveis' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('painel');
-    return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' || q === 'trocas' || q === 'moveis' ? q : null;
+    return q === 'pacotes' || q === 'forja' || q === 'guilda' || q === 'trocas' || q === 'moveis' ? q : null;
   });
   /** Ranking aberto (placares do Salão dos Campeões, da Arena e do Castelo; ?ranking=pvp abre direto). */
   const [ranking, setRanking] = useState<Board | null>(() => {
@@ -216,6 +216,8 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   /** Associação dos Caçadores (portões da Associação e telão da Arena; `?associacao=armas` abre direto). */
   const [assoc, setAssoc] = useState<AssocTab | null>(() => { const q = new URLSearchParams(window.location.search).get('associacao'); return q === null ? null : (ASSOC_TABS.includes(q as AssocTab) ? q as AssocTab : 'portais'); });
   const [dungeonMode, setDungeonMode] = useState<PortalMode>({});
+  /** `?masmorra=N&teste`: caçador pronto para o rank, nada é salvo (para o professor experimentar). */
+  const [dungeonTest] = useState(() => new URLSearchParams(window.location.search).has('teste'));
   const covered = useRef(false);
   const [partyMsg, setPartyMsg] = useState<string | null>(null);
   /** Tela aberta por um móvel da casa (computador, cozinha, aquário...). */
@@ -364,15 +366,25 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     return () => { alive = false; };
   }, [m, room, S]);
 
-  // casa: guarda cada mudança (no navegador e, com o banco ligado, para as visitas dos amigos)
+  // casa: guarda cada mudança (no navegador e no banco: volta em qualquer computador e nas visitas)
   const visiting = sala.kind === 'casa' && !!sala.visita;
+  const houseWait = useRef<unknown>(null);
   useEffect(() => {
     if (room.id !== 'casa' || visiting) return;
     const layout = { items: room.items, piso: room.piso, parede: room.parede };
     try { localStorage.setItem(HOUSE_KEY, JSON.stringify(layout)); } catch { /* sem armazenamento */ }
-    const t = window.setTimeout(() => { void saveHouse(layout); }, 3000);
+    houseWait.current = layout;
+    const t = window.setTimeout(() => { houseWait.current = null; void saveHouse(layout); }, 3000);
     return () => window.clearTimeout(t);
   }, [room, visiting]);
+  // saiu da casa (ou escondeu/fechou a aba) antes dos 3 s: manda na hora
+  useEffect(() => {
+    const now = () => { const l = houseWait.current; houseWait.current = null; if (l) void saveHouse(l); };
+    const hide = () => { if (document.visibilityState === 'hidden') now(); };
+    document.addEventListener('visibilitychange', hide);
+    window.addEventListener('pagehide', now);
+    return () => { document.removeEventListener('visibilitychange', hide); window.removeEventListener('pagehide', now); now(); };
+  }, []);
 
   // tela → escala inteira; decorando, a sala inteira tem de caber acima do painel
   // (ali a escala pode ser meia: 1 pixel hd = 1 pixel da tela)
@@ -405,6 +417,16 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     setFloorBanner(sala.andar);
     const t = window.setTimeout(() => setFloorBanner(null), 1900);
     return () => window.clearTimeout(t);
+  }, [sala]);
+
+  // Associação dos Caçadores: quem ainda não entrou em nenhum portal ouve o guia do SISTEMA ao chegar
+  useEffect(() => {
+    if (sala.kind !== 'sala' || sala.id !== 'treino' || loadProgress().masmorra.portais > 0) return;
+    setDialog({ lines: [
+      '[SISTEMA] Bem-vindo à Associação dos Caçadores!',
+      'Os portões na parede do fundo são os portais da masmorra. Comece pelo E: cada portal abre quando você vence o chefe do anterior.',
+      'Chegue perto de um portão e aperte ESPAÇO para entrar. Na mesa de runas ficam suas cartas, a sombra e a missão do dia.',
+    ], i: 0 });
   }, [sala]);
 
   /** Elevador: vai direto para um andar já liberado. */
@@ -914,7 +936,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       />
       <div className={`absolute top-2 left-2 px-3 py-2 rounded-md bg-black/55 text-white text-[10px] leading-4 ${pixelFont}`}>
         {title}{room.id.startsWith('torre') ? <span className="ml-2 text-yellow-200 inline-flex items-center gap-1"><Icon id="moeda" size={12} /> {progress.coins}</span> : null}
-        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir · painel: elevador' : ''}{room.id === 'arena' ? ' · portal: Associação dos Caçadores' : ''}</div>}
+        {!touch && !decor && <div className="text-white/70 mt-1">ESPAÇO falar · porta embaixo: sair{sala.kind === 'torre' ? ' · escada: subir · painel: elevador' : ''}{room.id === 'arena' ? ' · arco: Salão dos Campeões' : ''}{room.id === 'treino' ? ' · portões: entrar na masmorra' : ''}</div>}
         {decor && <div className="text-lime-300 mt-1">{holding ? 'toque para pôr · R gira · ESC devolve' : 'escolha um móvel ou toque num para mover'}</div>}
       </div>
 
@@ -983,7 +1005,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
       {panelOpen === 'guilda' && <GuildPanel onClose={() => setPanelOpen(null)} />}
       {ranking && <HallOfFame board={ranking} onClose={() => setRanking(null)} />}
       {assoc && dungeon === null && <AssociationPanel tab={assoc} onClose={() => setAssoc(null)} onEnter={(r, m) => { setDungeonMode(m ?? {}); setDungeon(r); }} />}
-      {dungeon !== null && <DungeonView look={look} rank={dungeon} mode={dungeonMode} onClose={() => setDungeon(null)} />}
+      {dungeon !== null && <DungeonView look={look} rank={dungeon} mode={dungeonMode} teste={dungeonTest} onClose={() => setDungeon(null)} />}
       {arcade && <ArcadeMaker onClose={() => setArcade(false)} onClassic={() => { setArcade(false); setHousePanel({ kind: 'work', game: 'teste-jogo' }); }} />}
       {panelOpen === 'moveis' && m && <FurnitureShop m={m} onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}
       {panelOpen === 'trocas' && <TradeHub onClose={() => { setPanelOpen(null); setProgress(loadProgress()); }} />}

@@ -12,7 +12,7 @@ mais frequente do bloco e o tom mediano dela, pintado numa paleta fixa
 (PALETTE abaixo). O jogo troca essas cores exatas pelas rampas escolhidas
 (src/game/world/outfit.ts), então a paleta aqui e lá tem de ser a mesma.
 
-Uso: python3 scripts/arte/importar-personagem.py [--folha saida.png]
+Uso: python3 scripts/arte/importar-personagem.py [--folha saida.png] [--so-poses]
 """
 import importlib.util
 import json
@@ -144,9 +144,9 @@ def reduce(frame, cls, tone, scale):
     return out
 
 
-# poses (docs/PROMPTS-GPT.md §A): mesma paleta e mesmo tamanho de quadro
-POSES = {'sentar': (4, 2), 'carregar': (4, 4), 'emotes': (4, 4)}
-POSE_SRC = ROOT / 'public/Novos assets/personagem/poses'
+# poses (docs/PROMPTS-GPT.md §A; masmorra: docs/gpt-masmorra.md §2): mesma paleta e mesmo tamanho de quadro
+POSES = {'sentar': (4, 2), 'carregar': (4, 4), 'emotes': (4, 4), 'combate': (4, 4), 'esquiva': (4, 4), 'magia': (4, 1)}
+POSE_SRCS = [ROOT / 'public/Novos assets/personagem/poses', ROOT / 'public/Novos assets/masmorra/personagem']
 POSE_OUT = OUT / 'poses'
 
 
@@ -162,7 +162,7 @@ def poses():
     comparada com a do modelo (o GPT nem sempre desenha do mesmo tamanho)."""
     POSE_OUT.mkdir(parents=True, exist_ok=True)
     done = []
-    for f in sorted(POSE_SRC.glob('modelo-*-*.png')):
+    for f in sorted(x for d in POSE_SRCS for x in d.glob('modelo-*-*.png')):
         modelo, pose = f.stem.rsplit('-', 1)
         if pose not in POSES or not (SRC / f'{modelo}.png').exists():
             continue
@@ -190,6 +190,8 @@ def poses():
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    if '--so-poses' in sys.argv:
+        return poses()
     files = sorted(SRC.glob('modelo-*.png'))
     sheets = []
     manifest = []

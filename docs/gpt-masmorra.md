@@ -114,6 +114,7 @@ Fire = orange, red and yellow · Water = deep blue, cyan and white · Grass = le
 ## 2. Boneco do aluno: golpe, tiro, esquiva, conjurar
 
 Pasta `personagem/`. **Anexar `public/Novos assets/personagem/modelos/modelo-01.png`** (depois repetir com 02…10).
+**Os 10 modelos já chegaram** (01 em 10/10; 02–10 em 19/10, `importar-personagem.py --so-poses`). O modelo 08 saiu um pouco maior em combate e as folhas de magia do 04 e do 07 têm lascas na borda; a magia ainda não é usada.
 Mesmas cores-molde dos modelos (o jogo pinta). Quadro do mesmo tamanho da folha de andar.
 
 **modelo-01-combate.png** (4 colunas × 4 linhas: linha 1 de frente, 2 para a esquerda, 3 para a direita, 4 de costas)
@@ -241,7 +242,7 @@ A pixel art sprite sheet of an ORIGINAL friendly shadow soldier ally for a kids 
 
 ## 9. Masmorra 2.0: inimigos novos, perigos e salas
 
-Chegou com a Masmorra 2.0 (5 andares, chefes com mecânica própria, salas novas). Mesmas regras de cima. Enquanto a arte não chega, o jogo usa pets pintados e desenho em código.
+**Chegou em 19/10 e já está na tela** (Release "Assets masmorra"): os 7 inimigos, `perigos.png` (espinho baixo/aviso/alto, veneno, gelo, lava em 2 quadros, barril explosivo) e `salas.png` (estátua, mercador, lampião, Pedra da Ressurreição, parede rachada da sala secreta, baú vermelho do desafio enquanto a sala não é limpa, alçapão da sala-armadilha). O desenho em código fica de reserva enquanto a imagem carrega (`drawSala` e `PERIGO`/`SALA` em `dungeon-art.ts`).
 
 **Inimigos novos** (pasta `inimigos/`, **4 × 4, quadro 48 × 48**, mesmo prompt base do §3; o jogo já procura estes nomes):
 
@@ -268,3 +269,29 @@ A pixel art sprite sheet of special dungeon room objects for a kids fantasy game
 ```
 
 As cópias de sombra que o Monarca cria usam o próprio boneco do aluno pintado de sombra: não precisam de arte nova.
+
+## 10. Pacote de efeitos (visual v2)
+
+**Chegou em 19/10 e já está na tela.** As 101 cartas Comum–Rara usam o pacote do elemento (voo, impacto, zona e feixe em 3 peças: início, corpo repetido, ponta; `elem-<el>-<uso>` em `card-sprites.ts`); tornado e corte continuam emprestando a folha Épica do elemento. O objeto que a carta joga vem de `projeteis.png` (`LOOK_ORDER`, mesma ordem do tipo `Look`): bichos espelham ao ir para a esquerda, estrela/shuriken/carta/martelo giram, nuvem e afins ficam em pé, e os objetos de energia (bola, lâmina, lua, dragão...) levam a cor da carta (a lua da Getsuga fica roxa). Os golpes do caçador (combo, final, giro do pesado, estocada, poeira, faísca do acerto, clarão do tiro) vêm de `golpes-jogador.png` (`GOLPE`). Antes de a folha carregar, fica o desenho em pixel. Mesmas regras de cima (magenta, sem texto, sem sangue, nada assustador).
+
+**§10.1 `efeitos-elemento/<elemento>.png`** (pasta `efeitos-elemento/`, 12 folhas: `fire`, `water`, `grass`, `electric`, `ice`, `fighting`, `poison`, `ground`, `flying`, `ghost`, `dark`, `steel`). **6 colunas × 4 linhas, quadro 64 × 64** (folha 384 × 256). Troque `{ELEMENTO}` pelo nome em inglês e `{CORES}` pelas cores do §1.
+
+```
+A pixel art visual effect sprite sheet for a kids action RPG, element: {ELEMENTO}. Main colors: {CORES}. Grid of 6 columns and 4 rows, each cell exactly 64x64 pixels (sheet 384x256), top-down 3/4 view. Row 1: a small round projectile of this element flying to the right, 4 animation frames (cells 1-4), cells 5-6 empty. Row 2: an impact burst of this element, 6 frames from small flash to full burst to fading sparks. Row 3: a ground area effect of this element seen from above (a flat circle on the floor with rising particles), 4 looping frames (cells 1-4), cells 5-6 empty. Row 4: an energy beam of this element lying horizontally: cell 1 the beam origin (round glow, beam starting at the right edge), cell 2 a seamless beam body segment that touches the left and right edges and can repeat, cell 3 the beam tip hitting (burst on the right side), cells 4-6 empty. Only the effect: no characters, no hands, no ground texture. Clean dark outlines, limited palette, strong glow colors, no anti-aliasing, no text, no letters, original design. Flat solid magenta background (#FF00FF).
+```
+
+**§10.2 `golpes-jogador.png`** (pasta `golpes/`, **6 colunas × 6 linhas, quadro 64 × 64**, folha 384 × 384)
+
+```
+A pixel art sprite sheet of melee and movement effects for a kids action RPG hero, top-down 3/4 view, grid of 6 columns and 6 rows, each cell exactly 64x64 pixels (sheet 384x384). Row 1: a light sword slash smear arc swinging from upper left to lower right, white core and light blue edge, 4 frames (thick crescent, then thinning from the tail, then a thin sliver, then small sparkles), cells 5-6 empty. Row 2: the same slash mirrored (lower left to upper right), 4 frames, cells 5-6 empty. Row 3: a big finishing slash, wider and brighter, white and golden, 4 frames, cells 5-6 empty. Row 4: a full 360-degree spin slash ring seen from above (flattened circle), orange and white, 6 frames from start to fade. Row 5: (1-4) a straight forward thrust streak pointing right, white and light blue, 4 frames; (5-6) a small dust puff, 2 frames. Row 6: (1-3) a hit spark star burst, white and yellow, 3 frames; (4-6) a gun muzzle flash pointing right, yellow and white, 3 frames. Only the effects, no character, no weapon, no blood. Clean dark outlines, limited palette, no anti-aliasing, no text. Flat solid magenta background (#FF00FF).
+```
+
+**§10.3 `projeteis.png`** (pasta `golpes/`, **8 colunas × 6 linhas, quadro 32 × 32**, folha 256 × 192). Os objetos que as cartas Comum–Rara jogam (o `look` delas), todos **apontando para a direita**, nesta ordem:
+
+`ball, blade crescent, spear, shark, playing card, hammer, star, shuriken, glowing orb sphere, dragon head, flower petal, water drop, water wave, moon crescent, fist, rock, snowball, needle, kunai, small sword, beetle, heart, crystal shard, arrow, lightning bolt, meteor, open palm hand, small sun, sand cloud, root tendril, ice shard, shadow wisp, stone pillar, tiger head, wings, lizard head, cloud, crater crack, wind swirl, decay mist, spider web, smoke puff, steam puff, light ray, magic orb` (45; as 3 últimas células ficam vazias).
+
+```
+A pixel art icon sheet of small magic projectiles for a kids action RPG, grid of 8 columns and 6 rows, each cell exactly 32x32 pixels (sheet 256x192), every object pointing to the right, in this order left to right, top to bottom: {LISTA}. Bright readable colors, clean dark outline, limited palette, no anti-aliasing, no text, no letters, original designs, nothing scary, no blood. The last 3 cells empty. Flat solid magenta background (#FF00FF).
+```
+
+Importar: `python3 scripts/arte/importar-masmorra.py --folha revisao.png` (já corta as 3 pastas; as folhas com linha preta de grade passam pelo `degrid`, só no modo `grade`).

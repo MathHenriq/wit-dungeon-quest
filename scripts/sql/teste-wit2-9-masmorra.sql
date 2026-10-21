@@ -20,3 +20,5 @@ SELECT wit2_dungeon_claim(0) IS NOT NULL AS "3ª do dia";
 UPDATE wit2_events SET at = greatest(date_trunc('day', now()), now() - interval '5 minutes') WHERE kind = 'masmorra';
 DO $$ BEGIN PERFORM wit2_dungeon_claim(0); RAISE EXCEPTION 'devia recusar'; EXCEPTION WHEN others THEN IF SQLERRM <> 'masmorra: limite do dia' THEN RAISE; END IF; END $$;
 SELECT set_config('test.uid', '', false);
+-- a versão antiga (sem rank) fica desligada: ninguém logado executa
+SELECT NOT has_function_privilege('authenticated', 'public.wit2_dungeon_claim()', 'EXECUTE') AS "versão sem rank desligada";
