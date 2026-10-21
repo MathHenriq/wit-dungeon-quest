@@ -38,7 +38,8 @@ import {
 import { DEFAULT_LOOK, DEFAULT_PET, normalizeLook, type Look } from '@/game/world/outfit';
 import { DIRS, drawSeated, loadLookFrames, loadPetFrames, plateCanvas, R, toCanvas, type Frames } from '@/game/world/sprites';
 import { canRide, groundVehicle, ROAD_TERRAIN, type Vehicle } from '@/game/vehicles';
-import { cloudEnabled, myNickname, pullProgress, studentSignedIn } from '@/game/cloud';
+import { cloudEnabled, flush, myNickname, saveLocal, studentSignedIn } from '@/game/cloud';
+import { takeBootNews } from '@/game/cloud-boot';
 import { FALA_MS, FALAS, joinZone, tabId, type PeerState, type ZoneLink } from '@/game/presence';
 import { DEMO_PEOPLE, nickOk, noticesMine, setProfile, socialDemo, socialError, socialOn, visit } from '@/game/social';
 import { ProfileCard } from '@/components/social/ProfileCard';
@@ -168,6 +169,21 @@ function savedLook(): Look {
   try { return normalizeLook(JSON.parse(localStorage.getItem(LOOK_KEY) ?? 'null')); } catch { return DEFAULT_LOOK; }
 }
 
+/** Onde o aluno parou (área, bloco e hora): vai para o banco e o jogo abre ali, em qualquer computador. */
+const ONDE_KEY = 'wit.onde';
+interface Onde { z: ZoneId; tx: number; ty: number; h: number }
+function savedOnde(): Onde | null {
+  try {
+    const o = JSON.parse(localStorage.getItem(ONDE_KEY) ?? 'null') as Partial<Onde> | null;
+    if (!o || !ZONES.includes(o.z as ZoneId) || !Number.isInteger(o.tx) || !Number.isInteger(o.ty)) return null;
+    const h = typeof o.h === 'number' && Number.isFinite(o.h) ? ((o.h % 24) + 24) % 24 : 8;
+    return { z: o.z as ZoneId, tx: o.tx!, ty: o.ty!, h };
+  } catch { return null; }
+}
+const saveOnde = (o: Onde) => saveLocal(ONDE_KEY, JSON.stringify({ ...o, h: Math.round(o.h * 10) / 10 }));
+/** Avisos da entrada (pacotes do professor, Carta da Aula): uma vez por abertura do jogo, não a cada área. */
+let entryNoticed = false;
+
 interface Npc {
   def: NpcDef; w: Walker; frames: Frames | null; goal: Dir | null;
   /** Moradores com rota: caminho até a próxima parada, tempo parado e parada atual. */
@@ -212,15 +228,21 @@ export default function CityDemo({ playerName }: { playerName?: string } = {}) {
     const A = assets.current ?? undefined;
     const g = A ? await loadPrebuiltGround(`${BASE}game/world/${zone}`) : undefined;
     const town = buildZone(zone, A, { casa, groundHd: g?.pix, groundKey: g?.key });
-    setWorld(w => ({ town, start, hour, n: (w?.n ?? 0) + 1 }));
+    // lugar salvo que virou parede (a planta mudou): começa no início da área
+    const ok = start && !town.solid[start.ty]?.[start.tx];
+    setWorld(w => ({ town, start: ok ? start : undefined, hour, n: (w?.n ?? 0) + 1 }));
   }, []);
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     const z = q.get('zona') as ZoneId | null;
-    void load(z && ZONES.includes(z) ? z : 'cidade', undefined, 8);
+    // aluno em /wit2: volta onde parou (área, bloco e hora); ?zona e ?pos mandam (prints e testes)
+    const onde = cloudEnabled() && !z && !q.has('pos') ? savedOnde() : null;
+    if (onde) void load(onde.z, { tx: onde.tx, ty: onde.ty, dir: 'south' }, onde.h);
+    else void load(z && ZONES.includes(z) ? z : 'cidade', undefined, 8);
   }, [load]);
   // troca de área: escurece, monta a outra (com o chão pronto dela) e clareia
   const travel = useCallback((to: ZoneId, at: Arrival | undefined, hour: number) => {
+    if (at) saveOnde({ z: to, tx: at.tx, ty: at.ty, h: hour });
     setFade(true);
     window.setTimeout(() => { void load(to, at, hour).then(() => window.setTimeout(() => setFade(false), 60)); }, 280);
   }, [load]);
@@ -474,10 +496,10 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // visual novo → repinta o boneco e guarda (só neste navegador por enquanto)
+  // visual novo → repinta o boneco e guarda (no banco também)
   const firstLook = useRef(true);
   useEffect(() => {
-    try { localStorage.setItem(LOOK_KEY, JSON.stringify(look)); } catch { /* sem armazenamento */ }
+    saveLocal(LOOK_KEY, JSON.stringify(look));
     g.current.nick = look.apelido || 'Você';
     g.current.dirty = true;
     if (firstLook.current) { firstLook.current = false; return; }
@@ -487,27 +509,48 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
     return () => { alive = false; };
   }, [look]);
 
-  // banco do WIT 2 (só com VITE_WIT2_DB=1): ao abrir, traz moedas, cartas e Torre do servidor
+  // ao abrir o jogo (uma vez, não a cada área): pacotes que o professor mandou e Carta da Aula nova
   useEffect(() => {
-    if (!cloudEnabled()) return;
-    const before = loadProgress();
-    void studentSignedIn().then(ok => ok && pullProgress(before).then(p => {
-      saveProgress(p); setProgress(p);
-      // o professor mandou pacotes (aula, missão da sala) desde a última vez: avisa
-      const got = Object.entries(p.pacotes).filter(([id, n]) => n > (before.pacotes[id] ?? 0));
-      const packsText = got.length ? `Seu professor mandou ${got.map(([id, n]) => `${n - (before.pacotes[id] ?? 0)} ${PACK_BY_ID.get(id as PackId)?.name ?? id}`).join(' e ')}! Abra em MEUS PACOTES, na Loja.` : '';
-      if (packsText) setFishUi({ kind: 'toast', text: packsText });
-      // Carta da Aula nova (avisa uma vez)
-      void lessonCardsMine().then(list => {
-        const seen = (() => { try { return localStorage.getItem('wit.cartaAula') ?? ''; } catch { return ''; } })();
-        const c = list[0];
-        if (!c || `${c.day}:${c.card}` === seen) return;
-        try { localStorage.setItem('wit.cartaAula', `${c.day}:${c.card}`); } catch { /* sem armazenamento */ }
-        const text = `Carta da Aula: ${CARD_BY_ID.get(c.card)?.name ?? c.card} entrou no seu álbum!`;
-        setFishUi({ kind: 'toast', text: packsText ? `${packsText} ${text}` : text });
-      });
-    }).catch(err => console.error('banco', err)));
+    if (!cloudEnabled() || entryNoticed) return;
+    entryNoticed = true;
+    const got = takeBootNews();
+    const packsText = got.length ? `Seu professor mandou ${got.map(([id, n]) => `${n} ${PACK_BY_ID.get(id as PackId)?.name ?? id}`).join(' e ')}! Abra em MEUS PACOTES, na Loja.` : '';
+    if (packsText) setFishUi({ kind: 'toast', text: packsText });
+    void lessonCardsMine().then(list => {
+      const seen = (() => { try { return localStorage.getItem('wit.cartaAula') ?? ''; } catch { return ''; } })();
+      const c = list[0];
+      if (!c || `${c.day}:${c.card}` === seen) return;
+      saveLocal('wit.cartaAula', `${c.day}:${c.card}`);
+      const text = `Carta da Aula: ${CARD_BY_ID.get(c.card)?.name ?? c.card} entrou no seu álbum!`;
+      setFishUi({ kind: 'toast', text: packsText ? `${packsText} ${text}` : text });
+    });
   }, []);
+
+  // onde parou: grava a cada 30 s se andou, ao trocar de área (travel) e ao esconder ou fechar a aba
+  useEffect(() => {
+    let last = '';
+    const put = (force: boolean) => {
+      const s = g.current;
+      if (s.leaving) return;
+      // dentro de um prédio o boneco fica na porta: volta na frente dela
+      const door = town.doors.some(d => d.tx === s.player.tx && d.ty === s.player.ty);
+      const o = { z: town.id, tx: s.player.tx, ty: s.player.ty + (door ? 1 : 0), h: s.hour };
+      const k = `${o.z}:${o.tx},${o.ty}`;
+      if (k === last && !force) return;
+      last = k;
+      saveOnde(o);
+    };
+    const t = window.setInterval(() => put(false), 30000);
+    const now = () => { put(true); void flush(); };
+    const hide = () => { if (document.visibilityState === 'hidden') now(); };
+    document.addEventListener('visibilitychange', hide);
+    window.addEventListener('pagehide', now);
+    return () => {
+      window.clearInterval(t);
+      document.removeEventListener('visibilitychange', hide);
+      window.removeEventListener('pagehide', now);
+    };
+  }, [town]);
 
   // convite de festa de um amigo (vale 30 min)
   useEffect(() => {
@@ -518,7 +561,7 @@ function CityView({ town, start, startHour, onTravel, playerName }: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // cidade compartilhada (só com VITE_WIT2_DB=1): publica o perfil (apelido,
+  // cidade compartilhada (aluno em /wit2, com o banco): publica o perfil (apelido,
   // visual, título), entra no canal de todos os alunos e cada um que está na área vira um boneco.
   // ?social=demo põe 2 colegas de mentira perto (prints do cartão de perfil).
   useEffect(() => {

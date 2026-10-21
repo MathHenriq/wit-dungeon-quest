@@ -197,7 +197,7 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
   /** Loja de pacotinhos ou forja abertas (?painel=pacotes|forja abre direto). */
   const [panelOpen, setPanelOpen] = useState<'pacotes' | 'forja' | 'recompensas' | 'guilda' | 'trocas' | 'moveis' | null>(() => {
     const q = new URLSearchParams(window.location.search).get('painel');
-    return q === 'pacotes' || q === 'forja' || q === 'recompensas' || q === 'guilda' || q === 'trocas' || q === 'moveis' ? q : null;
+    return q === 'pacotes' || q === 'forja' || q === 'guilda' || q === 'trocas' || q === 'moveis' ? q : null;
   });
   /** Ranking aberto (placares do Salão dos Campeões, da Arena e do Castelo; ?ranking=pvp abre direto). */
   const [ranking, setRanking] = useState<Board | null>(() => {
@@ -366,15 +366,25 @@ function Inside({ m, sala: sala0, look, pet, onExit, house }: { m: Manifest; sal
     return () => { alive = false; };
   }, [m, room, S]);
 
-  // casa: guarda cada mudança (no navegador e, com o banco ligado, para as visitas dos amigos)
+  // casa: guarda cada mudança (no navegador e no banco: volta em qualquer computador e nas visitas)
   const visiting = sala.kind === 'casa' && !!sala.visita;
+  const houseWait = useRef<unknown>(null);
   useEffect(() => {
     if (room.id !== 'casa' || visiting) return;
     const layout = { items: room.items, piso: room.piso, parede: room.parede };
     try { localStorage.setItem(HOUSE_KEY, JSON.stringify(layout)); } catch { /* sem armazenamento */ }
-    const t = window.setTimeout(() => { void saveHouse(layout); }, 3000);
+    houseWait.current = layout;
+    const t = window.setTimeout(() => { houseWait.current = null; void saveHouse(layout); }, 3000);
     return () => window.clearTimeout(t);
   }, [room, visiting]);
+  // saiu da casa (ou escondeu/fechou a aba) antes dos 3 s: manda na hora
+  useEffect(() => {
+    const now = () => { const l = houseWait.current; houseWait.current = null; if (l) void saveHouse(l); };
+    const hide = () => { if (document.visibilityState === 'hidden') now(); };
+    document.addEventListener('visibilitychange', hide);
+    window.addEventListener('pagehide', now);
+    return () => { document.removeEventListener('visibilitychange', hide); window.removeEventListener('pagehide', now); now(); };
+  }, []);
 
   // tela → escala inteira; decorando, a sala inteira tem de caber acima do painel
   // (ali a escala pode ser meia: 1 pixel hd = 1 pixel da tela)

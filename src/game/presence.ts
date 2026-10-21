@@ -1,6 +1,6 @@
 // Cidade compartilhada (plano §3.1 e §11): cada área é um canal do Supabase
 // Realtime; cada aluno avisa só "fui para o bloco X" (não a posição a cada
-// quadro). DESLIGADO por padrão: liga junto com o banco (VITE_WIT2_DB=1).
+// quadro). Só com o banco ligado (aluno em /wit2); na /cidade-demo fica desligado.
 // Só apelido, título e visual aparecem para os outros (nada de dado pessoal).
 import type { Dir } from './world/movement';
 import type { Look } from './world/outfit';

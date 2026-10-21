@@ -4,8 +4,9 @@
 // CARTAS (Códex: o que cada carta faz na masmorra, maestria); STATUS (pontos
 // de Força, Agilidade, Vitalidade, Inteligência, Percepção); ferreiro de
 // armas, boticária e o baú do pet (cristal vira pó da forja de cartas).
-import { useMemo, useState } from 'react';
-import { loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { useEffect, useMemo, useState } from 'react';
+import { addItem, loadProgress, saveProgress, type Progress } from '@/game/progress';
+import { cloudCrystalDust, cloudEnabled } from '@/game/cloud';
 import {
   brew, chooseSombra, CRYSTAL_DUST, crystalsToDust, equipWeapon, forgeWeapon, hunterLevel, hunterRank, hunterStats, missionNow, nextRank,
   nightmareOpen, pointsFree, portalOpen, rankName, resetPoints, setSkills, skillChoices, spendPoint, STAT_INFO, STAT_MAX, upgradeWeapon,
@@ -51,6 +52,25 @@ export function AssociationPanel({ tab: tab0 = 'portais', onEnter, onClose }: { 
   const [filtro, setFiltro] = useState<'todas' | 'minhas' | 'descobertas'>('minhas');
   const save = (q: Progress, text?: string) => { saveProgress(q); setP(q); if (text) { setMsg(text); play('super'); } };
   const fail = (r: object) => { setMsg('reason' in r ? String(r.reason) : 'Não deu.'); play('click'); };
+  // o progresso mudou fora daqui (o servidor corrigiu moedas, outra tela gravou): lê de novo
+  useEffect(() => {
+    const on = (e: Event) => setP((e as CustomEvent<Progress>).detail);
+    window.addEventListener('wit-progresso', on);
+    return () => window.removeEventListener('wit-progresso', on);
+  }, []);
+  // cristal vira pó: no banco, o servidor soma o pó (com teto do dia) e diz quantos cristais usou
+  const [dusting, setDusting] = useState(false);
+  const toDust = async (k: string) => {
+    if (!cloudEnabled()) { const r = crystalsToDust(p, k); if (r.ok) save(r.progress, `+${r.po} de pó!`); else fail(r); return; }
+    const n = p.itens[k] ?? 0;
+    if (n <= 0 || dusting) return;
+    setDusting(true);
+    const r = await cloudCrystalDust(k, n);
+    setDusting(false);
+    if (!r.ok) { fail(r); return; }
+    const cur = loadProgress();
+    save({ ...addItem(cur, k, -r.usados), po: r.po }, `+${r.ganho} de pó!${r.usados < n ? ' O resto dos cristais vira pó amanhã.' : ''}`);
+  };
   const h = p.masmorra, rank = hunterRank(h.xp), st = hunterStats(rank, h.pontos), nxt = nextRank(h.xp), mm = missionNow(h), lvl = hunterLevel(h.xp), free = pointsFree(h);
   const top = Math.max(0, ...RANKS.map((_, k) => (portalOpen(p, k).ok ? k : 0)));
   const cls = CLASS_SKILL[p.caminho ?? 'desafiante'];
@@ -206,7 +226,7 @@ export function AssociationPanel({ tab: tab0 = 'portais', onEnter, onClose }: { 
               <div key={k} className="sys-cell">
                 <b>{itemLabel(k)}</b>
                 <span>Cada um vira {c.po} de pó {c.rarity === 'common' ? 'comum' : c.rarity === 'rare' ? 'raro' : 'épico'} da forja de cartas. Você tem {p.itens[k] ?? 0}.</span>
-                <button className="sys-btn" disabled={!(p.itens[k] ?? 0)} onClick={() => { const r = crystalsToDust(p, k); if (r.ok) save(r.progress, `+${r.po} de pó!`); else fail(r); }}>VIRAR PÓ</button>
+                <button className="sys-btn" disabled={!(p.itens[k] ?? 0) || dusting} onClick={() => { void toDust(k); }}>VIRAR PÓ</button>
               </div>
             ))}
           </div>

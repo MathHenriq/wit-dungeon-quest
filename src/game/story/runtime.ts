@@ -2,6 +2,7 @@
 // telas (evento `wit-historia`) para o rastreador e os marcadores mudarem.
 // As telas (cidade, salas) só chamam estas funções; a regra fica no motor.
 import { loadFarm } from '../farm';
+import { saveLocal } from '../cloud';
 import {
   chegar, escolher, falar, falasExtra, marcas, neblina, newStory, novoDia, objetivo, pegar, porta, responder,
   sanitizeStory, tick, visivel, atual, type Ctx, type Historia, type Res,
@@ -12,6 +13,8 @@ const KEY = 'wit.historia';
 export const STORY_EVENT = 'wit-historia';
 
 let cache: Historia | null = null;
+/** Depois de carregar do banco (cloud-boot.ts): a próxima leitura vem do navegador. */
+export function dropStoryCache(): void { cache = null; }
 
 export function loadStory(): Historia {
   if (cache) return cache;
@@ -22,7 +25,7 @@ export function loadStory(): Historia {
 
 export function saveStory(h: Historia): void {
   cache = h;
-  try { localStorage.setItem(KEY, JSON.stringify(h)); } catch { /* sem armazenamento */ }
+  saveLocal(KEY, JSON.stringify(h));
   try { window.dispatchEvent(new Event(STORY_EVENT)); } catch { /* fora do navegador */ }
 }
 

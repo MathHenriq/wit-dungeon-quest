@@ -441,15 +441,20 @@ export function loadProgress(): Progress {
 }
 export function saveProgress(p: Progress): void {
   try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* sem armazenamento */ }
-  // banco (desligado por padrão: VITE_WIT2_DB=1): o servidor corrige as moedas
-  // (teto do dia) e, se outro aparelho gravou antes, manda o JSON dele
-  schedulePush(p, (coinFix, server) => {
-    const cur = loadProgress();
-    const fixed = sanitizeProgress({ ...cur, ...(server ?? {}), coins: Math.max(0, cur.coins + coinFix), collection: cur.collection, po: cur.po, pacotes: cur.pacotes, semEpica: cur.semEpica });
-    try { localStorage.setItem(KEY, JSON.stringify(fixed)); } catch { /* idem */ }
-    window.dispatchEvent(new CustomEvent('wit-progresso', { detail: fixed }));
-  });
+  // banco (aluno em /wit2): manda em 1 s; o servidor corrige as moedas (teto do dia)
+  schedulePush();
   window.dispatchEvent(new CustomEvent('wit-progresso', { detail: p }));
+}
+/** O servidor cortou moedas (teto do dia) ou o gasto deixaria negativo: corrige o navegador. */
+export function fixCoins(coinFix: number): void {
+  const cur = loadProgress();
+  const fixed = { ...cur, coins: Math.max(0, cur.coins + coinFix) };
+  try { localStorage.setItem(KEY, JSON.stringify(fixed)); } catch { /* sem armazenamento */ }
+  window.dispatchEvent(new CustomEvent('wit-progresso', { detail: fixed }));
+}
+/** Grava o progresso que veio do banco sem mandar de volta (cloud-boot.ts). */
+export function storeProgress(p: Progress): void {
+  try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* sem armazenamento */ }
 }
 
 // ─── Caminho (primeiro acesso) ──────────────────────────────────────────────
