@@ -40,3 +40,20 @@ ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT ON realtime.messages TO authenticated, anon;
 GRANT USAGE ON SEQUENCE realtime.messages_id_seq TO authenticated, anon;
 CREATE OR REPLACE FUNCTION realtime.topic() RETURNS text LANGUAGE sql STABLE AS $$ SELECT current_setting('test.topic', true) $$;
+-- Painel do professor (_wit2_salvar_tudo.sql): situação do cadastro, suspensão, o
+-- personagem do WIT 1 (filhas sem cascata, como na produção) e o registro de ações
+ALTER TABLE public.students ADD COLUMN status text DEFAULT 'active', ADD COLUMN created_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN suspended_until timestamptz, ADD COLUMN suspended_reason text;
+CREATE TABLE public.characters (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid);
+CREATE TABLE public.character_abilities (character_id uuid REFERENCES public.characters(id));
+CREATE TABLE public.character_progress (character_id uuid REFERENCES public.characters(id));
+CREATE TABLE public.character_inventory (character_id uuid REFERENCES public.characters(id));
+CREATE TABLE public.battle_history (character_id uuid REFERENCES public.characters(id));
+CREATE TABLE public.pvp_stats (character_id uuid REFERENCES public.characters(id));
+CREATE TABLE public.pvp_matches (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), challenger_id uuid REFERENCES public.students(id) ON DELETE CASCADE,
+  opponent_id uuid REFERENCES public.students(id) ON DELETE CASCADE, winner_id uuid REFERENCES public.students(id));
+CREATE TABLE public.pvp_rating_history (character_id uuid REFERENCES public.characters(id), match_id uuid REFERENCES public.pvp_matches(id));
+CREATE TABLE public.pvp_weekly_rewards (character_id uuid REFERENCES public.characters(id));
+CREATE TABLE public.character_achievements (character_id uuid REFERENCES public.characters(id));
+CREATE FUNCTION public.log_action_v2(p_action text, p_target_table text, p_target_id uuid, p_target_label text, p_payload jsonb, p_before jsonb, p_after jsonb)
+  RETURNS bigint LANGUAGE sql AS $$ SELECT 1::bigint $$;
