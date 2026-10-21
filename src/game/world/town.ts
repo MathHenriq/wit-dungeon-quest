@@ -14,6 +14,7 @@ import { HOUSE_MODELS, NPC_HOUSES } from './content';
 import { houseHG } from './house-hg';
 import { arenaHG, towerHG } from './buildings-hg';
 import { cardWorkshop, guildCastle, packShop } from './landmarks';
+import { dungeonGate } from './dungeon-gate';
 import { labeled, lakeFrames, pierArt, reedArt, ZoneBuilder, type GlowSpot, type Lamp, type Placed, type Town, type ZoneOptions } from './zone';
 
 export type { Ambient, Door, GlowSpot, Lamp, Placed, Town } from './zone';
@@ -60,10 +61,12 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   const fillT = fill;
 
   // ── ruas ──
-  fillT('trilha', 3, 10, 25, 2);            // rua de cima (oeste)
-  fillT('trilha', 36, 10, 25, 2);           // rua de cima (leste)
-  fillT('trilha', 26, 12, 2, 3);            // descidas para a praça
-  fillT('trilha', 36, 12, 2, 3);
+  // a Torre (arte de 12 blocos, centrada na porta em x 32) cobre os blocos 26–37:
+  // a rua de cima para nas abas e as descidas para a praça passam do lado dela
+  fillT('trilha', 3, 10, 23, 2);            // rua de cima (oeste)
+  fillT('trilha', 38, 10, 23, 2);           // rua de cima (leste)
+  fillT('trilha', 24, 12, 2, 3);            // descidas para a praça
+  fillT('trilha', 38, 12, 2, 3);
   fillT('trilha', 10, 12, 2, 8);            // ligações rua de cima → avenidas
   fillT('trilha', 51, 12, 2, 8);
   fillT('trilha', 3, 32, 58, 2);            // rua do meio
@@ -80,13 +83,13 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   fillT('calcada', 45, 19, 3, 1);           // Loja → avenida
   fillT('trilha', 15, 31, 3, 1);            // Castelo → rua
   fillT('trilha', 45, 31, 4, 1);            // Arena → rua
+  fillT('trilha', 37, 31, 3, 1);            // Masmorra → rua
   shape('agua', 3, 35, ['...###..', '.######.', '#######.', '########', '.#######', '..####..']);   // lago
   shape('mato', 58, 16, ['.###', '####', '###.']);         // mato alto na saída leste
   shape('mato', 58, 22, ['###.', '####', '.##.']);
   shape('mato', 24, 44, ['.####', '####.']);               // e na saída sul
   shape('mato', 35, 44, ['####.', '.####']);
-  fillT('flores', 24, 27, 5, 1);            // canteiros dos parquinhos da praça
-  fillT('flores', 35, 27, 5, 1);
+  fillT('flores', 24, 27, 5, 1);            // canteiro do parquinho da praça (do outro lado fica a Masmorra)
   fillT('flores', 58, 37, 3, 3);            // horta do fazendeiro
   // chão de mata na borda (entre as árvores), com as saídas oeste, sul e leste
   const W_ = CIDADE_EXITS.oeste, E_ = CIDADE_EXITS.leste, S_ = CIDADE_EXITS.sul;
@@ -113,10 +116,13 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
     if (top) fx.beacons.push(top);
   }
   block(28, 2, 8, 6); // a arte da Torre sobe até aqui: ninguém anda por trás dela
+  block(26, 8, 2, 6); block(36, 8, 2, 6); // e as abas dos lados, que descem até a praça
   building(sprB('oficina', 'centro', 'Oficina de Cartas', 7, 5, [3], cardWorkshop), 13, 14);
   building(sprB('palacio-cartas', 'loja', 'Loja de Pacotinhos', 5, 5, [2], packShop), 44, 14);
   building(sprB('castelo', 'guildas', 'Castelo das Guildas', 7, 5, [3], guildCastle), 13, 26);
   building(sprB('arena', 'arena', 'Arena', 8, 5, [3, 4], arenaHG), 43, 26);
+  // a Masmorra tem prédio próprio, ao lado da Arena (a porta leva à Associação dos Caçadores)
+  building(sprB('portao-masmorra', 'masmorra', 'Masmorra', 5, 5, [2], dungeonGate), 36, 26);
 
   // casas: porta no meio, caminho de areia da porta até a rua, correio e canteiro do lado
   const house = (sprite: string, id: string, title: string, tx: number, ty: number, o: Parameters<typeof houseHG>[2], tw = 5) => {
@@ -176,11 +182,11 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   block(MAP_W - 2, 0, 2, E_.y0); block(MAP_W - 2, E_.y1 + 1, 2, MAP_H - E_.y1 - 1);
   const groves: [P.TreeKind, number, number][] = [
     // faixa verde entre a rua de cima e a das avenidas
-    ['redonda', 2, 12], ['florida', 20, 12], ['redonda', 23, 12], ['redonda', 39, 12], ['florida', 42, 12], ['redonda', 56, 12],
+    ['redonda', 2, 12], ['florida', 20, 12], ['redonda', 22, 12], ['redonda', 40, 12], ['florida', 42, 12], ['redonda', 56, 12],
     // entre as avenidas e a faixa do meio
     ['florida', 2, 22], ['redonda', 20, 22], ['redonda', 41, 22], ['florida', 48, 22],
     // parquinhos dos lados da avenida sul
-    ['redonda', 23, 28], ['florida', 27, 29], ['redonda', 38, 28], ['florida', 34, 29],
+    ['redonda', 23, 28], ['florida', 27, 29], ['florida', 34, 29],
     // entre a rua do meio e a faixa de baixo
     ['redonda', 27, 34], ['florida', 34, 34], ['redonda', 50, 34], ['pinheiro', 58, 33],
     // borda de baixo
@@ -188,7 +194,7 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
     ['redonda', 42, 44], ['florida', 47, 44], ['pinheiro', 52, 44], ['redonda', 57, 44],
   ];
   groves.forEach(([k, tx, ty], i) => treeAt(k, tx, ty, 100 + i));
-  for (const [tx, ty] of [[9, 12], [25, 12], [38, 13], [49, 12], [9, 24], [22, 24], [40, 24], [51, 24], [12, 34], [25, 35], [41, 34], [60, 34]] as [number, number][]) {
+  for (const [tx, ty] of [[9, 12], [23, 14], [40, 14], [49, 12], [9, 24], [22, 24], [40, 24], [51, 24], [12, 34], [25, 35], [41, 34], [60, 34]] as [number, number][]) {
     treeAt('arbusto', tx, ty, tx * 7 + ty);
   }
 
@@ -197,7 +203,7 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   const fo = putLit('fonte', fountainArt, FOUNTAIN.tx, FOUNTAIN.ty, 4, 2, true, 180);
   const wc = waterCenter(fo.pix);
   const ring = { cx: Math.round(fo.x + wc.x), cy: Math.round(fo.y + wc.y) };
-  putLit('mural', A.mural ? labeled(A.mural, 'MURAL') : T.noticeBoardLit(), 24, 16, 3, 1);
+  putLit('mural', A.mural ? labeled(A.mural, 'MURAL') : T.noticeBoardLit(), 24, 17, 3, 1);
   const bench = sprLit('banco', () => ({ pix: P.bench() }));
   putLit('banco-1', bench, 25, 22, 2, 1);
   putLit('banco-2', bench, 37, 22, 2, 1);
@@ -221,6 +227,7 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   const sign = sprLit('placa', () => ({ pix: P.signPost() }));
   putLit('placa-guildas', sign, 12, 31, 1, 1);
   putLit('placa-arena', sign, 51, 31, 1, 1);
+  putLit('placa-masmorra', sign, 33, 26, 1, 1);
   putLit('placa-lago', sign, 11, 41, 1, 1);
   // placas das saídas (ler: espaço de frente)
   putLit('placa-fazenda', sign, 5, 22, 1, 1);
@@ -230,7 +237,8 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   z.spot('placa', 57, 22, { lines: ['LAGO AZUL →', 'Casa de Pesca, píeres para pescar e o barquinho para atravessar o lago.'] });
   z.spot('placa', 29, 43, { lines: ['↓ CIDADE WIT', 'Onde ficam os cursos do Núcleo WIT: IA, IoT, Metaverso, Comunicação Digital e Games.'] });
   z.spot('placa', 12, 31, { lines: ['→ Castelo das Guildas', 'Sua equipe, a meta de presença da semana e o chefe da guilda.'] });
-  z.spot('placa', 51, 31, { lines: ['← Arena', 'Duelos contra os colegas (em breve).'] });
+  z.spot('placa', 51, 31, { lines: ['← Arena', 'Duelos de cartas: contra os desafiantes nas mesas ou contra um colega.'] });
+  z.spot('placa', 33, 26, { lines: ['MASMORRA →', 'O portão de pedra aqui do lado leva à Associação dos Caçadores: escolha um portal (comece pelo E), lute sala por sala e vença o chefe.'] });
   z.spot('placa', 11, 41, { lines: ['Laguinho do Centro', 'Para pescar de verdade, vá ao Lago Azul, a leste.'] });
 
   // ── casas: correio do lado do caminho, canteiros, a cerca da Sua Casa ──
@@ -278,12 +286,12 @@ export function buildTown(assets?: WorldAssets, opts: BuildOptions = {}): Town {
   putLit('pedra-2', rock, 60, 30, 1, 1);
   // a fonte da praça: jogar uma moeda e fazer um pedido
   for (let k = 0; k < 4; k++) z.spot('fonte', FOUNTAIN.tx + k, FOUNTAIN.ty + 1);
-  for (let k = 0; k < 3; k++) z.spot('mural', 24 + k, 16);
+  for (let k = 0; k < 3; k++) z.spot('mural', 24 + k, 17);
   z.spot('maquina', 49, 18);
   // enfeites da natureza (só com os sprites novos; dá para pisar)
   const deco: [string, number, number][] = [
     ['toco', 3, 25], ['cogumelos', 22, 13], ['pedrinhas', 2, 34], ['arbusto-florido', 26, 30], ['cogumelos', 44, 13],
-    ['toco', 60, 27], ['arbusto-florido', 37, 30], ['pedrinhas', 11, 38], ['cogumelos', 5, 45], ['toco', 55, 45],
+    ['toco', 60, 27], ['pedrinhas', 11, 38], ['cogumelos', 5, 45], ['toco', 55, 45],
     ['arbusto-florido', 21, 25], ['arbusto-florido', 42, 25], ['pedrinhas', 40, 43], ['cogumelos', 59, 13],
   ];
   for (const [name, tx, ty] of deco) {
