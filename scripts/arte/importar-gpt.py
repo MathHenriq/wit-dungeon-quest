@@ -155,12 +155,12 @@ def shrink(rgb, alpha, box, size, colors):
     return out
 
 
-def night(px, k=1):
+def night(px, k=1, leds=True):
     """O que acende à noite: janelas amarelas, LEDs lima, telas azuis claras, fogo."""
     r, g, b, a = [px[..., i].astype(int) for i in range(4)]
     on = a > 0
     window = on & (r > 215) & (g > 180) & (b < 175) & (r - b > 70)
-    led = on & (g > 170) & (g - r > 25) & (g - b > 60) & (r > 90)
+    led = on & (g > 170) & (g - r > 25) & (g - b > 60) & (r > 90) & leds
     # LED é ponto ou fita fina; manchas grandes lima são parede ou folhagem
     lab, k = ndimage.label(led)
     if k:
@@ -232,6 +232,8 @@ NO_NIGHT = {'pinheiro', 'arvore-redonda', 'cerejeira', 'arbusto', 'arbusto-flori
             'galinha-esq', 'galinha-dir', 'vaca-esq', 'vaca-dir', 'ovelha-esq', 'ovelha-dir', 'quadra',
             'caixotes', 'barril', 'pedras-margem', 'castelo-areia', 'mesa-piquenique'} | {'peixe-' + f for f in FISH_IDS} \
     | {f'planta-{c}-{k}' for c in CROP_ROWS for k in range(5)}
+# acendem à noite (fogo, portal, cristal), mas o musgo verde-limão não é LED
+NO_LED = {'portao-masmorra'}
 
 
 def save(name, px, manifest, out=OUT, k=1):
@@ -239,7 +241,7 @@ def save(name, px, manifest, out=OUT, k=1):
     npath = os.path.join(out, name + '-noite.png')
     if os.path.exists(npath):
         os.remove(npath)
-    nt, count = night(px, k)
+    nt, count = night(px, k, leds=name not in NO_LED)
     if name in NO_NIGHT:
         count = 0
     entry = {'w': int(px.shape[1]), 'h': int(px.shape[0])}

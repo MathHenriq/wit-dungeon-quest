@@ -825,6 +825,11 @@
   "noite": true,
   "w": 128
  },
+ "portao-masmorra": {
+  "h": 152,
+  "noite": true,
+  "w": 160
+ },
  "porteira": {
   "h": 38,
   "w": 64
