@@ -1,8 +1,8 @@
 // Portão da Masmorra (Centro, ao lado da Arena): um morro de pedra com a boca
 // da caverna e o portal azul aceso lá dentro, a entrada da Associação dos
-// Caçadores. Desenho em hd por código até a arte do GPT (`portao-masmorra`,
-// docs/PROMPTS-GPT.md §Q) chegar: as mesmas medidas, 5 × 5 blocos com a porta
-// no bloco do meio.
+// Caçadores. O jogo usa a arte do GPT (`portao-masmorra`, docs/PROMPTS-GPT.md §Q,
+// desde 01/11); este desenho em hd por código fica para quando ela não carrega,
+// com as mesmas medidas: 5 × 5 blocos com a porta no bloco do meio.
 import type { Building } from './buildings';
 import { darken, hdBuilding, lighten } from './hd-kit';
 import { hash, hex, mix } from './pixmap';

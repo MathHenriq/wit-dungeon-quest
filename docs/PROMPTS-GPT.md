@@ -569,7 +569,7 @@ A top-down view of a trading card game playmat, fantasy anime style, landscape 3
 A top-down view of a trading card game playmat, cute anime monster-battle style, landscape 3:2. Theme: an outdoor battle field seen from above — soft grass field with a large faint white battle circle in the center, rocks, flowers and a small pond at the edges, and a few cute ORIGINAL little monsters (invented designs, not from any existing franchise) peeking from the corners. The center is calm, slightly darker and low detail so cards can be placed on top. No Pokémon or any existing creature, no pokéball, no logos, no text, no letters. Bright friendly colors, clean lineart.
 ```
 
-### Q. Portão da Masmorra (prédio no Centro) — 21/10
+### Q. Portão da Masmorra (prédio no Centro) — 21/10 (chegou e entrou no jogo em 01/11)
 
 Os alunos não achavam a masmorra (ficava dentro da Arena). Agora ela tem prédio
 próprio no Centro, ao lado da Arena: 5 × 5 blocos (80 × 80 px no jogo), porta no
