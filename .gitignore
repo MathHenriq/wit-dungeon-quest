@@ -47,3 +47,6 @@ scripts/out/
 
 # arte bruta da masmorra (180 MB): fica no Release "Assets Dungeon"; só a convertida entra
 public/Novos assets/masmorra/
+
+# backup das fotos do WIT 1 baixado por scripts/limpar-fotos-wit1.mjs
+backup-fotos-wit1/
